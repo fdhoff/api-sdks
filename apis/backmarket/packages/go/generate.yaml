@@ -1,0 +1,91 @@
+# How `npm run generate:go` builds this package. Public method names are in operations.yaml.
+generator: go
+output: backmarketseller
+source: .
+generated_prefixes: [model_, api_]
+resources: resources.go
+runtime: ../internal/runtime
+format: [gofmt, -s, -r, 'interface{} -> any', -w]
+properties:
+  packageName: backmarketseller
+  disallowAdditionalPropertiesIfNotPresent: false
+  withGoMod: false
+  apiNameSuffix: Resource
+  modulePath: github.com/fdhoff/backmarket-seller-sdk/apis/backmarket/packages/go
+# Every field is a pointer here, so nil already means null or absent.
+drop_nullable: true
+# A field of several types becomes `any`.
+drop_unions: true
+type_mappings:
+  integer: int64
+  number: float64
+  file: File
+  File: File
+  binary: File
+  DateTime: Time
+# Go spells these initialisms in capitals. Keys are wire names.
+name_mappings:
+  backmarket_id: BackmarketID
+  carrierId: CarrierID
+  category_id: CategoryID
+  customer_id_number: CustomerIDNumber
+  id: ID
+  imei: IMEI
+  labelUrl: LabelURL
+  listing_id: ListingID
+  marketplace_category_id: MarketplaceCategoryID
+  orderId: OrderID
+  orderPublicId: OrderPublicID
+  order_id: OrderID
+  orderlineId: OrderlineID
+  pickupId: PickupID
+  productId: ProductID
+  product_id: ProductID
+  requestId: RequestID
+  shipmentId: ShipmentID
+  sku: SKU
+  task_id: TaskID
+  trackingUrl: TrackingURL
+  tracking_url: TrackingURL
+  url: URL
+parameter_name_mappings:
+  buybackListingId: buybackListingID
+  buybackOrderId: buybackOrderID
+  careFolderId: careFolderID
+  categoryId: categoryID
+  last_id: lastID
+  listingId: listingID
+  listing_id: listingID
+  order_id: orderID
+  orderline_id: orderlineID
+  productId: productID
+  sku: sKU
+  taskId: taskID
+# These two differ only by case and spacing, so Go needs a second name.
+enum_name_mappings:
+  'DHL  EXPRESS': DHL_EXPRESS_UPPERCASE
+# Care's lowercase schemas differ from others only by case, and `Return` is a reserved word.
+schema_names:
+  address: CareAddress
+  client: CareClient
+  order: CareOrder
+  orderline: CareOrderline
+  Return: ReturnShipment
+# Inline schemas would otherwise be named after their operation.
+inline_schema_names:
+  GetBackboxData_200_response: BackboxPage
+  GetDeliveries_200_response: DeliveryPage
+  GetReturns_200_response: ReturnPage
+  get_ws_buyback_v1_orders_200_response: BuybackOrderPage
+  get_ws_buyback_v1_orders_messages_200_response: BuybackMessagePage
+  get_ws_list_listing_200_response: ListingPage
+  get_ws_list_order_200_response: OrderPage
+  get_ws_specific_listing_200_response: ListingDetail
+  get_ws_task_200_response: Task
+  post_ws_create_or_update_listings_200_response: ListingsBatch
+  post_ws_create_or_update_listings_request: ListingsCatalog
+  update_ws_specific_listing_200_response: UpdatedListing
+  update_ws_specific_listing_request: ListingUpdate
+  update_ws_specific_orderline_200_response: UpdatedOrderLine
+  update_ws_specific_orderline_request: OrderLineUpdate
+  Payload: BuybackListingUpdate

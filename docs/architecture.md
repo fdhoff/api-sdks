@@ -12,13 +12,14 @@ Sections below describe the design; this table says how much of it is real.
 | --- | --- |
 | Spec fetch, hash pin, overlay, lint, mock, CI | Built |
 | Conformance format, runner, harness, cases and reference driver | Built |
-| Generator config and templates | Built for Python and TypeScript |
-| Per-language runtime | Built for Python and TypeScript |
+| Generator config and templates | Built for Python, TypeScript and Go |
+| Per-language runtime | Built for Python, TypeScript and Go |
 | Python and TypeScript clients | Alpha, unpublished |
-| Go, C# and Rust clients | Planned, in that order |
+| Go client | Alpha, untagged |
+| C# and Rust clients | Planned, in that order |
 | Spec drift job | Built |
 | Release workflows and changelogs | Built for Python and TypeScript, publishing off |
-| Quickstarts | Built for Python and TypeScript |
+| Quickstarts | Built for Python, TypeScript and Go |
 
 ## Goals
 
@@ -97,6 +98,8 @@ The spec has been wrong before, so clients do not trust it when reading. Request
 
 Model fields follow each language's conventions where a client maps them. The TypeScript client does not: it keeps the API's field names, because any mapping would need per-model code at runtime, and unknown or mistyped fields are meant to pass through. Its methods, parameters and options are camelCase.
 
+Go cannot put a raw value in a typed field, and has no optional values. So each Go model is a struct of pointers, one for every field, and an `Extra` map. A value that does not fit stays nil and goes to `Extra`, along with unknown fields and nulls, and `json.Marshal` restores them all. Required fields are pointers too, because the spec's `required` is unconfirmed, and an absent field must read differently from a zero. A top-level body that is not the declared type has nowhere to go, so it raises `decode` with the body in `raw_body`. Union schemas become `any`.
+
 ## Runtime contract
 
 Every language implements the same behaviour. The conformance cases are the authority, and `spec-audit.md` has the reasoning. Nothing here has been confirmed against the live API.
@@ -153,7 +156,7 @@ Errors map on status first, then parse the body best-effort. A body that fits no
 | `api` | Any other status |
 | `timeout` | No response in time, after retries |
 | `connection` | The connection failed or dropped before a full response, after retries |
-| `decode` | A success response whose declared JSON does not parse, or whose compressed body cannot be decompressed. Never retried. |
+| `decode` | A success response whose declared JSON does not parse, or whose compressed body cannot be decompressed; a page whose `next` link is not a valid URL. Never retried. |
 
 Errors also carry `request_id`, `code` and `cf_ray` when present. Each language exposes these under its own naming conventions.
 
@@ -173,7 +176,7 @@ runner ── JSON lines ──> driver (one per language) ── HTTP ──> h
 * The **harness** records every request. It answers from Prism, which also rejects requests the spec does not allow, or from a script, for what Prism cannot do: response sequences, delays, slow bodies, dropped connections, HTML bodies and undeclared statuses.
 * The **reference driver** is a minimal JavaScript client that proves each case can pass. It is test code, not an SDK, and `npm test` runs it.
 
-There are 80 cases, covering auth, pagination, 4xx and 5xx errors, 429 retry, timeouts, connection failures, redaction and 30 of the 40 operations. CI runs them with the reference driver and with each language's client: Python sync and async, and the TypeScript ESM and CommonJS builds.
+There are 81 cases, covering auth, pagination, 4xx and 5xx errors, 429 retry, timeouts, connection failures, redaction and 30 of the 40 operations. CI runs them with the reference driver and with each language's client: Python sync and async, the TypeScript ESM and CommonJS builds, and Go.
 
 ## Versioning and release
 

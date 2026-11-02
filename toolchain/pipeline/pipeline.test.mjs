@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyOperations, renameSchemas, stripProse } from './generate.mjs';
+import { applyOperations, dropNullable, dropUnions, renameSchemas, stripProse } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -144,6 +144,33 @@ test('applyOperations marks operations whose query or form parameters must be pa
   const allOf = { allOf: [{ required: ['file'] }] };
   assert.equal(required(op('a', form), { schemas: { F: {} } }), false);
   assert.equal(required(op('a', form), { schemas: { F: allOf } }), true);
+});
+
+test('dropNullable removes nullability but keeps properties that use its name', () => {
+  const spec = {
+    a: { type: 'string', nullable: true, enum: ['x', null] },
+    b: { anyOf: [{ nullable: true }, { type: 'string', nullable: true }] },
+    c: { anyOf: [{ type: 'string' }, { type: 'integer' }] },
+    d: { properties: { nullable: { type: 'boolean', nullable: true } } },
+  };
+  assert.deepEqual(dropNullable(spec), {
+    a: { type: 'string', enum: ['x'] },
+    b: { type: 'string' },
+    c: { anyOf: [{ type: 'string' }, { type: 'integer' }] },
+    d: { properties: { nullable: { type: 'boolean' } } },
+  });
+});
+
+test('dropUnions leaves unions and references to them untyped', () => {
+  const spec = {
+    components: {
+      schemas: {
+        Either: { oneOf: [{ type: 'string' }, { type: 'integer' }] },
+        Item: { properties: { either: { $ref: '#/components/schemas/Either' }, inline: { anyOf: [{ type: 'string' }] } } },
+      },
+    },
+  };
+  assert.deepEqual(dropUnions(spec), { components: { schemas: { Item: { properties: { either: {}, inline: {} } } } } });
 });
 
 test('applyOperations names every operation and refuses gaps', () => {

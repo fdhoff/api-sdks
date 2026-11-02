@@ -1,0 +1,71 @@
+{{>partial_header}}
+
+package {{packageName}}
+
+import (
+	"context"
+
+	"{{modulePath}}/internal/runtime"
+)
+
+{{#operations}}
+var (
+{{#operation}}
+	op{{operationId}} = runtime.Register(runtime.Operation{
+		ID:          "{{operationIdOriginal}}",
+		Method:      "{{#lambda.uppercase}}{{httpMethod}}{{/lambda.uppercase}}",
+		Path:        "{{{path}}}",
+		Resource:    "{{baseName}}",
+		Name:        "{{vendorExtensions.x-sdk-method}}",
+{{#vendorExtensions.x-sdk-iterator}}
+		Iterator:    "{{.}}",
+{{/vendorExtensions.x-sdk-iterator}}
+		PathParams:  []string{ {{#pathParams}}"{{baseName}}",{{/pathParams}} },
+		QueryParams: []string{ {{#queryParams}}"{{baseName}}",{{/queryParams}} },
+	})
+{{/operation}}
+)
+
+// {{classname}} groups the {{baseName}} operations.
+type {{classname}} struct {
+	transport *runtime.Transport
+}
+{{#operation}}
+{{#hasQueryParams}}
+
+// {{baseName}}{{vendorExtensions.x-sdk-method}}Params holds the query parameters of [{{classname}}.{{vendorExtensions.x-sdk-method}}]. Set only what you need.
+type {{baseName}}{{vendorExtensions.x-sdk-method}}Params struct {
+{{#queryParams}}
+	{{nameInPascalCase}} {{^isArray}}*{{/isArray}}{{{dataType}}} `query:"{{baseName}}"`
+{{/queryParams}}
+}
+{{/hasQueryParams}}
+{{#hasFormParams}}
+
+// {{baseName}}{{vendorExtensions.x-sdk-method}}Params holds the form fields of [{{classname}}.{{vendorExtensions.x-sdk-method}}].
+type {{baseName}}{{vendorExtensions.x-sdk-method}}Params struct {
+{{#formParams}}
+	{{nameInPascalCase}} {{^isArray}}{{^isFile}}*{{/isFile}}{{/isArray}}{{{dataType}}} `form:"{{baseName}}"`
+{{/formParams}}
+}
+{{/hasFormParams}}
+
+// {{{vendorExtensions.x-sdk-summary}}}
+func (r *{{classname}}) {{vendorExtensions.x-sdk-method}}({{>partial_sdk_args}}) {{#returnType}}({{>partial_sdk_return}}, error){{/returnType}}{{^returnType}}error{{/returnType}} {
+{{#returnType}}
+	return runtime.Call[{{>partial_sdk_return}}](ctx, r.transport, op{{operationId}}, {{>partial_sdk_input}})
+{{/returnType}}
+{{^returnType}}
+	_, err := runtime.Call[any](ctx, r.transport, op{{operationId}}, {{>partial_sdk_input}})
+	return err
+{{/returnType}}
+}
+{{#vendorExtensions.x-sdk-iterator}}
+
+// {{.}} iterates every item across all pages. It stops after yielding an error.
+func (r *{{classname}}) {{.}}({{>partial_sdk_args}}) Seq[{{vendorExtensions.x-sdk-items}}] {
+	return runtime.Paginate[{{vendorExtensions.x-sdk-items}}](ctx, r.transport, op{{operationId}}, {{>partial_sdk_input}})
+}
+{{/vendorExtensions.x-sdk-iterator}}
+{{/operation}}
+{{/operations}}

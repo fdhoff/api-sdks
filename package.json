@@ -19,6 +19,8 @@
     "generate:typescript": "node toolchain/pipeline/generate.mjs apis/backmarket typescript",
     "conformance:typescript": "node toolchain/conformance/run.mjs apis/backmarket --driver \"node apis/backmarket/packages/typescript/conformance/driver.mjs --format esm\"",
     "conformance:typescript:cjs": "node toolchain/conformance/run.mjs apis/backmarket --driver \"node apis/backmarket/packages/typescript/conformance/driver.mjs --format cjs\"",
+    "generate:go": "node toolchain/pipeline/generate.mjs apis/backmarket go",
+    "conformance:go": "go -C apis/backmarket/packages/go build -o bin/driver ./conformance/driver && node toolchain/conformance/run.mjs apis/backmarket --driver apis/backmarket/packages/go/bin/driver",
     "test": "node --test \"toolchain/**/*.test.mjs\" \"apis/**/*.test.mjs\""
   },
   "devDependencies": {

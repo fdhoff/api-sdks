@@ -4,11 +4,11 @@ Unofficial spec-driven SDKs for the Back Market Seller API.
 
 This project is unofficial and is not affiliated with, endorsed by, or supported by Back Market.
 
-The Python and TypeScript SDKs are unpublished alphas: see [`apis/backmarket/packages/python/`](apis/backmarket/packages/python/README.md) and [`apis/backmarket/packages/typescript/`](apis/backmarket/packages/typescript/README.md). Go, C# and Rust will follow in that order.
+The Python and TypeScript SDKs are unpublished alphas: see [`apis/backmarket/packages/python/`](apis/backmarket/packages/python/README.md) and [`apis/backmarket/packages/typescript/`](apis/backmarket/packages/typescript/README.md). The Go SDK is an untagged alpha: see [`apis/backmarket/packages/go/`](apis/backmarket/packages/go/README.md). C# and Rust will follow in that order.
 
 ## Quickstart
 
-Python and TypeScript come first, and neither is published yet. Install one from a checkout of this repository, and pass in your own API token.
+None of the SDKs is published yet. Install one from a checkout of this repository, and pass in your own API token.
 
 ### Python
 
@@ -59,6 +59,30 @@ for await (const order of client.orders.iter()) {
 
 The [TypeScript README](apis/backmarket/packages/typescript/README.md) covers CommonJS, errors, configuration and behaviour.
 
+### Go
+
+Requires Go 1.24 or later. Every call takes a context and pages are walked with `range`:
+
+```go
+client, err := backmarketseller.NewClient(
+	"your-token",
+	"BM-YourCompany-YourIntegration;you@example.com",
+	"fr-fr",
+	backmarketseller.WithRegion(backmarketseller.RegionEU),
+)
+if err != nil {
+	log.Fatal(err)
+}
+for order, err := range client.Orders.Iter(context.Background(), nil) {
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(*order.OrderID)
+}
+```
+
+The [Go README](apis/backmarket/packages/go/README.md) covers installing from a checkout, errors, configuration and behaviour.
+
 ## Live API reports
 
 Every test runs against a mock built from the public spec, so nothing here is confirmed against the live API. If you use an SDK for real, please report what you find, working or not, as a GitHub issue. The packages stay on 0.x until those reports confirm their behaviour.
@@ -101,6 +125,8 @@ npm run conformance:python:async
 npm run generate:typescript     # regenerate the TypeScript client; needs Java 21 and `npm ci --ignore-scripts` in the package
 npm run conformance:typescript  # run the cases against the ESM build; `npm run build` in the package first
 npm run conformance:typescript:cjs
+npm run generate:go             # regenerate the Go client; needs Java 21 and Go 1.24 or later
+npm run conformance:go          # build the driver and run the cases against the Go client
 ```
 
 Once the spec is cached, the build and tests need no network. A hash mismatch stops the build; the error says how to recover.

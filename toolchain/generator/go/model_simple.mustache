@@ -1,0 +1,19 @@
+import (
+	"encoding/json"
+
+	"{{modulePath}}/internal/runtime"
+)
+
+// {{classname}} is an API object. Extra holds unknown fields and any value that did not fit its field.
+type {{classname}} struct {
+{{#vars}}
+	{{name}} {{^isArray}}{{^isMap}}{{^isAnyType}}{{^isFreeFormObject}}*{{/isFreeFormObject}}{{/isAnyType}}{{/isMap}}{{/isArray}}{{{dataType}}} `json:"{{baseName}},omitempty"`
+{{/vars}}
+	Extra map[string]json.RawMessage `json:"-"`
+}
+
+// UnmarshalJSON decodes tolerantly: a field that does not fit stays unset and its raw value goes to Extra.
+func (m *{{classname}}) UnmarshalJSON(data []byte) error { return runtime.DecodeObject(data, m) }
+
+// MarshalJSON encodes the fields that are set, followed by Extra.
+func (m {{classname}}) MarshalJSON() ([]byte, error) { return runtime.EncodeObject(m) }

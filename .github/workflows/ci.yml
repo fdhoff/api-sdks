@@ -148,3 +148,48 @@ jobs:
           npm install --ignore-scripts ../backmarket-seller-*.tgz
           node --input-type=module -e "import { BackMarketClient } from 'backmarket-seller'; console.log(typeof BackMarketClient)" | grep function
           node --input-type=commonjs -e "console.log(typeof require('backmarket-seller').BackMarketClient)" | grep function
+
+  go:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ["1.24", "1.27"]
+    env:
+      SCARF_ANALYTICS: "false"
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci --ignore-scripts
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: apis/backmarket/spec/upstream/openapi.yaml
+          key: upstream-spec-${{ hashFiles('apis/backmarket/spec/upstream/lock.json') }}
+      - run: npm run spec:fetch
+      - run: npm run spec:build
+      - name: Generated code matches the spec, templates and runtime
+        run: |
+          npm run generate:go
+          git add -N apis/backmarket/packages/go
+          git diff --exit-code apis/backmarket/packages/go
+      - working-directory: apis/backmarket/packages/go
+        run: |
+          test -z "$(gofmt -l .)"
+          go vet ./...
+          go test -race ./...
+      - run: npm run conformance:go

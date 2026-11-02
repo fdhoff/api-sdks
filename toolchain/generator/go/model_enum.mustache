@@ -1,0 +1,10 @@
+// {{{classname}}} is an enumerated value. A value this version does not list is kept as it is.
+type {{{classname}}} {{dataType}}
+
+const (
+{{#allowableValues}}
+{{#enumVars}}
+	{{{classname}}}{{#lambda.pascalcase}}{{#lambda.lowercase}}{{name}}{{/lambda.lowercase}}{{/lambda.pascalcase}} {{{classname}}} = {{{value}}}
+{{/enumVars}}
+{{/allowableValues}}
+)

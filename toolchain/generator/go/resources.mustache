@@ -1,0 +1,24 @@
+{{>partial_header}}
+
+package {{packageName}}
+
+import "{{modulePath}}/internal/runtime"
+
+// Resources groups every API operation by resource.
+type Resources struct {
+{{#apiInfo}}
+{{#apis}}
+	{{baseName}} *{{classname}}
+{{/apis}}
+{{/apiInfo}}
+}
+
+func newResources(transport *runtime.Transport) Resources {
+	return Resources{
+{{#apiInfo}}
+{{#apis}}
+		{{baseName}}: &{{classname}}{transport},
+{{/apis}}
+{{/apiInfo}}
+	}
+}

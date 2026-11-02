@@ -1,0 +1,14 @@
+{{>partial_header}}
+
+package {{packageName}}
+
+{{#models}}
+{{#model}}
+{{#isEnum}}
+{{>model_enum}}
+{{/isEnum}}
+{{^isEnum}}
+{{>model_simple}}
+{{/isEnum}}
+{{/model}}
+{{/models}}

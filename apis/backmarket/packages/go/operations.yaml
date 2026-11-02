@@ -1,0 +1,50 @@
+# Public names for every operation, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that walks every page and yields `items`.
+# `string_params` narrows a parameter the spec types as a union to a plain string.
+get-bm-catalog-category: { resource: Categories, method: List, summary: List lists the category tree. }
+get-bm-catalog-category-branch: { resource: Categories, method: Get, summary: Get gets one branch of the category tree. }
+
+get-ws-list-listing: { resource: Listings, method: List, iterator: Iter, items: ListingPublic, summary: List lists one page of listings. }
+post-ws-create-or-update-listings: { resource: Listings, method: BatchUpdate, summary: BatchUpdate creates or updates listings from a CSV catalog. }
+get-ws-specific-listing: { resource: Listings, method: Get, string_params: [listingId], summary: Get gets one listing. }
+update-ws-specific-listing: { resource: Listings, method: Update, string_params: [listingId], summary: Update updates one listing. }
+get-ws-listing-detail: { resource: Listings, method: Find, summary: Find finds one listing by SKU or identifier. }
+
+get-ws-task: { resource: Tasks, method: Get, summary: Get gets the state of a background task. }
+
+get-ws-buyback-v1-orders: { resource: Buyback, method: ListOrders, iterator: IterOrders, items: BuybackOrder, summary: ListOrders lists one page of buyback orders. }
+get-ws-buyback-v1-orders-pending-reply: { resource: Buyback, method: ListPendingOrders, iterator: IterPendingOrders, items: BuybackOrder, summary: ListPendingOrders lists one page of buyback orders awaiting a reply. }
+get-ws-buyback-v1-orders-suspend-reasons: { resource: Buyback, method: ListSuspendReasons, summary: ListSuspendReasons lists the reasons a buyback order can be suspended. }
+get-ws-buyback-v1-order: { resource: Buyback, method: GetOrder, summary: GetOrder gets one buyback order. }
+get-ws-buyback-v1-orders-messages: { resource: Buyback, method: ListMessages, iterator: IterMessages, items: BuybackMessage, summary: ListMessages lists one page of a buyback order's messages. }
+post-ws-buyback-v1-orders-messages: { resource: Buyback, method: SendMessage, summary: SendMessage sends a message on a buyback order. }
+put-ws-buyback-v1-orders-suspend: { resource: Buyback, method: SuspendOrder, summary: SuspendOrder suspends a buyback order. }
+put-ws-buyback-v1-orders-validate: { resource: Buyback, method: ValidateOrder, summary: ValidateOrder validates a buyback order. }
+get-ws-counter-offer-reason: { resource: Buyback, method: ListCounterOfferReasons, summary: ListCounterOfferReasons lists the counter-offer reasons for a buyback order. }
+put-ws-refurbisher-counter-offer: { resource: Buyback, method: CounterOffer, summary: CounterOffer makes a counter-offer on a buyback order. }
+get-ws-buyback-v1-listings: { resource: Buyback, method: ListListings, iterator: IterListings, items: BuybackListing, summary: ListListings lists one page of buyback listings. }
+get-ws-buyback-v1-listing: { resource: Buyback, method: GetListing, summary: GetListing gets one buyback listing. }
+put-ws-buyback-v1-listing: { resource: Buyback, method: UpdateListing, summary: UpdateListing updates one buyback listing. }
+get-ws-buyback-v1-competitors: { resource: Buyback, method: ListCompetitors, summary: ListCompetitors lists competitors for a buyback listing. }
+
+get-ws-list-order: { resource: Orders, method: List, iterator: Iter, items: Order, summary: List lists one page of orders. }
+get-ws-specific-order: { resource: Orders, method: Get, summary: Get gets one order. }
+update-ws-specific-order: { resource: Orders, method: Update, summary: Update updates one order. }
+post-ws-specific-order-invoice: { resource: Orders, method: UploadInvoice, summary: UploadInvoice uploads invoices for an order. }
+update-ws-specific-orderline: { resource: Orders, method: UpdateLine, summary: UpdateLine updates one order line. }
+
+GetDeliveries: { resource: Shipping, method: ListDeliveries, iterator: IterDeliveries, items: Delivery, summary: ListDeliveries lists one page of deliveries. }
+GetReturns: { resource: Shipping, method: ListReturns, iterator: IterReturns, items: ReturnShipment, summary: ListReturns lists one page of returns. }
+GetDelivery: { resource: Shipping, method: GetDelivery, summary: GetDelivery gets one delivery. }
+GetReturn: { resource: Shipping, method: GetReturn, summary: GetReturn gets one return. }
+
+getCareFolderList: { resource: Care, method: ListFolders, iterator: IterFolders, items: CareFolder, summary: ListFolders lists one page of care folders. }
+getCareFolderDetails: { resource: Care, method: GetFolder, summary: GetFolder gets one care folder. }
+postProblem: { resource: Care, method: ReportProblem, summary: ReportProblem reports a problem on a care folder. }
+postRefundCreate: { resource: Care, method: CreateRefund, summary: CreateRefund creates a refund. Never retried on failure. }
+postMessage: { resource: Care, method: SendMessage, summary: SendMessage sends a message on a care folder. }
+postItemTransfer: { resource: Care, method: TransferItem, summary: TransferItem transfers an item on a care folder. }
+postNote: { resource: Care, method: AddNote, summary: AddNote adds a note to a care folder. }
+
+GetBackboxData: { resource: Backbox, method: List, iterator: Iter, items: Backbox, summary: List lists one page of Backbox data. }
+get-ws-backbox-v1-competitors: { resource: Backbox, method: ListCompetitors, summary: ListCompetitors lists competitors for a listing. }
