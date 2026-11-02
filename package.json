@@ -13,6 +13,9 @@
     "spec:lint": "spectral lint apis/backmarket/build/openapi.yaml --ruleset toolchain/spectral.yaml --fail-severity=error",
     "mock": "prism mock apis/backmarket/build/openapi.yaml --port 4010",
     "conformance": "node toolchain/conformance/run.mjs apis/backmarket --driver \"node apis/backmarket/conformance/reference-driver.mjs\"",
+    "generate:python": "node toolchain/pipeline/generate.mjs apis/backmarket python",
+    "conformance:python": "node toolchain/conformance/run.mjs apis/backmarket --driver \"python apis/backmarket/packages/python/conformance/driver.py --mode sync\"",
+    "conformance:python:async": "node toolchain/conformance/run.mjs apis/backmarket --driver \"python apis/backmarket/packages/python/conformance/driver.py --mode async\"",
     "test": "node --test \"toolchain/**/*.test.mjs\" \"apis/**/*.test.mjs\""
   },
   "devDependencies": {

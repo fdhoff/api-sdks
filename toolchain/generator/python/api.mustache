@@ -1,0 +1,82 @@
+{{>partial_header}}
+from __future__ import annotations
+
+from typing import Any, AsyncIterator, Dict, Iterator, List, Mapping, Optional, Tuple, Union
+
+from pydantic import Field, StrictFloat, StrictInt, StrictStr
+from typing_extensions import Annotated
+
+{{#imports}}
+{{import}}
+{{/imports}}
+{{#operations}}
+{{#operation}}
+{{#vendorExtensions.x-sdk-items}}
+from {{packageName}}.models import {{.}}
+{{/vendorExtensions.x-sdk-items}}
+{{/operation}}
+{{/operations}}
+from {{packageName}}._runtime import AsyncResource, FileInput, Operation, Param, Resource
+
+{{#operations}}
+{{#operation}}
+_{{operationIdSnakeCase}}: Operation[{{{returnType}}}{{^returnType}}None{{/returnType}}] = Operation(
+    id="{{operationIdOriginal}}",
+    method="{{httpMethod}}",
+    path="{{{path}}}",
+    resource="{{baseName}}",
+    name="{{vendorExtensions.x-sdk-method}}",
+    params=(
+{{#pathParams}}
+        Param("{{baseName}}", "{{paramName}}", "path"),
+{{/pathParams}}
+{{#queryParams}}
+        Param("{{baseName}}", "{{paramName}}", "query"),
+{{/queryParams}}
+{{#formParams}}
+        Param("{{baseName}}", "{{paramName}}", "form"),
+{{/formParams}}
+    ),
+    response={{{returnType}}}{{^returnType}}None{{/returnType}},
+{{#vendorExtensions.x-sdk-iterator}}
+    iterator="{{vendorExtensions.x-sdk-iterator}}",
+    item={{vendorExtensions.x-sdk-items}},
+{{/vendorExtensions.x-sdk-iterator}}
+)
+{{/operation}}
+
+OPERATIONS = (
+{{#operation}}
+    _{{operationIdSnakeCase}},
+{{/operation}}
+)
+
+
+class {{classname}}(Resource):
+{{#operation}}
+    def {{vendorExtensions.x-sdk-method}}{{>partial_sdk_args}} -> {{{returnType}}}{{^returnType}}None{{/returnType}}:
+        """{{vendorExtensions.x-sdk-summary}}"""
+        return self._call{{>partial_sdk_call}}
+
+{{#vendorExtensions.x-sdk-iterator}}
+    def {{vendorExtensions.x-sdk-iterator}}{{>partial_sdk_args}} -> Iterator[{{vendorExtensions.x-sdk-items}}]:
+        """Iterate every item across all pages."""
+        return self._paginate{{>partial_sdk_call}}
+
+{{/vendorExtensions.x-sdk-iterator}}
+{{/operation}}
+
+class Async{{classname}}(AsyncResource):
+{{#operation}}
+    async def {{vendorExtensions.x-sdk-method}}{{>partial_sdk_args}} -> {{{returnType}}}{{^returnType}}None{{/returnType}}:
+        """{{vendorExtensions.x-sdk-summary}}"""
+        return await self._call{{>partial_sdk_call}}
+
+{{#vendorExtensions.x-sdk-iterator}}
+    def {{vendorExtensions.x-sdk-iterator}}{{>partial_sdk_args}} -> AsyncIterator[{{vendorExtensions.x-sdk-items}}]:
+        """Iterate every item across all pages."""
+        return self._paginate{{>partial_sdk_call}}
+
+{{/vendorExtensions.x-sdk-iterator}}
+{{/operation}}
+{{/operations}}

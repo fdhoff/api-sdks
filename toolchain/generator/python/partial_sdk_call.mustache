@@ -1,0 +1,15 @@
+(
+            _{{operationIdSnakeCase}},
+{{#pathParams}}
+            {{paramName}}={{paramName}},
+{{/pathParams}}
+{{#bodyParam}}
+            _body=body,
+{{/bodyParam}}
+{{#queryParams}}
+            {{paramName}}={{paramName}},
+{{/queryParams}}
+{{#formParams}}
+            {{paramName}}={{paramName}},
+{{/formParams}}
+        )

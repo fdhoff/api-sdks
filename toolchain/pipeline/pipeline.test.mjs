@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
+import { applyOperations, renameSchemas, stripProse } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 
 const overlayWith = (actions) => ({ overlay: '1.0.0', info: { title: 't', version: '1' }, actions });
@@ -91,4 +92,55 @@ test('apiPaths resolves every artefact under the API directory', () => {
 test('apiDirFromArgs skips flags and requires a directory', () => {
   assert.equal(apiDirFromArgs(['node', 'x.mjs', '--pin', 'apis/example']), 'apis/example');
   assert.throws(() => apiDirFromArgs(['node', 'x.mjs', '--verify']), /Usage/);
+});
+
+test('stripProse removes prose but keeps fields that share its names', () => {
+  const spec = {
+    info: { title: 'T', description: 'prose' },
+    components: {
+      schemas: {
+        Thing: {
+          description: 'prose',
+          example: { description: 'x' },
+          properties: { description: { type: 'string', description: 'prose' } },
+        },
+      },
+    },
+  };
+  assert.deepEqual(stripProse(spec), {
+    info: { title: 'T' },
+    components: { schemas: { Thing: { properties: { description: { type: 'string' } } } } },
+  });
+});
+
+test('renameSchemas moves a schema and every reference to it', () => {
+  const spec = {
+    components: { schemas: { a: { type: 'string' }, B: { properties: { x: { $ref: '#/components/schemas/a' } } } } },
+  };
+  const renamed = renameSchemas(spec, { a: 'Renamed' });
+  assert.deepEqual(Object.keys(renamed.components.schemas), ['Renamed', 'B']);
+  assert.equal(renamed.components.schemas.B.properties.x.$ref, '#/components/schemas/Renamed');
+  assert.throws(() => renameSchemas(spec, { missing: 'Other' }), /unknown schemas: missing/);
+});
+
+test('applyOperations names every operation and refuses gaps', () => {
+  const spec = () => ({
+    paths: {
+      '/items/{id}': {
+        parameters: [{ name: 'id', schema: { oneOf: [{ type: 'string' }] } }],
+        get: { operationId: 'get-item' },
+      },
+    },
+  });
+  const names = {
+    'get-item': { resource: 'items', method: 'get', summary: 'Get.', iterator: 'iter', items: 'Item', string_params: ['id'] },
+  };
+  const { paths } = applyOperations(spec(), names);
+  const item = paths['/items/{id}'];
+  assert.deepEqual(item.get.tags, ['items']);
+  assert.equal(item.get['x-sdk-method'], 'get');
+  assert.equal(item.get['x-sdk-items'], 'Item');
+  assert.deepEqual(item.parameters[0].schema, { type: 'string' });
+  assert.throws(() => applyOperations(spec(), {}), /does not name get-item/);
+  assert.throws(() => applyOperations(spec(), { ...names, other: {} }), /unknown operations: other/);
 });

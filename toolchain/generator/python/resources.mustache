@@ -1,0 +1,41 @@
+{{>partial_header}}
+from __future__ import annotations
+
+from typing import Any, Dict
+
+{{#apiInfo}}
+{{#apis}}
+from {{apiPackage}} import {{classFilename}}
+{{/apis}}
+{{/apiInfo}}
+from {{packageName}}._runtime import AsyncTransport, Operation, SyncTransport
+
+OPERATIONS: Dict[str, Operation[Any]] = {
+    operation.id: operation
+    for operations in (
+{{#apiInfo}}
+{{#apis}}
+        {{classFilename}}.OPERATIONS,
+{{/apis}}
+{{/apiInfo}}
+    )
+    for operation in operations
+}
+
+
+class Resources:
+    def __init__(self, transport: SyncTransport) -> None:
+{{#apiInfo}}
+{{#apis}}
+        self.{{baseName}} = {{classFilename}}.{{classname}}(transport)
+{{/apis}}
+{{/apiInfo}}
+
+
+class AsyncResources:
+    def __init__(self, transport: AsyncTransport) -> None:
+{{#apiInfo}}
+{{#apis}}
+        self.{{baseName}} = {{classFilename}}.Async{{classname}}(transport)
+{{/apis}}
+{{/apiInfo}}

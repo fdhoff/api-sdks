@@ -1,0 +1,25 @@
+from __future__ import annotations
+
+{{#vendorExtensions.x-py-other-imports}}
+{{{.}}}
+{{/vendorExtensions.x-py-other-imports}}
+{{#vendorExtensions.x-py-model-imports}}
+{{{.}}}
+{{/vendorExtensions.x-py-model-imports}}
+from {{packageName}}._runtime import ApiModel
+
+
+class {{classname}}({{#parent}}{{{.}}}{{/parent}}{{^parent}}ApiModel{{/parent}}):
+    """{{classname}} model."""
+
+{{#vars}}
+    {{name}}: {{{vendorExtensions.x-py-typing}}}
+{{/vars}}
+
+
+{{#vendorExtensions.x-py-postponed-model-imports.size}}
+{{#vendorExtensions.x-py-postponed-model-imports}}
+{{{.}}}
+{{/vendorExtensions.x-py-postponed-model-imports}}
+{{classname}}.model_rebuild(raise_errors=False)
+{{/vendorExtensions.x-py-postponed-model-imports.size}}

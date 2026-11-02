@@ -108,6 +108,8 @@ Generator config:
 * Schema names mix kebab, camel and Pascal case, and the existing `operationId`s mix three conventions. Set public names per language rather than inheriting them.
 * `listingId` on `/ws/listings/{listingId}` is `oneOf` UUID or integer. Prefer a plain string parameter in public signatures; the docs prefer the UUID.
 
+Each package holds these in its `generate.yaml` and `operations.yaml`.
+
 Open:
 
 * 6 Buyback date filters use the invalid format `datetime`, with date-only examples. Generators will treat them as plain strings; whether a full timestamp is accepted is unknown.

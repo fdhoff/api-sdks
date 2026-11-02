@@ -1,3 +1,10 @@
 node_modules/
 build/
 apis/backmarket/spec/upstream/openapi.yaml
+__pycache__/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+dist/

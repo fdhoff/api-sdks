@@ -4,7 +4,7 @@ Unofficial spec-driven SDKs for the Back Market Seller API.
 
 This project is unofficial and is not affiliated with, endorsed by, or supported by Back Market.
 
-No SDK is usable yet. Python, TypeScript, Go, C# and Rust will ship in that order.
+The Python SDK is an unpublished alpha: see [`apis/backmarket/packages/python/`](apis/backmarket/packages/python/README.md). TypeScript, Go, C# and Rust will follow in that order.
 
 ## Layout
 
@@ -38,6 +38,9 @@ npm run spec:lint
 npm run mock         # serve the built spec on http://127.0.0.1:4010
 npm run conformance  # run the conformance cases with the reference driver
 npm run spec:pin     # re-pin to the current upstream spec
+npm run generate:python         # regenerate the Python client; needs Java 21 and the package's dev tools
+npm run conformance:python      # run the cases against the sync Python client
+npm run conformance:python:async
 ```
 
 Once the spec is cached, the build and tests need no network. A hash mismatch stops the build; the error says how to recover.

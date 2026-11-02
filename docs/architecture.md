@@ -6,15 +6,16 @@ This project is unofficial and is not affiliated with, endorsed by, or supported
 
 ## Status
 
-No SDK exists yet. Sections below describe the design; this table says how much of it is real.
+Sections below describe the design; this table says how much of it is real.
 
 | Part | Status |
 | --- | --- |
 | Spec fetch, hash pin, overlay, lint, mock, CI | Built |
 | Conformance format, runner, harness, cases and reference driver | Built |
-| Generator config and templates | Planned |
-| Per-language runtime | Planned |
-| Python, TypeScript, Go, C# and Rust clients | Planned, in that order |
+| Generator config and templates | Built for Python |
+| Per-language runtime | Built for Python |
+| Python client | Alpha, unpublished |
+| TypeScript, Go, C# and Rust clients | Planned, in that order |
 | Spec drift job | Planned |
 | Release workflows and changelogs | Planned |
 | Quickstarts | Planned |
@@ -43,11 +44,11 @@ flowchart LR
   cache --> build
   build --> lint[Spectral lint]
   build --> mock[Prism mock]
-  build -.-> generator[OpenAPI Generator]
-  templates[Templates and config] -.-> generator
-  generator -.-> clients[Generated clients]
-  runtime[Hand-written runtime] -.-> clients
-  clients -.-> conformance[Conformance]
+  build --> generator[OpenAPI Generator]
+  templates[Templates and config] --> generator
+  generator --> clients[Generated clients]
+  runtime[Hand-written runtime] --> clients
+  clients --> conformance[Conformance]
   mock --> conformance
   conformance -.-> release[Release]
 ```
@@ -57,8 +58,8 @@ Dashed edges are planned.
 1. **Upstream spec.** `apis/backmarket/spec/upstream/lock.json` records the URL, SHA-256, `info.version`, `Last-Modified` and retrieval date. The spec itself is not in this repository. `npm run spec:fetch` downloads it to a gitignored cache and checks the hash. A mismatched download is never cached, and a mismatched cache stops the build with an error that says how to recover. Once cached, the build and tests need no network.
 2. **Overlay.** `apis/backmarket/spec/overlay.yaml` holds our corrections, in [OpenAPI Overlay](https://spec.openapis.org/overlay/v1.0.0.html) format. Each one is explained in `apis/backmarket/docs/spec-audit.md`. `npm run spec:build` applies them and writes `apis/backmarket/build/openapi.yaml`, and fails if an action matches nothing, so a correction cannot quietly stop applying.
 3. **Lint and mock.** Spectral lints the built spec. Prism serves it as a mock on port 4010.
-4. **Generator (planned).** OpenAPI Generator, at a pinned version, turns the built spec into one client per language, with custom templates where its defaults are not idiomatic.
-5. **Runtime (planned).** A small hand-written library per language supplies what the generator does badly.
+4. **Generator.** OpenAPI Generator, at the version and SHA-256 in `toolchain/generator/lock.json`, turns the built spec into one client per language, with custom templates where its defaults are not idiomatic. `toolchain/pipeline/generate.mjs` first strips descriptions, summaries and examples, so the committed clients carry no upstream prose, then applies the package's `generate.yaml` and `operations.yaml`, which hold its public names and our own summaries.
+5. **Runtime.** A small hand-written library per language supplies what the generator does badly. The generic part lives in `toolchain/runtime/<language>/` and is copied into each package on generation; what is specific to this API, such as servers and the error table, sits in the package.
 6. **Conformance.** One set of cases runs against every language. A language is not supported until it passes.
 7. **Release (planned).** Each package is published by a release workflow. See [Versioning and release](#versioning-and-release).
 
@@ -77,11 +78,11 @@ The boundary only keeps a later extraction cheap. It does not justify building a
 
 ## Generated and hand-written code
 
-| Generated (planned) | Hand-written (planned) |
+| Generated | Hand-written |
 | --- | --- |
 | Models and serialisation | Auth, timeouts and retries |
 | One method per operation | Rate-limit handling |
-| Reference docs | Pagination iterators |
+| | Pagination iterators |
 | | Typed errors and redacted logging |
 
 Generated code is never edited by hand. Each problem has one fix:
@@ -90,7 +91,9 @@ Generated code is never edited by hand. Each problem has one fix:
 * A name or shape is poor in one language: change that language's generator config or templates.
 * The behaviour cannot be expressed in the spec: change the runtime.
 
-Generated clients are committed under `apis/backmarket/packages/<language>/`, so a spec change shows up as a reviewable diff.
+Generated clients are committed under `apis/backmarket/packages/<language>/`, so a spec change shows up as a reviewable diff. CI regenerates them and fails if the result differs.
+
+The spec has been wrong before, so clients do not trust it when reading. Requests are validated against the models, but a response that does not fit them still reaches the caller, with the raw value in place of the field that failed.
 
 ## Runtime contract
 

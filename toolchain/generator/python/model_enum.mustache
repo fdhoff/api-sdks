@@ -1,0 +1,13 @@
+from __future__ import annotations
+
+from enum import Enum
+
+
+class {{classname}}({{vendorExtensions.x-py-enum-type}}, Enum):
+    """Allowed values of {{classname}}."""
+
+{{#allowableValues}}
+    {{#enumVars}}
+    {{{name}}} = {{{value}}}
+    {{/enumVars}}
+{{/allowableValues}}

@@ -1,0 +1,32 @@
+(
+        self,
+{{#allParams}}
+{{#isPathParam}}
+        {{paramName}}: {{{vendorExtensions.x-py-typing}}},
+{{/isPathParam}}
+{{/allParams}}
+{{#bodyParam}}
+        body: {{^required}}Optional[{{/required}}Union[{{{dataType}}}, Mapping[str, Any]]{{^required}}] = None{{/required}},
+{{/bodyParam}}
+{{#hasQueryParams}}
+        *,
+{{/hasQueryParams}}
+{{^hasQueryParams}}
+{{#hasFormParams}}
+        *,
+{{/hasFormParams}}
+{{/hasQueryParams}}
+{{#allParams}}
+{{#isQueryParam}}
+        {{paramName}}: {{{vendorExtensions.x-py-typing}}}{{^required}} = None{{/required}},
+{{/isQueryParam}}
+{{#isFormParam}}
+{{#items.isFile}}
+        {{paramName}}: {{^required}}Optional[{{/required}}List[FileInput]{{^required}}] = None{{/required}},
+{{/items.isFile}}
+{{^items.isFile}}
+        {{paramName}}: {{{vendorExtensions.x-py-typing}}}{{^required}} = None{{/required}},
+{{/items.isFile}}
+{{/isFormParam}}
+{{/allParams}}
+    )
