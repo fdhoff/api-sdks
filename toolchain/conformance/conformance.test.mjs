@@ -193,6 +193,14 @@ test('harness expands a relative HTTP date when it responds', async () => {
   assert.ok(wait > 58_000 && wait <= 61_000, `date is ${wait}ms away`);
 });
 
+test('harness trickles a body one byte at a time', async () => {
+  harness.play({ responses: [{ status: 200, body: 'abc', trickle_ms: 30 }] });
+  const started = performance.now();
+  const response = await fetch(harness.url);
+  assert.equal(await response.text(), 'abc');
+  assert.ok(performance.now() - started >= 60);
+});
+
 test('harness replays a new script from a clean record', async () => {
   harness.play({ responses: [{ status: 200 }] });
   await fetch(`${harness.url}/one`);

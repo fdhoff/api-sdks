@@ -6,7 +6,7 @@ import { apiPaths } from '../../../toolchain/pipeline/paths.mjs';
 
 const METHODS = ['get', 'put', 'post', 'delete', 'patch'];
 const SPEC = apiPaths(fileURLToPath(new URL('..', import.meta.url))).build;
-const DEFAULTS = { timeout_ms: 30_000, max_retries: 3, retry_base_delay_ms: 500, rate_limit_wait_ms: 10_000 };
+const DEFAULTS = { timeout_ms: 30_000, max_retries: 3, retry_base_delay_ms: 500, rate_limit_wait_ms: 10_000, max_retry_wait_ms: 60_000 };
 
 const spec = parse(await readFile(SPEC, 'utf8'));
 const operations = new Map(
@@ -103,7 +103,11 @@ async function attempt(client, { url, init }, log) {
     response = await fetch(url, { ...init, signal: AbortSignal.timeout(client.timeout_ms) });
     text = await response.text();
   } catch (error) {
-    throw new ClientError({ kind: error.name === 'TimeoutError' ? 'timeout' : 'connection' });
+    if (!response || !error.cause?.code?.startsWith('Z_')) {
+      throw new ClientError({ kind: error.name === 'TimeoutError' ? 'timeout' : 'connection' });
+    }
+    if (response.ok) throw new ClientError({ kind: 'decode', status: response.status });
+    text = '';
   }
   log(`<- ${response.status} ${text}`);
   if (!response.ok) throw toError(client, response, text);
@@ -119,7 +123,11 @@ function retryAfterMs(value) {
 function retryDelay(client, error, method, tries) {
   if (tries >= client.max_retries) return null;
   const { kind } = error.fields;
-  if (kind === 'rate_limited') return retryAfterMs(error.retryAfter) ?? client.rate_limit_wait_ms;
+  if (kind === 'rate_limited') {
+    const wait = retryAfterMs(error.retryAfter);
+    if (wait === null) return client.rate_limit_wait_ms;
+    return wait <= client.max_retry_wait_ms ? wait : null;
+  }
   if (method === 'GET' && ['server', 'timeout', 'connection'].includes(kind)) {
     return client.retry_base_delay_ms * 2 ** tries;
   }

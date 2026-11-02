@@ -67,6 +67,7 @@ Your token is read from nowhere and stored nowhere: you pass it in, and the clie
 | `max_retries` | `3` | Retries after the first attempt |
 | `retry_base_delay` | `0.5` | Base in seconds of the exponential backoff |
 | `rate_limit_wait` | `10.0` | Seconds to wait after a 429 with no usable `Retry-After` |
+| `max_retry_wait` | `60.0` | Longest `Retry-After` to wait for, in seconds. A longer one raises `RateLimitedError` at once |
 | `http_transport` | None | An httpx transport to use instead of the network |
 
 ```python
@@ -87,7 +88,8 @@ with BackMarketClient(
 
 * **Methods** are grouped by resource: `categories`, `listings`, `tasks`, `orders`, `buyback`, `shipping`, `care` and `backbox`.
 * **Pagination:** `list` methods return one page and `iter` methods walk all of them, following `next` only for its position, against your configured server.
-* **Retries:** 429 on every method, honouring `Retry-After`, otherwise after `rate_limit_wait` seconds. 5xx, timeouts and connection failures on GET only, with exponential backoff, because a repeated `POST` could repeat a refund.
+* **Timeouts:** `timeout` is the time allowed for each attempt, including reading the whole response. The async client enforces it exactly. The sync client checks it as data arrives, so a stalled read can overrun by up to one timeout.
+* **Retries:** 429 on every method, honouring `Retry-After` up to `max_retry_wait` seconds, otherwise after `rate_limit_wait` seconds. A longer `Retry-After` raises `RateLimitedError` at once, with the header in `retry_after`. 5xx, timeouts and connection failures on GET only, with exponential backoff, because a repeated `POST` could repeat a refund.
 * **Errors** derive from `ApiError` and carry `status`, `code`, `request_id` and `raw_body` with your token removed. `WafBlockedError` also has `cf_ray`.
 * **Logging** goes to the `backmarket_seller` logger. It holds methods, URLs and statuses, never your token or response bodies.
 * **Requests** can be a generated model or a plain mapping. Models validate strictly, and send only the fields you set.

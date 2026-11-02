@@ -109,7 +109,9 @@ Every language implements the same behaviour. The conformance cases are the auth
 
 ### Timeouts
 
-The timeout applies to each attempt and is configurable. A timeout that exhausts its retries raises a `timeout` error.
+The timeout is one deadline for each attempt, from sending the request to reading the last byte of the response, and is configurable. A body that keeps trickling must not outlast it. A timeout that exhausts its retries raises a `timeout` error.
+
+Python's synchronous client cannot interrupt a blocking read, so it checks the deadline as each chunk arrives. There, a stalled read can overrun by up to one timeout, and headers that trickle are not caught. Runtimes with cancellation, including Python's asynchronous client, must enforce the deadline exactly.
 
 ### Retries
 
@@ -123,7 +125,9 @@ Only GET is retried on 5xx, timeouts and connection failures because the API doc
 
 `Retry-After` is either whole seconds or an HTTP date, in which case the wait runs until that date. Any other value counts as no header, and so does a date in the past: it says nothing about how long the block lasts, and it can be clock skew, so retrying at once would risk another 429.
 
-The retry count, backoff base and rate-limit wait are configurable. The reference driver defaults to 3 retries, a 500 ms base and a 10 second wait, and the runtimes should match it.
+A `Retry-After` longer than the maximum wait is not waited for, and the call raises `rate_limited` at once, with the header's value on the error so the caller can reschedule. Blocking a caller for an hour is worse than handing the decision back, and retrying early would only earn another 429. The maximum applies to `Retry-After`, not to the rate-limit wait.
+
+The retry count, backoff base, rate-limit wait and maximum wait are configurable. The reference driver defaults to 3 retries, a 500 ms base, a 10 second wait and a 60 second maximum, and the runtimes should match it.
 
 ### Rate limits
 
@@ -137,7 +141,7 @@ The iterator reads the `page` or `cursor` value out of `next` and reissues the r
 
 ### Typed errors
 
-Errors map on status first, then parse the body best-effort. A body that fits no known shape, or is not JSON, still produces a typed error with the status and the raw text, with the token removed.
+Errors map on status first, then parse the body best-effort. A body that fits no known shape, or is not JSON, still produces a typed error with the status and the raw text, with the token removed. A failure response whose compressed body cannot be decompressed produces the same error with an empty body, and is retried as usual.
 
 | Kind | Meaning |
 | --- | --- |
@@ -147,7 +151,7 @@ Errors map on status first, then parse the body best-effort. A body that fits no
 | `api` | Any other status |
 | `timeout` | No response in time, after retries |
 | `connection` | The connection failed or dropped before a full response, after retries |
-| `decode` | A success response whose declared JSON does not parse |
+| `decode` | A success response whose declared JSON does not parse, or whose compressed body cannot be decompressed. Never retried. |
 
 Errors also carry `request_id`, `code` and `cf_ray` when present. Each language exposes these under its own naming conventions.
 
@@ -164,10 +168,10 @@ runner ── JSON lines ──> driver (one per language) ── HTTP ──> h
 ```
 
 * A **driver** is a small executable beside each language package. It calls the public client, so the suite tests what users get.
-* The **harness** records every request. It answers from Prism, which also rejects requests the spec does not allow, or from a script, for what Prism cannot do: response sequences, delays, dropped connections, HTML bodies and undeclared statuses.
+* The **harness** records every request. It answers from Prism, which also rejects requests the spec does not allow, or from a script, for what Prism cannot do: response sequences, delays, slow bodies, dropped connections, HTML bodies and undeclared statuses.
 * The **reference driver** is a minimal JavaScript client that proves each case can pass. It is test code, not an SDK, and `npm test` runs it.
 
-There are 74 cases, covering auth, pagination, 4xx and 5xx errors, 429 retry, timeouts, connection failures, redaction and 30 of the 40 operations. CI runs them with the reference driver; each language joins as its client arrives.
+There are 80 cases, covering auth, pagination, 4xx and 5xx errors, 429 retry, timeouts, connection failures, redaction and 30 of the 40 operations. CI runs them with the reference driver; each language joins as its client arrives.
 
 ## Versioning and release
 

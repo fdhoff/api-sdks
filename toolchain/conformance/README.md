@@ -6,7 +6,7 @@ Language-neutral YAML cases, kept under `apis/<api>/conformance/cases/`, run in 
 runner ── JSON lines ──> driver (one per language) ── HTTP ──> harness ──> Prism, or a scripted response
 ```
 
-The harness records every request a client sends, so a case can assert the exact wire traffic. It answers from the Prism mock built from the spec, which also rejects requests the spec does not allow, or from a script, for what Prism cannot do: response sequences, delays, dropped connections and undeclared statuses.
+The harness records every request a client sends, so a case can assert the exact wire traffic. It answers from the Prism mock built from the spec, which also rejects requests the spec does not allow, or from a script, for what Prism cannot do: response sequences, delays, slow bodies, dropped connections and undeclared statuses.
 
 ## Running it
 
@@ -38,6 +38,7 @@ cases:
           headers: { retry-after: '1' }
           body: { error: nope }        # a mapping or list is sent as JSON, a string verbatim
           delay_ms: 0
+          trickle_ms: 50               # optional: send the body one byte at a time, this far apart
         - status: 200
           body: []
     wire:                              # every request the client must send, in order
@@ -76,10 +77,11 @@ Values a case or `defaults.yaml` may set. The runner adds `base_url` and `token`
 | `token` | Credential |
 | `user_agent` | `User-Agent` value |
 | `locale` | Client-level locale |
-| `timeout_ms` | Per-attempt timeout |
+| `timeout_ms` | Per-attempt deadline, covering the whole response |
 | `max_retries` | Retries after the first attempt |
 | `retry_base_delay_ms` | Backoff base for retried failures |
 | `rate_limit_wait_ms` | Wait after a rate limit with no usable `Retry-After` |
+| `max_retry_wait_ms` | Longest `Retry-After` to wait for |
 
 ## Driver protocol
 

@@ -55,3 +55,22 @@ cases:
         path: /ws/sav/refund
     expect:
       error: { kind: timeout }
+
+  - name: timeout-covers-a-body-that-keeps-trickling
+    client:
+      timeout_ms: 200
+      max_retries: 0
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/json }
+          body: '{"order_id":1,"padding":"synthetic-padding-to-outlast-the-deadline"}'
+          trickle_ms: 50
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: timeout }

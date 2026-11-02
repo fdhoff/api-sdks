@@ -58,7 +58,9 @@ def _salvage(cls: type[M], data: Mapping[str, Any]) -> M:
             fields_set.add(name)
         else:
             values[name] = None if field.is_required() else field.default
-    return cls.model_construct(_fields_set=fields_set, **values, **remaining)
+    salvaged = cls.model_construct(_fields_set=fields_set, **values)
+    salvaged.__pydantic_extra__ = remaining
+    return salvaged
 
 
 def _field_value(cls: type[ApiModel], name: str, raw: Any) -> Any:

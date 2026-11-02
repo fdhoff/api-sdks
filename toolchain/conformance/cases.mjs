@@ -5,7 +5,7 @@ import { parse } from 'yaml';
 const METHODS = ['get', 'put', 'post', 'delete', 'patch'];
 const CASE_KEYS = ['name', 'client', 'request', 'mock', 'wire', 'expect'];
 const REQUEST_KEYS = ['operation', 'params', 'body', 'multipart', 'paginate'];
-const RESPONSE_KEYS = ['status', 'headers', 'body', 'delay_ms', 'drop'];
+const RESPONSE_KEYS = ['status', 'headers', 'body', 'delay_ms', 'drop', 'trickle_ms'];
 const WIRE_KEYS = ['method', 'path', 'query', 'headers', 'headers_match', 'headers_absent', 'body', 'min_delay_ms'];
 const EXPECT_KEYS = ['result', 'result_keys', 'error', 'logs_required'];
 const OUTCOMES = ['result', 'result_keys', 'error'];

@@ -61,6 +61,24 @@ class Settings:
     max_retries: int = 3
     retry_base_delay: float = 0.5
     rate_limit_wait: float = 10.0
+    max_retry_wait: float = 60.0
+
+
+class _Deadline(httpx.SyncByteStream):
+    """Ends a body that is still arriving once the attempt is out of time."""
+
+    def __init__(self, stream: Any, deadline: float) -> None:
+        self.stream = stream
+        self.deadline = deadline
+
+    def __iter__(self) -> Iterator[bytes]:
+        for chunk in self.stream:
+            if time.monotonic() >= self.deadline:
+                raise httpx.ReadTimeout("The attempt ran out of time")
+            yield chunk
+
+    def close(self) -> None:
+        self.stream.close()
 
 
 def _text(value: Any) -> str:
@@ -138,6 +156,15 @@ def _read(settings: Settings, method: str, response: httpx.Response) -> Any:
         raise DecodeError("The response body is not valid JSON", status=response.status_code) from None
 
 
+def _undecodable(response: httpx.Response) -> httpx.Response:
+    """A success response has no result to give. Any other status still maps to its error, with no body."""
+    if response.is_success:
+        raise DecodeError("The response body could not be decompressed", status=response.status_code)
+    headers = response.headers.copy()
+    headers.pop("content-encoding", None)
+    return httpx.Response(response.status_code, headers=headers)
+
+
 def _translate(error: httpx.TransportError) -> ApiError:
     if isinstance(error, httpx.TimeoutException):
         return ApiTimeoutError("The request timed out")
@@ -152,7 +179,7 @@ def _retry_after(value: str | None) -> float | None:
         return float(value)
     try:
         when = parsedate_to_datetime(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
     if when.tzinfo is None:
         when = when.replace(tzinfo=timezone.utc)
@@ -165,7 +192,9 @@ def _retry_delay(settings: Settings, error: ApiError, method: str, tries: int) -
         return None
     if error.status == 429:
         wait = _retry_after(error.retry_after)
-        return settings.rate_limit_wait if wait is None else wait
+        if wait is None:
+            return settings.rate_limit_wait
+        return wait if wait <= settings.max_retry_wait else None
     failed = isinstance(error, (ApiTimeoutError, ApiConnectionError)) or (error.status or 0) >= 500
     if method == "GET" and failed:
         return float(settings.retry_base_delay * 2**tries)
@@ -196,8 +225,19 @@ class SyncTransport:
         self.settings = settings
         self.http = httpx.Client(timeout=settings.timeout, headers=dict(settings.headers), transport=http_transport)
 
-    # TODO: httpx applies the timeout per network operation, so a body that keeps trickling can
-    # outlast it. Enforce one deadline per attempt.
+    # TODO: httpx has no deadline of its own and a blocking read cannot be interrupted, so the deadline
+    # is checked as each chunk arrives. A stalled read can overrun it by one timeout, and headers that
+    # trickle are not caught. Closing that gap needs a worker thread or a custom network backend.
+    def _attempt(self, request: dict[str, Any]) -> httpx.Response:
+        deadline = time.monotonic() + self.settings.timeout
+        with self.http.stream(**request) as response:
+            response.stream = _Deadline(response.stream, deadline)
+            try:
+                response.read()
+            except httpx.DecodingError:
+                return _undecodable(response)
+            return response
+
     def fetch(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> Any:
         settings = self.settings
         request = _build_request(settings, operation, body, params)
@@ -206,7 +246,7 @@ class SyncTransport:
             _log(settings, logging.DEBUG, f"-> {request['method']} {request['url']}")
             try:
                 try:
-                    response = self.http.request(**request)
+                    response = self._attempt(request)
                 except httpx.TransportError as error:
                     raise _translate(error) from error
                 return _read(settings, operation.method, response)
@@ -226,6 +266,14 @@ class AsyncTransport:
             timeout=settings.timeout, headers=dict(settings.headers), transport=http_transport
         )
 
+    async def _attempt(self, request: dict[str, Any]) -> httpx.Response:
+        async with self.http.stream(**request) as response:
+            try:
+                await response.aread()
+            except httpx.DecodingError:
+                return _undecodable(response)
+            return response
+
     async def fetch(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> Any:
         settings = self.settings
         request = _build_request(settings, operation, body, params)
@@ -234,9 +282,11 @@ class AsyncTransport:
             _log(settings, logging.DEBUG, f"-> {request['method']} {request['url']}")
             try:
                 try:
-                    response = await self.http.request(**request)
+                    response = await asyncio.wait_for(self._attempt(request), settings.timeout)
                 except httpx.TransportError as error:
                     raise _translate(error) from error
+                except asyncio.TimeoutError as error:
+                    raise ApiTimeoutError("The request timed out") from error
                 return _read(settings, operation.method, response)
             except ApiError as error:
                 delay = _retry_delay(settings, error, operation.method, tries)

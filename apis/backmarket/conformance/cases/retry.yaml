@@ -81,6 +81,49 @@ cases:
     expect:
       result: { count: 0 }
 
+  - name: retry-429-gives-up-when-retry-after-exceeds-the-maximum
+    client:
+      max_retry_wait_ms: 1000
+    request:
+      operation: GetBackboxData
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '2' }
+    wire:
+      - method: GET
+        path: /ws/listings_bi
+    expect:
+      error: { kind: rate_limited, status: 429 }
+
+  - name: retry-429-gives-up-on-a-retry-after-too-long-for-a-number
+    request:
+      operation: GetBackboxData
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' }
+    wire:
+      - method: GET
+        path: /ws/listings_bi
+    expect:
+      error: { kind: rate_limited, status: 429 }
+
+  - name: retry-429-gives-up-when-a-retry-after-date-exceeds-the-maximum
+    client:
+      max_retry_wait_ms: 1000
+    request:
+      operation: GetBackboxData
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '{{http_date+120s}}' }
+    wire:
+      - method: GET
+        path: /ws/listings_bi
+    expect:
+      error: { kind: rate_limited, status: 429 }
+
   - name: retry-429-without-retry-after-waits-the-documented-block
     client:
       rate_limit_wait_ms: 200

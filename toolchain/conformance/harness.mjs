@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 const HOP_BY_HOP = ['host', 'connection', 'content-length', 'transfer-encoding', 'prefer'];
 
@@ -12,13 +13,25 @@ const expandDates = (headers) =>
     ]),
   );
 
-function send(response, { status, headers = {}, body, delay_ms: delay = 0 }) {
+async function trickle(response, payload, interval) {
+  for (const byte of Buffer.from(payload)) {
+    if (response.destroyed) return;
+    response.write(Buffer.of(byte));
+    await sleep(interval);
+  }
+  response.end();
+}
+
+function send(response, { status, headers = {}, body, delay_ms: delay = 0, trickle_ms: interval }) {
   const isText = typeof body === 'string';
   const payload = body === undefined ? '' : isText ? body : JSON.stringify(body);
   const defaults = body === undefined || isText ? {} : { 'content-type': 'application/json' };
   const expanded = expandDates(headers);
   const timer = setTimeout(() => {
-    if (!response.destroyed) response.writeHead(status, { ...defaults, ...expanded }).end(payload);
+    if (response.destroyed) return;
+    response.writeHead(status, { ...defaults, ...expanded });
+    if (interval === undefined) response.end(payload);
+    else trickle(response, payload, interval);
   }, delay);
   timer.unref();
 }

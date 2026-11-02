@@ -46,6 +46,7 @@ def _settings(
     max_retries: int,
     retry_base_delay: float,
     rate_limit_wait: float,
+    max_retry_wait: float,
 ) -> Settings:
     if not token:
         raise ValueError("token is required")
@@ -69,6 +70,7 @@ def _settings(
         max_retries=max_retries,
         retry_base_delay=retry_base_delay,
         rate_limit_wait=rate_limit_wait,
+        max_retry_wait=max_retry_wait,
     )
 
 
@@ -82,10 +84,12 @@ class BackMarketClient(Resources):
         region: The marketplace region. Pass this or `base_url`.
         environment: Production or preprod.
         base_url: A server root, for tests against a mock. The token is sent to it.
-        timeout: Seconds to wait on each attempt.
+        timeout: Seconds allowed for each attempt, including reading the whole response.
         max_retries: Retries after the first attempt.
         retry_base_delay: Base in seconds of the exponential backoff.
         rate_limit_wait: Seconds to wait after a 429 with no usable `Retry-After`.
+        max_retry_wait: The longest `Retry-After` to wait for, in seconds. A longer one raises
+            `RateLimitedError` at once, with the header in `retry_after`.
         http_transport: An httpx transport to use instead of the network.
     """
 
@@ -102,6 +106,7 @@ class BackMarketClient(Resources):
         max_retries: int = 3,
         retry_base_delay: float = 0.5,
         rate_limit_wait: float = 10.0,
+        max_retry_wait: float = 60.0,
         http_transport: httpx.BaseTransport | None = None,
     ) -> None:
         settings = _settings(
@@ -115,6 +120,7 @@ class BackMarketClient(Resources):
             max_retries,
             retry_base_delay,
             rate_limit_wait,
+            max_retry_wait,
         )
         self._transport = SyncTransport(settings, http_transport)
         super().__init__(self._transport)
@@ -150,6 +156,7 @@ class AsyncBackMarketClient(AsyncResources):
         max_retries: int = 3,
         retry_base_delay: float = 0.5,
         rate_limit_wait: float = 10.0,
+        max_retry_wait: float = 60.0,
         http_transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         settings = _settings(
@@ -163,6 +170,7 @@ class AsyncBackMarketClient(AsyncResources):
             max_retries,
             retry_base_delay,
             rate_limit_wait,
+            max_retry_wait,
         )
         self._transport = AsyncTransport(settings, http_transport)
         super().__init__(self._transport)

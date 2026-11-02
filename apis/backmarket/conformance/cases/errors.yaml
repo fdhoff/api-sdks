@@ -207,3 +207,35 @@ cases:
         path: /ws/orders/1
     expect:
       error: { kind: decode, status: 200 }
+
+  - name: error-corrupt-compressed-success-body
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/json, content-encoding: gzip }
+          body: not gzip
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: decode, status: 200 }
+
+  - name: error-corrupt-compressed-failure-body-keeps-its-status
+    client:
+      max_retries: 0
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 502
+          headers: { content-type: application/json, content-encoding: gzip }
+          body: not gzip
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: server, status: 502 }

@@ -34,6 +34,7 @@ def client_options(settings: dict[str, Any]) -> dict[str, Any]:
         "timeout_ms": "timeout",
         "retry_base_delay_ms": "retry_base_delay",
         "rate_limit_wait_ms": "rate_limit_wait",
+        "max_retry_wait_ms": "max_retry_wait",
     }
     for key, name in seconds.items():
         if key in settings:
