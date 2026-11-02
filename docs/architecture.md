@@ -215,16 +215,16 @@ To move the pin by hand, run `npm run spec:pin`, review what changed, and commit
 `.github/workflows/spec-drift.yml` automates that. It runs daily and on demand:
 
 1. Restore the spec cache, which also keeps it from expiring, and keep a copy of the pinned spec. It never saves the cache, so a new spec cannot land under the old pin's key.
-2. Run `spec:pin` and compare the new SHA-256 with the old one. Stop if they match, or if the `spec-drift` branch already proposes the new hash, so fixes pushed to that branch are kept.
-3. Rebuild the spec and regenerate the clients. If an overlay action stops matching, skip regeneration and say so in the pull request.
+2. Run `spec:pin` and compare the new SHA-256 with the old one. Stop if they match, or if an open pull request from the `spec-drift` branch already proposes the new hash, so fixes pushed to that branch are kept. A drift pull request closed without merging does not stop the next run.
+3. Rebuild the spec and regenerate the clients. If an overlay action stops matching, skip regeneration and say so in the pull request. If regeneration fails, discard its partial output, still open the pull request, say so with a link to the run, and leave the run red.
 4. Commit `lock.json` and the regenerated clients to the `spec-drift` branch, and open or update a single pull request.
 5. In the pull request, list which operations and schemas were added, removed or changed between the old and new upstream specs, by name only, and count those whose only changes are descriptions or examples. `toolchain/pipeline/spec-diff.mjs` writes this. If the cache held no old copy, it says that no comparison was possible.
 
 The pull request goes through ordinary CI, which fetches the spec, verifies it against the new hash, then runs the build, lint and conformance. If upstream changed something the overlay corrected, CI goes red, which is the signal to fix it on that branch. If upstream changes again before merge, the next run resets the branch to the newer spec. The job never merges its own pull request.
 
-A pull request opened with the default workflow token does not trigger `pull_request` workflows, and that token can open one only if the repository allows Actions to create pull requests. The job uses the `SPEC_DRIFT_TOKEN` secret when it is set: a fine-grained token for this repository with contents and pull request write access. Without it, the job falls back to the default token and the pull request says to close and reopen it to start CI.
+A pull request opened with the default workflow token does not trigger `pull_request` workflows, and that token can open one only if the repository allows Actions to create pull requests. The job uses the `SPEC_DRIFT_TOKEN` secret when it is set: a fine-grained token for this repository with contents and pull request write access. Without it, the job falls back to the default token and the pull request says to close and reopen it to start CI. Only the final step, which pushes and calls `gh`, receives that token; checkout does not persist credentials, so dependency installs and generators never see it.
 
-`apis/backmarket/tests/drift.test.mjs` fails if a package with a `generate.yaml` is missing from the job's regeneration step.
+`apis/backmarket/tests/drift.test.mjs` fails if a package with a `generate.yaml` is missing from the job's regeneration step, if the write token reaches any other step, or if a failed regeneration would skip the pull request.
 
 ## Credentials
 

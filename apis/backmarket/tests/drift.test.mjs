@@ -3,6 +3,7 @@ import { access, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { parse } from 'yaml';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const PACKAGES = join(ROOT, 'apis/backmarket/packages');
@@ -20,4 +21,24 @@ test('the spec drift job regenerates every generated package', async () => {
   assert.ok(generated.length > 0);
   const missing = generated.filter((language) => !workflow.includes(`npm run generate:${language}\n`));
   assert.deepEqual(missing, []);
+});
+
+test('the spec drift job gives its write token only to the step that pushes', async () => {
+  const workflow = parse(await readFile(join(ROOT, '.github/workflows/spec-drift.yml'), 'utf8'));
+  const { drift } = workflow.jobs;
+  assert.equal(drift.env?.GH_TOKEN, undefined);
+  const checkout = drift.steps.find((step) => step.uses?.startsWith('actions/checkout@'));
+  assert.equal(checkout.with['persist-credentials'], false);
+  const holders = drift.steps.filter((step) => JSON.stringify(step).includes('secrets.SPEC_DRIFT_TOKEN'));
+  assert.deepEqual(
+    holders.map((step) => step.name),
+    ['Open or update the pull request'],
+  );
+});
+
+test('the spec drift job proposes the pin even when regeneration fails', async () => {
+  const workflow = parse(await readFile(join(ROOT, '.github/workflows/spec-drift.yml'), 'utf8'));
+  const last = workflow.jobs.drift.steps.at(-1);
+  assert.equal(last.name, 'Open or update the pull request');
+  assert.match(last.if, /!cancelled\(\)/);
 });

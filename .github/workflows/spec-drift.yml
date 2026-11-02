@@ -25,8 +25,6 @@ jobs:
     timeout-minutes: 20
     env:
       SCARF_ANALYTICS: "false"
-      # A pull request opened with the default token does not trigger CI.
-      GH_TOKEN: ${{ secrets.SPEC_DRIFT_TOKEN || github.token }}
     defaults:
       run:
         shell: bash
@@ -34,7 +32,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-          token: ${{ secrets.SPEC_DRIFT_TOKEN || github.token }}
+          persist-credentials: false
+      - name: Find the open drift pull request
+        id: open
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "pr=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')" >> "$GITHUB_OUTPUT"
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.SPEC }}
@@ -49,16 +52,21 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Compare upstream with the pin
         id: pin
+        env:
+          OPEN_PR: ${{ steps.open.outputs.pr }}
         run: |
           if [ -f "$SPEC" ]; then cp "$SPEC" "$RUNNER_TEMP/pinned.yaml"; fi
           pinned=$(jq -r .sha256 "$LOCK")
           npm run spec:pin
           upstream=$(jq -r .sha256 "$LOCK")
-          proposed=$(git show "origin/$BRANCH:$LOCK" 2>/dev/null | jq -r .sha256 || true)
+          proposed=
+          if [ -n "$OPEN_PR" ]; then
+            proposed=$(git show "origin/$BRANCH:$LOCK" 2>/dev/null | jq -r .sha256 || true)
+          fi
           if [ "$upstream" = "$pinned" ]; then
             echo "Upstream matches the pin."
           elif [ "$upstream" = "$proposed" ]; then
-            echo "Branch $BRANCH already proposes $upstream."
+            echo "Pull request #$OPEN_PR already proposes $upstream."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
@@ -90,9 +98,13 @@ jobs:
           npm run generate:typescript
           npm run generate:go
       - name: Open or update the pull request
-        if: steps.pin.outputs.changed
+        if: ${{ !cancelled() && steps.pin.outputs.changed }}
         env:
+          # A pull request opened with the default token does not trigger CI.
+          GH_TOKEN: ${{ secrets.SPEC_DRIFT_TOKEN || github.token }}
           BUILD: ${{ steps.build.outcome }}
+          JOB: ${{ job.status }}
+          OPEN_PR: ${{ steps.open.outputs.pr }}
           HAS_TOKEN: ${{ secrets.SPEC_DRIFT_TOKEN != '' }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
@@ -102,6 +114,9 @@ jobs:
             echo
             if [ "$BUILD" != success ]; then
               echo "**The overlay no longer applies, so the clients were not regenerated.** Fix \`apis/backmarket/spec/overlay.yaml\` on this branch, then regenerate. Details are in the [drift run]($RUN_URL)."
+              echo
+            elif [ "$JOB" != success ]; then
+              echo "**Regenerating the clients failed, so this pull request moves only the pin.** Fix the generator or templates on this branch, then regenerate. Details are in the [drift run]($RUN_URL)."
               echo
             fi
             if [ "$HAS_TOKEN" != true ]; then
@@ -116,12 +131,17 @@ jobs:
           } > "$RUNNER_TEMP/body.md"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "$JOB" != success ]; then
+            git checkout HEAD -- apis/backmarket/packages
+            git clean -fdq apis/backmarket/packages
+          fi
           git checkout -B "$BRANCH"
           git add "$LOCK" apis/backmarket/packages
           git commit --quiet -m "Update upstream spec pin to ${upstream:0:12}"
+          gh auth setup-git
           git push --force origin "$BRANCH"
-          if gh pr view "$BRANCH" --json state --jq .state | grep -qx OPEN; then
-            gh pr edit "$BRANCH" --body-file "$RUNNER_TEMP/body.md"
+          if [ -n "$OPEN_PR" ]; then
+            gh pr edit "$OPEN_PR" --body-file "$RUNNER_TEMP/body.md"
           else
             gh pr create --head "$BRANCH" --base main --title "ADHOC-0: [spec] Update upstream spec pin" --body-file "$RUNNER_TEMP/body.md"
           fi
