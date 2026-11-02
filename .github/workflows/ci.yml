@@ -25,7 +25,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npm run spec:verify
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: apis/backmarket/spec/upstream/openapi.yaml
+          key: upstream-spec-${{ hashFiles('apis/backmarket/spec/upstream/lock.json') }}
+      - run: npm run spec:fetch
       - run: npm run spec:build
       - run: npm run spec:lint
       - run: npm test

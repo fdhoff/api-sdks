@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -14,9 +15,13 @@ const operations = Object.values(built.paths).flatMap((item) =>
   METHODS.filter((method) => item[method]).map((method) => item[method]),
 );
 
-test('checked-in spec matches its lock', async () => {
+test('cached spec matches its lock', async () => {
   const lock = JSON.parse(await readFile(paths.lock, 'utf8'));
-  verifyPin(await readFile(paths.spec), lock);
+  verifyPin(await readFile(paths.spec), lock, paths.spec);
+});
+
+test('the upstream spec is not tracked', () => {
+  assert.equal(execFileSync('git', ['ls-files', paths.spec], { encoding: 'utf8' }), '');
 });
 
 test('every operation has a unique operationId', () => {

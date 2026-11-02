@@ -4,6 +4,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import openapiFormat from 'openapi-format';
 import { parse, stringify } from 'yaml';
+import { ensureSpec } from './fetch-spec.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 
 export async function applyOverlay(spec, overlay) {
@@ -17,7 +18,7 @@ export async function applyOverlay(spec, overlay) {
 }
 
 async function build(paths) {
-  const spec = parse(await readFile(paths.spec, 'utf8'));
+  const spec = parse((await ensureSpec(paths)).toString('utf8'));
   const overlay = parse(await readFile(paths.overlay, 'utf8'));
   const corrected = await applyOverlay(spec, overlay);
   await mkdir(dirname(paths.build), { recursive: true });

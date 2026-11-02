@@ -11,6 +11,6 @@ export function apiPaths(apiDir) {
 
 export function apiDirFromArgs(argv) {
   const apiDir = argv.slice(2).find((arg) => !arg.startsWith('--'));
-  if (!apiDir) throw new Error('Usage: node <script> <api-dir> [--verify]');
+  if (!apiDir) throw new Error('Usage: node <script> <api-dir> [--verify|--pin]');
   return apiDir;
 }

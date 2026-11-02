@@ -4,14 +4,14 @@ Unofficial spec-driven SDKs for the Back Market Seller API.
 
 This project is unofficial and is not affiliated with, endorsed by, or supported by Back Market.
 
-No SDK is usable yet. Python, Go, C# and Rust will ship in that order.
+No SDK is usable yet. Python, TypeScript, Go, C# and Rust will ship in that order.
 
 ## Layout
 
 | Path | Contents |
 | --- | --- |
 | `toolchain/` | Generic pipeline, templates, runtime and conformance runner |
-| `apis/backmarket/spec/upstream/` | The upstream OpenAPI spec, verbatim, with its pin in `lock.json` |
+| `apis/backmarket/spec/upstream/` | `lock.json`, which pins the upstream OpenAPI spec by URL and SHA-256. The spec is not in this repository; it is fetched at build time into a gitignored cache here |
 | `apis/backmarket/spec/overlay.yaml` | Our corrections, in [OpenAPI Overlay](https://spec.openapis.org/overlay/v1.0.0.html) format |
 | `apis/backmarket/packages/` | Per-language package config and generated clients |
 | `apis/backmarket/conformance/` | Language-neutral test cases |
@@ -27,12 +27,15 @@ Requires Node 22 or later.
 
 ```sh
 npm ci --ignore-scripts
-npm run spec:verify  # check the pinned spec against its lock
-npm run spec:build   # apply the overlay, writing apis/backmarket/build/openapi.yaml
+npm run spec:fetch   # download the pinned spec if it is not cached, and check it against its lock
+npm run spec:verify  # check the cached spec against its lock, offline
+npm run spec:build   # apply the overlay, fetching first if needed, writing apis/backmarket/build/openapi.yaml
 npm run spec:lint
 npm run mock         # serve the built spec on http://127.0.0.1:4010
-npm run spec:fetch   # re-pin to the current upstream spec
+npm run spec:pin     # re-pin to the current upstream spec
 ```
+
+Once the spec is cached, the build and tests need no network. A hash mismatch stops the build; the error says how to recover.
 
 All tests run against the mock. The project uses no live credentials.
 

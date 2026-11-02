@@ -1,2 +1,3 @@
 node_modules/
 build/
+apis/backmarket/spec/upstream/openapi.yaml

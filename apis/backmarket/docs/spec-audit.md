@@ -119,7 +119,7 @@ Open:
 
 ## Metadata
 
-* The spec has no licence statement. This blocks publishing, not private use;.
+* The spec has no licence statement. It is fetched at build time and not redistributed, so this does not block publishing.
 * `info.contact.email` is the placeholder `NA@NA.com`, and `info.version` is not a reliable change signal, so the pin is the SHA-256.
 * No top-level `tags` block; every operation's tag is undefined. The linter rule is off in `toolchain/spectral.yaml`.
 * 3 operations have no description. These remain as lint warnings.

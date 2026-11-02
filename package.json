@@ -8,6 +8,7 @@
   "scripts": {
     "spec:fetch": "node toolchain/pipeline/fetch-spec.mjs apis/backmarket",
     "spec:verify": "node toolchain/pipeline/fetch-spec.mjs apis/backmarket --verify",
+    "spec:pin": "node toolchain/pipeline/fetch-spec.mjs apis/backmarket --pin",
     "spec:build": "node toolchain/pipeline/build-spec.mjs apis/backmarket",
     "spec:lint": "spectral lint apis/backmarket/build/openapi.yaml --ruleset toolchain/spectral.yaml --fail-severity=error",
     "mock": "prism mock apis/backmarket/build/openapi.yaml --port 4010",
