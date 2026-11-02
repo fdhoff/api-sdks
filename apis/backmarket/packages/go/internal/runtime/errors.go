@@ -13,7 +13,8 @@ const (
 	KindDecode     Kind = "decode"
 )
 
-// Error is the failure every call returns, apart from the caller's own context ending.
+// Error is the failure every call returns once it has a request to send, apart from the caller's
+// own context ending. A request that cannot be encoded fails before that, with the encoder's error.
 // Use [errors.Is] with a sentinel to test the kind, and [errors.As] to read the fields.
 type Error struct {
 	Kind       Kind

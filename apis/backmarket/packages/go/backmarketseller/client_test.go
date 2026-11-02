@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -184,6 +185,23 @@ func TestAResponseOfTheWrongShapeIsADecodeError(t *testing.T) {
 	}
 	if failure.Status != 200 || failure.RawBody != `["not an object"]` {
 		t.Errorf("failure is %+v", failure)
+	}
+}
+
+func TestABodyThatCannotBeEncodedFailsBeforeSending(t *testing.T) {
+	sent := false
+	client := server(t, func(w http.ResponseWriter, _ *http.Request) {
+		sent = true
+		replyJSON(w, 200, `{}`)
+	})
+	_, err := client.Listings.Update(context.Background(), "1", &bm.ListingUpdate{Price: math.NaN()})
+	var failure *bm.APIError
+	var unsupported *json.UnsupportedValueError
+	if errors.As(err, &failure) || !errors.As(err, &unsupported) {
+		t.Errorf("error is %v", err)
+	}
+	if sent {
+		t.Error("the request was sent")
 	}
 }
 

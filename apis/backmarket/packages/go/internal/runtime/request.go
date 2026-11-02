@@ -161,14 +161,14 @@ func newRequest(operation *Operation, input Input) (*request, error) {
 	}
 	built := &request{method: operation.Method, path: path, query: url.Values{}}
 	if err := built.addParams(input.Params); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("the request cannot be encoded: %w", err)
 	}
 	if input.Body == nil || isNil(reflect.ValueOf(input.Body)) {
 		return built, nil
 	}
 	body, err := json.Marshal(input.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("the request body cannot be encoded: %w", err)
 	}
 	built.body = body
 	built.contentType = "application/json"

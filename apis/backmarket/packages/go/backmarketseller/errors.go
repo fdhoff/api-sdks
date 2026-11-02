@@ -7,7 +7,9 @@ import (
 	"github.com/fdhoff/backmarket-seller-sdk/apis/backmarket/packages/go/internal/runtime"
 )
 
-// APIError is the error every failed call returns, apart from the caller's own context ending.
+// APIError is the error every failed call returns, apart from the caller's own context ending and
+// a request that cannot be encoded, such as a body holding NaN. That fails before anything is sent,
+// with an error wrapping the encoder's own, so [errors.As] still finds it.
 type APIError = runtime.Error
 
 // Kind names a class of failure.

@@ -6,3 +6,4 @@ This module follows semantic versioning and stays on 0.x until outside users con
 
 * Typed client for all 40 operations, generated from the public spec, with `context.Context` on every call.
 * Retries, rate-limit handling, pagination iterators, typed errors and redacted logging.
+* A request that cannot be encoded is not sent, and returns an error wrapping the encoder's own rather than an `APIError`.
