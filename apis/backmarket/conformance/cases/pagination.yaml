@@ -1,0 +1,136 @@
+cases:
+  - name: pagination-page-and-size
+    request:
+      operation: get-ws-list-listing
+      params: { page-size: 2 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body:
+            count: 3
+            next: https://foreign.invalid/ws/listings?page=2
+            previous: null
+            results: [{ id: a }, { id: b }]
+        - status: 200
+          body:
+            count: 3
+            next: null
+            previous: https://foreign.invalid/ws/listings?page=1
+            results: [{ id: c }]
+    wire:
+      - method: GET
+        path: /ws/listings
+        query: { page-size: '2' }
+      - method: GET
+        path: /ws/listings
+        query: { page: '2', page-size: '2' }
+    expect:
+      result: [{ id: a }, { id: b }, { id: c }]
+
+  - name: pagination-page-only
+    request:
+      operation: get-ws-buyback-v1-orders
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 3, next: 'https://foreign.invalid/ws/buyback/v1/orders?page=2', results: [{ id: 1 }] }
+        - status: 200
+          body: { count: 3, next: 'https://foreign.invalid/ws/buyback/v1/orders?page=3', results: [{ id: 2 }] }
+        - status: 200
+          body: { count: 3, next: null, results: [{ id: 3 }] }
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/orders
+      - method: GET
+        path: /ws/buyback/v1/orders
+        query: { page: '2' }
+      - method: GET
+        path: /ws/buyback/v1/orders
+        query: { page: '3' }
+    expect:
+      result: [{ id: 1 }, { id: 2 }, { id: 3 }]
+
+  - name: pagination-cursor
+    request:
+      operation: get-ws-buyback-v1-listings
+      params: { pageSize: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { next: 'https://foreign.invalid/ws/buyback/v1/listings?cursor=c-2', results: [{ id: a }] }
+        - status: 200
+          body: { next: null, results: [{ id: b }] }
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/listings
+        query: { pageSize: '1' }
+      - method: GET
+        path: /ws/buyback/v1/listings
+        query: { cursor: c-2, pageSize: '1' }
+    expect:
+      result: [{ id: a }, { id: b }]
+
+  - name: pagination-ignores-count-and-stays-on-the-configured-host
+    request:
+      operation: getCareFolderList
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 1, next: 'https://foreign.invalid/ws/sav/?page=2', previous: null, results: [{ id: 1 }] }
+        - status: 200
+          body: { count: 1, next: null, previous: null, results: [{ id: 2 }] }
+    wire:
+      - method: GET
+        path: /ws/sav
+        headers:
+          authorization: Basic {{token}}
+      - method: GET
+        path: /ws/sav
+        query: { page: '2' }
+        headers:
+          authorization: Basic {{token}}
+    expect:
+      result: [{ id: 1 }, { id: 2 }]
+
+  - name: pagination-empty-result
+    request:
+      operation: get-ws-list-order
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 0, next: null, previous: null, results: [] }
+    wire:
+      - method: GET
+        path: /ws/orders
+    expect:
+      result: []
+
+  - name: pagination-retries-a-rate-limited-page
+    client:
+      rate_limit_wait_ms: 1
+    request:
+      operation: GetDeliveries
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 2, next: 'https://foreign.invalid/ws/shipping/v1/deliveries?page=2', results: [{ order: 1 }] }
+        - status: 429
+        - status: 200
+          body: { count: 2, next: null, results: [{ order: 2 }] }
+    wire:
+      - method: GET
+        path: /ws/shipping/v1/deliveries
+      - method: GET
+        path: /ws/shipping/v1/deliveries
+        query: { page: '2' }
+      - method: GET
+        path: /ws/shipping/v1/deliveries
+        query: { page: '2' }
+    expect:
+      result: [{ order: 1 }, { order: 2 }]

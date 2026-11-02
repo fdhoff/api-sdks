@@ -1,0 +1,179 @@
+cases:
+  - name: retry-429-honours-retry-after
+    request:
+      operation: update-ws-specific-listing
+      params: { listingId: 00000000-0000-4000-8000-000000000001 }
+      body: { quantity: 1 }
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '1' }
+        - status: 200
+          body: { id: 00000000-0000-4000-8000-000000000001 }
+    wire:
+      - method: POST
+        path: /ws/listings/00000000-0000-4000-8000-000000000001
+        body: { quantity: 1 }
+      - method: POST
+        path: /ws/listings/00000000-0000-4000-8000-000000000001
+        body: { quantity: 1 }
+        min_delay_ms: 900
+    expect:
+      result: { id: 00000000-0000-4000-8000-000000000001 }
+
+  - name: retry-429-without-retry-after-waits-the-documented-block
+    client:
+      rate_limit_wait_ms: 200
+    request:
+      operation: GetBackboxData
+    mock:
+      responses:
+        - status: 429
+        - status: 200
+          body: { count: 0, next: null, previous: null, results: [] }
+    wire:
+      - method: GET
+        path: /ws/listings_bi
+      - method: GET
+        path: /ws/listings_bi
+        min_delay_ms: 180
+    expect:
+      result: { count: 0 }
+
+  - name: retry-429-applies-to-every-method
+    client:
+      rate_limit_wait_ms: 1
+    request:
+      operation: postRefundCreate
+      body: { amount: 1, orderline_pk: 1, refund_type: 4 }
+    mock:
+      responses:
+        - status: 429
+        - status: 201
+          headers: { content-type: text/plain }
+          body: Refund created
+    wire:
+      - method: POST
+        path: /ws/sav/refund
+      - method: POST
+        path: /ws/sav/refund
+    expect:
+      result: Refund created
+
+  - name: retry-429-gives-up-after-max-retries
+    client:
+      max_retries: 1
+      rate_limit_wait_ms: 1
+    request:
+      operation: post-ws-create-or-update-listings
+      body:
+        catalog: "sku;quantity\nEXAMPLE-SKU;1"
+        quotechar: '"'
+        delimiter: ';'
+        encoding: latin1
+    mock:
+      responses:
+        - status: 429
+        - status: 429
+    wire:
+      - method: POST
+        path: /ws/listings
+      - method: POST
+        path: /ws/listings
+    expect:
+      error: { kind: rate_limited, status: 429 }
+
+  - name: retry-429-from-the-spec-with-retries-off
+    client:
+      max_retries: 0
+    request:
+      operation: post-ws-create-or-update-listings
+      body:
+        catalog: "sku;quantity\nEXAMPLE-SKU;1"
+        quotechar: '"'
+        delimiter: ';'
+        encoding: latin1
+    mock:
+      prism: { code: 429 }
+    wire:
+      - method: POST
+        path: /ws/listings
+    expect:
+      error: { kind: rate_limited, status: 429 }
+
+  - name: retry-5xx-on-get
+    request:
+      operation: get-ws-buyback-v1-order
+      params: { buybackOrderId: EXAMPLE-1 }
+    mock:
+      responses:
+        - status: 502
+        - status: 503
+        - status: 200
+          body: { orderPublicId: EXAMPLE-1 }
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/orders/EXAMPLE-1
+      - method: GET
+        path: /ws/buyback/v1/orders/EXAMPLE-1
+      - method: GET
+        path: /ws/buyback/v1/orders/EXAMPLE-1
+    expect:
+      result: { orderPublicId: EXAMPLE-1 }
+
+  - name: retry-5xx-gives-up-after-max-retries
+    client:
+      max_retries: 1
+    request:
+      operation: get-ws-buyback-v1-order
+      params: { buybackOrderId: EXAMPLE-1 }
+    mock:
+      responses:
+        - status: 500
+        - status: 503
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/orders/EXAMPLE-1
+      - method: GET
+        path: /ws/buyback/v1/orders/EXAMPLE-1
+    expect:
+      error: { kind: server, status: 503 }
+
+  - name: retry-never-repeats-a-failed-post
+    request:
+      operation: postRefundCreate
+      body: { amount: 1, orderline_pk: 1, refund_type: 4 }
+    mock:
+      responses:
+        - status: 500
+    wire:
+      - method: POST
+        path: /ws/sav/refund
+    expect:
+      error: { kind: server, status: 500 }
+
+  - name: retry-never-repeats-a-failed-put
+    request:
+      operation: put-ws-buyback-v1-orders-validate
+      params: { buybackOrderId: EXAMPLE-1 }
+    mock:
+      responses:
+        - status: 503
+    wire:
+      - method: PUT
+        path: /ws/buyback/v1/orders/EXAMPLE-1/validate
+    expect:
+      error: { kind: server, status: 503 }
+
+  - name: retry-does-not-repeat-a-4xx
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 404
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: not_found, status: 404 }

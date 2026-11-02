@@ -12,6 +12,7 @@
     "spec:build": "node toolchain/pipeline/build-spec.mjs apis/backmarket",
     "spec:lint": "spectral lint apis/backmarket/build/openapi.yaml --ruleset toolchain/spectral.yaml --fail-severity=error",
     "mock": "prism mock apis/backmarket/build/openapi.yaml --port 4010",
+    "conformance": "node toolchain/conformance/run.mjs apis/backmarket --driver \"node apis/backmarket/conformance/reference-driver.mjs\"",
     "test": "node --test \"toolchain/**/*.test.mjs\" \"apis/**/*.test.mjs\""
   },
   "devDependencies": {

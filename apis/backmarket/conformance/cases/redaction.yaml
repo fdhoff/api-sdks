@@ -1,0 +1,84 @@
+cases:
+  - name: redaction-keeps-the-token-out-of-logs
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/orders/1
+        headers:
+          authorization: Basic {{token}}
+    expect:
+      result_keys: [order_id]
+      logs_required: true
+
+  - name: redaction-covers-retried-requests
+    client:
+      max_retries: 1
+    request:
+      operation: get-ws-buyback-v1-order
+      params: { buybackOrderId: EXAMPLE-1 }
+    mock:
+      responses:
+        - status: 500
+        - status: 503
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/orders/EXAMPLE-1
+      - method: GET
+        path: /ws/buyback/v1/orders/EXAMPLE-1
+    expect:
+      error: { kind: server, status: 503 }
+      logs_required: true
+
+  - name: redaction-removes-a-token-echoed-in-an-error-body
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 400
+          headers: { content-type: text/plain }
+          body: 'Rejected header: Basic {{token}}'
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: bad_request, status: 400 }
+      logs_required: true
+
+  - name: redaction-removes-a-token-echoed-in-json-errors
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 401
+          body:
+            error: { code: bad-token, message: 'Unknown token {{token}}' }
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: authentication, status: 401, code: bad-token }
+      logs_required: true
+
+  - name: redaction-covers-timeouts
+    client:
+      timeout_ms: 100
+      max_retries: 0
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 200
+          delay_ms: 2000
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: timeout }
+      logs_required: true

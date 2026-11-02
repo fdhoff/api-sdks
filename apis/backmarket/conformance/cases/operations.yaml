@@ -1,0 +1,302 @@
+cases:
+  - name: catalog-category-branch
+    request:
+      operation: get-bm-catalog-category-branch
+      params: { categoryId: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/category/tree/1
+    expect:
+      result_keys: [category_id]
+
+  - name: listings-list
+    request:
+      operation: get-ws-list-listing
+      params: { page: 2, page-size: 5 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/listings
+        query: { page: '2', page-size: '5' }
+    expect:
+      result_keys: [count, next, previous, results]
+
+  - name: listings-get
+    request:
+      operation: get-ws-specific-listing
+      params: { listingId: 00000000-0000-4000-8000-000000000001 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/listings/00000000-0000-4000-8000-000000000001
+    expect:
+      result_keys: [id, listing_id]
+
+  - name: listings-detail-by-sku
+    request:
+      operation: get-ws-listing-detail
+      params: { sku: EXAMPLE-SKU }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/listings/detail
+        query: { sku: EXAMPLE-SKU }
+    expect:
+      result_keys: [id, listing_id]
+
+  - name: listings-update
+    request:
+      operation: update-ws-specific-listing
+      params: { listingId: 00000000-0000-4000-8000-000000000001 }
+      body: { quantity: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: POST
+        path: /ws/listings/00000000-0000-4000-8000-000000000001
+        body: { quantity: 1 }
+    expect:
+      result_keys: [id, listing_id]
+
+  - name: tasks-get
+    request:
+      operation: get-ws-task
+      params: { taskId: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/tasks/1
+    expect:
+      result_keys: [task_id, action_status]
+
+  - name: orders-list
+    request:
+      operation: get-ws-list-order
+      params: { page: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/orders
+        query: { page: '1' }
+    expect:
+      result_keys: [count, results]
+
+  - name: orders-get
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      result_keys: [order_id]
+
+  - name: orders-update
+    request:
+      operation: update-ws-specific-order
+      params: { order_id: 1 }
+      body: { order_id: 1, new_state: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: POST
+        path: /ws/orders/1
+        body: { order_id: 1, new_state: 1 }
+    expect:
+      result_keys: [order_id]
+
+  - name: orderlines-update
+    request:
+      operation: update-ws-specific-orderline
+      params: { orderline_id: 1 }
+      body: { serial_number: SYNTHETIC-1 }
+    mock:
+      prism: {}
+    wire:
+      - method: PATCH
+        path: /ws/orderlines/1
+        body: { serial_number: SYNTHETIC-1 }
+    expect:
+      result_keys: [serial_number]
+
+  - name: buyback-orders-list
+    request:
+      operation: get-ws-buyback-v1-orders
+      params: { page: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/orders
+        query: { page: '1' }
+    expect:
+      result_keys: [count, results]
+
+  - name: buyback-orders-pending-reply-is-not-an-order-id
+    request:
+      operation: get-ws-buyback-v1-orders-pending-reply
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/orders/pending-reply
+    expect:
+      result_keys: [results]
+
+  - name: buyback-orders-get
+    request:
+      operation: get-ws-buyback-v1-order
+      params: { buybackOrderId: EXAMPLE-1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/orders/EXAMPLE-1
+    expect:
+      result_keys: [orderPublicId]
+
+  - name: buyback-orders-validate-sends-no-body
+    request:
+      operation: put-ws-buyback-v1-orders-validate
+      params: { buybackOrderId: EXAMPLE-1 }
+    mock:
+      prism: {}
+    wire:
+      - method: PUT
+        path: /ws/buyback/v1/orders/EXAMPLE-1/validate
+        headers_absent: [content-type]
+    expect:
+      result_keys: [orderPublicId]
+
+  - name: buyback-listings-get
+    request:
+      operation: get-ws-buyback-v1-listing
+      params: { buybackListingId: 00000000-0000-4000-8000-000000000001 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/listings/00000000-0000-4000-8000-000000000001
+    expect:
+      result_keys: [id]
+
+  - name: buyback-listings-update
+    request:
+      operation: put-ws-buyback-v1-listing
+      params: { buybackListingId: 00000000-0000-4000-8000-000000000001 }
+      body:
+        prices:
+          FR: { amount: '10.00', currency: EUR }
+    mock:
+      prism: {}
+    wire:
+      - method: PUT
+        path: /ws/buyback/v1/listings/00000000-0000-4000-8000-000000000001
+        body:
+          prices:
+            FR: { amount: '10.00', currency: EUR }
+    expect:
+      result: {}
+
+  - name: shipping-deliveries-list
+    request:
+      operation: GetDeliveries
+      params: { page: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/shipping/v1/deliveries
+        query: { page: '1' }
+    expect:
+      result_keys: [count, results]
+
+  - name: shipping-returns-get
+    request:
+      operation: GetReturn
+      params: { id: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/shipping/v1/returns/1
+    expect:
+      result_keys: [orderId]
+
+  - name: care-folders-list
+    request:
+      operation: getCareFolderList
+      params: { page: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/sav
+        query: { page: '1' }
+    expect:
+      result_keys: [count, results]
+
+  - name: care-folders-get
+    request:
+      operation: getCareFolderDetails
+      params: { careFolderId: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/sav/1
+    expect:
+      result_keys: [country_code]
+
+  - name: care-folders-note
+    request:
+      operation: postNote
+      params: { careFolderId: 1 }
+      body: { note: Synthetic note }
+    mock:
+      prism: {}
+    wire:
+      - method: POST
+        path: /ws/sav/1/note
+        body: { note: Synthetic note }
+    expect:
+      result_keys: [note]
+
+  - name: care-refund-returns-plain-text
+    request:
+      operation: postRefundCreate
+      body: { amount: 1, orderline_pk: 1, refund_type: 4 }
+    mock:
+      responses:
+        - status: 201
+          headers: { content-type: text/plain }
+          body: Refund created
+    wire:
+      - method: POST
+        path: /ws/sav/refund
+        headers_match:
+          content-type: ^application/json
+        body: { amount: 1, orderline_pk: 1, refund_type: 4 }
+    expect:
+      result: Refund created
+
+  - name: backbox-competitors
+    request:
+      operation: get-ws-backbox-v1-competitors
+      params: { listingId: 00000000-0000-4000-8000-000000000001 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/backbox/v1/competitors/00000000-0000-4000-8000-000000000001
+    expect:
+      result_keys: [is_winning, price]

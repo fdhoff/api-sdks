@@ -1,0 +1,209 @@
+cases:
+  - name: error-400-from-the-spec
+    request:
+      operation: get-ws-specific-listing
+      params: { listingId: 00000000-0000-4000-8000-000000000001 }
+    mock:
+      prism: { code: 400 }
+    wire:
+      - method: GET
+        path: /ws/listings/00000000-0000-4000-8000-000000000001
+    expect:
+      error: { kind: bad_request, status: 400 }
+
+  - name: error-401-from-the-spec
+    request:
+      operation: get-ws-specific-listing
+      params: { listingId: 00000000-0000-4000-8000-000000000001 }
+    mock:
+      prism: { code: 401 }
+    wire:
+      - method: GET
+        path: /ws/listings/00000000-0000-4000-8000-000000000001
+    expect:
+      error: { kind: authentication, status: 401 }
+
+  - name: error-403-from-the-spec
+    request:
+      operation: get-ws-specific-listing
+      params: { listingId: 00000000-0000-4000-8000-000000000001 }
+    mock:
+      prism: { code: 403 }
+    wire:
+      - method: GET
+        path: /ws/listings/00000000-0000-4000-8000-000000000001
+    expect:
+      error: { kind: permission, status: 403 }
+
+  - name: error-404-from-the-spec
+    request:
+      operation: get-ws-specific-listing
+      params: { listingId: 00000000-0000-4000-8000-000000000001 }
+    mock:
+      prism: { code: 404 }
+    wire:
+      - method: GET
+        path: /ws/listings/00000000-0000-4000-8000-000000000001
+    expect:
+      error: { kind: not_found, status: 404 }
+
+  - name: error-404-with-no-declared-body
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      prism: { code: 404 }
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: not_found, status: 404 }
+
+  - name: error-422-problem-json-surfaces-code-and-request-id
+    request:
+      operation: post-ws-buyback-v1-orders-messages
+      params: { buybackOrderId: EXAMPLE-1 }
+      body: { message: Synthetic message }
+    mock:
+      responses:
+        - status: 422
+          headers: { content-type: application/problem+json }
+          body:
+            error: { code: invalid-message, message: Synthetic failure }
+            status: 422
+            title: Invalid
+            type: /errors/invalid
+            requestId: request-1
+    wire:
+      - method: POST
+        path: /ws/buyback/v1/orders/EXAMPLE-1/messages
+        body: { message: Synthetic message }
+    expect:
+      error: { kind: validation, status: 422, code: invalid-message, request_id: request-1 }
+
+  - name: error-403-waf-html-carries-cf-ray
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 403
+          headers: { content-type: text/html; charset=UTF-8, cf-ray: 0000000000000000-AAA }
+          body: <html>blocked</html>
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error:
+        kind: waf_blocked
+        status: 403
+        cf_ray: 0000000000000000-AAA
+        raw_body: <html>blocked</html>
+
+  - name: error-403-bot-challenge
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 403
+          body:
+            errors:
+              - code: bot-need-challenge
+                message: Forbidden
+                challengePath: /synthetic-challenge
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: bot_challenge, status: 403, code: bot-need-challenge }
+
+  - name: error-400-plain-text-stays-typed
+    request:
+      operation: get-ws-buyback-v1-listing
+      params: { buybackListingId: 00000000-0000-4000-8000-000000000001 }
+    mock:
+      responses:
+        - status: 400
+          headers: { content-type: text/plain }
+          body: Synthetic plain failure
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/listings/00000000-0000-4000-8000-000000000001
+    expect:
+      error: { kind: bad_request, status: 400, raw_body: Synthetic plain failure }
+
+  - name: error-unmapped-status
+    request:
+      operation: postProblem
+      params: { careFolderId: 1 }
+      multipart:
+        message: Synthetic problem
+    mock:
+      responses:
+        - status: 413
+    wire:
+      - method: POST
+        path: /ws/sav/1/problem
+    expect:
+      error: { kind: api, status: 413 }
+
+  - name: error-500-unknown-json-shape-stays-typed
+    client:
+      max_retries: 0
+    request:
+      operation: get-ws-buyback-v1-order
+      params: { buybackOrderId: EXAMPLE-1 }
+    mock:
+      responses:
+        - status: 500
+          body: { unexpected: shape }
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/orders/EXAMPLE-1
+    expect:
+      error: { kind: server, status: 500 }
+
+  - name: error-503-plain-text-stays-typed
+    client:
+      max_retries: 0
+    request:
+      operation: get-ws-buyback-v1-listings
+    mock:
+      responses:
+        - status: 503
+          body: Service Unavailable
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/listings
+    expect:
+      error: { kind: server, status: 503, raw_body: Service Unavailable }
+
+  - name: error-500-with-no-body
+    client:
+      max_retries: 0
+    request:
+      operation: get-ws-buyback-v1-listings
+    mock:
+      responses:
+        - status: 500
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/listings
+    expect:
+      error: { kind: server, status: 500 }
+
+  - name: error-malformed-success-body
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/json }
+          body: '{not json'
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: decode, status: 200 }

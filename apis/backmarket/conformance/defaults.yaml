@@ -1,0 +1,4 @@
+client:
+  user_agent: BM-Example-Conformance;conformance@example.com
+  locale: en-us
+  retry_base_delay_ms: 1

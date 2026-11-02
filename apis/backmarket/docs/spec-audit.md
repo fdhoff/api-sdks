@@ -126,8 +126,11 @@ Open:
 
 ## Mock limits
 
-Prism only returns statuses the spec declares; `Prefer: code=429` on any other operation returns 404. For conformance cases:
+Prism only returns statuses the spec declares; `Prefer: code=429` on any other operation returns 404. With `Accept: application/json`, which the docs require, it also ignores a status declared only as `application/problem+json` and returns 200. For conformance cases:
 
-* 429 is available on `POST /ws/listings`, `POST /ws/listings/{listingId}`, `PUT /ws/buyback/v2/orders/{buybackOrderId}/counter-offers` and `GET /ws/listings_bi`.
-* 5xx is available on the 11 operations that declare it, such as `GET /ws/buyback/v1/orders/{buybackOrderId}`.
-* Prism cannot simulate a timeout or a Cloudflare HTML body, so those cases need another harness.
+* 429 is available from Prism on `POST /ws/listings` and `POST /ws/listings/{listingId}`.
+* 5xx is not available from Prism on the operations probed; they declare it as `application/problem+json`.
+* `POST /ws/sav/refund` declares only `text/plain` and gets a 406.
+* Prism cannot simulate a timeout, a response sequence or a Cloudflare HTML body.
+
+The conformance harness in `toolchain/conformance/` scripts all of these. See `apis/backmarket/conformance/README.md`.

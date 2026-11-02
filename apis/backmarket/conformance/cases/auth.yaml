@@ -1,0 +1,115 @@
+cases:
+  - name: auth-sends-token-verbatim
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/orders/1
+        headers:
+          authorization: Basic {{token}}
+          user-agent: BM-Example-Conformance;conformance@example.com
+          accept: application/json
+    expect:
+      result_keys: [order_id]
+
+  - name: auth-does-not-encode-the-token
+    client:
+      token: synthetic:token==
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/orders/1
+        headers:
+          authorization: Basic synthetic:token==
+    expect:
+      result_keys: [order_id]
+
+  - name: auth-covers-operations-upstream-left-open
+    request:
+      operation: GetBackboxData
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/listings_bi
+        headers:
+          authorization: Basic {{token}}
+    expect:
+      result_keys: [results]
+
+  - name: headers-send-locale-on-declared-operation
+    client:
+      locale: fr-fr
+    request:
+      operation: get-bm-catalog-category
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/category/tree
+        headers:
+          accept-language: fr-fr
+    expect:
+      result_keys: [category_id]
+
+  - name: headers-send-locale-on-every-operation
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/orders/1
+        headers:
+          accept-language: en-us
+    expect:
+      result_keys: [order_id]
+
+  - name: headers-json-content-type-on-json-bodies
+    request:
+      operation: post-ws-create-or-update-listings
+      body:
+        catalog: "sku;quantity\nEXAMPLE-SKU;1"
+        quotechar: '"'
+        delimiter: ';'
+        encoding: latin1
+    mock:
+      prism: {}
+    wire:
+      - method: POST
+        path: /ws/listings
+        headers_match:
+          content-type: ^application/json
+        body:
+          catalog: "sku;quantity\nEXAMPLE-SKU;1"
+          quotechar: '"'
+          delimiter: ';'
+          encoding: latin1
+    expect:
+      result_keys: [bodymessage]
+
+  - name: headers-multipart-does-not-force-json
+    request:
+      operation: postMessage
+      params: { careFolderId: 1 }
+      multipart:
+        message: Synthetic message
+    mock:
+      responses:
+        - status: 201
+          body: { id: 1 }
+    wire:
+      - method: POST
+        path: /ws/sav/1/msg
+        headers_match:
+          content-type: ^multipart/form-data; boundary=
+    expect:
+      result: { id: 1 }

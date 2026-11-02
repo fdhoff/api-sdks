@@ -1,0 +1,57 @@
+cases:
+  - name: timeout-retries-a-get-then-succeeds
+    client:
+      timeout_ms: 100
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 200
+          delay_ms: 2000
+        - status: 200
+          body: { order_id: 1 }
+    wire:
+      - method: GET
+        path: /ws/orders/1
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      result: { order_id: 1 }
+
+  - name: timeout-gives-up-after-max-retries
+    client:
+      timeout_ms: 100
+      max_retries: 1
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 200
+          delay_ms: 2000
+        - status: 200
+          delay_ms: 2000
+    wire:
+      - method: GET
+        path: /ws/orders/1
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: timeout }
+
+  - name: timeout-never-repeats-a-post
+    client:
+      timeout_ms: 100
+    request:
+      operation: postRefundCreate
+      body: { amount: 1, orderline_pk: 1, refund_type: 4 }
+    mock:
+      responses:
+        - status: 201
+          delay_ms: 2000
+    wire:
+      - method: POST
+        path: /ws/sav/refund
+    expect:
+      error: { kind: timeout }

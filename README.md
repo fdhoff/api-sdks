@@ -14,7 +14,7 @@ No SDK is usable yet. Python, TypeScript, Go, C# and Rust will ship in that orde
 | `apis/backmarket/spec/upstream/` | `lock.json`, which pins the upstream OpenAPI spec by URL and SHA-256. The spec is not in this repository; it is fetched at build time into a gitignored cache here |
 | `apis/backmarket/spec/overlay.yaml` | Our corrections, in [OpenAPI Overlay](https://spec.openapis.org/overlay/v1.0.0.html) format |
 | `apis/backmarket/packages/` | Per-language package config and generated clients |
-| `apis/backmarket/conformance/` | Language-neutral test cases |
+| `apis/backmarket/conformance/` | Language-neutral test cases and the reference driver |
 | `apis/backmarket/docs/spec-audit.md` | Known gaps in the spec and where each is handled |
 
 `toolchain/` must not name this API or contain its endpoints or schemas; a test enforces that. This boundary keeps later extraction cheap and is not a framework.
@@ -32,6 +32,7 @@ npm run spec:verify  # check the cached spec against its lock, offline
 npm run spec:build   # apply the overlay, fetching first if needed, writing apis/backmarket/build/openapi.yaml
 npm run spec:lint
 npm run mock         # serve the built spec on http://127.0.0.1:4010
+npm run conformance  # run the conformance cases with the reference driver
 npm run spec:pin     # re-pin to the current upstream spec
 ```
 
