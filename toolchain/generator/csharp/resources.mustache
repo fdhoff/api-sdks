@@ -1,0 +1,31 @@
+{{>partial_header}}
+
+using {{packageName}}.{{apiPackage}};
+using {{packageName}}.Runtime;
+
+namespace {{packageName}};
+
+/// <summary>Every API operation, grouped by resource.</summary>
+public abstract class ClientResources
+{
+    internal static readonly Operation[] Operations = [{{#apiInfo}}{{#apis}}.. {{classname}}.Operations, {{/apis}}{{/apiInfo}}];
+
+    private protected ClientResources(Transport transport)
+    {
+        Transport = transport;
+{{#apiInfo}}
+{{#apis}}
+        {{baseName}} = new {{classname}}(transport);
+{{/apis}}
+{{/apiInfo}}
+    }
+
+    private protected Transport Transport { get; }
+{{#apiInfo}}
+{{#apis}}
+
+    /// <summary>The {{baseName}} operations.</summary>
+    public {{classname}} {{baseName}} { get; }
+{{/apis}}
+{{/apiInfo}}
+}

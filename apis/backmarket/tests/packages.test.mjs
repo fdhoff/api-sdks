@@ -8,6 +8,7 @@ const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const PYTHON = join(ROOT, 'apis/backmarket/packages/python');
 const TYPESCRIPT = join(ROOT, 'apis/backmarket/packages/typescript');
 const GO = join(ROOT, 'apis/backmarket/packages/go');
+const CSHARP = join(ROOT, 'apis/backmarket/packages/csharp');
 const AFFILIATION = /not affiliated with.*Back Market/i;
 
 test('the Python package ships the root licence and notice', async () => {
@@ -99,6 +100,39 @@ test('generated Go carries no upstream prose', async () => {
     const comments = text.match(/^\s*\/\/.*$/gm).map((line) => line.trim());
     const prose = comments.filter((line) => !ours.test(line) && !summaries.includes(line.slice(3)));
     if (/back market/i.test(text) || prose.length > 0) offenders.push(name);
+  }
+  assert.deepEqual(offenders, []);
+});
+
+test('the C# package ships the root licence and notice', async () => {
+  for (const name of ['LICENSE', 'NOTICE']) {
+    assert.equal(await readFile(join(CSHARP, name), 'utf8'), await readFile(join(ROOT, name), 'utf8'));
+  }
+});
+
+test('the C# manifest declares Apache-2.0 and says it is unofficial', async () => {
+  const manifest = await readFile(join(CSHARP, 'src/BackMarketSeller/BackMarketSeller.csproj'), 'utf8');
+  assert.match(manifest, /<PackageLicenseExpression>Apache-2\.0<\/PackageLicenseExpression>/);
+  assert.match(manifest, /<PackageId>BackMarketSeller<\/PackageId>/);
+  assert.match(manifest, /<Version>0\.[^<]*<\/Version>/);
+  assert.match(manifest.match(/<Description>.*<\/Description>/)[0], /Unofficial.*not affiliated with Back Market/i);
+  for (const name of ['LICENSE', 'NOTICE', 'README.md']) assert.match(manifest, new RegExp(`\\.\\./\\.\\./${name.replace('.', '\\.')}`));
+  assert.match(await readFile(join(CSHARP, 'README.md'), 'utf8'), AFFILIATION);
+});
+
+test('generated C# carries no upstream prose', async () => {
+  const ours = await readFile(join(CSHARP, 'operations.yaml'), 'utf8');
+  const templates = join(ROOT, 'toolchain/generator/csharp');
+  const corpus = [ours, ...(await Promise.all((await readdir(templates)).map((name) => readFile(join(templates, name), 'utf8'))))].join('\n');
+  const offenders = [];
+  for (const sub of ['Api', 'Models']) {
+    const dir = join(CSHARP, 'src/BackMarketSeller', sub);
+    for (const name of await readdir(dir)) {
+      const text = await readFile(join(dir, name), 'utf8');
+      const summaries = [...text.matchAll(/<summary>(.*?)<\/summary>/g)].map((match) => match[1]);
+      const foreign = summaries.filter((summary) => !corpus.includes(summary) && !/^The \w+ operations\.$/.test(summary));
+      if (/back market/i.test(text) || foreign.length > 0) offenders.push(`${sub}/${name}`);
+    }
   }
   assert.deepEqual(offenders, []);
 });

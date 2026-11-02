@@ -12,14 +12,15 @@ Sections below describe the design; this table says how much of it is real.
 | --- | --- |
 | Spec fetch, hash pin, overlay, lint, mock, CI | Built |
 | Conformance format, runner, harness, cases and reference driver | Built |
-| Generator config and templates | Built for Python, TypeScript and Go |
-| Per-language runtime | Built for Python, TypeScript and Go |
+| Generator config and templates | Built for Python, TypeScript, Go and C# |
+| Per-language runtime | Built for Python, TypeScript, Go and C# |
 | Python and TypeScript clients | Alpha, unpublished |
 | Go client | Alpha, untagged |
-| C# and Rust clients | Planned, in that order |
+| C# client | Alpha, unpublished |
+| Rust client | Planned |
 | Spec drift job | Built |
 | Release workflows and changelogs | Built for Python and TypeScript, publishing off |
-| Quickstarts | Built for Python, TypeScript and Go |
+| Quickstarts | Built for Python, TypeScript, Go and C# |
 
 ## Goals
 
@@ -176,7 +177,7 @@ runner ── JSON lines ──> driver (one per language) ── HTTP ──> h
 * The **harness** records every request. It answers from Prism, which also rejects requests the spec does not allow, or from a script, for what Prism cannot do: response sequences, delays, slow bodies, dropped connections, HTML bodies and undeclared statuses.
 * The **reference driver** is a minimal JavaScript client that proves each case can pass. It is test code, not an SDK, and `npm test` runs it.
 
-There are 81 cases, covering auth, pagination, 4xx and 5xx errors, 429 retry, timeouts, connection failures, redaction and 30 of the 40 operations. CI runs them with the reference driver and with each language's client: Python sync and async, the TypeScript ESM and CommonJS builds, and Go.
+There are 81 cases, covering auth, pagination, 4xx and 5xx errors, 429 retry, timeouts, connection failures, redaction and 30 of the 40 operations. CI runs them with the reference driver and with each language's client: Python sync and async, the TypeScript ESM and CommonJS builds, Go, and C#.
 
 ## Versioning and release
 

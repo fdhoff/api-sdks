@@ -21,6 +21,8 @@
     "conformance:typescript:cjs": "node toolchain/conformance/run.mjs apis/backmarket --driver \"node apis/backmarket/packages/typescript/conformance/driver.mjs --format cjs\"",
     "generate:go": "node toolchain/pipeline/generate.mjs apis/backmarket go",
     "conformance:go": "go -C apis/backmarket/packages/go build -o bin/driver ./conformance/driver && node toolchain/conformance/run.mjs apis/backmarket --driver apis/backmarket/packages/go/bin/driver",
+    "generate:csharp": "node toolchain/pipeline/generate.mjs apis/backmarket csharp",
+    "conformance:csharp": "dotnet build apis/backmarket/packages/csharp/conformance/Driver -c Release -o apis/backmarket/packages/csharp/conformance/bin && node toolchain/conformance/run.mjs apis/backmarket --driver \"dotnet apis/backmarket/packages/csharp/conformance/bin/BackMarketSeller.Conformance.dll\"",
     "test": "node --test \"toolchain/**/*.test.mjs\" \"apis/**/*.test.mjs\""
   },
   "devDependencies": {

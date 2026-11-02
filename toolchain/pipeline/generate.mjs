@@ -17,9 +17,12 @@ const MAPPINGS = {
   name_mappings: '--name-mappings',
   parameter_name_mappings: '--parameter-name-mappings',
   enum_name_mappings: '--enum-name-mappings',
+  schema_mappings: '--schema-mappings',
 };
 const UNIONS = ['anyOf', 'oneOf'];
 const PROSE = new Set(['description', 'summary', 'example', 'examples', 'externalDocs']);
+// Runtimes in languages without relative imports write their package name as this.
+const PACKAGE_PLACEHOLDER = 'PackageNamespace';
 
 // The upstream spec is not redistributed, so its prose and examples must not reach generated code.
 // Only `properties` maps hold user-chosen keys that can collide with those names.
@@ -129,6 +132,14 @@ export function dropUnions(spec) {
   return rewritten;
 }
 
+export async function fillPackageName(dir, name) {
+  for (const entry of await readdir(dir, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    const path = join(entry.parentPath, entry.name);
+    await writeFile(path, (await readFile(path, 'utf8')).replaceAll(PACKAGE_PLACEHOLDER, name));
+  }
+}
+
 async function exists(path) {
   return stat(path).then(
     () => true,
@@ -184,6 +195,10 @@ async function generate(apiDir, language) {
       generatorConfig,
       JSON.stringify({ files: { 'resources.mustache': { templateType: 'SupportingFiles', destinationFilename: join(source, config.resources) } } }),
     );
+    if (config.ignore) {
+      await mkdir(join(work, 'out'));
+      await writeFile(join(work, 'out', '.openapi-generator-ignore'), config.ignore.join('\n'));
+    }
     run('java', [
       '-jar', await ensureGenerator(dirname(paths.build)),
       'generate', '--generator-name', config.generator, '--skip-validate-spec',
@@ -211,6 +226,7 @@ async function generate(apiDir, language) {
   }
   await rm(join(output, config.runtime), { recursive: true, force: true });
   await cp(join(TOOLCHAIN, 'runtime', language), join(output, config.runtime), { recursive: true });
+  if (config.runtime_package) await fillPackageName(join(output, config.runtime), config.runtime_package);
   run(config.format[0], [...config.format.slice(1), config.output], { cwd: packageDir });
   console.log(`Generated ${output}`);
 }

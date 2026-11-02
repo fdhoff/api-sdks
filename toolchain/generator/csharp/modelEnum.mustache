@@ -1,0 +1,15 @@
+/// <summary>An enumerated value. In a response, a value this version does not list goes to the parent's <see cref="ApiModel.Extra"/>.</summary>
+{{#isString}}
+[JsonConverter(typeof(ApiEnumConverter<{{classname}}>))]
+{{/isString}}
+public enum {{classname}}{{#isLong}} : long{{/isLong}}
+{
+{{#allowableValues}}
+{{#enumVars}}
+{{#isString}}
+    [JsonStringEnumMemberName("{{{value}}}")]
+{{/isString}}
+    {{#isString}}{{#lambda.pascalcase}}{{#lambda.lowercase}}{{{value}}}{{/lambda.lowercase}}{{/lambda.pascalcase}}{{/isString}}{{^isString}}Value{{{value}}} = {{{value}}}{{/isString}},
+{{/enumVars}}
+{{/allowableValues}}
+}

@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/BackMarketSeller/BackMarketSeller.csproj" />
+  <Project Path="tests/BackMarketSeller.Tests/BackMarketSeller.Tests.csproj" />
+  <Project Path="conformance/Driver/BackMarketSeller.Conformance.csproj" />
+</Solution>

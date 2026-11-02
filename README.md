@@ -4,7 +4,7 @@ Unofficial spec-driven SDKs for the Back Market Seller API.
 
 This project is unofficial and is not affiliated with, endorsed by, or supported by Back Market.
 
-The Python and TypeScript SDKs are unpublished alphas: see [`apis/backmarket/packages/python/`](apis/backmarket/packages/python/README.md) and [`apis/backmarket/packages/typescript/`](apis/backmarket/packages/typescript/README.md). The Go SDK is an untagged alpha: see [`apis/backmarket/packages/go/`](apis/backmarket/packages/go/README.md). C# and Rust will follow in that order.
+The Python and TypeScript SDKs are unpublished alphas: see [`apis/backmarket/packages/python/`](apis/backmarket/packages/python/README.md) and [`apis/backmarket/packages/typescript/`](apis/backmarket/packages/typescript/README.md). The Go SDK is an untagged alpha: see [`apis/backmarket/packages/go/`](apis/backmarket/packages/go/README.md). The C# SDK is an unpublished alpha: see [`apis/backmarket/packages/csharp/`](apis/backmarket/packages/csharp/README.md). Rust will follow.
 
 ## Quickstart
 
@@ -83,6 +83,26 @@ for order, err := range client.Orders.Iter(context.Background(), nil) {
 
 The [Go README](apis/backmarket/packages/go/README.md) covers installing from a checkout, errors, configuration and behaviour.
 
+### C#
+
+Requires .NET 10 or later. Every call is async, and pages are walked with `await foreach`:
+
+```csharp
+using var client = new BackMarketClient("your-token", new BackMarketClientOptions
+{
+    UserAgent = "BM-YourCompany-YourIntegration;you@example.com",
+    Locale = "fr-fr",
+    Region = Region.EU,
+});
+
+await foreach (var order in client.Orders.ListAllAsync())
+{
+    Console.WriteLine(order.OrderId);
+}
+```
+
+The [C# README](apis/backmarket/packages/csharp/README.md) covers installing from a checkout, errors, configuration and behaviour.
+
 ## Live API reports
 
 Every test runs against a mock built from the public spec, so nothing here is confirmed against the live API. If you use an SDK for real, please report what you find, working or not, as a GitHub issue. The packages stay on 0.x until those reports confirm their behaviour.
@@ -127,6 +147,8 @@ npm run conformance:typescript  # run the cases against the ESM build; `npm run 
 npm run conformance:typescript:cjs
 npm run generate:go             # regenerate the Go client; needs Java 21 and Go 1.24 or later
 npm run conformance:go          # build the driver and run the cases against the Go client
+npm run generate:csharp         # regenerate the C# client; needs Java 21 and .NET 10
+npm run conformance:csharp      # build the driver and run the cases against the C# client
 ```
 
 Once the spec is cached, the build and tests need no network. A hash mismatch stops the build; the error says how to recover.

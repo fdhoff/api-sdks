@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Generated models carry no upstream prose, so most public members have no XML docs. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <PackageId>BackMarketSeller</PackageId>
+    <Version>0.1.0-alpha.1</Version>
+    <Authors>backmarket-seller-sdk contributors</Authors>
+    <Description>Unofficial client for the Back Market Seller API. Not affiliated with Back Market.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>seller-api;sdk;unofficial</PackageTags>
+    <RepositoryUrl>https://github.com/fdhoff/backmarket-seller-sdk</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md;../../LICENSE;../../NOTICE" Pack="true" PackagePath="/" />
+    <InternalsVisibleTo Include="BackMarketSeller.Tests" />
+    <InternalsVisibleTo Include="BackMarketSeller.Conformance" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
+  </ItemGroup>
+
+</Project>

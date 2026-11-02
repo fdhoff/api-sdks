@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyOperations, dropNullable, dropUnions, renameSchemas, stripProse } from './generate.mjs';
+import { applyOperations, dropNullable, dropUnions, fillPackageName, renameSchemas, stripProse } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -232,4 +232,15 @@ test('renderDiff names what changed without quoting either spec', () => {
   assert.match(text, /### Schemas\n\nAdded:\n\n\* `T`/);
   assert.doesNotMatch(text, /prose/);
   assert.match(renderDiff(diffSpecs(after, after)), /### Operations\n\nNo changes\./);
+});
+
+test('fillPackageName writes the package name into every runtime file', async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), 'runtime-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  await mkdir(join(dir, 'nested'));
+  await writeFile(join(dir, 'a.cs'), 'namespace PackageNamespace;');
+  await writeFile(join(dir, 'nested/b.cs'), 'using PackageNamespace.Runtime;');
+  await fillPackageName(dir, 'Example');
+  assert.equal(await readFile(join(dir, 'a.cs'), 'utf8'), 'namespace Example;');
+  assert.equal(await readFile(join(dir, 'nested/b.cs'), 'utf8'), 'using Example.Runtime;');
 });

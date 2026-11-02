@@ -1,0 +1,303 @@
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using BackMarketSeller.Models;
+using BackMarketSeller.Runtime;
+using Microsoft.Extensions.Logging;
+using Xunit;
+
+namespace BackMarketSeller.Tests;
+
+public sealed class ClientTests
+{
+    private const string Token = "synthetic-token";
+
+    private static BackMarketClient Client(ScriptedHandler handler, ILogger? logger = null, int maxRetries = 3) =>
+        new(Token, new BackMarketClientOptions
+        {
+            UserAgent = "BM-Example-Tests;tests@example.com",
+            Locale = "fr-fr",
+            BaseUrl = new Uri("https://mock.invalid/"),
+            RetryBaseDelay = TimeSpan.FromMilliseconds(1),
+            RateLimitWait = TimeSpan.FromMilliseconds(1),
+            MaxRetries = maxRetries,
+            Logger = logger,
+            HttpHandler = handler,
+        });
+
+    [Fact]
+    public async Task SendsTheTokenVerbatimWithTheRequiredHeaders()
+    {
+        var handler = new ScriptedHandler(Json(HttpStatusCode.OK, """{"order_id": 1}"""));
+        using var client = Client(handler);
+
+        await client.Orders.GetAsync(1, TestContext.Current.CancellationToken);
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal("https://mock.invalid/ws/orders/1", request.Url);
+        Assert.Equal($"Basic {Token}", request.Headers["Authorization"]);
+        Assert.Equal("BM-Example-Tests;tests@example.com", request.Headers["User-Agent"]);
+        Assert.Equal("fr-fr", request.Headers["Accept-Language"]);
+    }
+
+    [Fact]
+    public async Task KeepsValuesThatDoNotFitAndUnknownFieldsInExtra()
+    {
+        var handler = new ScriptedHandler(Json(HttpStatusCode.OK, """{"order_id": "not-a-number", "state": 99, "is_backship": null, "surprise": [1]}"""));
+        using var client = Client(handler);
+
+        var order = await client.Orders.GetAsync(1, TestContext.Current.CancellationToken);
+
+        Assert.Null(order.OrderId);
+        Assert.Equal((OrderState)99, order.State);
+        Assert.Equal("not-a-number", order.Extra["order_id"].GetString());
+        Assert.Equal(JsonValueKind.Null, order.Extra["is_backship"].ValueKind);
+        Assert.Equal("[1]", order.Extra["surprise"].GetRawText());
+        var written = JsonDocument.Parse(JsonSerializer.Serialize(order)).RootElement;
+        Assert.Equal("not-a-number", written.GetProperty("order_id").GetString());
+        Assert.Equal(99, written.GetProperty("state").GetInt32());
+        Assert.Equal(JsonValueKind.Null, written.GetProperty("is_backship").ValueKind);
+    }
+
+    [Fact]
+    public void AnUnlistedEnumValueGoesToExtra()
+    {
+        var order = JsonSerializer.Deserialize<UpdateOrder>("""{"order_id": 1, "country_code": "xx-xx"}""")!;
+
+        Assert.Equal(1, order.OrderId);
+        Assert.Equal("xx-xx", order.Extra["country_code"].GetString());
+    }
+
+    [Fact]
+    public async Task ASetPropertyWinsOverTheRawValueItReplaced()
+    {
+        var handler = new ScriptedHandler(Json(HttpStatusCode.OK, """{"order_id": "bad"}"""));
+        using var client = Client(handler);
+        var order = await client.Orders.GetAsync(1, TestContext.Current.CancellationToken);
+
+        order.OrderId = 2;
+
+        Assert.Equal("""{"order_id":2}""", JsonSerializer.Serialize(order));
+    }
+
+    [Fact]
+    public async Task PaginationReadsOnlyThePositionOutOfNext()
+    {
+        var handler = new ScriptedHandler(
+            Json(HttpStatusCode.OK, """{"next": "https://foreign.invalid/ws/orders?page=2&page-size=99", "results": [{"order_id": 1}]}"""),
+            Json(HttpStatusCode.OK, """{"next": null, "results": [{"order_id": 2}]}"""));
+        using var client = Client(handler);
+
+        var orders = await client.Orders.ListAllAsync(pageSize: 5, cancellationToken: TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal([1L, 2L], orders.Select(order => order.OrderId!.Value));
+        Assert.Equal("https://mock.invalid/ws/orders?page-size=5", handler.Requests[0].Url);
+        Assert.Equal("https://mock.invalid/ws/orders?page=2&page-size=5", handler.Requests[1].Url);
+    }
+
+    [Fact]
+    public async Task ANextLinkThatDoesNotAdvanceIsADecodeError()
+    {
+        var page = """{"next": "%%not a url", "results": []}""";
+        var handler = new ScriptedHandler(Json(HttpStatusCode.OK, page), Json(HttpStatusCode.OK, page));
+        using var client = Client(handler);
+
+        await Assert.ThrowsAsync<ApiDecodeException>(async () =>
+            await client.Orders.ListAllAsync(cancellationToken: TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task IterationRejectsANextLinkThatIsNotAUrl()
+    {
+        var handler = new ScriptedHandler(Json(HttpStatusCode.OK, """{"next": "http://[", "results": [{"order_id": 1}]}"""));
+        using var client = Client(handler);
+        var ids = new List<long>();
+
+        var error = await Assert.ThrowsAsync<ApiDecodeException>(async () =>
+        {
+            await foreach (var order in client.Orders.ListAllAsync(cancellationToken: TestContext.Current.CancellationToken))
+            {
+                ids.Add(order.OrderId!.Value);
+            }
+        });
+
+        Assert.Equal([1L], ids);
+        Assert.Contains("not a valid URL", error.Message);
+        Assert.Single(handler.Requests);
+    }
+
+    [Theory]
+    [InlineData(403, """{"errors": [{"code": "bot-need-challenge"}]}""", null, typeof(BotChallengeException))]
+    [InlineData(403, "<html>blocked</html>", "0000-AAA", typeof(WafBlockedException))]
+    [InlineData(403, "{}", null, typeof(PermissionDeniedException))]
+    [InlineData(404, "", null, typeof(NotFoundException))]
+    [InlineData(418, "", null, typeof(ApiException))]
+    public async Task MapsErrorsOnStatusFirst(int status, string body, string? cfRay, Type expected)
+    {
+        var response = new HttpResponseMessage((HttpStatusCode)status) { Content = new StringContent(body) };
+        if (cfRay is not null)
+        {
+            response.Headers.Add("cf-ray", cfRay);
+        }
+        using var client = Client(new ScriptedHandler(response));
+
+        var error = await Assert.ThrowsAnyAsync<ApiException>(() => client.Orders.GetAsync(1, TestContext.Current.CancellationToken));
+
+        Assert.IsType(expected, error);
+        Assert.Equal(status, error.Status);
+        Assert.Equal(cfRay, error.CfRay);
+    }
+
+    [Fact]
+    public async Task ANumericErrorCodeReadsAsText()
+    {
+        using var client = Client(new ScriptedHandler(Json(HttpStatusCode.BadRequest, """{"error": {"code": 12}, "requestId": "request-1"}""")));
+
+        var error = await Assert.ThrowsAsync<BadRequestException>(() => client.Orders.GetAsync(1, TestContext.Current.CancellationToken));
+
+        Assert.Equal("12", error.Code);
+        Assert.Equal("request-1", error.RequestId);
+    }
+
+    [Fact]
+    public async Task KeepsTheTokenOutOfErrorsAndLogs()
+    {
+        var logger = new ListLogger();
+        var handler = new ScriptedHandler(
+            Json(HttpStatusCode.InternalServerError, $$$"""{"echo": "{{{Token}}}"}"""),
+            Json(HttpStatusCode.Unauthorized, $$$"""{"error": {"code": "bad-token", "message": "{{{Token}}}"}}"""));
+        using var client = Client(handler, logger);
+
+        var error = await Assert.ThrowsAsync<AuthenticationException>(() => client.Orders.GetAsync(1, TestContext.Current.CancellationToken));
+
+        Assert.DoesNotContain(Token, error.RawBody);
+        Assert.NotEmpty(logger.Lines);
+        Assert.All(logger.Lines, entry => Assert.DoesNotContain(Token, entry));
+    }
+
+    [Fact]
+    public async Task NeverRepeatsAFailedPost()
+    {
+        var handler = new ScriptedHandler(Json(HttpStatusCode.InternalServerError, "{}"), Json(HttpStatusCode.OK, "{}"));
+        using var client = Client(handler);
+
+        await Assert.ThrowsAsync<ServerException>(() => client.Care.CreateRefundAsync(new PostRefundCreateRequest(), TestContext.Current.CancellationToken));
+
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task CallerCancellationIsNotAnApiError()
+    {
+        using var cancel = new CancellationTokenSource();
+        var handler = new ScriptedHandler(_ =>
+        {
+            cancel.Cancel();
+            throw new TaskCanceledException();
+        });
+        using var client = Client(handler);
+
+        var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.Orders.GetAsync(1, cancel.Token));
+
+        Assert.IsNotAssignableFrom<ApiException>(error);
+    }
+
+    [Fact]
+    public async Task AnEmptySuccessBodyReadsAsAnEmptyModel()
+    {
+        using var client = Client(new ScriptedHandler(new HttpResponseMessage(HttpStatusCode.OK)));
+
+        var order = await client.Orders.GetAsync(1, TestContext.Current.CancellationToken);
+
+        Assert.Null(order.OrderId);
+        Assert.Empty(order.Extra);
+    }
+
+    [Fact]
+    public async Task MultipartFieldsAreTextAndFiles()
+    {
+        var handler = new ScriptedHandler(Json(HttpStatusCode.Created, """{"id": 1}"""));
+        using var client = Client(handler);
+
+        await client.Care.SendMessageAsync(1, "hello", [new UploadFile("note.txt", "body"u8.ToArray())], TestContext.Current.CancellationToken);
+
+        var request = Assert.Single(handler.Requests);
+        Assert.StartsWith("multipart/form-data", request.Headers["Content-Type"]);
+        Assert.Contains("name=\"message\"", request.Body);
+        Assert.Contains("filename=\"note.txt\"", request.Body);
+    }
+
+    [Theory]
+    [InlineData("2", 2.0)]
+    [InlineData("soon", null)]
+    [InlineData("Thu, 01 Jan 2015 00:00:00 GMT", null)]
+    [InlineData("Sun, 01 Nov 2026 00:00:30 GMT", 30.0)]
+    public void ReadsRetryAfterAsSecondsOrADate(string value, double? expected)
+    {
+        var now = new DateTimeOffset(2026, 11, 1, 0, 0, 0, TimeSpan.Zero);
+
+        Assert.Equal(expected, Transport.RetryAfterSeconds(value, now));
+    }
+
+    [Fact]
+    public void ARetryAfterTooLongForANumberIsStillANumber()
+    {
+        Assert.True(Transport.RetryAfterSeconds(new string('9', 400), DateTimeOffset.UtcNow) > 3600);
+    }
+
+    [Fact]
+    public void RequiresExactlyOneOfRegionAndBaseUrl()
+    {
+        Assert.Throws<ArgumentException>(() => new BackMarketClient(Token, new BackMarketClientOptions { UserAgent = "BM-A-B;a@example.com", Locale = "fr-fr" }));
+        Assert.Throws<ArgumentException>(() => new BackMarketClient("", new BackMarketClientOptions { UserAgent = "BM-A-B;a@example.com", Locale = "fr-fr", Region = Region.EU }));
+    }
+
+    private static HttpResponseMessage Json(HttpStatusCode status, string body) =>
+        new(status) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
+
+    private sealed record Sent(string Url, Dictionary<string, string> Headers, string Body);
+
+    private sealed class ScriptedHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
+    {
+        private readonly Queue<HttpResponseMessage> responses = new();
+
+        public ScriptedHandler(params HttpResponseMessage[] responses)
+            : this(_ => throw new InvalidOperationException("script exhausted"))
+        {
+            foreach (var response in responses)
+            {
+                this.responses.Enqueue(response);
+            }
+        }
+
+        public List<Sent> Requests { get; } = [];
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var headers = request.Headers.NonValidated.ToDictionary(header => header.Key, header => header.Value.ToString());
+            var body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
+            if (request.Content is not null)
+            {
+                foreach (var header in request.Content.Headers.NonValidated)
+                {
+                    headers[header.Key] = header.Value.ToString();
+                }
+            }
+            Requests.Add(new Sent(request.RequestUri!.ToString(), headers, body));
+            return responses.TryDequeue(out var response) ? response : respond(request);
+        }
+    }
+
+    private sealed class ListLogger : ILogger
+    {
+        public List<string> Lines { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            Lines.Add(formatter(state, exception));
+    }
+}
