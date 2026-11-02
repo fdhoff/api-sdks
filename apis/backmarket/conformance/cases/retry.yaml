@@ -21,6 +21,66 @@ cases:
     expect:
       result: { id: 00000000-0000-4000-8000-000000000001 }
 
+  - name: retry-429-honours-a-retry-after-date
+    client:
+      rate_limit_wait_ms: 1
+    request:
+      operation: GetBackboxData
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '{{http_date+2s}}' }
+        - status: 200
+          body: { count: 0, next: null, previous: null, results: [] }
+    wire:
+      - method: GET
+        path: /ws/listings_bi
+      - method: GET
+        path: /ws/listings_bi
+        min_delay_ms: 900
+    expect:
+      result: { count: 0 }
+
+  - name: retry-429-treats-a-past-date-as-no-retry-after
+    client:
+      rate_limit_wait_ms: 200
+    request:
+      operation: GetBackboxData
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: 'Thu, 01 Jan 2015 00:00:00 GMT' }
+        - status: 200
+          body: { count: 0, next: null, previous: null, results: [] }
+    wire:
+      - method: GET
+        path: /ws/listings_bi
+      - method: GET
+        path: /ws/listings_bi
+        min_delay_ms: 180
+    expect:
+      result: { count: 0 }
+
+  - name: retry-429-treats-an-unusable-value-as-no-retry-after
+    client:
+      rate_limit_wait_ms: 200
+    request:
+      operation: GetBackboxData
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: soon }
+        - status: 200
+          body: { count: 0, next: null, previous: null, results: [] }
+    wire:
+      - method: GET
+        path: /ws/listings_bi
+      - method: GET
+        path: /ws/listings_bi
+        min_delay_ms: 180
+    expect:
+      result: { count: 0 }
+
   - name: retry-429-without-retry-after-waits-the-documented-block
     client:
       rate_limit_wait_ms: 200

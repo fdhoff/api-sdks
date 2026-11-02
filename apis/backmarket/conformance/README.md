@@ -26,6 +26,7 @@ A driver reports these in `error.kind`, with the HTTP `status` where there was o
 | `server` | 5xx, after retries |
 | `api` | Any other status |
 | `timeout` | No response within `timeout_ms`, after retries |
+| `connection` | The connection failed or dropped before a full response, after retries |
 | `decode` | A success response whose declared JSON body does not parse |
 
 Errors also carry these, when present: `request_id` from `requestId`, `code` from `error.code` or `errors[0].code`, and `raw_body` with the token removed. A body that fits no known shape, or is not JSON, still produces a typed error.

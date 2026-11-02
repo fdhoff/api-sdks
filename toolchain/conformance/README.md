@@ -6,7 +6,7 @@ Language-neutral YAML cases, kept under `apis/<api>/conformance/cases/`, run in 
 runner ── JSON lines ──> driver (one per language) ── HTTP ──> harness ──> Prism, or a scripted response
 ```
 
-The harness records every request a client sends, so a case can assert the exact wire traffic. It answers from the Prism mock built from the spec, which also rejects requests the spec does not allow, or from a script, for what Prism cannot do: response sequences, delays and undeclared statuses.
+The harness records every request a client sends, so a case can assert the exact wire traffic. It answers from the Prism mock built from the spec, which also rejects requests the spec does not allow, or from a script, for what Prism cannot do: response sequences, delays, dropped connections and undeclared statuses.
 
 ## Running it
 
@@ -58,6 +58,8 @@ cases:
 ```
 
 * `mock: { prism: { code: 404 } }` answers from Prism instead, asking for that declared status. Prism ignores a code the operation cannot serve for the client's `Accept` header, so check the mock before relying on one. `prism: {}` takes the first success response.
+* `- drop: true` in `responses` reads the request, records it, then closes the connection with no response. It stands alone, with no `status` or other key.
+* `{{http_date+2s}}` in a scripted header expands to an HTTP date that many seconds ahead, when the response is sent. HTTP dates are whole seconds, so the moment it names is up to a second sooner.
 * `result_keys: [id]` asserts that those keys exist, for Prism responses whose values come from spec examples. On a list it checks the first element.
 * `error` is a subset match on the driver's error object.
 * `{{token}}` in `mock` and `wire` expands to the case's token.
@@ -77,7 +79,7 @@ Values a case or `defaults.yaml` may set. The runner adds `base_url` and `token`
 | `timeout_ms` | Per-attempt timeout |
 | `max_retries` | Retries after the first attempt |
 | `retry_base_delay_ms` | Backoff base for retried failures |
-| `rate_limit_wait_ms` | Wait after a rate limit with no `Retry-After` |
+| `rate_limit_wait_ms` | Wait after a rate limit with no usable `Retry-After` |
 
 ## Driver protocol
 

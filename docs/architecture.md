@@ -115,11 +115,13 @@ The timeout applies to each attempt and is configurable. A timeout that exhausts
 
 | Failure | Retried for | Delay |
 | --- | --- | --- |
-| 429 | Every method | `Retry-After` if present, otherwise at least 10 seconds |
+| 429 | Every method | `Retry-After` if usable, otherwise at least 10 seconds |
 | 5xx, timeout, connection failure | GET only | Exponential backoff |
 | Any other response | Never | |
 
-Only GET is retried on 5xx and timeouts because the API documents no idempotency key, and a repeated refund could refund twice. A 429 is safe to retry on any method, because the request was refused.
+Only GET is retried on 5xx, timeouts and connection failures because the API documents no idempotency key, and a repeated refund could refund twice. A 429 is safe to retry on any method, because the request was refused.
+
+`Retry-After` is either whole seconds or an HTTP date, in which case the wait runs until that date. Any other value counts as no header, and so does a date in the past: it says nothing about how long the block lasts, and it can be clock skew, so retrying at once would risk another 429.
 
 The retry count, backoff base and rate-limit wait are configurable. The reference driver defaults to 3 retries, a 500 ms base and a 10 second wait, and the runtimes should match it.
 
@@ -144,6 +146,7 @@ Errors map on status first, then parse the body best-effort. A body that fits no
 | `rate_limited`, `server` | 429 and 5xx, after retries |
 | `api` | Any other status |
 | `timeout` | No response in time, after retries |
+| `connection` | The connection failed or dropped before a full response, after retries |
 | `decode` | A success response whose declared JSON does not parse |
 
 Errors also carry `request_id`, `code` and `cf_ray` when present. Each language exposes these under its own naming conventions.
@@ -161,10 +164,10 @@ runner ── JSON lines ──> driver (one per language) ── HTTP ──> h
 ```
 
 * A **driver** is a small executable beside each language package. It calls the public client, so the suite tests what users get.
-* The **harness** records every request. It answers from Prism, which also rejects requests the spec does not allow, or from a script, for what Prism cannot do: response sequences, delays, HTML bodies and undeclared statuses.
+* The **harness** records every request. It answers from Prism, which also rejects requests the spec does not allow, or from a script, for what Prism cannot do: response sequences, delays, dropped connections, HTML bodies and undeclared statuses.
 * The **reference driver** is a minimal JavaScript client that proves each case can pass. It is test code, not an SDK, and `npm test` runs it.
 
-There are 68 cases, covering auth, pagination, 4xx and 5xx errors, 429 retry, timeouts, redaction and 30 of the 40 operations. CI runs them with the reference driver; each language joins as its client arrives.
+There are 74 cases, covering auth, pagination, 4xx and 5xx errors, 429 retry, timeouts, connection failures, redaction and 30 of the 40 operations. CI runs them with the reference driver; each language joins as its client arrives.
 
 ## Versioning and release
 

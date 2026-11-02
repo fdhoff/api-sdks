@@ -1,0 +1,48 @@
+cases:
+  - name: connection-retries-a-get-then-succeeds
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - drop: true
+        - status: 200
+          body: { order_id: 1 }
+    wire:
+      - method: GET
+        path: /ws/orders/1
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      result: { order_id: 1 }
+
+  - name: connection-gives-up-after-max-retries
+    client:
+      max_retries: 1
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - drop: true
+        - drop: true
+    wire:
+      - method: GET
+        path: /ws/orders/1
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: connection }
+
+  - name: connection-never-repeats-a-post
+    request:
+      operation: postRefundCreate
+      body: { amount: 1, orderline_pk: 1, refund_type: 4 }
+    mock:
+      responses:
+        - drop: true
+    wire:
+      - method: POST
+        path: /ws/sav/refund
+    expect:
+      error: { kind: connection }

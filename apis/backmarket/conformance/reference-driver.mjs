@@ -110,12 +110,16 @@ async function attempt(client, { url, init }, log) {
   return decode(response, text);
 }
 
+function retryAfterMs(value) {
+  if (/^\d+$/.test(value)) return Number(value) * 1000;
+  const wait = Date.parse(value) - Date.now();
+  return wait > 0 ? wait : null;
+}
+
 function retryDelay(client, error, method, tries) {
   if (tries >= client.max_retries) return null;
   const { kind } = error.fields;
-  if (kind === 'rate_limited') {
-    return error.retryAfter ? Number(error.retryAfter) * 1000 : client.rate_limit_wait_ms;
-  }
+  if (kind === 'rate_limited') return retryAfterMs(error.retryAfter) ?? client.rate_limit_wait_ms;
   if (method === 'GET' && ['server', 'timeout', 'connection'].includes(kind)) {
     return client.retry_base_delay_ms * 2 ** tries;
   }

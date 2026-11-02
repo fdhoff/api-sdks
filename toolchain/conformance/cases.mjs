@@ -5,7 +5,7 @@ import { parse } from 'yaml';
 const METHODS = ['get', 'put', 'post', 'delete', 'patch'];
 const CASE_KEYS = ['name', 'client', 'request', 'mock', 'wire', 'expect'];
 const REQUEST_KEYS = ['operation', 'params', 'body', 'multipart', 'paginate'];
-const RESPONSE_KEYS = ['status', 'headers', 'body', 'delay_ms'];
+const RESPONSE_KEYS = ['status', 'headers', 'body', 'delay_ms', 'drop'];
 const WIRE_KEYS = ['method', 'path', 'query', 'headers', 'headers_match', 'headers_absent', 'body', 'min_delay_ms'];
 const EXPECT_KEYS = ['result', 'result_keys', 'error', 'logs_required'];
 const OUTCOMES = ['result', 'result_keys', 'error'];
@@ -42,7 +42,11 @@ export function validateCase(item, operations) {
   }
   for (const response of responses ?? []) {
     unknown('mock.responses[]', response, RESPONSE_KEYS);
-    if (!Number.isInteger(response.status)) errors.push('mock.responses[].status must be an integer');
+    if (response.drop === undefined) {
+      if (!Number.isInteger(response.status)) errors.push('mock.responses[].status must be an integer');
+    } else if (response.drop !== true || Object.keys(response).length > 1) {
+      errors.push('mock.responses[].drop must be true and alone');
+    }
   }
 
   if (!(Array.isArray(item.wire) && item.wire.length > 0)) errors.push('wire must be a non-empty list');

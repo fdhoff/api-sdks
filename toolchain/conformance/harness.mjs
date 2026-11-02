@@ -2,12 +2,23 @@ import { createServer } from 'node:http';
 
 const HOP_BY_HOP = ['host', 'connection', 'content-length', 'transfer-encoding', 'prefer'];
 
+const expandDates = (headers) =>
+  Object.fromEntries(
+    Object.entries(headers).map(([name, value]) => [
+      name,
+      String(value).replace(/\{\{http_date\+(\d+)s\}\}/g, (_, seconds) =>
+        new Date(Date.now() + Number(seconds) * 1000).toUTCString(),
+      ),
+    ]),
+  );
+
 function send(response, { status, headers = {}, body, delay_ms: delay = 0 }) {
   const isText = typeof body === 'string';
   const payload = body === undefined ? '' : isText ? body : JSON.stringify(body);
   const defaults = body === undefined || isText ? {} : { 'content-type': 'application/json' };
+  const expanded = expandDates(headers);
   const timer = setTimeout(() => {
-    if (!response.destroyed) response.writeHead(status, { ...defaults, ...headers }).end(payload);
+    if (!response.destroyed) response.writeHead(status, { ...defaults, ...expanded }).end(payload);
   }, delay);
   timer.unref();
 }
@@ -31,6 +42,8 @@ export async function startHarness(prismUrl) {
   let mock = {};
 
   const server = createServer(async (request, response) => {
+    // Some HTTP stacks silently resend a GET that fails on a reused connection, which would hide a drop.
+    response.setHeader('connection', 'close');
     const chunks = [];
     for await (const chunk of request) chunks.push(chunk);
     const body = Buffer.concat(chunks);
@@ -44,7 +57,9 @@ export async function startHarness(prismUrl) {
       at: performance.now(),
     });
     if (script) {
-      send(response, script.shift() ?? { status: 500, body: 'script exhausted' });
+      const next = script.shift() ?? { status: 500, body: 'script exhausted' };
+      if (next.drop) request.socket.destroy();
+      else send(response, next);
       return;
     }
     try {

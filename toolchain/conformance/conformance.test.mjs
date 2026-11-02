@@ -31,6 +31,11 @@ test('validateCase accepts a well-formed case', () => {
   assert.deepEqual(validateCase(baseCase(), operations), []);
 });
 
+test('validateCase accepts a dropped connection in place of a status', () => {
+  const item = { ...baseCase(), mock: { responses: [{ drop: true }] } };
+  assert.deepEqual(validateCase(item, operations), []);
+});
+
 test('validateCase reports each malformed part', () => {
   const invalid = [
     [{ name: 'Not Kebab' }, /kebab-case/],
@@ -39,6 +44,9 @@ test('validateCase reports each malformed part', () => {
     [{ mock: {} }, /exactly one of prism or responses/],
     [{ mock: { prism: {}, responses: [{ status: 200 }] } }, /exactly one of prism or responses/],
     [{ mock: { responses: [{ status: 200 }, { status: 200 }] } }, /2 scripted responses but 1 wire/],
+    [{ mock: { responses: [{ body: 'no status' }] } }, /status must be an integer/],
+    [{ mock: { responses: [{ drop: false }] } }, /drop must be true and alone/],
+    [{ mock: { responses: [{ drop: true, status: 200 }] } }, /drop must be true and alone/],
     [{ wire: [] }, /wire must be a non-empty list/],
     [{ expect: {} }, /exactly one of result/],
     [{ expect: { error: { status: 500 } } }, /needs a kind/],
@@ -157,6 +165,32 @@ test('harness sends string bodies verbatim and delays responses', async () => {
   const response = await fetch(`${harness.url}/items`);
   assert.equal(await response.text(), '<html>');
   assert.ok(performance.now() - started >= 50);
+});
+
+test('harness records a request and then drops its connection', async () => {
+  harness.play({ responses: [{ drop: true }, { status: 200 }] });
+  await assert.rejects(fetch(`${harness.url}/items`, { method: 'POST', body: 'hello' }), TypeError);
+  assert.equal((await fetch(`${harness.url}/items`)).status, 200);
+
+  const [dropped] = harness.requests();
+  assert.equal(dropped.method, 'POST');
+  assert.equal(dropped.body, 'hello');
+});
+
+test('harness closes every connection after its response', async () => {
+  harness.play({ responses: [{ status: 200 }] });
+  const response = await fetch(`${harness.url}/items`);
+  assert.equal(response.headers.get('connection'), 'close');
+});
+
+test('harness expands a relative HTTP date when it responds', async () => {
+  harness.play({ responses: [{ status: 429, headers: { 'retry-after': '{{http_date+60s}}' } }] });
+  const started = Date.now();
+  const response = await fetch(`${harness.url}/items`);
+  const value = response.headers.get('retry-after');
+  assert.match(value, /^\w{3}, \d{2} \w{3} \d{4} \d{2}:\d{2}:\d{2} GMT$/);
+  const wait = Date.parse(value) - started;
+  assert.ok(wait > 58_000 && wait <= 61_000, `date is ${wait}ms away`);
 });
 
 test('harness replays a new script from a clean record', async () => {

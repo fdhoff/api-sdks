@@ -72,7 +72,7 @@ No limit is machine-readable. `Retry-After` and `X-RateLimit-*` appear nowhere i
 
 Runtime:
 
-* Handle 429 on every operation. Honour `Retry-After` if present, otherwise wait at least 10 seconds, the only documented block length.
+* Handle 429 on every operation. Honour `Retry-After` when usable, otherwise wait at least 10 seconds, the only documented block length. The header's rules are in `docs/architecture.md`.
 * Retry 429 for every method, since the request was refused. Retry 5xx and timeouts only for GET: no idempotency key is documented, and a repeated `POST /ws/sav/refund` could refund twice.
 
 ## Errors
