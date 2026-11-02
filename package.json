@@ -16,6 +16,9 @@
     "generate:python": "node toolchain/pipeline/generate.mjs apis/backmarket python",
     "conformance:python": "node toolchain/conformance/run.mjs apis/backmarket --driver \"python apis/backmarket/packages/python/conformance/driver.py --mode sync\"",
     "conformance:python:async": "node toolchain/conformance/run.mjs apis/backmarket --driver \"python apis/backmarket/packages/python/conformance/driver.py --mode async\"",
+    "generate:typescript": "node toolchain/pipeline/generate.mjs apis/backmarket typescript",
+    "conformance:typescript": "node toolchain/conformance/run.mjs apis/backmarket --driver \"node apis/backmarket/packages/typescript/conformance/driver.mjs --format esm\"",
+    "conformance:typescript:cjs": "node toolchain/conformance/run.mjs apis/backmarket --driver \"node apis/backmarket/packages/typescript/conformance/driver.mjs --format cjs\"",
     "test": "node --test \"toolchain/**/*.test.mjs\" \"apis/**/*.test.mjs\""
   },
   "devDependencies": {

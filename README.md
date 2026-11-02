@@ -4,11 +4,13 @@ Unofficial spec-driven SDKs for the Back Market Seller API.
 
 This project is unofficial and is not affiliated with, endorsed by, or supported by Back Market.
 
-The Python SDK is an unpublished alpha: see [`apis/backmarket/packages/python/`](apis/backmarket/packages/python/README.md). TypeScript, Go, C# and Rust will follow in that order.
+The Python and TypeScript SDKs are unpublished alphas: see [`apis/backmarket/packages/python/`](apis/backmarket/packages/python/README.md) and [`apis/backmarket/packages/typescript/`](apis/backmarket/packages/typescript/README.md). Go, C# and Rust will follow in that order.
 
 ## Quickstart
 
-The Python SDK is the first to ship. Install it from a checkout of this repository, and pass in your own API token:
+Python and TypeScript come first, and neither is published yet. Install one from a checkout of this repository, and pass in your own API token.
+
+### Python
 
 ```sh
 pip install ./apis/backmarket/packages/python
@@ -28,6 +30,34 @@ with BackMarketClient(
 ```
 
 The [Python README](apis/backmarket/packages/python/README.md) covers async use, errors, configuration and behaviour.
+
+### TypeScript
+
+Requires Node 22 or later. Build a tarball, then `npm install` it in your project:
+
+```sh
+cd apis/backmarket/packages/typescript
+npm ci --ignore-scripts
+npm run build
+npm pack
+```
+
+```ts
+import { BackMarketClient } from 'backmarket-seller';
+
+const client = new BackMarketClient({
+  token: 'your-token',
+  userAgent: 'BM-YourCompany-YourIntegration;you@example.com',
+  locale: 'fr-fr',
+  region: 'eu',
+});
+
+for await (const order of client.orders.iter()) {
+  console.log(order.order_id);
+}
+```
+
+The [TypeScript README](apis/backmarket/packages/typescript/README.md) covers CommonJS, errors, configuration and behaviour.
 
 ## Live API reports
 
@@ -68,6 +98,9 @@ npm run spec:pin     # re-pin to the current upstream spec
 npm run generate:python         # regenerate the Python client; needs Java 21 and the package's dev tools
 npm run conformance:python      # run the cases against the sync Python client
 npm run conformance:python:async
+npm run generate:typescript     # regenerate the TypeScript client; needs Java 21 and `npm ci --ignore-scripts` in the package
+npm run conformance:typescript  # run the cases against the ESM build; `npm run build` in the package first
+npm run conformance:typescript:cjs
 ```
 
 Once the spec is cached, the build and tests need no network. A hash mismatch stops the build; the error says how to recover.

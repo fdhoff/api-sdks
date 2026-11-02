@@ -123,6 +123,28 @@ test('renameSchemas moves a schema and every reference to it', () => {
   assert.throws(() => renameSchemas(spec, { missing: 'Other' }), /unknown schemas: missing/);
 });
 
+test('applyOperations marks operations whose query or form parameters must be passed', () => {
+  const op = (operationId, extra) => ({ '/x': { get: { operationId, ...extra } } });
+  const names = { a: { resource: 'r', method: 'a', summary: 'A.' } };
+  const required = (paths, components) =>
+    applyOperations({ paths, components }, names).paths['/x'].get['x-sdk-params-required'];
+
+  assert.equal(required(op('a', {})), false);
+  assert.equal(required(op('a', { parameters: [{ name: 'q', in: 'query' }] })), false);
+  assert.equal(required(op('a', { parameters: [{ name: 'q', in: 'query', required: true }] })), true);
+  assert.equal(required(op('a', { parameters: [{ name: 'id', in: 'path', required: true }] })), false);
+  assert.equal(
+    required(op('a', { parameters: [{ $ref: '#/components/parameters/Q' }] }), {
+      parameters: { Q: { name: 'q', in: 'query', required: true } },
+    }),
+    true,
+  );
+  const form = { requestBody: { content: { 'multipart/form-data': { schema: { $ref: '#/components/schemas/F' } } } } };
+  const allOf = { allOf: [{ required: ['file'] }] };
+  assert.equal(required(op('a', form), { schemas: { F: {} } }), false);
+  assert.equal(required(op('a', form), { schemas: { F: allOf } }), true);
+});
+
 test('applyOperations names every operation and refuses gaps', () => {
   const spec = () => ({
     paths: {

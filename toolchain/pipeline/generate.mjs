@@ -41,6 +41,22 @@ export function renameSchemas(spec, names = {}) {
   return spec;
 }
 
+function dereference(spec, node) {
+  return node?.$ref ? dereference(spec, node.$ref.split('/').slice(1).reduce((parent, key) => parent[key], spec)) : node;
+}
+
+function requiredProperties(spec, node) {
+  const schema = dereference(spec, node);
+  return [...(schema?.required ?? []), ...(schema?.allOf ?? []).flatMap((part) => requiredProperties(spec, part))];
+}
+
+// True when a query or form parameter must be passed, for templates that gather those into one argument.
+function paramsRequired(spec, parameters, operation) {
+  const query = parameters.map((parameter) => dereference(spec, parameter));
+  const form = dereference(spec, operation.requestBody)?.content?.['multipart/form-data']?.schema;
+  return query.some((parameter) => parameter.in === 'query' && parameter.required) || requiredProperties(spec, form).length > 0;
+}
+
 export function applyOperations(spec, operations) {
   const unused = new Set(Object.keys(operations));
   for (const item of Object.values(spec.paths)) {
@@ -52,6 +68,8 @@ export function applyOperations(spec, operations) {
       operation.tags = [names.resource];
       operation['x-sdk-method'] = names.method;
       operation['x-sdk-summary'] = names.summary;
+      operation['x-sdk-resource'] = names.resource;
+      operation['x-sdk-params-required'] = paramsRequired(spec, [...shared, ...(operation.parameters ?? [])], operation);
       if (names.iterator) {
         operation['x-sdk-iterator'] = names.iterator;
         operation['x-sdk-items'] = names.items;
@@ -104,7 +122,7 @@ async function generate(apiDir, language) {
   const config = parse(await readFile(join(packageDir, 'generate.yaml'), 'utf8'));
   const operations = parse(await readFile(join(packageDir, 'operations.yaml'), 'utf8'));
   const output = join(packageDir, config.output);
-  const source = config.properties.packageName.replaceAll('.', '/');
+  const source = config.source ?? config.properties.packageName.replaceAll('.', '/');
 
   const built = stripProse(parse(await readFile(paths.build, 'utf8')));
   const spec = applyOperations(renameSchemas(built, config.schema_names), operations);

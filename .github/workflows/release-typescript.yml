@@ -4,9 +4,8 @@ name: Release TypeScript
 # the PUBLISH_TYPESCRIPT repository variable is true. See docs/architecture.md.
 on:
   pull_request:
-    # TODO: add this workflow file once the package is on main; until then the
-    # dry run has nothing to build.
     paths:
+      - .github/workflows/release-typescript.yml
       - apis/backmarket/packages/typescript/CHANGELOG.md
       - apis/backmarket/packages/typescript/package.json
   push:

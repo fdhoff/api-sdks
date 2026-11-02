@@ -1,0 +1,8 @@
+{{>partial_header}}
+{{#apiInfo}}
+{{#apis}}
+{{#operations}}
+export { {{classname}} } from './{{classFilename}}.js';
+{{/operations}}
+{{/apis}}
+{{/apiInfo}}

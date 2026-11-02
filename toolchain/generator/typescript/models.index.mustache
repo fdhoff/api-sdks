@@ -1,0 +1,42 @@
+{{>partial_header}}
+{{#models}}
+{{#model}}
+{{#isEnum}}
+export type {{classname}} = {{#allowableValues}}{{#enumVars}}{{{value}}}{{^-last}} | {{/-last}}{{/enumVars}}{{/allowableValues}};
+
+{{/isEnum}}
+{{^isEnum}}
+{{#oneOf}}
+{{#-first}}
+export type {{classname}} = {{#oneOf}}{{{.}}}{{^-last}} | {{/-last}}{{/oneOf}};
+
+{{/-first}}
+{{/oneOf}}
+{{^oneOf}}
+{{#anyOf}}
+{{#-first}}
+export type {{classname}} = {{#anyOf}}{{{.}}}{{^-last}} | {{/-last}}{{/anyOf}};
+
+{{/-first}}
+{{/anyOf}}
+{{^anyOf}}
+export interface {{classname}} {{#parent}}extends {{{.}}} {{/parent}}{
+{{#additionalPropertiesType}}
+  [key: string]: {{{additionalPropertiesType}}}{{#hasVars}} | any{{/hasVars}};
+{{/additionalPropertiesType}}
+{{#vars}}
+  {{#isReadOnly}}readonly {{/isReadOnly}}{{{name}}}{{^required}}?{{/required}}: {{{datatypeWithEnum}}}{{#isNullable}} | null{{/isNullable}};
+{{/vars}}
+}
+
+{{#vars}}
+{{#isEnum}}
+export type {{classname}}{{enumName}} = {{#allowableValues}}{{#enumVars}}{{{value}}}{{^-last}} | {{/-last}}{{/enumVars}}{{/allowableValues}};
+
+{{/isEnum}}
+{{/vars}}
+{{/anyOf}}
+{{/oneOf}}
+{{/isEnum}}
+{{/model}}
+{{/models}}

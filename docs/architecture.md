@@ -12,13 +12,13 @@ Sections below describe the design; this table says how much of it is real.
 | --- | --- |
 | Spec fetch, hash pin, overlay, lint, mock, CI | Built |
 | Conformance format, runner, harness, cases and reference driver | Built |
-| Generator config and templates | Built for Python |
-| Per-language runtime | Built for Python |
-| Python client | Alpha, unpublished |
-| TypeScript, Go, C# and Rust clients | Planned, in that order |
+| Generator config and templates | Built for Python and TypeScript |
+| Per-language runtime | Built for Python and TypeScript |
+| Python and TypeScript clients | Alpha, unpublished |
+| Go, C# and Rust clients | Planned, in that order |
 | Spec drift job | Planned |
 | Release workflows and changelogs | Built for Python and TypeScript, publishing off |
-| Quickstarts | Built for Python |
+| Quickstarts | Built for Python and TypeScript |
 
 ## Goals
 
@@ -93,7 +93,9 @@ Generated code is never edited by hand. Each problem has one fix:
 
 Generated clients are committed under `apis/backmarket/packages/<language>/`, so a spec change shows up as a reviewable diff. CI regenerates them and fails if the result differs.
 
-The spec has been wrong before, so clients do not trust it when reading. Requests are validated against the models, but a response that does not fit them still reaches the caller, with the raw value in place of the field that failed.
+The spec has been wrong before, so clients do not trust it when reading. Requests are validated against the models, but a response that does not fit them still reaches the caller, with the raw value in place of the field that failed. In TypeScript the models are types only, so requests are checked at compile time and responses are decoded JSON.
+
+Model fields follow each language's conventions where a client maps them. The TypeScript client does not: it keeps the API's field names, because any mapping would need per-model code at runtime, and unknown or mistyped fields are meant to pass through. Its methods, parameters and options are camelCase.
 
 ## Runtime contract
 
@@ -111,7 +113,7 @@ Every language implements the same behaviour. The conformance cases are the auth
 
 The timeout is one deadline for each attempt, from sending the request to reading the last byte of the response, and is configurable. A body that keeps trickling must not outlast it. A timeout that exhausts its retries raises a `timeout` error.
 
-Python's synchronous client cannot interrupt a blocking read, so it checks the deadline as each chunk arrives. There, a stalled read can overrun by up to one timeout, and headers that trickle are not caught. Runtimes with cancellation, including Python's asynchronous client, must enforce the deadline exactly.
+Python's synchronous client cannot interrupt a blocking read, so it checks the deadline as each chunk arrives. There, a stalled read can overrun by up to one timeout, and headers that trickle are not caught. Runtimes with cancellation, including Python's asynchronous client and the TypeScript client, must enforce the deadline exactly.
 
 ### Retries
 
@@ -171,7 +173,7 @@ runner ── JSON lines ──> driver (one per language) ── HTTP ──> h
 * The **harness** records every request. It answers from Prism, which also rejects requests the spec does not allow, or from a script, for what Prism cannot do: response sequences, delays, slow bodies, dropped connections, HTML bodies and undeclared statuses.
 * The **reference driver** is a minimal JavaScript client that proves each case can pass. It is test code, not an SDK, and `npm test` runs it.
 
-There are 80 cases, covering auth, pagination, 4xx and 5xx errors, 429 retry, timeouts, connection failures, redaction and 30 of the 40 operations. CI runs them with the reference driver; each language joins as its client arrives.
+There are 80 cases, covering auth, pagination, 4xx and 5xx errors, 429 retry, timeouts, connection failures, redaction and 30 of the 40 operations. CI runs them with the reference driver and with each language's client: Python sync and async, and the TypeScript ESM and CommonJS builds.
 
 ## Versioning and release
 

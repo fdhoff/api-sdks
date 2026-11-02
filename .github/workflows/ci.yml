@@ -88,3 +88,63 @@ jobs:
           unzip -l dist/*.whl | grep -E 'licenses/NOTICE$'
           tar tzf dist/*.tar.gz | grep -E '/LICENSE$'
           tar tzf dist/*.tar.gz | grep -E '/NOTICE$'
+
+  typescript:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [22, 26]
+    env:
+      SCARF_ANALYTICS: "false"
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apis/backmarket/packages/typescript/package-lock.json
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci --ignore-scripts
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: apis/backmarket/spec/upstream/openapi.yaml
+          key: upstream-spec-${{ hashFiles('apis/backmarket/spec/upstream/lock.json') }}
+      - run: npm run spec:fetch
+      - run: npm run spec:build
+      - run: npm ci --ignore-scripts
+        working-directory: apis/backmarket/packages/typescript
+      - name: Generated code matches the spec, templates and runtime
+        run: |
+          npm run generate:typescript
+          git add -N apis/backmarket/packages/typescript
+          git diff --exit-code apis/backmarket/packages/typescript
+      - working-directory: apis/backmarket/packages/typescript
+        run: |
+          npm run format
+          npm run build
+          npm run typecheck
+          npm test
+      - run: npm run conformance:typescript
+      - run: npm run conformance:typescript:cjs
+      - name: Packed tarball ships the licence and notice, and loads both ways
+        working-directory: apis/backmarket/packages/typescript
+        run: |
+          npm pack
+          tar tzf backmarket-seller-*.tgz | grep -E '^package/LICENSE$'
+          tar tzf backmarket-seller-*.tgz | grep -E '^package/NOTICE$'
+          mkdir smoke
+          cd smoke
+          npm init --yes
+          npm install --ignore-scripts ../backmarket-seller-*.tgz
+          node --input-type=module -e "import { BackMarketClient } from 'backmarket-seller'; console.log(typeof BackMarketClient)" | grep function
+          node --input-type=commonjs -e "console.log(typeof require('backmarket-seller').BackMarketClient)" | grep function
