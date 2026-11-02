@@ -8,7 +8,7 @@ use crate::models;
 pub struct BuybackListing {
     pub id: Option<String>,
     pub product_id: Option<String>,
-    pub prices: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub prices: Option<std::collections::HashMap<String, models::MonetaryAmount>>,
     pub aesthetic_grade_code: Option<models::BuybackAestheticGradeCode>,
     pub sku: Option<String>,
     pub markets: Option<Vec<String>>,

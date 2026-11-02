@@ -8,12 +8,12 @@ use crate::models;
 pub struct Competitor {
     pub is_winning: Option<bool>,
     pub listing_id: Option<String>,
-    pub min_price: Option<serde_json::Value>,
+    pub min_price: Option<Box<models::MonetaryAmount>>,
     pub price: Option<Box<models::MonetaryAmount>>,
     pub price_to_win: Option<Box<models::MonetaryAmount>>,
     pub product_id: Option<String>,
-    pub winner_price: Option<serde_json::Value>,
-    pub market: Option<serde_json::Value>,
+    pub winner_price: Option<Box<models::MonetaryAmount>>,
+    pub market: Option<models::MarketCode>,
     pub extra: serde_json::Map<String, serde_json::Value>,
 }
 

@@ -7,3 +7,4 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * Async client for all 40 operations, generated from the public spec, targeting .NET 10.
 * Retries, rate-limit handling, pagination as `IAsyncEnumerable`, typed exceptions and redacted logging.
 * Tolerant responses: values that do not fit, and unknown fields, are kept in `Extra`.
+* An optional or single-type union property has its type, such as `Competitor.MinPrice` as `MonetaryAmount` and `BackgroundTask.LastActionError` as `string`, rather than `object`.

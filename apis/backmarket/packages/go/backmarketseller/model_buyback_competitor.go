@@ -12,11 +12,11 @@ import (
 type BuybackCompetitor struct {
 	ListingID   *string                    `json:"listing_id,omitempty"`
 	ProductID   *string                    `json:"product_id,omitempty"`
-	Market      any                        `json:"market,omitempty"`
+	Market      *MarketCode                `json:"market,omitempty"`
 	Price       *MonetaryAmount            `json:"price,omitempty"`
 	PriceToWin  *MonetaryAmount            `json:"price_to_win,omitempty"`
 	IsWinning   *bool                      `json:"is_winning,omitempty"`
-	WinnerPrice any                        `json:"winner_price,omitempty"`
+	WinnerPrice *MonetaryAmount            `json:"winner_price,omitempty"`
 	Extra       map[string]json.RawMessage `json:"-"`
 }
 

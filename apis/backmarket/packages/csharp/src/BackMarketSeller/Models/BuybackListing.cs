@@ -17,7 +17,7 @@ public sealed class BuybackListing : ApiModel
     public Guid? ProductId { get; set; }
 
     [JsonPropertyName("prices")]
-    public Dictionary<string, Object>? Prices { get; set; }
+    public Dictionary<string, MonetaryAmount>? Prices { get; set; }
 
     [JsonPropertyName("aestheticGradeCode")]
     public BuybackAestheticGradeCode? AestheticGradeCode { get; set; }

@@ -17,7 +17,7 @@ public sealed class BackgroundTask : ApiModel
     public long? ActionStatus { get; set; }
 
     [JsonPropertyName("last_action_error")]
-    public Object? LastActionError { get; set; }
+    public string? LastActionError { get; set; }
 
     [JsonPropertyName("result")]
     public Object? Result { get; set; }

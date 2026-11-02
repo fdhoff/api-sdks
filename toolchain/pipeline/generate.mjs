@@ -132,6 +132,12 @@ export function dropUnions(spec) {
   return rewritten;
 }
 
+// Null-plus-one and single-branch unions collapse first, so only real unions are left untyped.
+export function relax(spec, config) {
+  const collapsed = config.drop_nullable ? dropNullable(spec) : spec;
+  return config.drop_unions ? dropUnions(collapsed) : collapsed;
+}
+
 export async function fillPackageName(dir, name) {
   for (const entry of await readdir(dir, { recursive: true, withFileTypes: true })) {
     if (!entry.isFile()) continue;
@@ -197,8 +203,7 @@ async function generate(apiDir, language) {
   const source = config.source ?? config.properties.packageName.replaceAll('.', '/');
 
   const built = stripProse(parse(await readFile(paths.build, 'utf8')));
-  const relaxed = config.drop_unions ? dropUnions(built) : built;
-  const spec = applyOperations(renameSchemas(config.drop_nullable ? dropNullable(relaxed) : relaxed, config.schema_names), operations);
+  const spec = applyOperations(renameSchemas(relax(built, config), config.schema_names), operations);
   const work = await mkdtemp(join(tmpdir(), 'generate-'));
   try {
     const input = join(work, 'openapi.yaml');

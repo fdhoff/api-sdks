@@ -6,7 +6,7 @@ use crate::models;
 /// BuybackListingUpdate is an API object. `extra` holds unknown fields, nulls, and any value that did not fit its field.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct BuybackListingUpdate {
-    pub prices: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub prices: Option<std::collections::HashMap<String, models::MonetaryAmount>>,
     pub extra: serde_json::Map<String, serde_json::Value>,
 }
 

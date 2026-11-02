@@ -8,7 +8,7 @@ use crate::models;
 pub struct Task {
     pub task_id: Option<i64>,
     pub action_status: Option<i64>,
-    pub last_action_error: Option<serde_json::Value>,
+    pub last_action_error: Option<String>,
     pub result: Option<serde_json::Value>,
     pub statuscode: Option<i64>,
     pub extra: serde_json::Map<String, serde_json::Value>,

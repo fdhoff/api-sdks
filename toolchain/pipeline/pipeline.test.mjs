@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyOperations, dropNullable, dropUnions, fillPackageName, ignoreFile, renameSchemas, stripProse, supportingFiles } from './generate.mjs';
+import { applyOperations, dropNullable, dropUnions, fillPackageName, ignoreFile, relax, renameSchemas, stripProse, supportingFiles } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -171,6 +171,27 @@ test('dropUnions leaves unions and references to them untyped', () => {
     },
   };
   assert.deepEqual(dropUnions(spec), { components: { schemas: { Item: { properties: { either: {}, inline: {} } } } } });
+});
+
+test('relax types single-branch and null-plus-one unions before leaving real unions untyped', () => {
+  const ref = { $ref: '#/components/schemas/Amount' };
+  const spec = {
+    components: {
+      schemas: {
+        Amount: { type: 'string' },
+        Item: {
+          properties: {
+            single: { anyOf: [ref], nullable: true },
+            optional: { oneOf: [{ nullable: true }, { type: 'string' }] },
+            either: { anyOf: [ref, { type: 'integer' }] },
+          },
+        },
+      },
+    },
+  };
+  const { properties } = relax(spec, { drop_nullable: true, drop_unions: true }).components.schemas.Item;
+  assert.deepEqual(properties, { single: ref, optional: { type: 'string' }, either: {} });
+  assert.deepEqual(relax(spec, {}), spec);
 });
 
 test('applyOperations names every operation and refuses gaps', () => {

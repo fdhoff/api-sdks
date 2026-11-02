@@ -10,7 +10,7 @@ import (
 
 // BuybackListingUpdate is an API object. Extra holds unknown fields and any value that did not fit its field.
 type BuybackListingUpdate struct {
-	Prices map[string]any             `json:"prices,omitempty"`
+	Prices map[string]MonetaryAmount  `json:"prices,omitempty"`
 	Extra  map[string]json.RawMessage `json:"-"`
 }
 

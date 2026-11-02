@@ -12,7 +12,7 @@ import (
 type BuybackListing struct {
 	ID                 *string                    `json:"id,omitempty"`
 	ProductID          *string                    `json:"productId,omitempty"`
-	Prices             map[string]any             `json:"prices,omitempty"`
+	Prices             map[string]MonetaryAmount  `json:"prices,omitempty"`
 	AestheticGradeCode *BuybackAestheticGradeCode `json:"aestheticGradeCode,omitempty"`
 	SKU                *string                    `json:"sku,omitempty"`
 	Markets            []string                   `json:"markets,omitempty"`

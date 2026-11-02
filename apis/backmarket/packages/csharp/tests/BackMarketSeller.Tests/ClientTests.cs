@@ -69,6 +69,15 @@ public sealed class ClientTests
     }
 
     [Fact]
+    public void AnOptionalReferenceIsTyped()
+    {
+        var competitor = JsonSerializer.Deserialize<Competitor>("""{"min_price": {"amount": "1.00", "currency": "EUR"}, "market": "FR"}""")!;
+
+        Assert.Equal("1.00", competitor.MinPrice?.Amount);
+        Assert.Equal(MarketCode.Fr, competitor.Market);
+    }
+
+    [Fact]
     public async Task ASetPropertyWinsOverTheRawValueItReplaced()
     {
         var handler = new ScriptedHandler(Json(HttpStatusCode.OK, """{"order_id": "bad"}"""));

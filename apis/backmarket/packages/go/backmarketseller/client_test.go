@@ -156,6 +156,19 @@ func TestNumbersSurviveDecodingAndEncodingExactly(t *testing.T) {
 	}
 }
 
+func TestAnOptionalReferenceIsTyped(t *testing.T) {
+	var competitor bm.Competitor
+	if err := json.Unmarshal([]byte(`{"min_price": {"amount": "1.00", "currency": "EUR"}, "market": "FR"}`), &competitor); err != nil {
+		t.Fatal(err)
+	}
+	if competitor.MinPrice == nil || *competitor.MinPrice.Amount != "1.00" {
+		t.Errorf("MinPrice is %v", competitor.MinPrice)
+	}
+	if competitor.Market == nil || *competitor.Market != bm.MarketCodeFr {
+		t.Errorf("Market is %v", competitor.Market)
+	}
+}
+
 func TestAFieldSetAfterDecodingWinsOverExtra(t *testing.T) {
 	var order bm.Order
 	if err := json.Unmarshal([]byte(`{"delivery_note": null}`), &order); err != nil {

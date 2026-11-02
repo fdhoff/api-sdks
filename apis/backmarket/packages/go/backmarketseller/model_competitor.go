@@ -12,12 +12,12 @@ import (
 type Competitor struct {
 	IsWinning   *bool                      `json:"is_winning,omitempty"`
 	ListingID   *string                    `json:"listing_id,omitempty"`
-	MinPrice    any                        `json:"min_price,omitempty"`
+	MinPrice    *MonetaryAmount            `json:"min_price,omitempty"`
 	Price       *MonetaryAmount            `json:"price,omitempty"`
 	PriceToWin  *MonetaryAmount            `json:"price_to_win,omitempty"`
 	ProductID   *string                    `json:"product_id,omitempty"`
-	WinnerPrice any                        `json:"winner_price,omitempty"`
-	Market      any                        `json:"market,omitempty"`
+	WinnerPrice *MonetaryAmount            `json:"winner_price,omitempty"`
+	Market      *MarketCode                `json:"market,omitempty"`
 	Extra       map[string]json.RawMessage `json:"-"`
 }
 

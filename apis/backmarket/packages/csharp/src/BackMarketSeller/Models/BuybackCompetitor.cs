@@ -17,7 +17,7 @@ public sealed class BuybackCompetitor : ApiModel
     public Guid? ProductId { get; set; }
 
     [JsonPropertyName("market")]
-    public Object? Market { get; set; }
+    public MarketCode? Market { get; set; }
 
     [JsonPropertyName("price")]
     public MonetaryAmount? Price { get; set; }
@@ -29,5 +29,5 @@ public sealed class BuybackCompetitor : ApiModel
     public bool? IsWinning { get; set; }
 
     [JsonPropertyName("winner_price")]
-    public Object? WinnerPrice { get; set; }
+    public MonetaryAmount? WinnerPrice { get; set; }
 }

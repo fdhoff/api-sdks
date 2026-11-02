@@ -17,7 +17,7 @@ public sealed class Competitor : ApiModel
     public Guid? ListingId { get; set; }
 
     [JsonPropertyName("min_price")]
-    public Object? MinPrice { get; set; }
+    public MonetaryAmount? MinPrice { get; set; }
 
     [JsonPropertyName("price")]
     public MonetaryAmount? Price { get; set; }
@@ -29,8 +29,8 @@ public sealed class Competitor : ApiModel
     public Guid? ProductId { get; set; }
 
     [JsonPropertyName("winner_price")]
-    public Object? WinnerPrice { get; set; }
+    public MonetaryAmount? WinnerPrice { get; set; }
 
     [JsonPropertyName("market")]
-    public Object? Market { get; set; }
+    public MarketCode? Market { get; set; }
 }

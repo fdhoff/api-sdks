@@ -12,7 +12,7 @@ import (
 type Task struct {
 	TaskID          *int64                     `json:"task_id,omitempty"`
 	ActionStatus    *int64                     `json:"action_status,omitempty"`
-	LastActionError any                        `json:"last_action_error,omitempty"`
+	LastActionError *string                    `json:"last_action_error,omitempty"`
 	Result          any                        `json:"result,omitempty"`
 	Statuscode      *int64                     `json:"statuscode,omitempty"`
 	Extra           map[string]json.RawMessage `json:"-"`

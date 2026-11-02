@@ -11,5 +11,5 @@ namespace BackMarketSeller.Models;
 public sealed class BuybackListingUpdate : ApiModel
 {
     [JsonPropertyName("prices")]
-    public Dictionary<string, Object>? Prices { get; set; }
+    public Dictionary<string, MonetaryAmount>? Prices { get; set; }
 }

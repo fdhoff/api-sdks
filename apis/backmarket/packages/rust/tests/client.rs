@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
+use backmarket_seller::models::{Competitor, MarketCode};
 use backmarket_seller::{Client, ClientBuilder, Error, ErrorKind, OrdersListParams};
 use futures_util::StreamExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -197,4 +198,20 @@ async fn the_maximum_does_not_apply_to_the_rate_limit_wait() {
     assert_eq!(error.kind(), ErrorKind::RateLimited);
     assert!(started.elapsed() >= wait);
     assert_eq!(count.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn an_optional_reference_is_typed() {
+    let competitor: Competitor = serde_json::from_str(
+        r#"{"min_price": {"amount": "1.00", "currency": "EUR"}, "market": "FR"}"#,
+    )
+    .unwrap();
+    assert_eq!(
+        competitor
+            .min_price
+            .and_then(|price| price.amount)
+            .as_deref(),
+        Some("1.00")
+    );
+    assert_eq!(competitor.market, Some(MarketCode::Fr));
 }
