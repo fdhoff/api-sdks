@@ -12,15 +12,15 @@ Sections below describe the design; this table says how much of it is real.
 | --- | --- |
 | Spec fetch, hash pin, overlay, lint, mock, CI | Built |
 | Conformance format, runner, harness, cases and reference driver | Built |
-| Generator config and templates | Built for Python, TypeScript, Go and C# |
-| Per-language runtime | Built for Python, TypeScript, Go and C# |
+| Generator config and templates | Built for Python, TypeScript, Go, C# and Rust |
+| Per-language runtime | Built for Python, TypeScript, Go, C# and Rust |
 | Python and TypeScript clients | Alpha, unpublished |
 | Go client | Alpha, untagged |
 | C# client | Alpha, unpublished |
-| Rust client | Planned |
+| Rust client | Alpha, unpublished, async only |
 | Spec drift job | Built |
 | Release workflows and changelogs | Built for Python and TypeScript, publishing off |
-| Quickstarts | Built for Python, TypeScript, Go and C# |
+| Quickstarts | Built for Python, TypeScript, Go, C# and Rust |
 
 ## Goals
 
@@ -101,6 +101,8 @@ Model fields follow each language's conventions where a client maps them. The Ty
 
 Go cannot put a raw value in a typed field, and has no optional values. So each Go model is a struct of pointers, one for every field, and an `Extra` map. A value that does not fit stays nil and goes to `Extra`, along with unknown fields and nulls, and `json.Marshal` restores them all. Required fields are pointers too, because the spec's `required` is unconfirmed, and an absent field must read differently from a zero. A top-level body that is not the declared type has nowhere to go, so it raises `decode` with the body in `raw_body`. Union schemas become `any`.
 
+In Rust, every model field is an `Option`, a field holding another model is boxed so recursive schemas compile, and each model has an `extra` map. Decoding moves a field from `extra` into its typed slot only when the value fits, so a mismatched value, a null or an unknown field stays in `extra`, and serialising gives all of it back. Enumerations are open, with an `Unlisted` variant for values this version does not list. Fields the spec types several ways are `serde_json::Value`, and dates and UUIDs are `String`, so no value is reformatted.
+
 ## Runtime contract
 
 Every language implements the same behaviour. The conformance cases are the authority, and `spec-audit.md` has the reasoning. Nothing here has been confirmed against the live API.
@@ -177,7 +179,7 @@ runner ── JSON lines ──> driver (one per language) ── HTTP ──> h
 * The **harness** records every request. It answers from Prism, which also rejects requests the spec does not allow, or from a script, for what Prism cannot do: response sequences, delays, slow bodies, dropped connections, HTML bodies and undeclared statuses.
 * The **reference driver** is a minimal JavaScript client that proves each case can pass. It is test code, not an SDK, and `npm test` runs it.
 
-There are 81 cases, covering auth, pagination, 4xx and 5xx errors, 429 retry, timeouts, connection failures, redaction and 30 of the 40 operations. CI runs them with the reference driver and with each language's client: Python sync and async, the TypeScript ESM and CommonJS builds, Go, and C#.
+There are 81 cases, covering auth, pagination, 4xx and 5xx errors, 429 retry, timeouts, connection failures, redaction and 30 of the 40 operations. CI runs them with the reference driver and with each language's client: Python sync and async, the TypeScript ESM and CommonJS builds, Go, C# and Rust.
 
 ## Versioning and release
 

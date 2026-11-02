@@ -1,0 +1,36 @@
+[package]
+name = "backmarket-seller"
+version = "0.1.0-alpha.1"
+edition = "2024"
+rust-version = "1.85"
+description = "Unofficial Rust client for the Back Market Seller API. Not affiliated with Back Market."
+license = "Apache-2.0"
+repository = "https://github.com/fdhoff/backmarket-seller-sdk"
+readme = "README.md"
+keywords = ["api", "client", "seller", "marketplace"]
+categories = ["api-bindings", "asynchronous"]
+# Not published until the maintainer approves the first release.
+publish = false
+include = ["/src", "/Cargo.toml", "/README.md", "/CHANGELOG.md", "/LICENSE", "/NOTICE"]
+
+[dependencies]
+flate2 = "1.1"
+futures-core = "0.3"
+futures-util = { version = "0.3", default-features = false }
+httpdate = "1.0"
+log = "0.4"
+percent-encoding = "2.3"
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2", "multipart"] }
+serde = "1.0"
+serde_json = "1.0"
+tokio = { version = "1.43", features = ["time"] }
+url = "2.5"
+
+[dev-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
+tokio = { version = "1.43", features = ["io-util", "macros", "net", "rt"] }
+
+[[example]]
+name = "conformance-driver"
+path = "conformance/driver.rs"

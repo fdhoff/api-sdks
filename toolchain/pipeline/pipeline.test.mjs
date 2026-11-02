@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyOperations, dropNullable, dropUnions, fillPackageName, renameSchemas, stripProse } from './generate.mjs';
+import { applyOperations, dropNullable, dropUnions, fillPackageName, ignoreFile, renameSchemas, stripProse, supportingFiles } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -243,4 +243,18 @@ test('fillPackageName writes the package name into every runtime file', async (t
   await fillPackageName(dir, 'Example');
   assert.equal(await readFile(join(dir, 'a.cs'), 'utf8'), 'namespace Example;');
   assert.equal(await readFile(join(dir, 'nested/b.cs'), 'utf8'), 'using Example.Runtime;');
+});
+
+test('supportingFiles generates extra templates apart from the package source', () => {
+  const files = supportingFiles({ resources: 'resources.rs', supporting_files: { 'dispatch.mustache': 'driver/dispatch.rs' } }, 'src');
+  assert.deepEqual(files, {
+    'resources.mustache': { templateType: 'SupportingFiles', destinationFilename: join('src', 'resources.rs') },
+    'dispatch.mustache': { templateType: 'SupportingFiles', destinationFilename: join('supporting', 'dispatch.mustache') },
+  });
+  assert.deepEqual(Object.keys(supportingFiles({ resources: 'resources.py' }, 'pkg')), ['resources.mustache']);
+});
+
+test('ignoreFile lists one path per line, and nothing by default', () => {
+  assert.equal(ignoreFile({ ignore: ['src/a.rs', 'src/b.rs'] }), 'src/a.rs\nsrc/b.rs\n');
+  assert.equal(ignoreFile({}), '');
 });

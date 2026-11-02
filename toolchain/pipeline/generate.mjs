@@ -170,6 +170,19 @@ function run(command, args, options = {}) {
 
 const hasPrefix = (name, prefixes = []) => prefixes.some((prefix) => name.startsWith(prefix));
 
+// The resources file, plus extra templates such as a test driver's dispatch table. Each extra is generated
+// under supporting/ and then copied to its path relative to the package.
+export function supportingFiles(config, source) {
+  const files = { 'resources.mustache': { templateType: 'SupportingFiles', destinationFilename: join(source, config.resources) } };
+  for (const template of Object.keys(config.supporting_files ?? {})) {
+    files[template] = { templateType: 'SupportingFiles', destinationFilename: join('supporting', template) };
+  }
+  return files;
+}
+
+// Generator files the package does not use, as paths relative to the generator's output.
+export const ignoreFile = (config) => (config.ignore ?? []).map((path) => `${path}\n`).join('');
+
 const pairs = (mapping = {}) =>
   Object.entries(mapping)
     .map(([key, value]) => `${key}=${value}`)
@@ -191,14 +204,9 @@ async function generate(apiDir, language) {
     const input = join(work, 'openapi.yaml');
     const generatorConfig = join(work, 'config.json');
     await writeFile(input, stringify(spec, { lineWidth: 0, compat: 'yaml-1.1' }));
-    await writeFile(
-      generatorConfig,
-      JSON.stringify({ files: { 'resources.mustache': { templateType: 'SupportingFiles', destinationFilename: join(source, config.resources) } } }),
-    );
-    if (config.ignore) {
-      await mkdir(join(work, 'out'));
-      await writeFile(join(work, 'out', '.openapi-generator-ignore'), config.ignore.join('\n'));
-    }
+    await writeFile(generatorConfig, JSON.stringify({ files: supportingFiles(config, source) }));
+    await mkdir(join(work, 'out'));
+    await writeFile(join(work, 'out', '.openapi-generator-ignore'), ignoreFile(config));
     run('java', [
       '-jar', await ensureGenerator(dirname(paths.build)),
       'generate', '--generator-name', config.generator, '--skip-validate-spec',
@@ -221,6 +229,7 @@ async function generate(apiDir, language) {
     for (const name of await prefixed(output)) await rm(join(output, name));
     for (const name of await prefixed(join(work, 'out', source))) await copyFile(join(work, 'out', source, name), join(output, name));
     await copyFile(join(work, 'out', source, config.resources), join(output, config.resources));
+    for (const [template, target] of Object.entries(config.supporting_files ?? {})) await copyFile(join(work, 'out', 'supporting', template), join(packageDir, target));
   } finally {
     await rm(work, { recursive: true, force: true });
   }

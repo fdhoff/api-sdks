@@ -1,0 +1,1 @@
+&self{{#pathParams}}, {{{paramName}}}: {{>partial_path_type}}{{/pathParams}}{{#bodyParam}}, body: {{^required}}Option<{{/required}}&{{>partial_value_type}}{{^required}}>{{/required}}{{/bodyParam}}{{#hasQueryParams}}, params: &{{>partial_params_name}}{{/hasQueryParams}}{{#hasFormParams}}, params: &{{>partial_params_name}}{{/hasFormParams}}

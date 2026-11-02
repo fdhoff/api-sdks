@@ -1,0 +1,1 @@
+Request::new(&{{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}){{#pathParams}}.path("{{baseName}}", &{{{paramName}}}){{/pathParams}}{{#bodyParam}}.json(&body){{/bodyParam}}{{#hasQueryParams}}.params(params){{/hasQueryParams}}{{#hasFormParams}}.params(params){{/hasFormParams}}

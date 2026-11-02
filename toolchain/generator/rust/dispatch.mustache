@@ -1,0 +1,32 @@
+{{>partial_header}}
+
+#[allow(unused_imports)]
+use {{packageName}}::*;
+use serde_json::Value;
+
+use crate::{Case, arg, body, collect, files, output, param};
+
+/// Calls the public client method that serves one case.
+pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
+    match (case.operation.as_str(), case.paginate) {
+{{#apiInfo}}
+{{#apis}}
+{{#operations}}
+{{#operation}}
+        ("{{operationIdOriginal}}", false) => {
+{{>partial_dispatch_inputs}}
+            output(client.{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}().{{vendorExtensions.x-sdk-method}}({{>partial_dispatch_args}}).await)
+        }
+{{#vendorExtensions.x-sdk-iterator}}
+        ("{{operationIdOriginal}}", true) => {
+{{>partial_dispatch_inputs}}
+            collect(client.{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}().{{.}}({{>partial_dispatch_args}})).await
+        }
+{{/vendorExtensions.x-sdk-iterator}}
+{{/operation}}
+{{/operations}}
+{{/apis}}
+{{/apiInfo}}
+        (operation, paginate) => panic!("no call for {operation} with paginate {paginate}"),
+    }
+}

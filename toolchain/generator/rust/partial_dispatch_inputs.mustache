@@ -1,0 +1,20 @@
+{{#pathParams}}
+            let {{{paramName}}}: {{>partial_path_owned}} = arg(&case.params, "{{baseName}}");
+{{/pathParams}}
+{{#bodyParam}}
+            let body: {{^required}}Option<{{/required}}{{>partial_value_type}}{{^required}}>{{/required}} = body(case);
+{{/bodyParam}}
+{{#hasQueryParams}}
+            let params = {{>partial_params_name}} {
+{{#queryParams}}
+                {{{paramName}}}: param(&case.params, "{{baseName}}"),
+{{/queryParams}}
+            };
+{{/hasQueryParams}}
+{{#hasFormParams}}
+            let params = {{>partial_params_name}} {
+{{#formParams}}
+                {{{paramName}}}: {{#isFile}}files{{/isFile}}{{^isFile}}param{{/isFile}}(&case.multipart, "{{baseName}}"),
+{{/formParams}}
+            };
+{{/hasFormParams}}

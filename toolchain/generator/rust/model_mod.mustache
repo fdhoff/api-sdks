@@ -1,0 +1,8 @@
+{{>partial_header}}
+
+{{#models}}
+{{#model}}
+mod {{{classFilename}}};
+pub use self::{{{classFilename}}}::{{{classname}}};
+{{/model}}
+{{/models}}

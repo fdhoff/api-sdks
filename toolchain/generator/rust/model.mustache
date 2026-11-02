@@ -1,0 +1,34 @@
+{{>partial_header}}
+{{#models}}
+{{#model}}
+{{#isEnum}}
+
+crate::runtime::open_enum! {
+    /// {{{classname}}} is an enumerated value. A value this version does not list is kept in `Unlisted`.
+    {{{classname}}}: {{#isString}}String{{/isString}}{{^isString}}i64{{/isString}} {
+{{#allowableValues}}
+{{#enumVars}}
+        {{{name}}} = {{#isString}}"{{{value}}}"{{/isString}}{{^isString}}{{{value}}}{{/isString}},
+{{/enumVars}}
+{{/allowableValues}}
+    }
+}
+{{/isEnum}}
+{{^isEnum}}
+
+#[allow(unused_imports)]
+use crate::models;
+
+/// {{{classname}}} is an API object. `extra` holds unknown fields, nulls, and any value that did not fit its field.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct {{{classname}}} {
+{{#vars}}
+    pub {{{name}}}: Option<{{#isModel}}Box<{{/isModel}}{{{dataType}}}{{#isModel}}>{{/isModel}}>,
+{{/vars}}
+    pub extra: serde_json::Map<String, serde_json::Value>,
+}
+
+crate::runtime::tolerant_model!({{{classname}}} { {{#vars}}{{{name}}}: "{{{baseName}}}", {{/vars}}});
+{{/isEnum}}
+{{/model}}
+{{/models}}

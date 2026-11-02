@@ -1,0 +1,15 @@
+{{>partial_header}}
+
+use crate::Client;
+use crate::apis::*;
+
+impl Client {
+{{#apiInfo}}
+{{#apis}}
+    /// The `{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}` operations.
+    pub fn {{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}(&self) -> {{classname}} {
+        {{classname}}::new(self.transport.clone())
+    }
+{{/apis}}
+{{/apiInfo}}
+}

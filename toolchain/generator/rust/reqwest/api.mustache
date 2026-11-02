@@ -1,0 +1,89 @@
+{{>partial_header}}
+
+use std::sync::Arc;
+
+use crate::Error;
+#[allow(unused_imports)]
+use crate::{File, models};
+#[allow(unused_imports)]
+use crate::runtime::{Items, Operation, Params, Request, Transport};
+
+{{#operations}}
+{{#operation}}
+const {{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}: Operation = Operation {
+    id: "{{operationIdOriginal}}",
+    method: "{{#lambda.uppercase}}{{httpMethod}}{{/lambda.uppercase}}",
+    path: "{{{path}}}",
+    query_params: &[{{#queryParams}}"{{baseName}}", {{/queryParams}}],
+};
+{{/operation}}
+{{#operation}}
+{{#hasQueryParams}}
+
+/// The query parameters of [`{{classname}}::{{vendorExtensions.x-sdk-method}}`]. Set only what you need.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct {{>partial_params_name}} {
+{{#queryParams}}
+    pub {{{paramName}}}: Option<{{>partial_value_type}}>,
+{{/queryParams}}
+}
+
+impl Params for {{>partial_params_name}} {
+    fn apply(&self, request: &mut Request) {
+{{#queryParams}}
+        request.query("{{baseName}}", &self.{{{paramName}}});
+{{/queryParams}}
+    }
+}
+{{/hasQueryParams}}
+{{#hasFormParams}}
+
+/// The form fields of [`{{classname}}::{{vendorExtensions.x-sdk-method}}`]. Set only what you need.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct {{>partial_params_name}} {
+{{#formParams}}
+    pub {{{paramName}}}: Option<{{>partial_value_type}}>,
+{{/formParams}}
+}
+
+impl Params for {{>partial_params_name}} {
+    fn apply(&self, request: &mut Request) {
+{{#formParams}}
+        request.form("{{baseName}}", &self.{{{paramName}}});
+{{/formParams}}
+    }
+}
+{{/hasFormParams}}
+{{/operation}}
+
+/// The `{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}` operations, from [`Client::{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}`](crate::Client::{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}).
+#[derive(Clone, Debug)]
+pub struct {{classname}} {
+    transport: Arc<Transport>,
+}
+
+impl {{classname}} {
+    pub(crate) fn new(transport: Arc<Transport>) -> Self {
+        Self { transport }
+    }
+{{#operation}}
+
+    /// {{{vendorExtensions.x-sdk-summary}}}
+    pub async fn {{vendorExtensions.x-sdk-method}}({{>partial_sdk_args}}) -> Result<{{#returnType}}{{{.}}}{{/returnType}}{{^returnType}}(){{/returnType}}, Error> {
+{{#returnType}}
+        self.transport.call({{>partial_sdk_request}}).await
+{{/returnType}}
+{{^returnType}}
+        self.transport.call::<serde_json::Value>({{>partial_sdk_request}}).await.map(drop)
+{{/returnType}}
+    }
+{{#vendorExtensions.x-sdk-iterator}}
+
+    /// Iterates every item across all pages. The stream ends after yielding an error.
+    pub fn {{.}}({{>partial_sdk_args}}) -> Items<models::{{vendorExtensions.x-sdk-items}}> {
+        Transport::paginate(&self.transport, {{>partial_sdk_request}})
+    }
+{{/vendorExtensions.x-sdk-iterator}}
+{{/operation}}
+}
+{{/operations}}

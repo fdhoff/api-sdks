@@ -1,0 +1,8 @@
+{{>partial_header}}
+
+{{#apiInfo}}
+{{#apis}}
+mod {{{classFilename}}};
+pub use self::{{{classFilename}}}::*;
+{{/apis}}
+{{/apiInfo}}
