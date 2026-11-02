@@ -21,6 +21,10 @@ No SDK is usable yet. Python, TypeScript, Go, C# and Rust will ship in that orde
 
 Generated output is never edited by hand. To correct the spec, add an action to `apis/backmarket/spec/overlay.yaml` and record why in `apis/backmarket/docs/spec-audit.md`; the build fails if an action stops matching.
 
+## Design
+
+See [`docs/architecture.md`](docs/architecture.md) for the pipeline, runtime contract, testing limits and the decisions behind them.
+
 ## Working on the spec
 
 Requires Node 22 or later.

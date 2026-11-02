@@ -1,0 +1,256 @@
+# Architecture
+
+How this project turns a public OpenAPI spec into SDKs for five languages, and why it is built this way.
+
+This project is unofficial and is not affiliated with, endorsed by, or supported by Back Market.
+
+## Status
+
+No SDK exists yet. Sections below describe the design; this table says how much of it is real.
+
+| Part | Status |
+| --- | --- |
+| Spec fetch, hash pin, overlay, lint, mock, CI | Built |
+| Conformance format, runner, harness, cases and reference driver | Built |
+| Generator config and templates | Planned |
+| Per-language runtime | Planned |
+| Python, TypeScript, Go, C# and Rust clients | Planned, in that order |
+| Spec drift job | Planned |
+| Release workflows and changelogs | Planned |
+| Quickstarts | Planned |
+
+## Goals
+
+* Cover the public Seller API in Python, TypeScript, Go, C# and Rust.
+* Stay correct as the upstream spec changes, with one place to fix each problem.
+* Feel native in each language: public names follow that language's conventions.
+* Behave the same in every language, proved by one shared test suite.
+* Stay small enough for one maintainer to keep current.
+
+## Non-goals
+
+* Anything outside the public spec and public docs, including undocumented endpoints.
+* Buyer flows or crawling.
+* A general SDK framework. The code is arranged so that one could be extracted later, and that is all.
+* Testing against the live API. See [Testing limits](#testing-limits).
+
+## Pipeline
+
+```mermaid
+flowchart LR
+  upstream[Upstream spec] -->|fetch, verify SHA-256| cache[Local cache]
+  overlay[overlay.yaml] --> build[Built spec]
+  cache --> build
+  build --> lint[Spectral lint]
+  build --> mock[Prism mock]
+  build -.-> generator[OpenAPI Generator]
+  templates[Templates and config] -.-> generator
+  generator -.-> clients[Generated clients]
+  runtime[Hand-written runtime] -.-> clients
+  clients -.-> conformance[Conformance]
+  mock --> conformance
+  conformance -.-> release[Release]
+```
+
+Dashed edges are planned.
+
+1. **Upstream spec.** `apis/backmarket/spec/upstream/lock.json` records the URL, SHA-256, `info.version`, `Last-Modified` and retrieval date. The spec itself is not in this repository. `npm run spec:fetch` downloads it to a gitignored cache and checks the hash. A mismatched download is never cached, and a mismatched cache stops the build with an error that says how to recover. Once cached, the build and tests need no network.
+2. **Overlay.** `apis/backmarket/spec/overlay.yaml` holds our corrections, in [OpenAPI Overlay](https://spec.openapis.org/overlay/v1.0.0.html) format. Each one is explained in `apis/backmarket/docs/spec-audit.md`. `npm run spec:build` applies them and writes `apis/backmarket/build/openapi.yaml`, and fails if an action matches nothing, so a correction cannot quietly stop applying.
+3. **Lint and mock.** Spectral lints the built spec. Prism serves it as a mock on port 4010.
+4. **Generator (planned).** OpenAPI Generator, at a pinned version, turns the built spec into one client per language, with custom templates where its defaults are not idiomatic.
+5. **Runtime (planned).** A small hand-written library per language supplies what the generator does badly.
+6. **Conformance.** One set of cases runs against every language. A language is not supported until it passes.
+7. **Release (planned).** Each package is published by a release workflow. See [Versioning and release](#versioning-and-release).
+
+The upstream spec is OpenAPI 3.0.3, with 40 operations on 35 paths and 75 schemas. `spec-audit.md` lists its known gaps and where each is handled: overlay, runtime, generator config, or left open because only live access could settle it.
+
+## Boundary between toolchain and API
+
+| Path | Holds |
+| --- | --- |
+| `toolchain/` | Pipeline, templates, runtime and conformance runner |
+| `apis/backmarket/` | Spec pin, overlay, package config, conformance cases and spec audit |
+
+`toolchain/` must not name this API or contain its endpoints or schemas. `apis/backmarket/tests/boundary.test.mjs` enforces that. API-specific values the toolchain needs arrive as configuration or case data: the conformance error kinds, for example, are defined by the cases, not by the runner.
+
+The boundary only keeps a later extraction cheap. It does not justify building anything this SDK does not need.
+
+## Generated and hand-written code
+
+| Generated (planned) | Hand-written (planned) |
+| --- | --- |
+| Models and serialisation | Auth, timeouts and retries |
+| One method per operation | Rate-limit handling |
+| Reference docs | Pagination iterators |
+| | Typed errors and redacted logging |
+
+Generated code is never edited by hand. Each problem has one fix:
+
+* The spec is wrong: add an overlay action and record why in `spec-audit.md`.
+* A name or shape is poor in one language: change that language's generator config or templates.
+* The behaviour cannot be expressed in the spec: change the runtime.
+
+Generated clients are committed under `apis/backmarket/packages/<language>/`, so a spec change shows up as a reviewable diff.
+
+## Runtime contract
+
+Every language implements the same behaviour. The conformance cases are the authority, and `spec-audit.md` has the reasoning. Nothing here has been confirmed against the live API.
+
+### Authentication and headers
+
+* Send `Authorization: Basic <token>` with the token verbatim: no username and no base64. Generated Basic-auth helpers must not be used.
+* `User-Agent` is required client configuration, because the API may refuse a request without it and no default can be correct.
+* Send `Accept-Language` on every call, from a client-level locale.
+* Do not force a JSON `Content-Type` on multipart operations.
+* Select a server by region and environment rather than a raw URL.
+
+### Timeouts
+
+The timeout applies to each attempt and is configurable. A timeout that exhausts its retries raises a `timeout` error.
+
+### Retries
+
+| Failure | Retried for | Delay |
+| --- | --- | --- |
+| 429 | Every method | `Retry-After` if present, otherwise at least 10 seconds |
+| 5xx, timeout, connection failure | GET only | Exponential backoff |
+| Any other response | Never | |
+
+Only GET is retried on 5xx and timeouts because the API documents no idempotency key, and a repeated refund could refund twice. A 429 is safe to retry on any method, because the request was refused.
+
+The retry count, backoff base and rate-limit wait are configurable. The reference driver defaults to 3 retries, a 500 ms base and a 10 second wait, and the runtimes should match it.
+
+### Rate limits
+
+The spec publishes limits only in prose, and declares no `Retry-After` or `X-RateLimit-*` header. So the runtime reacts to 429 on every operation and does not throttle in advance. A 429 that outlasts its retries raises `rate_limited`.
+
+### Pagination
+
+The API has four pagination styles, and the iterator hides them. It stops when `next` is null, the only end signal all four share. `count` does not drive iteration, because its meaning varies by endpoint.
+
+The iterator reads the `page` or `cursor` value out of `next` and reissues the request against the configured server. It never fetches `next` directly: that URL could send the token to another host.
+
+### Typed errors
+
+Errors map on status first, then parse the body best-effort. A body that fits no known shape, or is not JSON, still produces a typed error with the status and the raw text, with the token removed.
+
+| Kind | Meaning |
+| --- | --- |
+| `bad_request`, `authentication`, `not_found`, `validation` | 400, 401, 404, 422 |
+| `permission`, `waf_blocked`, `bot_challenge` | The three kinds of 403 |
+| `rate_limited`, `server` | 429 and 5xx, after retries |
+| `api` | Any other status |
+| `timeout` | No response in time, after retries |
+| `decode` | A success response whose declared JSON does not parse |
+
+Errors also carry `request_id`, `code` and `cf_ray` when present. Each language exposes these under its own naming conventions.
+
+### Redaction
+
+The token must not appear in any result, error or log, at any log level. Every conformance case asserts this, whatever else it tests.
+
+## Conformance format
+
+Cases are YAML, kept in `apis/backmarket/conformance/cases/`. Each states a request, the mock response, the exact wire traffic expected, and the expected result or error. The full format is in `toolchain/conformance/README.md`, and the error kinds are in `apis/backmarket/conformance/README.md`.
+
+```text
+runner ── JSON lines ──> driver (one per language) ── HTTP ──> harness ──> Prism, or a scripted response
+```
+
+* A **driver** is a small executable beside each language package. It calls the public client, so the suite tests what users get.
+* The **harness** records every request. It answers from Prism, which also rejects requests the spec does not allow, or from a script, for what Prism cannot do: response sequences, delays, HTML bodies and undeclared statuses.
+* The **reference driver** is a minimal JavaScript client that proves each case can pass. It is test code, not an SDK, and `npm test` runs it.
+
+There are 68 cases, covering auth, pagination, 4xx and 5xx errors, 429 retry, timeouts, redaction and 30 of the 40 operations. CI runs them with the reference driver; each language joins as its client arrives.
+
+## Versioning and release
+
+All of this is planned.
+
+* Each language package has its own semantic version and changelog. Every user-visible change needs a changelog entry.
+* Packages stay on 0.x until outside users confirm behaviour against the live API. In 0.x, a breaking change bumps the minor version.
+* Python and TypeScript are published first, as alphas. The others follow as each passes conformance. A later language never delays an earlier release.
+* Publishing is done only by a release workflow. Each package's first publish is approved by the maintainer.
+
+| Language | Package |
+| --- | --- |
+| Python | `backmarket-seller` on PyPI |
+| TypeScript | `backmarket-seller` on npm |
+| Rust | `backmarket-seller` on crates.io |
+| C# | `BackMarketSeller` on NuGet |
+| Go | Module in this repository, versioned by git tag |
+
+Every package description and README says the project is unofficial and not affiliated with Back Market. Each package ships `LICENSE` and `NOTICE`. The Apache-2.0 licence covers only this project's own code; it does not cover the upstream spec or grant any right to the Back Market name.
+
+## Spec updates
+
+Upstream serves only its latest spec, so an older pin cannot be fetched again. Once upstream changes, a machine with no cached copy fails closed until the pin moves. CI caches the spec under a key derived from `lock.json`, which delays this but does not prevent it. Released versions are unaffected, because their generated code is committed.
+
+To move the pin by hand, run `npm run spec:pin`, review what changed, and commit `lock.json`. It rewrites the hash, version, `Last-Modified` and date in the lock, and replaces the cached spec. On other machines the old cache then fails verification; delete it and run `npm run spec:fetch`.
+
+The drift job (planned) automates that as a scheduled workflow:
+
+1. Restore the spec cache, which also keeps it from expiring, and keep a copy of the pinned spec.
+2. Download the current upstream spec and compare its SHA-256 with `lock.json`. If they match, stop.
+3. Run `spec:pin` to update the lock, then rebuild and regenerate the clients.
+4. Commit `lock.json` and the regenerated clients to one fixed branch, and open or update a single pull request.
+5. In the pull request, summarise which operations and schemas changed between the old and new built specs, without quoting the spec. If the cache held no old copy, say that no comparison was possible.
+
+The pull request goes through ordinary CI, which fetches the spec, verifies it against the new hash, then runs the build, lint and conformance. If upstream changed something the overlay corrected, an overlay action stops matching and CI goes red, which is the signal to fix it on that branch. If upstream changes again before merge, the next run updates the same branch. The job never merges its own pull request.
+
+A pull request opened with the default workflow token does not trigger `pull_request` workflows, so the job needs a credential that does.
+
+## Credentials
+
+Users supply their own token at runtime and pass it to the client. The SDKs store nothing.
+
+This project has no API credentials: none in CI, none in secrets and none for testing. Fixtures are synthetic, and the token in every conformance case is a made-up value.
+
+## Testing limits
+
+Everything runs against a mock built from the spec, so the tests prove that clients match the spec and each other. They do not prove the spec matches the API.
+
+* **Prism is the spec, not the service.** A wrong spec passes. The overlay's corrections are inferred from the spec's own text.
+* **Runtime rules are inferred from prose.** Retry, rate-limit and error behaviour comes from the spec's descriptions and has not been observed.
+* **Scripted responses skip Prism.** Most 5xx and 429 cases are scripted, so those requests are checked only against their `wire` entries, not against the spec.
+* **The reference driver shows that cases can pass, not that they are right.**
+* **Coverage is partial.** 10 of the 40 operations have no case yet, mainly multipart, messages and secondary reads.
+* **Some questions stay open.** `spec-audit.md` lists what only live access can settle, and no guess is encoded for those.
+
+This is why the packages stay on 0.x. Reports from users of the live API are the only way to close this gap, and they are welcome as GitHub issues.
+
+## Decisions
+
+### Generate from the spec instead of writing SDKs by hand
+
+Five languages, 40 operations and 75 schemas are too much to keep in step by hand, and the spec changes without notice. Generation gives one place to fix each mistake and makes a spec change a mechanical update.
+
+Hand-written SDKs can read better, and that remains the cost of this choice. Custom templates and config set public names, and the hand-written runtime handles the behaviour where generators are weakest.
+
+### OpenAPI Generator instead of a paid generator
+
+Commercial generators can produce more idiomatic output with less template work. They also add a recurring cost and a dependency on a vendor's product, and they would stop a contributor from reproducing the build without an account.
+
+OpenAPI Generator is open source and can be pinned, so anyone can run the same build. The price is that we own the templates and the runtime.
+
+### No shared native core
+
+A Rust or C core behind FFI bindings would centralise retries, pagination and errors. It would also mean native builds for every platform and language, harder installs, and awkward fits with each language's async model.
+
+HTTP is already the language-neutral layer, and the logic in question is small. The shared part of this project is the conformance suite: behaviour is specified once and implemented per language.
+
+### One repository for all languages
+
+The overlay, conformance cases and generated clients change together. In one repository, a spec fix and its effect on every language land in a single reviewable pull request, and CI proves them together.
+
+The cost is a mix of toolchains in one CI setup, and per-package versioning and tags instead of one repository per release stream.
+
+### No separate generator repository yet
+
+With only one API, a separate repository would add versioning and coordination cost in exchange for a framework shaped by a single example. `toolchain/` stays generic and the boundary test keeps it that way, so extraction stays cheap. That decision waits for a second API.
+
+### Fetch the spec at build time instead of storing it
+
+The upstream spec has no licence statement, so this repository does not redistribute it. The pin keeps builds reproducible without the file: a build either uses exactly the reviewed spec or fails.
+
+The cost is the dependency on upstream described in [Spec updates](#spec-updates). The overlay stays ours, and quotes as little upstream text as practical.
