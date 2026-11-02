@@ -17,7 +17,7 @@ Sections below describe the design; this table says how much of it is real.
 | Python client | Alpha, unpublished |
 | TypeScript, Go, C# and Rust clients | Planned, in that order |
 | Spec drift job | Planned |
-| Release workflows and changelogs | Planned |
+| Release workflows and changelogs | Built for Python and TypeScript, publishing off |
 | Quickstarts | Built for Python |
 
 ## Goals
@@ -61,7 +61,7 @@ Dashed edges are planned.
 4. **Generator.** OpenAPI Generator, at the version and SHA-256 in `toolchain/generator/lock.json`, turns the built spec into one client per language, with custom templates where its defaults are not idiomatic. `toolchain/pipeline/generate.mjs` first strips descriptions, summaries and examples, so the committed clients carry no upstream prose, then applies the package's `generate.yaml` and `operations.yaml`, which hold its public names and our own summaries.
 5. **Runtime.** A small hand-written library per language supplies what the generator does badly. The generic part lives in `toolchain/runtime/<language>/` and is copied into each package on generation; what is specific to this API, such as servers and the error table, sits in the package.
 6. **Conformance.** One set of cases runs against every language. A language is not supported until it passes.
-7. **Release (planned).** Each package is published by a release workflow. See [Versioning and release](#versioning-and-release).
+7. **Release.** Each package is published by a release workflow. See [Versioning and release](#versioning-and-release).
 
 The upstream spec is OpenAPI 3.0.3, with 40 operations on 35 paths and 75 schemas. `spec-audit.md` lists its known gaps and where each is handled: overlay, runtime, generator config, or left open because only live access could settle it.
 
@@ -175,8 +175,6 @@ There are 80 cases, covering auth, pagination, 4xx and 5xx errors, 429 retry, ti
 
 ## Versioning and release
 
-All of this is planned.
-
 * Each language package has its own semantic version and changelog. Every user-visible change needs a changelog entry.
 * Packages stay on 0.x until outside users confirm behaviour against the live API. In 0.x, a breaking change bumps the minor version.
 * Python and TypeScript are published first, as alphas. The others follow as each passes conformance. A later language never delays an earlier release.
@@ -191,6 +189,17 @@ All of this is planned.
 | Go | Module in this repository, versioned by git tag |
 
 Every package description and README says the project is unofficial and not affiliated with Back Market. Each package ships `LICENSE` and `NOTICE`. The Apache-2.0 licence covers only this project's own code; it does not cover the upstream spec or grant any right to the Back Market name.
+
+### Publishing a package
+
+`.github/workflows/release-python.yml` and `release-typescript.yml` each have a build job and a publish job. The build job reruns the generated-code check, the package tests and conformance, then builds the package. It runs on pull requests that touch the package version or changelog, and on release tags. Nothing is published unless the maintainer has done all of the following.
+
+| Language | Registry setup | Environment | Repository variable | Tag |
+| --- | --- | --- | --- | --- |
+| Python | Add a PyPI trusted publisher for this repository, workflow `release-python.yml`, environment `pypi` | `pypi`, with the maintainer as required reviewer | `PUBLISH_PYTHON` = `true` | `python/v<version>` |
+| TypeScript | Remove `private: true` from `package.json` and add an `NPM_TOKEN` secret to the environment | `npm`, with the maintainer as required reviewer | `PUBLISH_TYPESCRIPT` = `true` | `typescript/v<version>` |
+
+To release, replace `(unreleased)` in the package changelog with the date, merge, and tag that commit on `main`. The build job fails unless the tag matches the package version and changelog and the commit is on `main`.
 
 ## Spec updates
 

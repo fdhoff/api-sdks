@@ -1,0 +1,103 @@
+name: Release TypeScript
+
+# Pull requests get a dry run. Only a typescript/v* tag publishes, and only once
+# the PUBLISH_TYPESCRIPT repository variable is true. See docs/architecture.md.
+on:
+  pull_request:
+    # TODO: add this workflow file once the package is on main; until then the
+    # dry run has nothing to build.
+    paths:
+      - apis/backmarket/packages/typescript/CHANGELOG.md
+      - apis/backmarket/packages/typescript/package.json
+  push:
+    tags: ["typescript/v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      SCARF_ANALYTICS: "false"
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Tag matches the package version and changelog, is on main, and the package is not private
+        if: github.event_name == 'push'
+        working-directory: apis/backmarket/packages/typescript
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#typescript/v}"
+          test "$(node -p "require('./package.json').version")" = "$version"
+          test "$(node -p "Boolean(require('./package.json').private)")" = false
+          grep -F "## $version " CHANGELOG.md | grep -Fv unreleased
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apis/backmarket/packages/typescript/package-lock.json
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci --ignore-scripts
+      - run: npm run spec:fetch
+      - run: npm run spec:build
+      - run: npm ci --ignore-scripts
+        working-directory: apis/backmarket/packages/typescript
+      - name: Generated code matches the spec, templates and runtime
+        run: |
+          npm run generate:typescript
+          git add -N apis/backmarket/packages/typescript
+          git diff --exit-code apis/backmarket/packages/typescript
+      - working-directory: apis/backmarket/packages/typescript
+        run: |
+          npm run build
+          npm test
+      - run: npm run conformance:typescript
+      - run: npm run conformance:typescript:cjs
+      - name: Pack, and check the licence and notice ship
+        working-directory: apis/backmarket/packages/typescript
+        run: |
+          npm pack
+          tar tzf backmarket-seller-*.tgz | grep -E '^package/LICENSE$'
+          tar tzf backmarket-seller-*.tgz | grep -E '^package/NOTICE$'
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: typescript-tarball
+          path: apis/backmarket/packages/typescript/backmarket-seller-*.tgz
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: github.event_name == 'push' && vars.PUBLISH_TYPESCRIPT == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/backmarket-seller
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: typescript-tarball
+      # TODO: move to npm trusted publishing and drop the token after the first publish.
+      - run: npm publish ./backmarket-seller-*.tgz --access public --provenance --tag alpha
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
