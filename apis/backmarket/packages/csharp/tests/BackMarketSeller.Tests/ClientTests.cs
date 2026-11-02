@@ -116,6 +116,16 @@ public sealed class ClientTests
     }
 
     [Fact]
+    public async Task ABlankPositionInNextIsADecodeError()
+    {
+        var handler = new ScriptedHandler(Json(HttpStatusCode.OK, """{"results": [], "next": "https://mock.invalid/ws/orders?page="}"""));
+        using var client = Client(handler);
+
+        await Assert.ThrowsAsync<ApiDecodeException>(async () =>
+            await client.Orders.ListAllAsync(cancellationToken: TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task IterationRejectsANextLinkThatIsNotAUrl()
     {
         var handler = new ScriptedHandler(Json(HttpStatusCode.OK, """{"next": "http://[", "results": [{"order_id": 1}]}"""));
@@ -185,6 +195,16 @@ public sealed class ClientTests
     }
 
     [Fact]
+    public async Task ASuccessBodyIsReturnedAsItIs()
+    {
+        using var client = Client(new ScriptedHandler(Json(HttpStatusCode.OK, $$"""{"order_id": 1, "delivery_note": "{{Token}}"}""")));
+
+        var order = await client.Orders.GetAsync(1, TestContext.Current.CancellationToken);
+
+        Assert.Equal(Token, order.DeliveryNote);
+    }
+
+    [Fact]
     public async Task NeverRepeatsAFailedPost()
     {
         var handler = new ScriptedHandler(Json(HttpStatusCode.InternalServerError, "{}"), Json(HttpStatusCode.OK, "{}"));
@@ -241,6 +261,14 @@ public sealed class ClientTests
     [InlineData("soon", null)]
     [InlineData("Thu, 01 Jan 2015 00:00:00 GMT", null)]
     [InlineData("Sun, 01 Nov 2026 00:00:30 GMT", 30.0)]
+    [InlineData("Sunday, 01-Nov-26 00:00:30 GMT", 30.0)]
+    [InlineData("Sun Nov  1 00:00:30 2026", 30.0)]
+    [InlineData("1 Nov 2026 00:00:30 GMT", 30.0)]
+    [InlineData("Mon, 01 Nov 2026 00:00:30 UT", 30.0)]
+    [InlineData("Sun, 01 Nov 2026 00:01", 60.0)]
+    [InlineData("Sun, 01 Nov 2026 01:00:30 +0100", 30.0)]
+    [InlineData("Sat, 31 Oct 2026 19:00:30 EST", 30.0)]
+    [InlineData("Sun, 31 Nov 2026 00:00:30 GMT", null)]
     public void ReadsRetryAfterAsSecondsOrADate(string value, double? expected)
     {
         var now = new DateTimeOffset(2026, 11, 1, 0, 0, 0, TimeSpan.Zero);

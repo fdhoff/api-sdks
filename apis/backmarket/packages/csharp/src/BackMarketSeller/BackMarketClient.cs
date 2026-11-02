@@ -56,6 +56,10 @@ public sealed class BackMarketClientOptions
     public ILogger? Logger { get; init; }
 
     /// <summary>A handler to use instead of the network. The client does not dispose it.</summary>
+    /// <remarks>
+    /// The default handler never resends a write that failed. A custom handler must not resend either, or a failed
+    /// write can be repeated.
+    /// </remarks>
     public HttpMessageHandler? HttpHandler { get; init; }
 }
 

@@ -6,7 +6,7 @@ using BackMarketSeller.Runtime;
 
 namespace BackMarketSeller.Models;
 
-/// <summary>An enumerated value. In a response, a value this version does not list goes to the parent's <see cref="ApiModel.Extra"/>.</summary>
+/// <summary>An enumerated value. In a response, a value this version does not list is kept in the property as that number.</summary>
 public enum OrderState
 {
     Value0 = 0,

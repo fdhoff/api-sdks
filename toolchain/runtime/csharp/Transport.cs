@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using PackageNamespace.Models;
 
@@ -16,7 +17,18 @@ internal sealed class Transport : IDisposable
 {
     private const string Redacted = "***";
     private static readonly string[] PageMarkers = ["page", "cursor"];
-    private static readonly string[] HttpDates = ["r", "dddd, dd-MMM-yy HH:mm:ss 'GMT'", "ddd MMM d HH:mm:ss yyyy"];
+    private static readonly string[] Months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+    /// <summary>RFC 5322, RFC 850 and asctime dates, as leniently as Python's <c>email.utils</c>.</summary>
+    private static readonly Regex HttpDate = new(
+        @"^(?:[a-z]+,?\s*)?(?:(?<day>[0-9]{1,2})[\s-]+(?<month>[a-z]{3})[a-z]*[\s-]+(?<year>[0-9]{4}|[0-9]{2})\s+(?<time>[0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?)(?:\s*(?<zone>[a-z]+|[+-][0-9]{4}))?"
+        + @"|(?<month>[a-z]{3})\s+(?<day>[0-9]{1,2})\s+(?<time>[0-9]{1,2}:[0-9]{2}:[0-9]{2})\s+(?<year>[0-9]{4}))$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    private static readonly Dictionary<string, int> ZoneHours = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["EST"] = -5, ["EDT"] = -4, ["CST"] = -6, ["CDT"] = -5, ["MST"] = -7, ["MDT"] = -6, ["PST"] = -8, ["PDT"] = -7,
+    };
 
     private static readonly HttpRequestOptionsKey<bool> Connected = new("Connected");
 
@@ -96,13 +108,13 @@ internal sealed class Transport : IDisposable
         }
         if (reply.Json is { } json)
         {
-            return Json.Read<T>(json, reply.Status, reply.Text);
+            return Json.Read<T>(json, reply.Status, reply.Clean);
         }
         if (reply.Text.Length == 0)
         {
             return Json.Empty<T>();
         }
-        throw new ApiDecodeException($"The response is not JSON, so it cannot be a {typeof(T).Name}") { Status = reply.Status, RawBody = reply.Text };
+        throw new ApiDecodeException($"The response is not JSON, so it cannot be a {typeof(T).Name}") { Status = reply.Status, RawBody = reply.Clean };
     }
 
     public Task SendAsync(Operation operation, object?[] values, CancellationToken cancellationToken) =>
@@ -117,13 +129,13 @@ internal sealed class Transport : IDisposable
             var reply = await FetchAsync(operation, current, cancellationToken).ConfigureAwait(false);
             if (reply.Json is not { ValueKind: JsonValueKind.Object } page)
             {
-                throw new ApiDecodeException("A page is not a JSON object") { Status = reply.Status, RawBody = reply.Text };
+                throw new ApiDecodeException("A page is not a JSON object") { Status = reply.Status, RawBody = reply.Clean };
             }
             if (page.TryGetProperty("results", out var results) && results.ValueKind == JsonValueKind.Array)
             {
                 foreach (var item in results.EnumerateArray())
                 {
-                    yield return Json.Read<T>(item, reply.Status, reply.Text);
+                    yield return Json.Read<T>(item, reply.Status, reply.Clean);
                 }
             }
             current = NextValues(operation, current, page);
@@ -183,8 +195,11 @@ internal sealed class Transport : IDisposable
         foreach (var pair in text.Split('&', StringSplitOptions.RemoveEmptyEntries))
         {
             var parts = pair.Split('=', 2);
-            var name = Unescape(parts[0]);
-            query.TryAdd(name, parts.Length > 1 ? Unescape(parts[1]) : string.Empty);
+            var value = parts.Length > 1 ? Unescape(parts[1]) : string.Empty;
+            if (value.Length > 0)
+            {
+                query.TryAdd(Unescape(parts[0]), value);
+            }
         }
         return query;
     }
@@ -200,13 +215,50 @@ internal sealed class Transport : IDisposable
         {
             return double.Parse(value, CultureInfo.InvariantCulture);
         }
-        var styles = DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal | DateTimeStyles.AllowInnerWhite;
-        if (!DateTimeOffset.TryParseExact(value, HttpDates, CultureInfo.InvariantCulture, styles, out var when))
+        var when = ParseHttpDate(value);
+        if (when is null)
         {
             return null;
         }
-        var wait = (when - now).TotalSeconds;
+        var wait = (when.Value - now).TotalSeconds;
         return wait > 0 ? wait : null;
+    }
+
+    /// <summary>A date with an unknown zone or none is read as UTC.</summary>
+    private static DateTimeOffset? ParseHttpDate(string value)
+    {
+        var match = HttpDate.Match(value);
+        if (!match.Success)
+        {
+            return null;
+        }
+        var month = Array.IndexOf(Months, match.Groups["month"].Value.ToLowerInvariant()) + 1;
+        var year = int.Parse(match.Groups["year"].Value, CultureInfo.InvariantCulture);
+        if (year < 100)
+        {
+            year += year > 68 ? 1900 : 2000;
+        }
+        var time = match.Groups["time"].Value.Split(':').Select(part => int.Parse(part, CultureInfo.InvariantCulture)).ToArray();
+        var zone = match.Groups["zone"].Value;
+        var offset = TimeSpan.Zero;
+        if (zone.Length == 5 && zone[0] is '+' or '-')
+        {
+            var minutes = (int.Parse(zone[1..3], CultureInfo.InvariantCulture) * 60) + int.Parse(zone[3..], CultureInfo.InvariantCulture);
+            offset = TimeSpan.FromMinutes(zone[0] == '-' ? -minutes : minutes);
+        }
+        else if (ZoneHours.TryGetValue(zone, out var hours))
+        {
+            offset = TimeSpan.FromHours(hours);
+        }
+        try
+        {
+            var day = int.Parse(match.Groups["day"].Value, CultureInfo.InvariantCulture);
+            return new DateTimeOffset(year, month, day, time[0], time[1], time.Length > 2 ? time[2] : 0, offset);
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
     }
 
     private static string Unescape(string text) => Uri.UnescapeDataString(text.Replace('+', ' '));
@@ -384,20 +436,24 @@ internal sealed class Transport : IDisposable
                 body = [];
             }
         }
-        var text = Encoding.UTF8.GetString(body).Replace(settings.Secret, Redacted, StringComparison.Ordinal);
+        var text = Encoding.UTF8.GetString(body);
         Log(LogLevel.Debug, $"<- {method} {raw.Status} ({text.Length} chars)");
         if (!success)
         {
-            throw settings.ToError(new ErrorContext(raw.Status, raw.Headers, text, Json.TryParse(text)));
+            var clean = Redact(text);
+            throw settings.ToError(new ErrorContext(raw.Status, raw.Headers, clean, Json.TryParse(clean)));
         }
         if (text.Length == 0 || !(raw.Headers.TryGetValue("Content-Type", out var type) && type.Contains("json", StringComparison.OrdinalIgnoreCase)))
         {
-            return new Reply(raw.Status, text, null);
+            return new Reply(raw.Status, text, Redact(text), null);
         }
-        return new Reply(raw.Status, text, Json.TryParse(text) ?? throw new ApiDecodeException("The response body is not valid JSON") { Status = raw.Status });
+        return new Reply(raw.Status, text, Redact(text), Json.TryParse(text) ?? throw new ApiDecodeException("The response body is not valid JSON") { Status = raw.Status });
     }
+
+    private string Redact(string text) => text.Replace(settings.Secret, Redacted, StringComparison.Ordinal);
 
     private sealed record RawReply(int Status, Dictionary<string, string> Headers, byte[] Body);
 
-    private sealed record Reply(int Status, string Text, JsonElement? Json);
+    // Text is returned as it is. Clean has the token removed, for exceptions.
+    private sealed record Reply(int Status, string Text, string Clean, JsonElement? Json);
 }

@@ -11,7 +11,7 @@ namespace BackMarketSeller.Models;
 public enum BuybackOrderState
 {
     [JsonStringEnumMemberName("NEW")]
-    VarNew,
+    New,
     [JsonStringEnumMemberName("PENDING")]
     Pending,
     [JsonStringEnumMemberName("TO_SEND")]

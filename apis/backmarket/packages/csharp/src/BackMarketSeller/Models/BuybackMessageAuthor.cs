@@ -15,7 +15,7 @@ public enum BuybackMessageAuthor
     [JsonStringEnumMemberName("Client")]
     VarClient,
     [JsonStringEnumMemberName("BackMarket")]
-    Backmarket,
+    BackMarket,
     [JsonStringEnumMemberName("Unknown")]
     Unknown,
 }
