@@ -159,7 +159,7 @@ Errors map on status first, then parse the body best-effort. A body that fits no
 | `api` | Any other status |
 | `timeout` | No response in time, after retries |
 | `connection` | The connection failed or dropped before a full response, after retries |
-| `decode` | A success response whose declared JSON does not parse, or whose compressed body cannot be decompressed; a page whose `next` link is not a valid URL. Never retried. |
+| `decode` | A success response whose declared JSON does not parse, or whose compressed body cannot be decompressed or ends early; a page whose `next` link is not a valid URL. Never retried. |
 
 Errors also carry `request_id`, `code` and `cf_ray` when present. Each language exposes these under its own naming conventions.
 

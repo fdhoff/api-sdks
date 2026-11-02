@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { gzipSync } from 'node:zlib';
 
 const HOP_BY_HOP = ['host', 'connection', 'content-length', 'transfer-encoding', 'prefer'];
 
@@ -13,6 +14,13 @@ const expandDates = (headers) =>
     ]),
   );
 
+// A server compresses only for a client that accepts it.
+const acceptsGzip = (header = '') =>
+  header.split(',').some((item) => {
+    const [coding, ...params] = item.split(';').map((part) => part.trim().toLowerCase());
+    return ['gzip', '*'].includes(coding) && !params.some((param) => /^q=0(\.0*)?$/.test(param));
+  });
+
 async function trickle(response, payload, interval) {
   for (const byte of Buffer.from(payload)) {
     if (response.destroyed) return;
@@ -22,10 +30,15 @@ async function trickle(response, payload, interval) {
   response.end();
 }
 
-function send(response, { status, headers = {}, body, delay_ms: delay = 0, trickle_ms: interval }) {
+function send(response, { status, headers = {}, body, delay_ms: delay = 0, trickle_ms: interval, gzip, cut }, request) {
   const isText = typeof body === 'string';
-  const payload = body === undefined ? '' : isText ? body : JSON.stringify(body);
+  let payload = Buffer.from(body === undefined ? '' : isText ? body : JSON.stringify(body));
   const defaults = body === undefined || isText ? {} : { 'content-type': 'application/json' };
+  if (gzip && acceptsGzip(request.headers['accept-encoding'])) {
+    payload = gzipSync(payload);
+    defaults['content-encoding'] = 'gzip';
+  }
+  if (cut !== undefined) payload = payload.subarray(0, cut);
   const expanded = expandDates(headers);
   const timer = setTimeout(() => {
     if (response.destroyed) return;
@@ -72,7 +85,7 @@ export async function startHarness(prismUrl) {
     if (script) {
       const next = script.shift() ?? { status: 500, body: 'script exhausted' };
       if (next.drop) request.socket.destroy();
-      else send(response, next);
+      else send(response, next, request);
       return;
     }
     try {

@@ -347,6 +347,18 @@ test('a corrupt compressed success is a decode error', async (t) => {
   await assert.rejects(() => client.orders.get(1), DecodeError);
 });
 
+test('the client asks for an uncompressed body, because fetch accepts a gzip body cut short', async (t) => {
+  let accepted: string | undefined;
+  const baseUrl = await serve(t, (request, response) => {
+    accepted = request.headers['accept-encoding'];
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end('{"order_id":1}');
+  });
+  const client = new BackMarketClient({ token: TOKEN, baseUrl, ...required });
+  assert.deepEqual(await client.orders.get(1), { order_id: 1 });
+  assert.equal(accepted, 'identity');
+});
+
 test('a corrupt compressed failure keeps its status, with no body', async (t) => {
   const baseUrl = await serve(t, (_request, response) => {
     response.writeHead(502, { 'content-type': 'application/json', 'content-encoding': 'gzip' });

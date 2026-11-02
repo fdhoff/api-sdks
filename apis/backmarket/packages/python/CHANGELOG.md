@@ -9,5 +9,6 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * `max_retry_wait`: a `Retry-After` above it, 60 seconds by default, raises `RateLimitedError` instead of blocking.
 * `timeout` now covers each whole attempt, so a body that keeps trickling cannot outlast it.
 * A compressed body that cannot be decompressed raises a typed error instead of a raw httpx error.
+* A gzip success body that ends early raises `DecodeError` instead of returning partial or empty data.
 * Tolerant response parsing no longer fails when an object holds a field under both its API and Python names.
 * A `next` link that is not a valid URL raises `DecodeError` instead of a raw `ValueError`.

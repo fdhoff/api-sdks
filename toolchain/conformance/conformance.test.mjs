@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { get } from 'node:http';
+import { gunzipSync } from 'node:zlib';
 import { validateCase } from './cases.mjs';
 import { checkCase, fill, matches } from './check.mjs';
 import { startHarness } from './harness.mjs';
@@ -47,6 +49,8 @@ test('validateCase reports each malformed part', () => {
     [{ mock: { responses: [{ body: 'no status' }] } }, /status must be an integer/],
     [{ mock: { responses: [{ drop: false }] } }, /drop must be true and alone/],
     [{ mock: { responses: [{ drop: true, status: 200 }] } }, /drop must be true and alone/],
+    [{ mock: { responses: [{ status: 200, gzip: 'yes' }] } }, /gzip must be true/],
+    [{ mock: { responses: [{ status: 200, cut: 1.5 }] } }, /cut must be an integer/],
     [{ wire: [] }, /wire must be a non-empty list/],
     [{ expect: {} }, /exactly one of result/],
     [{ expect: { error: { status: 500 } } }, /needs a kind/],
@@ -199,6 +203,38 @@ test('harness trickles a body one byte at a time', async () => {
   const response = await fetch(harness.url);
   assert.equal(await response.text(), 'abc');
   assert.ok(performance.now() - started >= 60);
+});
+
+function rawGet(url, accept) {
+  return new Promise((resolve, reject) => {
+    get(url, { headers: { 'accept-encoding': accept } }, async (response) => {
+      const chunks = [];
+      for await (const chunk of response) chunks.push(chunk);
+      resolve({ headers: response.headers, body: Buffer.concat(chunks) });
+    }).on('error', reject);
+  });
+}
+
+test('harness compresses a body for a client that accepts gzip, and can cut it short', async () => {
+  const body = { id: 1, name: 'synthetic' };
+  harness.play({ responses: [{ status: 200, body, gzip: true }, { status: 200, body, gzip: true, cut: -8 }] });
+
+  const whole = await rawGet(harness.url, 'gzip, deflate');
+  assert.equal(whole.headers['content-encoding'], 'gzip');
+  assert.deepEqual(JSON.parse(gunzipSync(whole.body)), body);
+
+  const cut = await rawGet(harness.url, 'gzip');
+  assert.deepEqual(cut.body, whole.body.subarray(0, -8));
+  assert.throws(() => gunzipSync(cut.body), /unexpected end of file/);
+});
+
+test('harness sends identity to a client that does not accept gzip', async () => {
+  for (const accept of ['identity', 'gzip;q=0', 'br']) {
+    harness.play({ responses: [{ status: 200, body: { id: 1 }, gzip: true, cut: 4 }] });
+    const { headers, body } = await rawGet(harness.url, accept);
+    assert.equal(headers['content-encoding'], undefined);
+    assert.equal(body.toString(), '{"id');
+  }
 });
 
 test('harness replays a new script from a clean record', async () => {

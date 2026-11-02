@@ -39,6 +39,8 @@ cases:
           body: { error: nope }        # a mapping or list is sent as JSON, a string verbatim
           delay_ms: 0
           trickle_ms: 50               # optional: send the body one byte at a time, this far apart
+          gzip: true                   # optional: gzip the body if the request accepts gzip
+          cut: -8                      # optional: send only the first n bytes, or drop the last -n
         - status: 200
           body: []
     wire:                              # every request the client must send, in order
@@ -60,6 +62,7 @@ cases:
 
 * `mock: { prism: { code: 404 } }` answers from Prism instead, asking for that declared status. Prism ignores a code the operation cannot serve for the client's `Accept` header, so check the mock before relying on one. `prism: {}` takes the first success response.
 * `- drop: true` in `responses` reads the request, records it, then closes the connection with no response. It stands alone, with no `status` or other key.
+* `gzip: true` compresses the body and sets `Content-Encoding: gzip`, but only when the request's `Accept-Encoding` allows gzip, as a server would. `cut` applies to the bytes sent, compressed or not, and `Content-Length` matches them.
 * `{{http_date+2s}}` in a scripted header expands to an HTTP date that many seconds ahead, when the response is sent. HTTP dates are whole seconds, so the moment it names is up to a second sooner.
 * `result_keys: [id]` asserts that those keys exist, for Prism responses whose values come from spec examples. On a list it checks the first element.
 * `error` is a subset match on the driver's error object.

@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import time
+import zlib
 from collections.abc import AsyncIterator, Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
@@ -13,6 +14,7 @@ from typing import (
     Any,
     Generic,
     TypeVar,
+    cast,
 )
 from urllib.parse import parse_qs, quote, urlencode, urlsplit
 
@@ -165,6 +167,29 @@ def _undecodable(response: httpx.Response) -> httpx.Response:
     return httpx.Response(response.status_code, headers=headers)
 
 
+def _gunzip(data: bytes) -> bytes:
+    """Read every gzip member, and fail on a body cut short, which httpx accepts."""
+    parts: list[bytes] = []
+    while data:
+        decoder = zlib.decompressobj(zlib.MAX_WBITS | 16)
+        parts.append(decoder.decompress(data))
+        if not decoder.eof:
+            raise zlib.error("The gzip body ends early")
+        data = decoder.unused_data
+    return b"".join(parts)
+
+
+def _decoded(response: httpx.Response, raw: bytes) -> httpx.Response:
+    headers = response.headers.copy()
+    try:
+        if raw and headers.get("content-encoding", "").strip().lower() == "gzip":
+            raw = _gunzip(raw)
+            del headers["content-encoding"]
+        return httpx.Response(response.status_code, headers=headers, content=raw)
+    except (zlib.error, httpx.DecodingError):
+        return _undecodable(response)
+
+
 def _translate(error: httpx.TransportError) -> ApiError:
     if isinstance(error, httpx.TimeoutException):
         return ApiTimeoutError("The request timed out")
@@ -234,12 +259,8 @@ class SyncTransport:
     def _attempt(self, request: dict[str, Any]) -> httpx.Response:
         deadline = time.monotonic() + self.settings.timeout
         with self.http.stream(**request) as response:
-            response.stream = _Deadline(response.stream, deadline)
-            try:
-                response.read()
-            except httpx.DecodingError:
-                return _undecodable(response)
-            return response
+            # The stream itself, because iter_raw refuses a body that was read already, as a mock transport's is.
+            return _decoded(response, b"".join(_Deadline(response.stream, deadline)))
 
     def fetch(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> Any:
         settings = self.settings
@@ -271,11 +292,8 @@ class AsyncTransport:
 
     async def _attempt(self, request: dict[str, Any]) -> httpx.Response:
         async with self.http.stream(**request) as response:
-            try:
-                await response.aread()
-            except httpx.DecodingError:
-                return _undecodable(response)
-            return response
+            stream = cast(httpx.AsyncByteStream, response.stream)
+            return _decoded(response, b"".join([chunk async for chunk in stream]))
 
     async def fetch(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> Any:
         settings = self.settings

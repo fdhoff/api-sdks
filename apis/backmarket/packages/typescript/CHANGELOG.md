@@ -8,3 +8,4 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * Retries, rate-limit handling, pagination iterators, typed errors and redacted logging, with no runtime dependencies.
 * `maxRetryWaitMs`: a `Retry-After` above it, 60 seconds by default, throws `RateLimitedError` instead of blocking.
 * A `next` link that is not a valid URL throws `DecodeError` instead of a raw `TypeError`.
+* Requests send `Accept-Encoding: identity`, because `fetch` accepts a gzip body that ends early and would return partial or empty data.

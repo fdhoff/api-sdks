@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -123,6 +124,32 @@ public sealed class ClientTests
 
         await Assert.ThrowsAsync<ApiDecodeException>(async () =>
             await client.Orders.ListAllAsync(cancellationToken: TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [InlineData(10)]
+    [InlineData(30)]
+    [InlineData(-8)]
+    public async Task ATruncatedCompressedSuccessIsADecodeError(int cut)
+    {
+        var body = Gzip("""{"order_id": 1, "delivery_note": "synthetic"}""");
+        using var client = Client(new ScriptedHandler(Gzipped(HttpStatusCode.OK, cut < 0 ? body[..^-cut] : body[..cut])));
+
+        var error = await Assert.ThrowsAsync<ApiDecodeException>(() => client.Orders.GetAsync(1, TestContext.Current.CancellationToken));
+
+        Assert.Equal(200, error.Status);
+    }
+
+    [Fact]
+    public async Task ACompressedSuccessReadsEveryMember()
+    {
+        byte[] body = [.. Gzip("""{"order_id": 1, """), .. Gzip("\"delivery_note\": \"synthetic\"}")];
+        using var client = Client(new ScriptedHandler(Gzipped(HttpStatusCode.OK, body)));
+
+        var order = await client.Orders.GetAsync(1, TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, order.OrderId);
+        Assert.Equal("synthetic", order.DeliveryNote);
     }
 
     [Fact]
@@ -291,6 +318,24 @@ public sealed class ClientTests
 
     private static HttpResponseMessage Json(HttpStatusCode status, string body) =>
         new(status) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
+
+    private static byte[] Gzip(string text)
+    {
+        using var output = new MemoryStream();
+        using (var gzip = new GZipStream(output, CompressionLevel.Optimal))
+        {
+            gzip.Write(Encoding.UTF8.GetBytes(text));
+        }
+        return output.ToArray();
+    }
+
+    private static HttpResponseMessage Gzipped(HttpStatusCode status, byte[] body)
+    {
+        var content = new ByteArrayContent(body);
+        content.Headers.ContentType = new("application/json");
+        content.Headers.ContentEncoding.Add("gzip");
+        return new(status) { Content = content };
+    }
 
     private sealed record Sent(string Url, Dictionary<string, string> Headers, string Body);
 

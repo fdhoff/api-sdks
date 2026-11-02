@@ -81,6 +81,8 @@ function buildRequest(client, { operation, params = {}, body, multipart }) {
     Authorization: `Basic ${client.token}`,
     'User-Agent': client.user_agent,
     Accept: 'application/json',
+    // fetch accepts a gzip body cut short, so ask for none.
+    'Accept-Encoding': 'identity',
   };
   if (client.locale) headers['Accept-Language'] = client.locale;
   const init = { method, headers };

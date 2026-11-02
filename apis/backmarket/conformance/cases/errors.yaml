@@ -223,6 +223,69 @@ cases:
     expect:
       error: { kind: decode, status: 200 }
 
+  - name: compressed-success-body-decodes
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 200
+          body: { order_id: 1, tracking_number: SYNTHETIC-TRACKING-0000000001, delivery_note: synthetic }
+          gzip: true
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      result: { order_id: 1, tracking_number: SYNTHETIC-TRACKING-0000000001 }
+
+  - name: error-truncated-compressed-success-body-header-only
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 200
+          body: { order_id: 1, tracking_number: SYNTHETIC-TRACKING-0000000001, delivery_note: synthetic }
+          gzip: true
+          cut: 10
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: decode, status: 200 }
+
+  - name: error-truncated-compressed-success-body-half
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 200
+          body: { order_id: 1, tracking_number: SYNTHETIC-TRACKING-0000000001, delivery_note: synthetic }
+          gzip: true
+          cut: 40
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: decode, status: 200 }
+
+  - name: error-truncated-compressed-success-body-without-trailer
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 200
+          body: { order_id: 1, tracking_number: SYNTHETIC-TRACKING-0000000001, delivery_note: synthetic }
+          gzip: true
+          cut: -8
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: decode, status: 200 }
+
   - name: error-corrupt-compressed-failure-body-keeps-its-status
     client:
       max_retries: 0

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import gzip
 import logging
 import time
 from collections.abc import AsyncIterator, Callable, Iterator
@@ -279,6 +280,36 @@ def test_corrupt_compressed_success_is_a_decode_error() -> None:
 def test_corrupt_compressed_success_is_a_decode_error_in_async() -> None:
     with pytest.raises(DecodeError):
         async_order(corrupt(200))
+
+
+def gzipped(body: bytes, status: int = 200) -> Handler:
+    headers = {"content-encoding": "gzip", "content-type": "application/json"}
+    return lambda request: httpx.Response(status, headers=headers, stream=SlowBody(body))
+
+
+ORDER_GZIP = gzip.compress(b'{"order_id": 1, "delivery_note": "synthetic"}')
+
+
+@pytest.mark.parametrize("body", [ORDER_GZIP[:10], ORDER_GZIP[: len(ORDER_GZIP) // 2], ORDER_GZIP[:-8]])
+def test_truncated_compressed_success_is_a_decode_error(body: bytes) -> None:
+    with pytest.raises(DecodeError) as caught:
+        client_for(gzipped(body)).orders.get(1)
+    assert caught.value.status == 200
+    with pytest.raises(DecodeError):
+        async_order(gzipped(body))
+
+
+def test_compressed_success_reads_every_member() -> None:
+    body = gzip.compress(b'{"order_id": 1, ') + gzip.compress(b'"delivery_note": "synthetic"}')
+    for order in (client_for(gzipped(body)).orders.get(1), async_order(gzipped(body))):
+        assert order.order_id == 1
+        assert order.delivery_note == "synthetic"
+
+
+def test_truncated_compressed_failure_keeps_its_status() -> None:
+    with pytest.raises(ServerError) as caught:
+        client_for(gzipped(ORDER_GZIP[:-8], status=502), max_retries=0).orders.get(1)
+    assert caught.value.raw_body == ""
 
 
 def test_corrupt_compressed_failure_keeps_its_status() -> None:

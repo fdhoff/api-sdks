@@ -91,7 +91,8 @@ function buildRequest(settings: Settings, operation: Operation, body: unknown, p
     }
   }
   const search = query.size > 0 ? `?${query}` : '';
-  const headers = { ...settings.headers };
+  // fetch accepts a gzip body cut short, so ask for none.
+  const headers: Record<string, string> = { 'Accept-Encoding': 'identity', ...settings.headers };
   const init: RequestInit = { method: operation.method, headers, redirect: 'manual' };
   if (hasParts) {
     init.body = form;

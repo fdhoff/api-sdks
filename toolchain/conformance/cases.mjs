@@ -5,7 +5,7 @@ import { parse } from 'yaml';
 const METHODS = ['get', 'put', 'post', 'delete', 'patch'];
 const CASE_KEYS = ['name', 'client', 'request', 'mock', 'wire', 'expect'];
 const REQUEST_KEYS = ['operation', 'params', 'body', 'multipart', 'paginate'];
-const RESPONSE_KEYS = ['status', 'headers', 'body', 'delay_ms', 'drop', 'trickle_ms'];
+const RESPONSE_KEYS = ['status', 'headers', 'body', 'delay_ms', 'drop', 'trickle_ms', 'gzip', 'cut'];
 const WIRE_KEYS = ['method', 'path', 'query', 'headers', 'headers_match', 'headers_absent', 'body', 'min_delay_ms'];
 const EXPECT_KEYS = ['result', 'result_keys', 'error', 'logs_required'];
 const OUTCOMES = ['result', 'result_keys', 'error'];
@@ -47,6 +47,8 @@ export function validateCase(item, operations) {
     } else if (response.drop !== true || Object.keys(response).length > 1) {
       errors.push('mock.responses[].drop must be true and alone');
     }
+    if (response.gzip !== undefined && response.gzip !== true) errors.push('mock.responses[].gzip must be true');
+    if (response.cut !== undefined && !Number.isInteger(response.cut)) errors.push('mock.responses[].cut must be an integer');
   }
 
   if (!(Array.isArray(item.wire) && item.wire.length > 0)) errors.push('wire must be a non-empty list');

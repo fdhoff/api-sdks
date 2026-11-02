@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Collections;
 using System.Globalization;
 using System.IO.Compression;
@@ -425,7 +426,12 @@ internal sealed class Transport : IDisposable
                 using var input = new GZipStream(new MemoryStream(body), CompressionMode.Decompress);
                 using var output = new MemoryStream();
                 input.CopyTo(output);
-                body = output.ToArray();
+                var decompressed = output.ToArray();
+                if (!MatchesTrailer(body, decompressed))
+                {
+                    throw new InvalidDataException("The gzip body ends early");
+                }
+                body = decompressed;
             }
             catch (InvalidDataException error)
             {
@@ -448,6 +454,34 @@ internal sealed class Transport : IDisposable
             return new Reply(raw.Status, text, Redact(text), null);
         }
         return new Reply(raw.Status, text, Redact(text), Json.TryParse(text) ?? throw new ApiDecodeException("The response body is not valid JSON") { Status = raw.Status });
+    }
+
+    /// <summary>
+    /// GZipStream accepts a body cut short, so check the last member's trailer: the CRC-32 and length of the output's tail.
+    /// </summary>
+    private static bool MatchesTrailer(byte[] compressed, byte[] output)
+    {
+        if (compressed.Length < 18)
+        {
+            return false;
+        }
+        var crc = BinaryPrimitives.ReadUInt32LittleEndian(compressed.AsSpan(^8));
+        var size = BinaryPrimitives.ReadUInt32LittleEndian(compressed.AsSpan(^4));
+        return size <= output.Length && Crc32(output.AsSpan(output.Length - (int)size)) == crc;
+    }
+
+    private static uint Crc32(ReadOnlySpan<byte> data)
+    {
+        var crc = uint.MaxValue;
+        foreach (var value in data)
+        {
+            crc ^= value;
+            for (var bit = 0; bit < 8; bit++)
+            {
+                crc = (crc >> 1) ^ (0xEDB88320u & (0u - (crc & 1)));
+            }
+        }
+        return ~crc;
     }
 
     private string Redact(string text) => text.Replace(settings.Secret, Redacted, StringComparison.Ordinal);
