@@ -35,3 +35,11 @@ npm run spec:fetch   # re-pin to the current upstream spec
 ```
 
 All tests run against the mock. The project uses no live credentials.
+
+## Licence
+
+Apache-2.0: see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). The licence covers only this project's own code.
+
+The upstream OpenAPI spec is not in this repository. It is fetched at build time, belongs to Back Market, and is not covered by this licence. The licence grants no right to the Back Market name.
+
+This project is unofficial and is not affiliated with Back Market.
