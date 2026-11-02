@@ -6,6 +6,33 @@ This project is unofficial and is not affiliated with, endorsed by, or supported
 
 The Python SDK is an unpublished alpha: see [`apis/backmarket/packages/python/`](apis/backmarket/packages/python/README.md). TypeScript, Go, C# and Rust will follow in that order.
 
+## Quickstart
+
+The Python SDK is the first to ship. Install it from a checkout of this repository, and pass in your own API token:
+
+```sh
+pip install ./apis/backmarket/packages/python
+```
+
+```python
+from backmarket_seller import BackMarketClient, Region
+
+with BackMarketClient(
+    "your-token",
+    user_agent="BM-YourCompany-YourIntegration;you@example.com",
+    locale="fr-fr",
+    region=Region.EU,
+) as client:
+    for order in client.orders.iter():
+        print(order.order_id)
+```
+
+The [Python README](apis/backmarket/packages/python/README.md) covers async use, errors, configuration and behaviour.
+
+## Live API reports
+
+Every test runs against a mock built from the public spec, so nothing here is confirmed against the live API. If you use an SDK for real, please report what you find, working or not, as a GitHub issue. The packages stay on 0.x until those reports confirm their behaviour.
+
 ## Layout
 
 | Path | Contents |

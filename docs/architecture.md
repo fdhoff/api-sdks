@@ -18,7 +18,7 @@ Sections below describe the design; this table says how much of it is real.
 | TypeScript, Go, C# and Rust clients | Planned, in that order |
 | Spec drift job | Planned |
 | Release workflows and changelogs | Planned |
-| Quickstarts | Planned |
+| Quickstarts | Built for Python |
 
 ## Goals
 

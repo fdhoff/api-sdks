@@ -51,6 +51,38 @@ async with AsyncBackMarketClient(
 
 Your token is read from nowhere and stored nowhere: you pass it in, and the client sends it only to the server you selected.
 
+## Configuration
+
+`BackMarketClient` and `AsyncBackMarketClient` take the same arguments. `token` is positional and the rest are keywords.
+
+| Argument | Default | Meaning |
+| --- | --- | --- |
+| `token` | Required | Your API token, sent verbatim |
+| `user_agent` | Required | `BM-{Company}-{Integration};contact@example.com` |
+| `locale` | Required | Sent as `Accept-Language`, for example `fr-fr` |
+| `region` | None | `Region.EU`, `Region.NA` or `Region.AP`. Pass this or `base_url` |
+| `environment` | `Environment.PRODUCTION` | Or `Environment.PREPROD` |
+| `base_url` | None | A server root, for tests against a mock. Your token is sent to it |
+| `timeout` | `30.0` | Seconds to wait on each attempt |
+| `max_retries` | `3` | Retries after the first attempt |
+| `retry_base_delay` | `0.5` | Base in seconds of the exponential backoff |
+| `rate_limit_wait` | `10.0` | Seconds to wait after a 429 with no usable `Retry-After` |
+| `http_transport` | None | An httpx transport to use instead of the network |
+
+```python
+from backmarket_seller import BackMarketClient, Environment, Region
+
+with BackMarketClient(
+    "your-token",
+    user_agent="BM-YourCompany-YourIntegration;you@example.com",
+    locale="en-us",
+    region=Region.NA,
+    environment=Environment.PREPROD,
+    timeout=10.0,
+) as client:
+    print(client.orders.list(page_size=10))
+```
+
 ## Behaviour
 
 * **Methods** are grouped by resource: `categories`, `listings`, `tasks`, `orders`, `buyback`, `shipping`, `care` and `backbox`.
@@ -61,6 +93,10 @@ Your token is read from nowhere and stored nowhere: you pass it in, and the clie
 * **Requests** can be a generated model or a plain mapping. Models validate strictly, and send only the fields you set.
 * **Responses** are parsed tolerantly, because the spec has not been confirmed against the live API. A field that does not fit its declared type keeps its raw value instead of failing the call, a missing required field reads as `None`, and unknown fields are kept. A response that is not an object at all comes back as decoded JSON, so check types if you depend on them.
 * **Uploads** take `bytes` or `(filename, bytes)`.
+
+## Design
+
+See the [architecture document](https://github.com/fdhoff/backmarket-seller-sdk/blob/main/docs/architecture.md) for the runtime contract, testing limits and the decisions behind them.
 
 ## Licence
 
