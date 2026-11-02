@@ -105,6 +105,8 @@ npm run conformance:typescript:cjs
 
 Once the spec is cached, the build and tests need no network. A hash mismatch stops the build; the error says how to recover.
 
+A daily job opens a pull request when the upstream spec changes. See [Spec updates](docs/architecture.md#spec-updates).
+
 All tests run against the mock. The project uses no live credentials.
 
 ## Licence

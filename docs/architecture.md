@@ -16,7 +16,7 @@ Sections below describe the design; this table says how much of it is real.
 | Per-language runtime | Built for Python and TypeScript |
 | Python and TypeScript clients | Alpha, unpublished |
 | Go, C# and Rust clients | Planned, in that order |
-| Spec drift job | Planned |
+| Spec drift job | Built |
 | Release workflows and changelogs | Built for Python and TypeScript, publishing off |
 | Quickstarts | Built for Python and TypeScript |
 
@@ -209,17 +209,19 @@ Upstream serves only its latest spec, so an older pin cannot be fetched again. O
 
 To move the pin by hand, run `npm run spec:pin`, review what changed, and commit `lock.json`. It rewrites the hash, version, `Last-Modified` and date in the lock, and replaces the cached spec. On other machines the old cache then fails verification; delete it and run `npm run spec:fetch`.
 
-The drift job (planned) automates that as a scheduled workflow:
+`.github/workflows/spec-drift.yml` automates that. It runs daily and on demand:
 
-1. Restore the spec cache, which also keeps it from expiring, and keep a copy of the pinned spec.
-2. Download the current upstream spec and compare its SHA-256 with `lock.json`. If they match, stop.
-3. Run `spec:pin` to update the lock, then rebuild and regenerate the clients.
-4. Commit `lock.json` and the regenerated clients to one fixed branch, and open or update a single pull request.
-5. In the pull request, summarise which operations and schemas changed between the old and new built specs, without quoting the spec. If the cache held no old copy, say that no comparison was possible.
+1. Restore the spec cache, which also keeps it from expiring, and keep a copy of the pinned spec. It never saves the cache, so a new spec cannot land under the old pin's key.
+2. Run `spec:pin` and compare the new SHA-256 with the old one. Stop if they match, or if the `spec-drift` branch already proposes the new hash, so fixes pushed to that branch are kept.
+3. Rebuild the spec and regenerate the clients. If an overlay action stops matching, skip regeneration and say so in the pull request.
+4. Commit `lock.json` and the regenerated clients to the `spec-drift` branch, and open or update a single pull request.
+5. In the pull request, list which operations and schemas were added, removed or changed between the old and new upstream specs, by name only, and count those whose only changes are descriptions or examples. `toolchain/pipeline/spec-diff.mjs` writes this. If the cache held no old copy, it says that no comparison was possible.
 
-The pull request goes through ordinary CI, which fetches the spec, verifies it against the new hash, then runs the build, lint and conformance. If upstream changed something the overlay corrected, an overlay action stops matching and CI goes red, which is the signal to fix it on that branch. If upstream changes again before merge, the next run updates the same branch. The job never merges its own pull request.
+The pull request goes through ordinary CI, which fetches the spec, verifies it against the new hash, then runs the build, lint and conformance. If upstream changed something the overlay corrected, CI goes red, which is the signal to fix it on that branch. If upstream changes again before merge, the next run resets the branch to the newer spec. The job never merges its own pull request.
 
-A pull request opened with the default workflow token does not trigger `pull_request` workflows, so the job needs a credential that does.
+A pull request opened with the default workflow token does not trigger `pull_request` workflows, and that token can open one only if the repository allows Actions to create pull requests. The job uses the `SPEC_DRIFT_TOKEN` secret when it is set: a fine-grained token for this repository with contents and pull request write access. Without it, the job falls back to the default token and the pull request says to close and reopen it to start CI.
+
+`apis/backmarket/tests/drift.test.mjs` fails if a package with a `generate.yaml` is missing from the job's regeneration step.
 
 ## Credentials
 

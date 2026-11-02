@@ -1,0 +1,121 @@
+name: Spec drift
+
+# Opens or updates one pull request when the upstream spec changes. See docs/architecture.md.
+on:
+  schedule:
+    - cron: "23 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: spec-drift
+  cancel-in-progress: false
+
+env:
+  BRANCH: spec-drift
+  SPEC: apis/backmarket/spec/upstream/openapi.yaml
+  LOCK: apis/backmarket/spec/upstream/lock.json
+
+jobs:
+  drift:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      SCARF_ANALYTICS: "false"
+      # A pull request opened with the default token does not trigger CI.
+      GH_TOKEN: ${{ secrets.SPEC_DRIFT_TOKEN || github.token }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.SPEC_DRIFT_TOKEN || github.token }}
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.SPEC }}
+          key: upstream-spec-${{ hashFiles('apis/backmarket/spec/upstream/lock.json') }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apis/backmarket/packages/typescript/package-lock.json
+      - run: npm ci --ignore-scripts
+      - name: Compare upstream with the pin
+        id: pin
+        run: |
+          if [ -f "$SPEC" ]; then cp "$SPEC" "$RUNNER_TEMP/pinned.yaml"; fi
+          pinned=$(jq -r .sha256 "$LOCK")
+          npm run spec:pin
+          upstream=$(jq -r .sha256 "$LOCK")
+          proposed=$(git show "origin/$BRANCH:$LOCK" 2>/dev/null | jq -r .sha256 || true)
+          if [ "$upstream" = "$pinned" ]; then
+            echo "Upstream matches the pin."
+          elif [ "$upstream" = "$proposed" ]; then
+            echo "Branch $BRANCH already proposes $upstream."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build the new spec
+        id: build
+        if: steps.pin.outputs.changed
+        continue-on-error: true
+        run: npm run spec:build
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        if: steps.build.outcome == 'success'
+        with:
+          python-version: "3.14"
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        if: steps.build.outcome == 'success'
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Regenerate clients
+        if: steps.build.outcome == 'success'
+        run: |
+          python -m pip install -e 'apis/backmarket/packages/python[dev]'
+          (cd apis/backmarket/packages/typescript && npm ci --ignore-scripts)
+          npm run generate:python
+          npm run generate:typescript
+      - name: Open or update the pull request
+        if: steps.pin.outputs.changed
+        env:
+          BUILD: ${{ steps.build.outcome }}
+          HAS_TOKEN: ${{ secrets.SPEC_DRIFT_TOKEN != '' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          upstream=$(jq -r .sha256 "$LOCK")
+          {
+            echo "The upstream spec changed. This moves the pin to \`$upstream\` and regenerates the clients."
+            echo
+            if [ "$BUILD" != success ]; then
+              echo "**The overlay no longer applies, so the clients were not regenerated.** Fix \`apis/backmarket/spec/overlay.yaml\` on this branch, then regenerate. Details are in the [drift run]($RUN_URL)."
+              echo
+            fi
+            if [ "$HAS_TOKEN" != true ]; then
+              echo "CI does not run on pull requests opened with the default workflow token. Close and reopen this one to start it, or set the \`SPEC_DRIFT_TOKEN\` secret."
+              echo
+            fi
+            echo "## What changed upstream"
+            echo
+            node toolchain/pipeline/spec-diff.mjs "$RUNNER_TEMP/pinned.yaml" "$SPEC"
+            echo
+            echo "Check every changed operation and schema against \`apis/backmarket/docs/spec-audit.md\`, and add a changelog entry to each package whose public API changed."
+          } > "$RUNNER_TEMP/body.md"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add "$LOCK" apis/backmarket/packages
+          git commit --quiet -m "Update upstream spec pin to ${upstream:0:12}"
+          git push --force origin "$BRANCH"
+          if gh pr view "$BRANCH" --json state --jq .state | grep -qx OPEN; then
+            gh pr edit "$BRANCH" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh pr create --head "$BRANCH" --base main --title "ADHOC-0: [spec] Update upstream spec pin" --body-file "$RUNNER_TEMP/body.md"
+          fi

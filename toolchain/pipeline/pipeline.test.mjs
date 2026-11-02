@@ -7,6 +7,7 @@ import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
 import { applyOperations, renameSchemas, stripProse } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
+import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
 const overlayWith = (actions) => ({ overlay: '1.0.0', info: { title: 't', version: '1' }, actions });
 
@@ -165,4 +166,43 @@ test('applyOperations names every operation and refuses gaps', () => {
   assert.deepEqual(item.parameters[0].schema, { type: 'string' });
   assert.throws(() => applyOperations(spec(), {}), /does not name get-item/);
   assert.throws(() => applyOperations(spec(), { ...names, other: {} }), /unknown operations: other/);
+});
+
+const driftSpec = (version, paths, schemas) => ({ info: { version }, paths, components: { schemas } });
+
+test('diffSpecs sorts operations and schemas into added, removed, changed and prose-only', () => {
+  const before = driftSpec(
+    '1',
+    {
+      '/a': { get: { responses: { 200: { description: 'old' } } } },
+      '/b': { parameters: [{ name: 'x', in: 'query' }], get: {} },
+      '/c': { delete: {} },
+    },
+    { Kept: { type: 'string', description: 'old' }, Gone: { type: 'string' }, Moved: { type: 'string' } },
+  );
+  const after = driftSpec(
+    '2',
+    {
+      '/a': { get: { responses: { 200: { description: 'new' } } } },
+      '/b': { parameters: [{ name: 'x', in: 'path' }], get: {} },
+      '/d': { post: {} },
+    },
+    { Kept: { type: 'string', description: 'new' }, Moved: { type: 'integer' }, New: { type: 'object' } },
+  );
+  assert.deepEqual(diffSpecs(before, after), {
+    version: ['1', '2'],
+    operations: { added: ['POST /d'], removed: ['DELETE /c'], changed: ['GET /b'], prose: ['GET /a'] },
+    schemas: { added: ['New'], removed: ['Gone'], changed: ['Moved'], prose: ['Kept'] },
+  });
+});
+
+test('renderDiff names what changed without quoting either spec', () => {
+  const before = driftSpec('1', { '/a': { get: { summary: 'secret prose' } } }, { S: { type: 'string' } });
+  const after = driftSpec('1', { '/a': { get: { summary: 'other prose' } } }, { S: { type: 'string' }, T: { type: 'string' } });
+  const text = renderDiff(diffSpecs(before, after));
+  assert.match(text, /`info\.version` is unchanged at `1`/);
+  assert.match(text, /### Operations\n\nDescriptions or examples only: 1/);
+  assert.match(text, /### Schemas\n\nAdded:\n\n\* `T`/);
+  assert.doesNotMatch(text, /prose/);
+  assert.match(renderDiff(diffSpecs(after, after)), /### Operations\n\nNo changes\./);
 });
