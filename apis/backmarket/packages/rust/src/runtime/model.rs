@@ -74,8 +74,7 @@ impl FormValue for File {
 
 /// Sends a value as text, or as JSON when it is an object.
 pub fn text_part(name: &str, value: &impl Serialize, parts: &mut Vec<Part>) {
-    let value = serde_json::to_value(value).unwrap_or(Value::Null);
-    if let Some(text) = super::request::text(&value) {
+    if let Some(text) = super::request::text(&super::request::param_value(value)) {
         parts.push(Part::Text {
             name: name.to_owned(),
             value: text,

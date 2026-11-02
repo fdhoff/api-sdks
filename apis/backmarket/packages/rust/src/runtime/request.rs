@@ -1,5 +1,6 @@
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 use serde::Serialize;
+use serde::ser::{self, Error as _, Impossible};
 use serde_json::Value;
 
 use super::model::FormValue;
@@ -75,6 +76,182 @@ pub fn text(value: &Value) -> Option<String> {
     }
 }
 
+/// A parameter as a JSON value, except that a float becomes the text Go and TypeScript send: `100.0`
+/// is `100`, there is no exponent, and `NaN` and infinities are kept rather than dropped.
+pub fn param_value(value: &impl Serialize) -> Value {
+    value
+        .serialize(ParamSerializer)
+        .or_else(|_| serde_json::to_value(value))
+        .unwrap_or(Value::Null)
+}
+
+fn float_text(value: f64, text: String) -> Value {
+    if value.is_infinite() {
+        return Value::String(if value > 0.0 { "+Inf" } else { "-Inf" }.to_owned());
+    }
+    Value::String(text)
+}
+
+/// Handles scalars, options and lists. Anything else fails, and [`param_value`] falls back to JSON.
+struct ParamSerializer;
+
+struct ParamSeq(Vec<Value>);
+
+type Unsupported = Impossible<Value, serde_json::Error>;
+
+fn unsupported<T>() -> Result<T, serde_json::Error> {
+    Err(serde_json::Error::custom("not a scalar or a list"))
+}
+
+impl ser::Serializer for ParamSerializer {
+    type Ok = Value;
+    type Error = serde_json::Error;
+    type SerializeSeq = ParamSeq;
+    type SerializeTuple = ParamSeq;
+    type SerializeTupleStruct = Unsupported;
+    type SerializeTupleVariant = Unsupported;
+    type SerializeMap = Unsupported;
+    type SerializeStruct = Unsupported;
+    type SerializeStructVariant = Unsupported;
+
+    fn serialize_bool(self, value: bool) -> Result<Value, Self::Error> {
+        Ok(Value::Bool(value))
+    }
+    fn serialize_i8(self, value: i8) -> Result<Value, Self::Error> {
+        Ok(value.into())
+    }
+    fn serialize_i16(self, value: i16) -> Result<Value, Self::Error> {
+        Ok(value.into())
+    }
+    fn serialize_i32(self, value: i32) -> Result<Value, Self::Error> {
+        Ok(value.into())
+    }
+    fn serialize_i64(self, value: i64) -> Result<Value, Self::Error> {
+        Ok(value.into())
+    }
+    fn serialize_u8(self, value: u8) -> Result<Value, Self::Error> {
+        Ok(value.into())
+    }
+    fn serialize_u16(self, value: u16) -> Result<Value, Self::Error> {
+        Ok(value.into())
+    }
+    fn serialize_u32(self, value: u32) -> Result<Value, Self::Error> {
+        Ok(value.into())
+    }
+    fn serialize_u64(self, value: u64) -> Result<Value, Self::Error> {
+        Ok(value.into())
+    }
+    fn serialize_f32(self, value: f32) -> Result<Value, Self::Error> {
+        Ok(float_text(value.into(), value.to_string()))
+    }
+    fn serialize_f64(self, value: f64) -> Result<Value, Self::Error> {
+        Ok(float_text(value, value.to_string()))
+    }
+    fn serialize_char(self, value: char) -> Result<Value, Self::Error> {
+        Ok(Value::String(value.to_string()))
+    }
+    fn serialize_str(self, value: &str) -> Result<Value, Self::Error> {
+        Ok(Value::String(value.to_owned()))
+    }
+    fn serialize_bytes(self, _: &[u8]) -> Result<Value, Self::Error> {
+        unsupported()
+    }
+    fn serialize_none(self) -> Result<Value, Self::Error> {
+        Ok(Value::Null)
+    }
+    fn serialize_some<T: ?Sized + Serialize>(self, value: &T) -> Result<Value, Self::Error> {
+        value.serialize(self)
+    }
+    fn serialize_unit(self) -> Result<Value, Self::Error> {
+        Ok(Value::Null)
+    }
+    fn serialize_unit_struct(self, _: &'static str) -> Result<Value, Self::Error> {
+        Ok(Value::Null)
+    }
+    fn serialize_unit_variant(
+        self,
+        _: &'static str,
+        _: u32,
+        variant: &'static str,
+    ) -> Result<Value, Self::Error> {
+        Ok(Value::String(variant.to_owned()))
+    }
+    fn serialize_newtype_struct<T: ?Sized + Serialize>(
+        self,
+        _: &'static str,
+        value: &T,
+    ) -> Result<Value, Self::Error> {
+        value.serialize(self)
+    }
+    fn serialize_newtype_variant<T: ?Sized + Serialize>(
+        self,
+        _: &'static str,
+        _: u32,
+        _: &'static str,
+        _: &T,
+    ) -> Result<Value, Self::Error> {
+        unsupported()
+    }
+    fn serialize_seq(self, len: Option<usize>) -> Result<ParamSeq, Self::Error> {
+        Ok(ParamSeq(Vec::with_capacity(len.unwrap_or(0))))
+    }
+    fn serialize_tuple(self, len: usize) -> Result<ParamSeq, Self::Error> {
+        Ok(ParamSeq(Vec::with_capacity(len)))
+    }
+    fn serialize_tuple_struct(self, _: &'static str, _: usize) -> Result<Unsupported, Self::Error> {
+        unsupported()
+    }
+    fn serialize_tuple_variant(
+        self,
+        _: &'static str,
+        _: u32,
+        _: &'static str,
+        _: usize,
+    ) -> Result<Unsupported, Self::Error> {
+        unsupported()
+    }
+    fn serialize_map(self, _: Option<usize>) -> Result<Unsupported, Self::Error> {
+        unsupported()
+    }
+    fn serialize_struct(self, _: &'static str, _: usize) -> Result<Unsupported, Self::Error> {
+        unsupported()
+    }
+    fn serialize_struct_variant(
+        self,
+        _: &'static str,
+        _: u32,
+        _: &'static str,
+        _: usize,
+    ) -> Result<Unsupported, Self::Error> {
+        unsupported()
+    }
+}
+
+impl ser::SerializeSeq for ParamSeq {
+    type Ok = Value;
+    type Error = serde_json::Error;
+
+    fn serialize_element<T: ?Sized + Serialize>(&mut self, value: &T) -> Result<(), Self::Error> {
+        self.0.push(value.serialize(ParamSerializer)?);
+        Ok(())
+    }
+    fn end(self) -> Result<Value, Self::Error> {
+        Ok(Value::Array(self.0))
+    }
+}
+
+impl ser::SerializeTuple for ParamSeq {
+    type Ok = Value;
+    type Error = serde_json::Error;
+
+    fn serialize_element<T: ?Sized + Serialize>(&mut self, value: &T) -> Result<(), Self::Error> {
+        ser::SerializeSeq::serialize_element(self, value)
+    }
+    fn end(self) -> Result<Value, Self::Error> {
+        ser::SerializeSeq::end(self)
+    }
+}
+
 impl Request {
     pub fn new(operation: &'static Operation) -> Self {
         Self {
@@ -87,10 +264,7 @@ impl Request {
     }
 
     pub fn path(mut self, name: &str, value: &impl Serialize) -> Self {
-        let value = serde_json::to_value(value)
-            .ok()
-            .and_then(|value| text(&value))
-            .unwrap_or_default();
+        let value = text(&param_value(value)).unwrap_or_default();
         let encoded = utf8_percent_encode(&value, PATH_SEGMENT).to_string();
         self.path = self.path.replace(&format!("{{{name}}}"), &encoded);
         self
@@ -113,8 +287,7 @@ impl Request {
 
     /// Adds a query parameter, once per item for a list. Nothing is sent for `None`.
     pub fn query(&mut self, name: &str, value: &impl Serialize) {
-        let value = serde_json::to_value(value).unwrap_or(Value::Null);
-        let items = match value {
+        let items = match param_value(value) {
             Value::Array(items) => items,
             value => vec![value],
         };
@@ -201,6 +374,30 @@ mod tests {
         };
         let request = Request::new(&OPERATION).path("id", &1).params(&query);
         assert_eq!(request.url("http://h"), "http://h/items/1?tags=a&tags=b");
+    }
+
+    #[test]
+    fn floats_are_sent_as_go_and_typescript_send_them() {
+        let mut request = Request::new(&OPERATION);
+        for value in [100.0, 0.5, 1e16, f64::NAN, f64::INFINITY] {
+            request.query("amount", &Some(value));
+        }
+        request.query("ratios", &vec![0.1_f32, 2.0]);
+        let sent: Vec<&str> = request
+            .query
+            .iter()
+            .map(|(_, value)| value.as_str())
+            .collect();
+        assert_eq!(
+            sent,
+            ["100", "0.5", "10000000000000000", "NaN", "+Inf", "0.1", "2"]
+        );
+        let mut form = Request::new(&OPERATION);
+        form.form("amount", &Some(100.0));
+        let Body::Multipart(parts) = form.body else {
+            panic!("expected a multipart body")
+        };
+        assert!(matches!(&parts[0], Part::Text { value, .. } if value == "100"));
     }
 
     #[test]

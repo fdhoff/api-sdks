@@ -72,13 +72,16 @@ fn decompress(headers: &HeaderMap, body: Vec<u8>) -> std::io::Result<Vec<u8>> {
         return Ok(body);
     }
     let mut decoded = Vec::new();
-    flate2::read::GzDecoder::new(body.as_slice()).read_to_end(&mut decoded)?;
+    flate2::read::MultiGzDecoder::new(body.as_slice()).read_to_end(&mut decoded)?;
     Ok(decoded)
 }
 
 fn translate(error: reqwest::Error) -> Error {
     if error.is_timeout() {
         return Error::new(ErrorKind::Timeout, "the request timed out").with_source(error);
+    }
+    if error.is_builder() {
+        return Error::new(ErrorKind::Api, "the request cannot be built").with_source(error);
     }
     Error::new(ErrorKind::Connection, "the connection failed").with_source(error)
 }
@@ -111,8 +114,9 @@ impl Transport {
     /// Builds a transport. It never follows a redirect: a redirect is reported as a failure, so
     /// the token cannot be sent anywhere but the configured server.
     pub fn new(mut settings: Settings) -> Result<Self, reqwest::Error> {
+        let secret = settings.secret.as_bytes();
         for value in settings.headers.values_mut() {
-            if value.as_bytes().windows(settings.secret.len()).any(|window| window == settings.secret.as_bytes()) {
+            if !secret.is_empty() && value.as_bytes().windows(secret.len()).any(|window| window == secret) {
                 value.set_sensitive(true);
             }
         }
@@ -349,5 +353,43 @@ mod tests {
         assert_eq!(decompress(&headers, b"plain".to_vec()).unwrap(), b"plain");
         headers.insert(CONTENT_ENCODING, HeaderValue::from_static("gzip"));
         assert!(decompress(&headers, b"not gzip".to_vec()).is_err());
+    }
+
+    #[test]
+    fn decompress_reads_every_gzip_member() {
+        let mut body = Vec::new();
+        for part in [b"first ".as_slice(), b"second"] {
+            let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+            std::io::Write::write_all(&mut encoder, part).unwrap();
+            body.extend(encoder.finish().unwrap());
+        }
+        let mut headers = HeaderMap::new();
+        headers.insert(CONTENT_ENCODING, HeaderValue::from_static("gzip"));
+        assert_eq!(decompress(&headers, body).unwrap(), b"first second");
+    }
+
+    #[test]
+    fn an_empty_secret_marks_no_header_sensitive() {
+        let mut headers = HeaderMap::new();
+        headers.insert("x-name", HeaderValue::from_static("value"));
+        let settings = Settings {
+            base_url: "http://127.0.0.1:1".to_owned(),
+            secret: String::new(),
+            headers,
+            to_error: |context| Error::new(ErrorKind::Api, format!("status {}", context.status)),
+            timeout: Duration::from_secs(1),
+            max_retries: 0,
+            retry_base_delay: Duration::ZERO,
+            rate_limit_wait: Duration::ZERO,
+            max_retry_wait: Duration::ZERO,
+        };
+        let transport = Transport::new(settings).unwrap();
+        assert!(!transport.settings.headers["x-name"].is_sensitive());
+    }
+
+    #[test]
+    fn a_request_that_cannot_be_built_is_not_a_connection_failure() {
+        let error = reqwest::Client::new().get("not a url").build().unwrap_err();
+        assert_eq!(translate(error).kind(), ErrorKind::Api);
     }
 }
