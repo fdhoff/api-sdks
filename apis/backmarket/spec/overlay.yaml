@@ -1,0 +1,117 @@
+# Corrections to the pinned upstream spec, in OpenAPI Overlay 1.0.0 format.
+# Every action must justify itself in ../docs/spec-audit.md, and every action must
+# match something: the build fails on one that no longer applies.
+overlay: 1.0.0
+info:
+  title: Corrections to the Back Market Seller API spec
+  version: 0.1.0
+actions:
+  - description: >-
+      A1. Docs require `Authorization: Basic <token>` on every call, but 9 operations omit
+      security and 5 declare only BasicAuth, which means base64 user:password.
+    target: $.paths.*.*.security
+    remove: true
+  - description: A1.
+    target: $.components.securitySchemes.BasicAuth
+    remove: true
+  - description: A1.
+    target: $
+    update:
+      security:
+        - ApiKeyAuth: []
+
+  - description: A2. Generators need an operationId; names follow the neighbouring operations.
+    target: $.paths['/ws/category/tree/{categoryId}'].get
+    update:
+      operationId: get-bm-catalog-category-branch
+  - description: A2.
+    target: $.paths['/ws/listings'].get
+    update:
+      operationId: get-ws-list-listing
+  - description: A2.
+    target: $.paths['/ws/listings'].post
+    update:
+      operationId: post-ws-create-or-update-listings
+  - description: A2.
+    target: $.paths['/ws/listings/{listingId}'].get
+    update:
+      operationId: get-ws-specific-listing
+  - description: A2.
+    target: $.paths['/ws/listings/{listingId}'].post
+    update:
+      operationId: update-ws-specific-listing
+  - description: A2.
+    target: $.paths['/ws/listings/detail'].get
+    update:
+      operationId: get-ws-listing-detail
+  - description: A2.
+    target: $.paths['/ws/tasks/{taskId}'].get
+    update:
+      operationId: get-ws-task
+  - description: A2.
+    target: $.paths['/ws/buyback/v1/competitors/{listingId}'].get
+    update:
+      operationId: get-ws-buyback-v1-competitors
+  - description: A2.
+    target: $.paths['/ws/backbox/v1/competitors/{listingId}'].get
+    update:
+      operationId: get-ws-backbox-v1-competitors
+
+  - description: A3. CategoryTree requires childrens, which is documented but not declared.
+    target: $.components.schemas.CategoryTree.properties
+    update:
+      childrens:
+        type: array
+        items:
+          $ref: '#/components/schemas/CategoryTree'
+
+  - description: A4. buybackCompetitor requires winner_price without declaring it; shape from Competitor.
+    target: $.components.schemas.buybackCompetitor.properties
+    update:
+      winner_price:
+        anyOf:
+          - $ref: '#/components/schemas/MonetaryAmount'
+        description: The price of the backbox i.e. the selling price of the winner.
+        nullable: true
+
+  - description: A5. UpdateOrder requires id, but the field is order_id.
+    target: $.components.schemas.UpdateOrder.required[?(@ == 'id')]
+    remove: true
+  - description: A5.
+    target: $.components.schemas.UpdateOrder.required
+    update:
+      - order_id
+
+  - description: A6. Backbox requires current, a typo for the declared field currency.
+    target: $.components.schemas.Backbox.required[?(@ == 'current')]
+    remove: true
+  - description: A6.
+    target: $.components.schemas.Backbox.required
+    update:
+      - currency
+
+  - description: A7. The last page has no next link, as on every other paginated endpoint.
+    target: $.components.schemas.getCareFolderListResponse.properties.next
+    update:
+      nullable: true
+  - description: A7. The first page has no previous link; upstream's example is the string "null".
+    target: $.components.schemas.getCareFolderListResponse.properties.previous
+    update:
+      nullable: true
+
+  - description: A8. A count of items is an integer, as on the other paginated endpoints.
+    target: $.components.schemas['buyback-base-paginated'].properties.count
+    update:
+      type: integer
+
+  - description: A9. An array schema must declare items; this deprecated field gives no type.
+    target: $.components.schemas.claim.properties.warnings
+    update:
+      items: {}
+
+  - description: A10. Siblings of $ref are ignored in OpenAPI 3.0.
+    target: $.components.schemas.category_3.properties.parent.deprecated
+    remove: true
+  - description: A10.
+    target: $.components.schemas.category_3.properties.parent.description
+    remove: true

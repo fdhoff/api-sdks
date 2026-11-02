@@ -1,0 +1,22 @@
+{
+  "private": true,
+  "description": "Spec and mock tooling. Never published.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "spec:fetch": "node toolchain/pipeline/fetch-spec.mjs apis/backmarket",
+    "spec:verify": "node toolchain/pipeline/fetch-spec.mjs apis/backmarket --verify",
+    "spec:build": "node toolchain/pipeline/build-spec.mjs apis/backmarket",
+    "spec:lint": "spectral lint apis/backmarket/build/openapi.yaml --ruleset toolchain/spectral.yaml --fail-severity=error",
+    "mock": "prism mock apis/backmarket/build/openapi.yaml --port 4010",
+    "test": "node --test \"toolchain/**/*.test.mjs\" \"apis/**/*.test.mjs\""
+  },
+  "devDependencies": {
+    "@stoplight/prism-cli": "5.16.0",
+    "@stoplight/spectral-cli": "6.17.0",
+    "openapi-format": "1.34.0",
+    "yaml": "2.9.1"
+  }
+}
