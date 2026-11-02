@@ -182,6 +182,11 @@ test('iter rejects a next link with no position', async () => {
   await assert.rejects(() => collect(client.orders.iter()), DecodeError);
 });
 
+test('iter rejects a next link that is not a URL', async () => {
+  const { client } = clientFor(() => json({ next: 'http://[', results: [] }));
+  await assert.rejects(() => collect(client.orders.iter()), DecodeError);
+});
+
 test('redirects are not followed', async () => {
   const { client, sent } = clientFor(
     () => new Response(null, { status: 302, headers: { location: 'https://elsewhere.invalid/' } }),

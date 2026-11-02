@@ -209,7 +209,10 @@ def _next_params(operation: Operation[Any], params: dict[str, Any], page: Any) -
     link = page.get("next")
     if not link:
         return None
-    position = parse_qs(urlsplit(str(link)).query)
+    try:
+        position = parse_qs(urlsplit(str(link)).query)
+    except ValueError:
+        raise DecodeError("The `next` link is not a valid URL") from None
     names = {param.wire: param.name for param in operation.params if param.location == "query"}
     updated = dict(params)
     for wire in _PAGE_MARKERS:

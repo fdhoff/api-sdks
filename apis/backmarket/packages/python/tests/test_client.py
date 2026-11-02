@@ -181,6 +181,13 @@ def test_iterator_rejects_a_next_link_with_no_position() -> None:
         list(client.orders.iter())
 
 
+def test_iterator_rejects_a_next_link_that_is_not_a_url() -> None:
+    page = {"next": "http://[", "results": [{"order_id": 1}]}
+    client = client_for(lambda request: httpx.Response(200, json=page))
+    with pytest.raises(DecodeError):
+        list(client.orders.iter())
+
+
 def test_redirects_are_not_followed() -> None:
     hosts: list[str] = []
 

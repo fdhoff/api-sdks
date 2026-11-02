@@ -149,7 +149,12 @@ function nextParams(operation: Operation, params: Params, page: unknown): Params
   if (!isObject(page)) throw new DecodeError('A page is not a JSON object');
   const link = page['next'];
   if (!link) return undefined;
-  const position = new URL(String(link), 'http://next.invalid').searchParams;
+  let position: URLSearchParams;
+  try {
+    position = new URL(String(link), 'http://next.invalid').searchParams;
+  } catch {
+    throw new DecodeError('The `next` link is not a valid URL');
+  }
   const names = operation.params.filter(({ location }) => location === 'query');
   const updated = { ...params };
   for (const { wire, name } of names) {

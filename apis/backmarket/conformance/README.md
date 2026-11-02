@@ -27,7 +27,7 @@ A driver reports these in `error.kind`, with the HTTP `status` where there was o
 | `api` | Any other status |
 | `timeout` | No response within `timeout_ms`, after retries |
 | `connection` | The connection failed or dropped before a full response, after retries |
-| `decode` | A success response whose declared JSON body does not parse, or whose compressed body cannot be decompressed |
+| `decode` | A success response whose declared JSON body does not parse, or whose compressed body cannot be decompressed; a page whose `next` link is not a valid URL |
 
 Errors also carry these, when present: `request_id` from `requestId`, `code` from `error.code` or `errors[0].code`, and `raw_body` with the token removed. A body that fits no known shape, is not JSON, or cannot be decompressed still produces a typed error.
 

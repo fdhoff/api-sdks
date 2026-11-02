@@ -134,3 +134,17 @@ cases:
         query: { page: '2' }
     expect:
       result: [{ order: 1 }, { order: 2 }]
+
+  - name: pagination-malformed-next-link
+    request:
+      operation: get-ws-list-order
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 2, next: 'http://[', previous: null, results: [{ order_id: 1 }] }
+    wire:
+      - method: GET
+        path: /ws/orders
+    expect:
+      error: { kind: decode }

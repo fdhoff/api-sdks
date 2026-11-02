@@ -7,3 +7,4 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * Typed client for all 40 operations, generated from the public spec, for Node.js 22 or later, as ESM and CommonJS.
 * Retries, rate-limit handling, pagination iterators, typed errors and redacted logging, with no runtime dependencies.
 * `maxRetryWaitMs`: a `Retry-After` above it, 60 seconds by default, throws `RateLimitedError` instead of blocking.
+* A `next` link that is not a valid URL throws `DecodeError` instead of a raw `TypeError`.

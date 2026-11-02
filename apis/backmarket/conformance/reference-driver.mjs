@@ -155,6 +155,7 @@ async function paginate(client, request, log) {
     const page = await call(client, { ...request, params }, log);
     items.push(...page.results);
     if (!page.next) return items;
+    if (!URL.canParse(page.next, client.base_url)) throw new ClientError({ kind: 'decode' });
     const next = new URL(page.next, client.base_url).searchParams;
     for (const name of ['page', 'cursor']) {
       if (next.has(name)) params[name] = next.get(name);
