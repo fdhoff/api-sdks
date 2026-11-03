@@ -154,5 +154,5 @@ jobs:
           if [ -n "$OPEN_PR" ]; then
             gh pr edit "$OPEN_PR" --body-file "$RUNNER_TEMP/body.md"
           else
-            gh pr create --head "$BRANCH" --base main --title "ADHOC-0: [spec] Update upstream spec pin" --body-file "$RUNNER_TEMP/body.md"
+            gh pr create --head "$BRANCH" --base main --title "Update upstream spec pin" --body-file "$RUNNER_TEMP/body.md"
           fi
