@@ -14,12 +14,12 @@ Sections below describe the design; this table says how much of it is real.
 | Conformance format, runner, harness, cases and reference driver | Built |
 | Generator config and templates | Built for Python, TypeScript, Go, C# and Rust |
 | Per-language runtime | Built for Python, TypeScript, Go, C# and Rust |
-| Python and TypeScript clients | Alpha, unpublished |
-| Go client | Alpha, untagged |
+| Python and TypeScript clients | Alpha, published |
+| Go client | Alpha, tagged |
 | C# client | Alpha, unpublished |
 | Rust client | Alpha, unpublished, async only |
 | Spec drift job | Built |
-| Release workflows and changelogs | Built for Python and TypeScript, publishing off |
+| Release workflows and changelogs | Built for Python and TypeScript, publishing on |
 | Quickstarts | Built for Python, TypeScript, Go, C# and Rust |
 
 ## Goals

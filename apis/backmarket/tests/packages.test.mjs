@@ -46,11 +46,11 @@ test('the TypeScript package ships the root licence and notice', async () => {
   }
 });
 
-test('the TypeScript manifest declares Apache-2.0, says it is unofficial and cannot be published by accident', async () => {
+test('the TypeScript manifest declares Apache-2.0, says it is unofficial and can be published', async () => {
   const manifest = JSON.parse(await readFile(join(TYPESCRIPT, 'package.json'), 'utf8'));
   assert.equal(manifest.name, 'backmarket-seller');
   assert.equal(manifest.license, 'Apache-2.0');
-  assert.equal(manifest.private, true);
+  assert.equal(manifest.private, undefined);
   assert.deepEqual(manifest.dependencies, undefined);
   for (const name of ['LICENSE', 'NOTICE']) assert.ok(manifest.files.includes(name));
   assert.match(manifest.description, /Unofficial.*not affiliated with Back Market/i);
