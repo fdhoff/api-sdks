@@ -36,6 +36,9 @@ pub struct Settings {
     pub retry_base_delay: Duration,
     pub rate_limit_wait: Duration,
     pub max_retry_wait: Duration,
+    /// A caller's own client. Without one, the transport builds a client that never follows a
+    /// redirect.
+    pub http: Option<reqwest::Client>,
 }
 
 /// Sends requests, applying the timeout, retry and redaction rules.
@@ -126,8 +129,9 @@ fn form(parts: &[Part]) -> multipart::Form {
 }
 
 impl Transport {
-    /// Builds a transport. It never follows a redirect: a redirect is reported as a failure, so
-    /// the token cannot be sent anywhere but the configured server.
+    /// Builds a transport. Its own client never follows a redirect: a redirect is reported as a
+    /// failure, so the token cannot be sent anywhere but the configured server. A caller's client
+    /// keeps its own redirect policy. Headers are sent on each request, so either client sends them.
     pub fn new(mut settings: Settings) -> Result<Self, reqwest::Error> {
         let secret = settings.secret.as_bytes();
         for value in settings.headers.values_mut() {
@@ -143,10 +147,12 @@ impl Transport {
         settings
             .headers
             .insert(ACCEPT_ENCODING, HeaderValue::from_static("gzip"));
-        let http = reqwest::Client::builder()
-            .redirect(redirect::Policy::none())
-            .default_headers(settings.headers.clone())
-            .build()?;
+        let http = match settings.http.take() {
+            Some(http) => http,
+            None => reqwest::Client::builder()
+                .redirect(redirect::Policy::none())
+                .build()?,
+        };
         Ok(Self { settings, http })
     }
 
@@ -184,7 +190,8 @@ impl Transport {
     async fn send(&self, request: &Request, method: Method) -> Result<Answer, Error> {
         let mut outgoing = self
             .http
-            .request(method, request.url(&self.settings.base_url));
+            .request(method, request.url(&self.settings.base_url))
+            .headers(self.settings.headers.clone());
         outgoing = match &request.body {
             Body::Empty => outgoing,
             Body::Json(bytes) => outgoing
@@ -482,6 +489,7 @@ mod tests {
             retry_base_delay: Duration::ZERO,
             rate_limit_wait: Duration::ZERO,
             max_retry_wait: Duration::ZERO,
+            http: None,
         };
         let transport = Transport::new(settings).unwrap();
         assert!(!transport.settings.headers["x-name"].is_sensitive());

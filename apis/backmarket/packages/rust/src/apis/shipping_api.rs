@@ -60,10 +60,10 @@ const GET_RETURNS: Operation = Operation {
 pub struct ShippingListDeliveriesParams {
     pub page: Option<i64>,
     pub order_id: Option<i64>,
-    pub start_date: Option<String>,
-    pub end_date: Option<String>,
-    pub pickup_start_date: Option<String>,
-    pub pickup_end_date: Option<String>,
+    pub start_date: Option<chrono::DateTime<chrono::FixedOffset>>,
+    pub end_date: Option<chrono::DateTime<chrono::FixedOffset>>,
+    pub pickup_start_date: Option<chrono::DateTime<chrono::FixedOffset>>,
+    pub pickup_end_date: Option<chrono::DateTime<chrono::FixedOffset>>,
     pub order_state: Option<i64>,
     pub hub_scanned: Option<bool>,
 }
@@ -86,10 +86,10 @@ impl Params for ShippingListDeliveriesParams {
 pub struct ShippingListReturnsParams {
     pub page: Option<i64>,
     pub order_id: Option<i64>,
-    pub start_date: Option<String>,
-    pub end_date: Option<String>,
-    pub pickup_start_date: Option<String>,
-    pub pickup_end_date: Option<String>,
+    pub start_date: Option<chrono::DateTime<chrono::FixedOffset>>,
+    pub end_date: Option<chrono::DateTime<chrono::FixedOffset>>,
+    pub pickup_start_date: Option<chrono::DateTime<chrono::FixedOffset>>,
+    pub pickup_end_date: Option<chrono::DateTime<chrono::FixedOffset>>,
     pub order_state: Option<i64>,
     pub hub_scanned: Option<bool>,
 }

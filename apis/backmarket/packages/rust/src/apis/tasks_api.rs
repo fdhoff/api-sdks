@@ -28,7 +28,7 @@ impl TasksApi {
     }
 
     /// Get the state of a background task.
-    pub async fn get(&self, task_id: i64) -> Result<models::Task, Error> {
+    pub async fn get(&self, task_id: i64) -> Result<models::BackgroundTask, Error> {
         self.transport
             .call(Request::new(&GET_WS_TASK).path("taskId", &task_id))
             .await
