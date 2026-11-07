@@ -57,8 +57,8 @@ public sealed class BackMarketClientOptions
 
     /// <summary>A handler to use instead of the network. The client does not dispose it.</summary>
     /// <remarks>
-    /// The default handler never resends a write that failed. A custom handler must not resend either, or a failed
-    /// write can be repeated.
+    /// Writes are sent so that .NET's own handlers never resend one that failed. A custom handler must not resend
+    /// one either, or a failed write can be repeated.
     /// </remarks>
     public HttpMessageHandler? HttpHandler { get; init; }
 }
@@ -80,16 +80,37 @@ public sealed class BackMarketClient : ClientResources, IDisposable
     /// <param name="token">Your API token, sent verbatim. It is kept only by this client and never logged.</param>
     /// <param name="options">Required settings and overrides.</param>
     public BackMarketClient(string token, BackMarketClientOptions options)
-        : base(new Transport(CreateSettings(token, options), options.HttpHandler))
+        : base(new Transport(CreateSettings(token, options, null), Transport.OwnClient(options.HttpHandler), ownsClient: true))
     {
     }
 
-    /// <summary>Releases the connections this client opened.</summary>
+    /// <summary>Creates a client that sends through <paramref name="httpClient"/>, for example one from <c>IHttpClientFactory</c>.</summary>
+    /// <param name="token">Your API token, sent verbatim. It is kept only by this client and never logged.</param>
+    /// <param name="options">Required settings and overrides. <see cref="BackMarketClientOptions.HttpHandler"/> must not be set.</param>
+    /// <param name="httpClient">
+    /// Used as it is: the client neither changes nor disposes it, and sends its headers with each request. Its own
+    /// <see cref="HttpClient.Timeout"/> still applies, and its handler must not resend a failed write.
+    /// </param>
+    public BackMarketClient(string token, BackMarketClientOptions options, HttpClient httpClient)
+        : this(token, options, httpClient, null)
+    {
+    }
+
+    internal BackMarketClient(string token, BackMarketClientOptions options, HttpClient httpClient, ILogger? fallbackLogger)
+        : base(new Transport(CreateSettings(token, options, fallbackLogger, httpClient), httpClient ?? throw new ArgumentNullException(nameof(httpClient)), ownsClient: false))
+    {
+    }
+
+    /// <summary>Releases the connections this client opened. A client passed in is left open.</summary>
     public void Dispose() => Transport.Dispose();
 
-    private static Settings CreateSettings(string token, BackMarketClientOptions options)
+    internal static Settings CreateSettings(string token, BackMarketClientOptions options, ILogger? fallbackLogger, HttpClient? httpClient = null)
     {
         ArgumentNullException.ThrowIfNull(options);
+        if (httpClient is not null && options.HttpHandler is not null)
+        {
+            throw new ArgumentException("Set HttpHandler or pass an HttpClient, not both", nameof(options));
+        }
         if (string.IsNullOrEmpty(token) || token.Any(char.IsControl))
         {
             throw new ArgumentException("A token is required, and must not hold control characters", nameof(token));
@@ -119,7 +140,7 @@ public sealed class BackMarketClient : ClientResources, IDisposable
                 ["Accept-Language"] = options.Locale,
             },
             ToError = Errors.ToException,
-            Logger = options.Logger ?? NullLogger.Instance,
+            Logger = options.Logger ?? fallbackLogger ?? NullLogger.Instance,
             Timeout = options.Timeout,
             MaxRetries = options.MaxRetries,
             RetryBaseDelay = options.RetryBaseDelay,

@@ -34,40 +34,30 @@ internal sealed class Transport : IDisposable
     private static readonly HttpRequestOptionsKey<bool> Connected = new("Connected");
 
     private readonly Settings settings;
-    private readonly HttpClient reads;
-    private readonly HttpClient writes;
+    private readonly HttpClient http;
+    private readonly bool ownsClient;
 
-    /// <remarks>
-    /// Writes use their own handler and close their connection, so a write never rides a pooled connection
-    /// that the handler would silently resend it on.
-    /// </remarks>
-    public Transport(Settings settings, HttpMessageHandler? handler)
+    /// <remarks>Reads and writes share one pool of connections. <see cref="AttemptAsync"/> shapes each write so the handler never resends it.</remarks>
+    public Transport(Settings settings, HttpClient http, bool ownsClient)
     {
         this.settings = settings;
-        reads = handler is null ? new HttpClient(Sockets()) : new HttpClient(handler, disposeHandler: false);
-        writes = handler is null ? new HttpClient(Sockets()) : reads;
-        foreach (var http in Clients())
-        {
-            http.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
-            foreach (var (name, value) in settings.Headers)
-            {
-                http.DefaultRequestHeaders.TryAddWithoutValidation(name, value);
-            }
-            http.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Encoding", "gzip");
-        }
+        this.http = http;
+        this.ownsClient = ownsClient;
     }
+
+    /// <summary>A client of our own, over <paramref name="handler"/> or, by default, <see cref="CreateHandler"/>.</summary>
+    public static HttpClient OwnClient(HttpMessageHandler? handler) =>
+        new(handler ?? CreateHandler(), disposeHandler: handler is null) { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
 
     public void Dispose()
     {
-        foreach (var http in Clients())
+        if (ownsClient)
         {
             http.Dispose();
         }
     }
 
-    private IEnumerable<HttpClient> Clients() => ReferenceEquals(reads, writes) ? [reads] : [reads, writes];
-
-    private static SocketsHttpHandler Sockets() => new()
+    public static SocketsHttpHandler CreateHandler() => new()
     {
         AllowAutoRedirect = false,
         AutomaticDecompression = DecompressionMethods.None,
@@ -389,10 +379,17 @@ internal sealed class Transport : IDisposable
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(settings.Timeout);
         using var request = new HttpRequestMessage(new HttpMethod(method), url) { Content = content() };
-        var http = method == "GET" ? reads : writes;
-        if (!ReferenceEquals(http, reads))
+        foreach (var (name, value) in settings.Headers)
         {
-            request.Headers.ConnectionClose = true;
+            request.Headers.TryAddWithoutValidation(name, value);
+        }
+        request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip");
+        if (method != "GET")
+        {
+            // The HTTP/1.1 handler resends a request when a reused connection closes before any response, but only
+            // one with no content or with Expect: 100-continue. A write has neither, so it can reuse connections.
+            request.Content ??= new ByteArrayContent([]);
+            request.Headers.ExpectContinue = false;
         }
         try
         {
@@ -407,7 +404,7 @@ internal sealed class Transport : IDisposable
         }
         catch (Exception error) when (error is OperationCanceledException or HttpRequestException or IOException && !cancellationToken.IsCancellationRequested)
         {
-            if (deadline.IsCancellationRequested)
+            if (deadline.IsCancellationRequested || error.InnerException is TimeoutException)
             {
                 throw new ApiTimeoutException("The request timed out", error);
             }
