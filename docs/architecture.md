@@ -19,7 +19,7 @@ Sections below describe the design; this table says how much of it is real.
 | C# client | Alpha, unpublished |
 | Rust client | Alpha, unpublished, async only |
 | Spec drift job | Built |
-| Release workflows and changelogs | Built for Python and TypeScript, publishing on |
+| Release workflows and changelogs | Built for all five packages; Python and TypeScript published |
 | Quickstarts | Built for Python, TypeScript, Go, C# and Rust |
 
 ## Goals
@@ -200,12 +200,14 @@ Every package description and README says the project is unofficial and not affi
 
 ### Publishing a package
 
-`.github/workflows/release-python.yml` and `release-typescript.yml` each have a build job and a publish job. The build job reruns the generated-code check, the package tests and conformance, then builds the package. It runs on pull requests that touch the package version or changelog, and on release tags. Nothing is published unless the maintainer has done all of the following.
+`.github/workflows/release-python.yml`, `release-typescript.yml`, `release-csharp.yml` and `release-rust.yml` each have a build job and a publish job. The build job reruns the generated-code check, the package tests and conformance, then builds the package. It runs on pull requests that touch the package version or changelog, and on release tags. Nothing is published unless the maintainer has done all of the following.
 
 | Language | Registry setup | Environment | Repository variable | Tag |
 | --- | --- | --- | --- | --- |
 | Python | Add a PyPI trusted publisher for this repository, workflow `release-python.yml`, environment `pypi` | `pypi`, with the maintainer as required reviewer | `PUBLISH_PYTHON` = `true` | `python/v<version>` |
 | TypeScript | Add an npm trusted publisher for this repository, workflow `release-typescript.yml`, environment `npm` | `npm`, with the maintainer as required reviewer | `PUBLISH_TYPESCRIPT` = `true` | `typescript/v<version>` |
+| C# | Add a nuget.org trusted publishing policy for this repository, workflow `release-csharp.yml`, environment `nuget` | `nuget`, with the maintainer as required reviewer | `PUBLISH_CSHARP` = `true` | `csharp/v<version>` |
+| Rust | Remove `publish = false` from `Cargo.toml`. For the first release, add a `CARGO_REGISTRY_TOKEN` secret to the environment. Then add a crates.io trusted publisher for this repository, workflow `release-rust.yml`, environment `crates-io`, and delete the secret | `crates-io`, with the maintainer as required reviewer | `PUBLISH_RUST` = `true` | `rust/v<version>` |
 
 To release, replace `(unreleased)` in the package changelog with the date, merge, and tag that commit on `main`. The build job fails unless the tag matches the package version and changelog and the commit is on `main`.
 
