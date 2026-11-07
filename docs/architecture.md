@@ -205,7 +205,7 @@ Every package description and README says the project is unofficial and not affi
 | Language | Registry setup | Environment | Repository variable | Tag |
 | --- | --- | --- | --- | --- |
 | Python | Add a PyPI trusted publisher for this repository, workflow `release-python.yml`, environment `pypi` | `pypi`, with the maintainer as required reviewer | `PUBLISH_PYTHON` = `true` | `python/v<version>` |
-| TypeScript | Remove `private: true` from `package.json` and add an `NPM_TOKEN` secret to the environment | `npm`, with the maintainer as required reviewer | `PUBLISH_TYPESCRIPT` = `true` | `typescript/v<version>` |
+| TypeScript | Add an npm trusted publisher for this repository, workflow `release-typescript.yml`, environment `npm` | `npm`, with the maintainer as required reviewer | `PUBLISH_TYPESCRIPT` = `true` | `typescript/v<version>` |
 
 To release, replace `(unreleased)` in the package changelog with the date, merge, and tag that commit on `main`. The build job fails unless the tag matches the package version and changelog and the commit is on `main`.
 
