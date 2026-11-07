@@ -100,6 +100,24 @@ func (t *Transport) redact(value string) string {
 	return strings.ReplaceAll(value, t.settings.Secret, redacted)
 }
 
+// redactedError prints its cause with the token removed, and still unwraps to it.
+type redactedError struct {
+	cause error
+	text  string
+}
+
+func (e *redactedError) Error() string { return e.text }
+
+func (e *redactedError) Unwrap() error { return e.cause }
+
+// hide keeps the token out of a cause's message, such as a URL holding it as a path value.
+func (t *Transport) hide(err error) error {
+	if !strings.Contains(err.Error(), t.settings.Secret) {
+		return err
+	}
+	return &redactedError{cause: err, text: t.redact(err.Error())}
+}
+
 func (t *Transport) log(ctx context.Context, level slog.Level, message string, attrs ...slog.Attr) {
 	if t.settings.Logger == nil {
 		return
@@ -131,14 +149,14 @@ func isTimeout(attempt context.Context, err error) bool {
 }
 
 // translate reports the caller's own context ending as it is, because that is not an API failure.
-func translate(ctx, attempt context.Context, err error) error {
+func (t *Transport) translate(ctx, attempt context.Context, err error) error {
 	switch {
 	case ctx.Err() != nil:
 		return ctx.Err()
 	case isTimeout(attempt, err):
-		return &Error{Kind: KindTimeout, Message: "the request timed out", Cause: err}
+		return &Error{Kind: KindTimeout, Message: "the request timed out", Cause: t.hide(err)}
 	default:
-		return &Error{Kind: KindConnection, Message: "the connection failed", Cause: err}
+		return &Error{Kind: KindConnection, Message: "the connection failed", Cause: t.hide(err)}
 	}
 }
 
@@ -158,7 +176,7 @@ func (t *Transport) attempt(ctx context.Context, built *request) (*response, err
 	defer cancel()
 	outgoing, err := http.NewRequestWithContext(attempt, built.method, built.url(t.settings.BaseURL), bytes.NewReader(built.body))
 	if err != nil {
-		return nil, &Error{Kind: KindConnection, Message: "the request could not be built", Cause: err}
+		return nil, &Error{Kind: KindConnection, Message: "the request could not be built", Cause: t.hide(err)}
 	}
 	for name, values := range t.settings.Headers {
 		outgoing.Header[name] = values
@@ -169,13 +187,13 @@ func (t *Transport) attempt(ctx context.Context, built *request) (*response, err
 	}
 	incoming, err := t.client.Do(outgoing)
 	if err != nil {
-		return nil, translate(ctx, attempt, err)
+		return nil, t.translate(ctx, attempt, err)
 	}
 	defer incoming.Body.Close()
 	success := incoming.StatusCode >= 200 && incoming.StatusCode < 300
 	body, err := io.ReadAll(incoming.Body)
 	if err != nil {
-		return nil, translate(ctx, attempt, err)
+		return nil, t.translate(ctx, attempt, err)
 	}
 	body, err = decompress(incoming.Header, body)
 	if err != nil && success {
