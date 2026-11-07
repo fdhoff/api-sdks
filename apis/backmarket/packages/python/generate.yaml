@@ -11,31 +11,8 @@ properties:
   generateSourceCodeOnly: true
   disallowAdditionalPropertiesIfNotPresent: false
   mapNumberTo: float
-# Care's lowercase schemas differ from others only by case, and `Return` is a reserved word.
-schema_names:
-  address: CareAddress
-  client: CareClient
-  order: CareOrder
-  orderline: CareOrderline
-  Return: ReturnShipment
-# Inline schemas would otherwise be named after their operation.
+# Names for the union parts only this package keeps as types. The rest are in ../names.yaml.
 inline_schema_names:
-  GetBackboxData_200_response: BackboxPage
-  GetDeliveries_200_response: DeliveryPage
-  GetReturns_200_response: ReturnPage
-  get_ws_buyback_v1_orders_200_response: BuybackOrderPage
-  get_ws_buyback_v1_orders_messages_200_response: BuybackMessagePage
-  get_ws_list_listing_200_response: ListingPage
-  get_ws_list_order_200_response: OrderPage
-  get_ws_specific_listing_200_response: ListingDetail
-  get_ws_task_200_response: Task
-  post_ws_create_or_update_listings_200_response: ListingsBatch
-  post_ws_create_or_update_listings_request: ListingsCatalog
-  update_ws_specific_listing_200_response: UpdatedListing
-  update_ws_specific_listing_request: ListingUpdate
   update_ws_specific_listing_request_price: ListingPrice
   update_ws_specific_listing_request_shipping_price_1: ListingShippingPrice
   update_ws_specific_listing_request_warranty_delay: IntegerOrString
-  update_ws_specific_orderline_200_response: UpdatedOrderLine
-  update_ws_specific_orderline_request: OrderLineUpdate
-  Payload: BuybackListingUpdate

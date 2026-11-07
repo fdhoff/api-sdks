@@ -20,6 +20,7 @@ const MAPPINGS = {
   schema_mappings: '--schema-mappings',
 };
 const UNIONS = ['anyOf', 'oneOf'];
+const NAME_MAPS = ['schema_names', 'inline_schema_names'];
 const PROSE = new Set(['description', 'summary', 'example', 'examples', 'externalDocs']);
 // Runtimes in languages without relative imports write their package name as this.
 const PACKAGE_PLACEHOLDER = 'PackageNamespace';
@@ -80,6 +81,19 @@ export function returnsJson(spec, operation) {
   return Object.entries(operation.responses ?? {}).some(
     ([status, response]) => status.startsWith('2') && Object.keys(dereference(spec, response)?.content ?? {}).some(isJsonMediaType),
   );
+}
+
+// Every package shares one set of schema names, so a model has the same name in every language. A
+// package may add names for schemas only it sees, but never rename a shared one.
+export function packageNames(shared, config) {
+  const names = {};
+  for (const key of NAME_MAPS) {
+    const own = config[key] ?? {};
+    const renamed = Object.keys(own).filter((name) => name in (shared?.[key] ?? {}));
+    if (renamed.length > 0) throw new Error(`${key} renames shared names: ${renamed.join(', ')}`);
+    names[key] = { ...shared?.[key], ...own };
+  }
+  return names;
 }
 
 export function applyOperations(spec, operations) {
@@ -213,6 +227,9 @@ async function generate(apiDir, language) {
   const paths = apiPaths(apiDir);
   const packageDir = resolve(apiDir, 'packages', language);
   const config = parse(await readFile(join(packageDir, 'generate.yaml'), 'utf8'));
+  const sharedNames = join(apiDir, 'packages', 'names.yaml');
+  const shared = (await exists(sharedNames)) ? parse(await readFile(sharedNames, 'utf8')) : {};
+  Object.assign(config, packageNames(shared, config));
   const operations = parse(await readFile(join(packageDir, 'operations.yaml'), 'utf8'));
   const output = join(packageDir, config.output);
   const source = config.source ?? config.properties.packageName.replaceAll('.', '/');

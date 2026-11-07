@@ -10,8 +10,8 @@ from typing import Any, ClassVar, Dict, List, Optional
 from backmarket_seller._runtime import ApiModel
 
 
-class Task(ApiModel):
-    """Task model."""
+class BackgroundTask(ApiModel):
+    """BackgroundTask model."""
 
     task_id: StrictInt
     action_status: StrictInt

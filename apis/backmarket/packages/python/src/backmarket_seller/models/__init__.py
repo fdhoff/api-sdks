@@ -6,6 +6,7 @@ from backmarket_seller.models.aesthetic_grade_value import AestheticGradeValue
 from backmarket_seller.models.attachment import Attachment
 from backmarket_seller.models.backbox import Backbox
 from backmarket_seller.models.backbox_page import BackboxPage
+from backmarket_seller.models.background_task import BackgroundTask
 from backmarket_seller.models.buyback_aesthetic_grade_code import BuybackAestheticGradeCode
 from backmarket_seller.models.buyback_base_paginated import BuybackBasePaginated
 from backmarket_seller.models.buyback_competitor import BuybackCompetitor
@@ -96,7 +97,6 @@ from backmarket_seller.models.return_shipment import ReturnShipment
 from backmarket_seller.models.seller import Seller
 from backmarket_seller.models.shipper import Shipper
 from backmarket_seller.models.snapshot import Snapshot
-from backmarket_seller.models.task import Task
 from backmarket_seller.models.tile import Tile
 from backmarket_seller.models.update_order import UpdateOrder
 from backmarket_seller.models.update_ws_specific_listing200_response_shippings_inner import (
@@ -115,6 +115,7 @@ __all__ = [
     "Attachment",
     "Backbox",
     "BackboxPage",
+    "BackgroundTask",
     "BuybackAestheticGradeCode",
     "BuybackBasePaginated",
     "BuybackCompetitor",
@@ -203,7 +204,6 @@ __all__ = [
     "Seller",
     "Shipper",
     "Snapshot",
-    "Task",
     "Tile",
     "UpdateOrder",
     "UpdateWsSpecificListing200ResponseShippingsInner",
