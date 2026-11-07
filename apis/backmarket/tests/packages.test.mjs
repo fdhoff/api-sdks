@@ -146,11 +146,11 @@ test('the Rust crate ships the root licence and notice', async () => {
   assert.match(manifest, /^include = \[.*"\/LICENSE", "\/NOTICE"\]$/m);
 });
 
-test('the Rust manifest declares Apache-2.0, says it is unofficial and is not published', async () => {
+test('the Rust manifest declares Apache-2.0, says it is unofficial and can be published', async () => {
   const manifest = await readFile(join(RUST, 'Cargo.toml'), 'utf8');
   assert.match(manifest, /^license = "Apache-2\.0"$/m);
   assert.match(manifest, /^name = "backmarket-seller"$/m);
-  assert.match(manifest, /^publish = false$/m);
+  assert.doesNotMatch(manifest, /^publish = false$/m);
   assert.match(manifest.match(/^description = .*$/m)[0], /Unofficial.*not affiliated with Back Market/i);
   assert.match(await readFile(join(RUST, 'README.md'), 'utf8'), AFFILIATION);
 });
