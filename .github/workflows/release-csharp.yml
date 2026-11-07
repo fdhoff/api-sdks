@@ -5,6 +5,7 @@ name: Release C#
 on:
   pull_request:
     paths:
+      - .github/actions/upstream-spec/**
       - .github/workflows/release-csharp.yml
       - apis/backmarket/packages/csharp/CHANGELOG.md
       - apis/backmarket/packages/csharp/src/BackMarketSeller/BackMarketSeller.csproj
@@ -52,7 +53,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci --ignore-scripts
-      - run: npm run spec:fetch
+      - uses: ./.github/actions/upstream-spec
       - run: npm run spec:build
       - name: Generated code matches the spec, templates and runtime
         run: |
@@ -103,6 +104,6 @@ jobs:
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
         with:
           user: fdhoff
-      - run: dotnet nuget push dist/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
+      - run: dotnet nuget push dist/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
         env:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}

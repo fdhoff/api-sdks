@@ -1,0 +1,32 @@
+name: Pinned upstream spec
+description: >-
+  Restores the pinned upstream spec from the Actions cache, keyed by the SHA-256 in lock.json.
+  Downloads it only on a miss, and fails if upstream no longer matches the pin.
+  Run npm ci first. See docs/architecture.md.
+runs:
+  using: composite
+  steps:
+    - id: key
+      shell: bash
+      run: echo "key=upstream-spec-$(jq -r .sha256 apis/backmarket/spec/upstream/lock.json)" >> "$GITHUB_OUTPUT"
+    - id: cache
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: apis/backmarket/spec/upstream/openapi.yaml
+        key: ${{ steps.key.outputs.key }}
+    - shell: bash
+      env:
+        HIT: ${{ steps.cache.outputs.cache-hit }}
+      run: |
+        if [ "$HIT" != true ]; then
+          echo "::warning title=Pinned spec not cached::Downloading it from upstream. This fails if upstream has changed since the pin."
+        fi
+        npm run spec:fetch || {
+          echo "::error title=Pinned spec unavailable::The pinned spec is not cached and no download matching the pin could be fetched. If upstream has changed, merge the spec drift pull request, or run the Spec drift workflow to open one."
+          exit 1
+        }
+    - if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: apis/backmarket/spec/upstream/openapi.yaml
+        key: ${{ steps.key.outputs.key }}

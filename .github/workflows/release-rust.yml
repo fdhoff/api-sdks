@@ -5,6 +5,7 @@ name: Release Rust
 on:
   pull_request:
     paths:
+      - .github/actions/upstream-spec/**
       - .github/workflows/release-rust.yml
       - apis/backmarket/packages/rust/CHANGELOG.md
       - apis/backmarket/packages/rust/Cargo.toml
@@ -53,7 +54,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci --ignore-scripts
-      - run: npm run spec:fetch
+      - uses: ./.github/actions/upstream-spec
       - run: npm run spec:build
       - name: Generated code matches the spec, templates and runtime
         run: |
@@ -93,13 +94,25 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
+      - name: Check whether this version is already on crates.io
+        id: published
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#rust/v}"
+          if curl -fsS https://index.crates.io/ba/ck/backmarket-seller | jq -e --arg v "$version" 'select(.vers == $v)' > /dev/null; then
+            echo "backmarket-seller $version is already published."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.published.outputs.skip != 'true'
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
       # crates.io trusts a workflow only for a crate that already exists, so the
       # first release uses the CARGO_REGISTRY_TOKEN secret. Delete it afterwards.
       - id: auth
-        if: env.HAS_TOKEN != 'true'
+        if: steps.published.outputs.skip != 'true' && env.HAS_TOKEN != 'true'
         uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
-      - working-directory: apis/backmarket/packages/rust
+      - if: steps.published.outputs.skip != 'true'
+        working-directory: apis/backmarket/packages/rust
         run: cargo publish --locked
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN || steps.auth.outputs.token }}

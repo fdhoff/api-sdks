@@ -40,10 +40,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: echo "pr=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Read the pinned hash
+        id: lock
+        run: echo "sha256=$(jq -r .sha256 "$LOCK")" >> "$GITHUB_OUTPUT"
+      - id: cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.SPEC }}
-          key: upstream-spec-${{ hashFiles('apis/backmarket/spec/upstream/lock.json') }}
+          key: upstream-spec-${{ steps.lock.outputs.sha256 }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
@@ -61,6 +65,7 @@ jobs:
           pinned=$(jq -r .sha256 "$LOCK")
           npm run spec:pin
           upstream=$(jq -r .sha256 "$LOCK")
+          echo "upstream=$upstream" >> "$GITHUB_OUTPUT"
           proposed=
           if [ -n "$OPEN_PR" ]; then
             proposed=$(git show "origin/$BRANCH:$LOCK" 2>/dev/null | jq -r .sha256 || true)
@@ -72,6 +77,13 @@ jobs:
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
+      # Keyed by content, so CI and releases on main find whichever spec is pinned.
+      - name: Cache the upstream spec under its hash
+        if: steps.cache.outputs.cache-hit != 'true' || steps.pin.outputs.upstream != steps.lock.outputs.sha256
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.SPEC }}
+          key: upstream-spec-${{ steps.pin.outputs.upstream }}
       - name: Build the new spec
         id: build
         if: steps.pin.outputs.changed
