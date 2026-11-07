@@ -90,8 +90,8 @@ with BackMarketClient(
 * **Retries:** 429 on every method, honouring `Retry-After` up to `max_retry_wait` seconds, otherwise after `rate_limit_wait` seconds. A longer `Retry-After` raises `RateLimitedError` at once, with the header in `retry_after`. 5xx, timeouts and connection failures on GET only, with exponential backoff, because a repeated `POST` could repeat a refund.
 * **Errors** derive from `ApiError` and carry `status`, `code`, `request_id` and `raw_body` with your token removed. `WafBlockedError` also has `cf_ray`.
 * **Logging** goes to the `backmarket_seller` logger. It holds methods, URLs and statuses, never your token or response bodies.
-* **Requests** can be a generated model or a plain mapping. Models validate strictly, and send only the fields you set.
-* **Responses** are parsed tolerantly, because the spec has not been confirmed against the live API. A field that does not fit its declared type keeps its raw value instead of failing the call, a missing required field reads as `None`, and unknown fields are kept. A response that is not an object at all comes back as decoded JSON, so check types if you depend on them.
+* **Requests** can be a generated model or a plain mapping. Models validate strictly, and send only the fields you set. Method arguments are checked against their declared types and limits, such as `page_size` up to 50, and raise pydantic's `ValidationError` before anything is sent.
+* **Responses** are parsed tolerantly, because the spec has not been confirmed against the live API. A field that does not fit its declared type keeps its raw value instead of failing the call, a missing required field reads as `None`, and unknown fields are kept. A body that does not fit its declared type at all, such as a list where an object belongs, raises `DecodeError` with the body in `raw_body`.
 * **Uploads** take `bytes` or `(filename, bytes)`.
 
 ## Design

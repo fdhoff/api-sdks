@@ -4,7 +4,8 @@ output: src/backmarket_seller
 generated: [api, models]
 resources: _resources.py
 runtime: _runtime
-format: [python, -m, ruff, format, --quiet]
+# Ruff's lint fixes drop the duplicate and unused imports the generator writes, then the formatter runs.
+format: [sh, -c, 'python -m ruff check --fix-only --quiet "$1" && python -m ruff format --quiet "$1"', --]
 properties:
   packageName: backmarket_seller
   generateSourceCodeOnly: true

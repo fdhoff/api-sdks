@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, Iterator, List, Mapping, Optional, Tuple, Union
-
-from pydantic import Field, StrictFloat, StrictInt, StrictStr
-from typing_extensions import Annotated
-
-from pydantic import Field, StrictBytes, StrictInt, StrictStr
-from typing import Any, Dict, List, Optional, Tuple, Union
-from typing_extensions import Annotated
+from typing import Any, AsyncIterator, Iterator, List, Mapping, Optional, Union
 from uuid import UUID
+
+from pydantic import Field, StrictInt, StrictStr
+from typing_extensions import Annotated
+
+from backmarket_seller import models as _models
+from backmarket_seller._runtime import AsyncResource, FileInput, Operation, Param, Resource, checked
 from backmarket_seller.models.buyback_competitor import BuybackCompetitor
 from backmarket_seller.models.buyback_counter_offer_reasons_inner import BuybackCounterOfferReasonsInner
 from backmarket_seller.models.buyback_listing import BuybackListing
@@ -24,11 +23,6 @@ from backmarket_seller.models.buyback_order_state import BuybackOrderState
 from backmarket_seller.models.buyback_order_suspension_payload import BuybackOrderSuspensionPayload
 from backmarket_seller.models.buyback_paginated_listing_response import BuybackPaginatedListingResponse
 from backmarket_seller.models.buyback_reason import BuybackReason
-from backmarket_seller.models import BuybackListing
-from backmarket_seller.models import BuybackOrder
-from backmarket_seller.models import BuybackMessage
-from backmarket_seller.models import BuybackOrder
-from backmarket_seller._runtime import AsyncResource, FileInput, Operation, Param, Resource
 
 _get_ws_buyback_v1_competitors: Operation[List[BuybackCompetitor]] = Operation(
     id="get-ws-buyback-v1-competitors",
@@ -61,7 +55,7 @@ _get_ws_buyback_v1_listings: Operation[BuybackPaginatedListingResponse] = Operat
     ),
     response=BuybackPaginatedListingResponse,
     iterator="iter_listings",
-    item=BuybackListing,
+    item=_models.BuybackListing,
 )
 _get_ws_buyback_v1_order: Operation[BuybackOrder] = Operation(
     id="get-ws-buyback-v1-order",
@@ -91,7 +85,7 @@ _get_ws_buyback_v1_orders: Operation[BuybackOrderPage] = Operation(
     ),
     response=BuybackOrderPage,
     iterator="iter_orders",
-    item=BuybackOrder,
+    item=_models.BuybackOrder,
 )
 _get_ws_buyback_v1_orders_messages: Operation[BuybackMessagePage] = Operation(
     id="get-ws-buyback-v1-orders-messages",
@@ -105,7 +99,7 @@ _get_ws_buyback_v1_orders_messages: Operation[BuybackMessagePage] = Operation(
     ),
     response=BuybackMessagePage,
     iterator="iter_messages",
-    item=BuybackMessage,
+    item=_models.BuybackMessage,
 )
 _get_ws_buyback_v1_orders_pending_reply: Operation[BuybackOrderPage] = Operation(
     id="get-ws-buyback-v1-orders-pending-reply",
@@ -116,7 +110,7 @@ _get_ws_buyback_v1_orders_pending_reply: Operation[BuybackOrderPage] = Operation
     params=(Param("page", "page", "query"),),
     response=BuybackOrderPage,
     iterator="iter_pending_orders",
-    item=BuybackOrder,
+    item=_models.BuybackOrder,
 )
 _get_ws_buyback_v1_orders_suspend_reasons: Operation[List[BuybackReason]] = Operation(
     id="get-ws-buyback-v1-orders-suspend-reasons",
@@ -207,6 +201,7 @@ OPERATIONS = (
 
 
 class BuybackApi(Resource):
+    @checked
     def list_competitors(
         self,
         listing_id: UUID,
@@ -217,6 +212,7 @@ class BuybackApi(Resource):
             listing_id=listing_id,
         )
 
+    @checked
     def get_listing(
         self,
         buyback_listing_id: UUID,
@@ -227,6 +223,7 @@ class BuybackApi(Resource):
             buyback_listing_id=buyback_listing_id,
         )
 
+    @checked
     def list_listings(
         self,
         *,
@@ -242,13 +239,14 @@ class BuybackApi(Resource):
             page_size=page_size,
         )
 
+    @checked
     def iter_listings(
         self,
         *,
         product_id: Optional[UUID] = None,
         cursor: Optional[UUID] = None,
         page_size: Optional[Annotated[int, Field(le=100, strict=True, gt=0)]] = None,
-    ) -> Iterator[BuybackListing]:
+    ) -> Iterator[_models.BuybackListing]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_ws_buyback_v1_listings,
@@ -257,6 +255,7 @@ class BuybackApi(Resource):
             page_size=page_size,
         )
 
+    @checked
     def get_order(
         self,
         buyback_order_id: StrictStr,
@@ -267,6 +266,7 @@ class BuybackApi(Resource):
             buyback_order_id=buyback_order_id,
         )
 
+    @checked
     def list_orders(
         self,
         *,
@@ -294,6 +294,7 @@ class BuybackApi(Resource):
             page=page,
         )
 
+    @checked
     def iter_orders(
         self,
         *,
@@ -306,7 +307,7 @@ class BuybackApi(Resource):
         suspended_date: Optional[StrictStr] = None,
         payment_date: Optional[StrictStr] = None,
         page: Optional[StrictInt] = None,
-    ) -> Iterator[BuybackOrder]:
+    ) -> Iterator[_models.BuybackOrder]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_ws_buyback_v1_orders,
@@ -321,6 +322,7 @@ class BuybackApi(Resource):
             page=page,
         )
 
+    @checked
     def list_messages(
         self,
         buyback_order_id: StrictStr,
@@ -334,12 +336,13 @@ class BuybackApi(Resource):
             page=page,
         )
 
+    @checked
     def iter_messages(
         self,
         buyback_order_id: StrictStr,
         *,
         page: Optional[StrictInt] = None,
-    ) -> Iterator[BuybackMessage]:
+    ) -> Iterator[_models.BuybackMessage]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_ws_buyback_v1_orders_messages,
@@ -347,6 +350,7 @@ class BuybackApi(Resource):
             page=page,
         )
 
+    @checked
     def list_pending_orders(
         self,
         *,
@@ -358,17 +362,19 @@ class BuybackApi(Resource):
             page=page,
         )
 
+    @checked
     def iter_pending_orders(
         self,
         *,
         page: Optional[StrictInt] = None,
-    ) -> Iterator[BuybackOrder]:
+    ) -> Iterator[_models.BuybackOrder]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_ws_buyback_v1_orders_pending_reply,
             page=page,
         )
 
+    @checked
     def list_suspend_reasons(
         self,
     ) -> List[BuybackReason]:
@@ -377,6 +383,7 @@ class BuybackApi(Resource):
             _get_ws_buyback_v1_orders_suspend_reasons,
         )
 
+    @checked
     def list_counter_offer_reasons(
         self,
         buyback_order_id: StrictStr,
@@ -387,6 +394,7 @@ class BuybackApi(Resource):
             buyback_order_id=buyback_order_id,
         )
 
+    @checked
     def send_message(
         self,
         buyback_order_id: StrictStr,
@@ -399,6 +407,7 @@ class BuybackApi(Resource):
             _body=body,
         )
 
+    @checked
     def update_listing(
         self,
         buyback_listing_id: UUID,
@@ -411,6 +420,7 @@ class BuybackApi(Resource):
             _body=body,
         )
 
+    @checked
     def suspend_order(
         self,
         buyback_order_id: StrictStr,
@@ -423,6 +433,7 @@ class BuybackApi(Resource):
             _body=body,
         )
 
+    @checked
     def validate_order(
         self,
         buyback_order_id: StrictStr,
@@ -433,6 +444,7 @@ class BuybackApi(Resource):
             buyback_order_id=buyback_order_id,
         )
 
+    @checked
     def counter_offer(
         self,
         buyback_order_id: StrictStr,
@@ -454,6 +466,7 @@ class BuybackApi(Resource):
 
 
 class AsyncBuybackApi(AsyncResource):
+    @checked
     async def list_competitors(
         self,
         listing_id: UUID,
@@ -464,6 +477,7 @@ class AsyncBuybackApi(AsyncResource):
             listing_id=listing_id,
         )
 
+    @checked
     async def get_listing(
         self,
         buyback_listing_id: UUID,
@@ -474,6 +488,7 @@ class AsyncBuybackApi(AsyncResource):
             buyback_listing_id=buyback_listing_id,
         )
 
+    @checked
     async def list_listings(
         self,
         *,
@@ -489,13 +504,14 @@ class AsyncBuybackApi(AsyncResource):
             page_size=page_size,
         )
 
+    @checked
     def iter_listings(
         self,
         *,
         product_id: Optional[UUID] = None,
         cursor: Optional[UUID] = None,
         page_size: Optional[Annotated[int, Field(le=100, strict=True, gt=0)]] = None,
-    ) -> AsyncIterator[BuybackListing]:
+    ) -> AsyncIterator[_models.BuybackListing]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_ws_buyback_v1_listings,
@@ -504,6 +520,7 @@ class AsyncBuybackApi(AsyncResource):
             page_size=page_size,
         )
 
+    @checked
     async def get_order(
         self,
         buyback_order_id: StrictStr,
@@ -514,6 +531,7 @@ class AsyncBuybackApi(AsyncResource):
             buyback_order_id=buyback_order_id,
         )
 
+    @checked
     async def list_orders(
         self,
         *,
@@ -541,6 +559,7 @@ class AsyncBuybackApi(AsyncResource):
             page=page,
         )
 
+    @checked
     def iter_orders(
         self,
         *,
@@ -553,7 +572,7 @@ class AsyncBuybackApi(AsyncResource):
         suspended_date: Optional[StrictStr] = None,
         payment_date: Optional[StrictStr] = None,
         page: Optional[StrictInt] = None,
-    ) -> AsyncIterator[BuybackOrder]:
+    ) -> AsyncIterator[_models.BuybackOrder]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_ws_buyback_v1_orders,
@@ -568,6 +587,7 @@ class AsyncBuybackApi(AsyncResource):
             page=page,
         )
 
+    @checked
     async def list_messages(
         self,
         buyback_order_id: StrictStr,
@@ -581,12 +601,13 @@ class AsyncBuybackApi(AsyncResource):
             page=page,
         )
 
+    @checked
     def iter_messages(
         self,
         buyback_order_id: StrictStr,
         *,
         page: Optional[StrictInt] = None,
-    ) -> AsyncIterator[BuybackMessage]:
+    ) -> AsyncIterator[_models.BuybackMessage]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_ws_buyback_v1_orders_messages,
@@ -594,6 +615,7 @@ class AsyncBuybackApi(AsyncResource):
             page=page,
         )
 
+    @checked
     async def list_pending_orders(
         self,
         *,
@@ -605,17 +627,19 @@ class AsyncBuybackApi(AsyncResource):
             page=page,
         )
 
+    @checked
     def iter_pending_orders(
         self,
         *,
         page: Optional[StrictInt] = None,
-    ) -> AsyncIterator[BuybackOrder]:
+    ) -> AsyncIterator[_models.BuybackOrder]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_ws_buyback_v1_orders_pending_reply,
             page=page,
         )
 
+    @checked
     async def list_suspend_reasons(
         self,
     ) -> List[BuybackReason]:
@@ -624,6 +648,7 @@ class AsyncBuybackApi(AsyncResource):
             _get_ws_buyback_v1_orders_suspend_reasons,
         )
 
+    @checked
     async def list_counter_offer_reasons(
         self,
         buyback_order_id: StrictStr,
@@ -634,6 +659,7 @@ class AsyncBuybackApi(AsyncResource):
             buyback_order_id=buyback_order_id,
         )
 
+    @checked
     async def send_message(
         self,
         buyback_order_id: StrictStr,
@@ -646,6 +672,7 @@ class AsyncBuybackApi(AsyncResource):
             _body=body,
         )
 
+    @checked
     async def update_listing(
         self,
         buyback_listing_id: UUID,
@@ -658,6 +685,7 @@ class AsyncBuybackApi(AsyncResource):
             _body=body,
         )
 
+    @checked
     async def suspend_order(
         self,
         buyback_order_id: StrictStr,
@@ -670,6 +698,7 @@ class AsyncBuybackApi(AsyncResource):
             _body=body,
         )
 
+    @checked
     async def validate_order(
         self,
         buyback_order_id: StrictStr,
@@ -680,6 +709,7 @@ class AsyncBuybackApi(AsyncResource):
             buyback_order_id=buyback_order_id,
         )
 
+    @checked
     async def counter_offer(
         self,
         buyback_order_id: StrictStr,

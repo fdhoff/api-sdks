@@ -19,6 +19,7 @@ from typing import (
 from urllib.parse import parse_qs, quote, urlencode, urlsplit
 
 import httpx
+from pydantic import ValidationError
 
 from .errors import ApiConnectionError, ApiError, ApiTimeoutError, DecodeError, ErrorContext
 from .model import parse_response, to_wire
@@ -322,6 +323,16 @@ class AsyncTransport:
                 tries += 1
 
 
+def _parse(settings: Settings, response_type: Any, data: Any) -> Any:
+    """Inside an object, a field that does not fit keeps its raw value. A body that does not fit at all is an error."""
+    try:
+        return parse_response(response_type, data)
+    except ValidationError:
+        raw = data if data is None or isinstance(data, str) else json.dumps(data)
+        clean = None if raw is None else raw.replace(settings.secret, _REDACTED)
+        raise DecodeError("The response body does not fit its declared type", raw_body=clean) from None
+
+
 def _items(page: Any) -> Sequence[Any]:
     results = page.get("results") if isinstance(page, Mapping) else None
     return results if isinstance(results, list) else []
@@ -332,7 +343,8 @@ class Resource:
         self._transport = transport
 
     def _call(self, operation: Operation[T], /, *, _body: Any = None, **params: Any) -> T:
-        result: T = parse_response(operation.response, self._transport.fetch(operation, _body, params))
+        data = self._transport.fetch(operation, _body, params)
+        result: T = _parse(self._transport.settings, operation.response, data)
         return result
 
     def _paginate(self, operation: Operation[Any], /, *, _body: Any = None, **params: Any) -> Iterator[Any]:
@@ -340,7 +352,7 @@ class Resource:
         while current is not None:
             page = self._transport.fetch(operation, _body, current)
             for item in _items(page):
-                yield parse_response(operation.item, item)
+                yield _parse(self._transport.settings, operation.item, item)
             current = _next_params(operation, current, page)
 
 
@@ -349,7 +361,8 @@ class AsyncResource:
         self._transport = transport
 
     async def _call(self, operation: Operation[T], /, *, _body: Any = None, **params: Any) -> T:
-        result: T = parse_response(operation.response, await self._transport.fetch(operation, _body, params))
+        data = await self._transport.fetch(operation, _body, params)
+        result: T = _parse(self._transport.settings, operation.response, data)
         return result
 
     async def _paginate(self, operation: Operation[Any], /, *, _body: Any = None, **params: Any) -> AsyncIterator[Any]:
@@ -357,5 +370,5 @@ class AsyncResource:
         while current is not None:
             page = await self._transport.fetch(operation, _body, current)
             for item in _items(page):
-                yield parse_response(operation.item, item)
+                yield _parse(self._transport.settings, operation.item, item)
             current = _next_params(operation, current, page)

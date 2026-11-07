@@ -2,19 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, Iterator, List, Mapping, Optional, Tuple, Union
-
-from pydantic import Field, StrictFloat, StrictInt, StrictStr
-from typing_extensions import Annotated
+from typing import AsyncIterator, Iterator, List, Optional
+from uuid import UUID
 
 from pydantic import Field, StrictInt
-from typing import List, Optional
 from typing_extensions import Annotated
-from uuid import UUID
+
+from backmarket_seller import models as _models
+from backmarket_seller._runtime import AsyncResource, Operation, Param, Resource, checked
 from backmarket_seller.models.backbox_page import BackboxPage
 from backmarket_seller.models.competitor import Competitor
-from backmarket_seller.models import Backbox
-from backmarket_seller._runtime import AsyncResource, FileInput, Operation, Param, Resource
 
 _get_backbox_data: Operation[BackboxPage] = Operation(
     id="GetBackboxData",
@@ -28,7 +25,7 @@ _get_backbox_data: Operation[BackboxPage] = Operation(
     ),
     response=BackboxPage,
     iterator="iter",
-    item=Backbox,
+    item=_models.Backbox,
 )
 _get_ws_backbox_v1_competitors: Operation[List[Competitor]] = Operation(
     id="get-ws-backbox-v1-competitors",
@@ -47,6 +44,7 @@ OPERATIONS = (
 
 
 class BackboxApi(Resource):
+    @checked
     def list(
         self,
         *,
@@ -60,12 +58,13 @@ class BackboxApi(Resource):
             page_size=page_size,
         )
 
+    @checked
     def iter(
         self,
         *,
         page: Optional[StrictInt] = None,
         page_size: Optional[Annotated[int, Field(le=50, strict=True)]] = None,
-    ) -> Iterator[Backbox]:
+    ) -> Iterator[_models.Backbox]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_backbox_data,
@@ -73,6 +72,7 @@ class BackboxApi(Resource):
             page_size=page_size,
         )
 
+    @checked
     def list_competitors(
         self,
         listing_id: UUID,
@@ -85,6 +85,7 @@ class BackboxApi(Resource):
 
 
 class AsyncBackboxApi(AsyncResource):
+    @checked
     async def list(
         self,
         *,
@@ -98,12 +99,13 @@ class AsyncBackboxApi(AsyncResource):
             page_size=page_size,
         )
 
+    @checked
     def iter(
         self,
         *,
         page: Optional[StrictInt] = None,
         page_size: Optional[Annotated[int, Field(le=50, strict=True)]] = None,
-    ) -> AsyncIterator[Backbox]:
+    ) -> AsyncIterator[_models.Backbox]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_backbox_data,
@@ -111,6 +113,7 @@ class AsyncBackboxApi(AsyncResource):
             page_size=page_size,
         )
 
+    @checked
     async def list_competitors(
         self,
         listing_id: UUID,

@@ -1,5 +1,5 @@
 from .errors import ApiConnectionError, ApiError, ApiTimeoutError, DecodeError, ErrorContext
-from .model import ApiModel, to_wire
+from .model import ApiModel, checked, to_wire
 from .transport import (
     AsyncResource,
     AsyncTransport,
@@ -26,5 +26,6 @@ __all__ = [
     "Resource",
     "Settings",
     "SyncTransport",
+    "checked",
     "to_wire",
 ]

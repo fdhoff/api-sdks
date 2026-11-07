@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, Iterator, List, Mapping, Optional, Tuple, Union
-
-from pydantic import Field, StrictFloat, StrictInt, StrictStr
-from typing_extensions import Annotated
-
 from datetime import datetime
-from pydantic import Field, StrictBytes, StrictInt, StrictStr
-from typing import List, Optional, Tuple, Union
+from typing import Any, AsyncIterator, Iterator, List, Mapping, Optional, Union
+
+from pydantic import Field, StrictInt
 from typing_extensions import Annotated
+
+from backmarket_seller import models as _models
+from backmarket_seller._runtime import AsyncResource, FileInput, Operation, Param, Resource, checked
 from backmarket_seller.models.country_code import CountryCode
 from backmarket_seller.models.order import Order
 from backmarket_seller.models.order_line_update import OrderLineUpdate
@@ -18,8 +17,6 @@ from backmarket_seller.models.order_page import OrderPage
 from backmarket_seller.models.order_state import OrderState
 from backmarket_seller.models.update_order import UpdateOrder
 from backmarket_seller.models.updated_order_line import UpdatedOrderLine
-from backmarket_seller.models import Order
-from backmarket_seller._runtime import AsyncResource, FileInput, Operation, Param, Resource
 
 _get_ws_list_order: Operation[OrderPage] = Operation(
     id="get-ws-list-order",
@@ -37,7 +34,7 @@ _get_ws_list_order: Operation[OrderPage] = Operation(
     ),
     response=OrderPage,
     iterator="iter",
-    item=Order,
+    item=_models.Order,
 )
 _get_ws_specific_order: Operation[Order] = Operation(
     id="get-ws-specific-order",
@@ -89,6 +86,7 @@ OPERATIONS = (
 
 
 class OrdersApi(Resource):
+    @checked
     def list(
         self,
         *,
@@ -110,6 +108,7 @@ class OrdersApi(Resource):
             page_size=page_size,
         )
 
+    @checked
     def iter(
         self,
         *,
@@ -119,7 +118,7 @@ class OrdersApi(Resource):
         state: Optional[OrderState] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[Annotated[int, Field(le=50, strict=True)]] = None,
-    ) -> Iterator[Order]:
+    ) -> Iterator[_models.Order]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_ws_list_order,
@@ -131,6 +130,7 @@ class OrdersApi(Resource):
             page_size=page_size,
         )
 
+    @checked
     def get(
         self,
         order_id: StrictInt,
@@ -141,6 +141,7 @@ class OrdersApi(Resource):
             order_id=order_id,
         )
 
+    @checked
     def upload_invoice(
         self,
         order_id: StrictInt,
@@ -154,6 +155,7 @@ class OrdersApi(Resource):
             invoice=invoice,
         )
 
+    @checked
     def update(
         self,
         order_id: StrictInt,
@@ -166,6 +168,7 @@ class OrdersApi(Resource):
             _body=body,
         )
 
+    @checked
     def update_line(
         self,
         orderline_id: StrictInt,
@@ -180,6 +183,7 @@ class OrdersApi(Resource):
 
 
 class AsyncOrdersApi(AsyncResource):
+    @checked
     async def list(
         self,
         *,
@@ -201,6 +205,7 @@ class AsyncOrdersApi(AsyncResource):
             page_size=page_size,
         )
 
+    @checked
     def iter(
         self,
         *,
@@ -210,7 +215,7 @@ class AsyncOrdersApi(AsyncResource):
         state: Optional[OrderState] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[Annotated[int, Field(le=50, strict=True)]] = None,
-    ) -> AsyncIterator[Order]:
+    ) -> AsyncIterator[_models.Order]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_ws_list_order,
@@ -222,6 +227,7 @@ class AsyncOrdersApi(AsyncResource):
             page_size=page_size,
         )
 
+    @checked
     async def get(
         self,
         order_id: StrictInt,
@@ -232,6 +238,7 @@ class AsyncOrdersApi(AsyncResource):
             order_id=order_id,
         )
 
+    @checked
     async def upload_invoice(
         self,
         order_id: StrictInt,
@@ -245,6 +252,7 @@ class AsyncOrdersApi(AsyncResource):
             invoice=invoice,
         )
 
+    @checked
     async def update(
         self,
         order_id: StrictInt,
@@ -257,6 +265,7 @@ class AsyncOrdersApi(AsyncResource):
             _body=body,
         )
 
+    @checked
     async def update_line(
         self,
         orderline_id: StrictInt,

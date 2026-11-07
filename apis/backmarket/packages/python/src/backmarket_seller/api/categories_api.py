@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, Iterator, List, Mapping, Optional, Tuple, Union
+from typing import List
 
-from pydantic import Field, StrictFloat, StrictInt, StrictStr
-from typing_extensions import Annotated
+from pydantic import StrictInt
 
-from pydantic import Field, StrictInt, field_validator
-from typing import List, Optional
-from typing_extensions import Annotated
+from backmarket_seller._runtime import AsyncResource, Operation, Param, Resource, checked
 from backmarket_seller.models.category_tree import CategoryTree
-from backmarket_seller._runtime import AsyncResource, FileInput, Operation, Param, Resource
 
 _get_bm_catalog_category: Operation[List[CategoryTree]] = Operation(
     id="get-bm-catalog-category",
@@ -39,6 +35,7 @@ OPERATIONS = (
 
 
 class CategoriesApi(Resource):
+    @checked
     def list(
         self,
     ) -> List[CategoryTree]:
@@ -47,6 +44,7 @@ class CategoriesApi(Resource):
             _get_bm_catalog_category,
         )
 
+    @checked
     def get(
         self,
         category_id: StrictInt,
@@ -59,6 +57,7 @@ class CategoriesApi(Resource):
 
 
 class AsyncCategoriesApi(AsyncResource):
+    @checked
     async def list(
         self,
     ) -> List[CategoryTree]:
@@ -67,6 +66,7 @@ class AsyncCategoriesApi(AsyncResource):
             _get_bm_catalog_category,
         )
 
+    @checked
     async def get(
         self,
         category_id: StrictInt,

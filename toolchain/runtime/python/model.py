@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+import functools
+import inspect
+from collections.abc import Callable, Mapping, Sequence
 from enum import Enum
 from functools import cache
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast, get_type_hints
 
 from pydantic import (
     BaseModel,
@@ -15,8 +17,10 @@ from pydantic import (
     model_validator,
 )
 from pydantic_core import to_jsonable_python
+from typing_extensions import TypedDict
 
 M = TypeVar("M", bound="ApiModel")
+F = TypeVar("F", bound=Callable[..., Any])
 
 _TOLERANT = {"tolerant": True}
 
@@ -81,13 +85,46 @@ def _adapter(response_type: Any) -> TypeAdapter[Any]:
 
 
 def parse_response(response_type: Any, data: Any) -> Any:
-    """Build the declared type from decoded data, or return the data as it came if it cannot fit."""
+    """Build the declared type from decoded data. Raises ValidationError when the data cannot fit it at all."""
     if response_type is None:
-        return data
-    try:
-        return _adapter(response_type).validate_python(data, context=_TOLERANT)
-    except ValidationError:
-        return data
+        return None
+    return _adapter(response_type).validate_python(data, context=_TOLERANT)
+
+
+def checked(method: F) -> F:
+    """Check a call's arguments against the method's annotations, constraints included, before it runs.
+    The arguments are passed on as given, not converted."""
+    signature = inspect.signature(method)
+
+    # Built on first use, so importing the client stays fast and every annotation has resolved.
+    @cache
+    def arguments() -> tuple[TypeAdapter[Any], frozenset[str]]:
+        hints = get_type_hints(method, include_extras=True)
+        fields = {name: hints[name] for name in signature.parameters if name in hints}
+        typed_dict: Any = TypedDict  # mypy accepts only a literal field map
+        return TypeAdapter(typed_dict(method.__qualname__, fields)), frozenset(fields)
+
+    def check(args: tuple[Any, ...], kwargs: dict[str, Any]) -> None:
+        bound = signature.bind(*args, **kwargs)
+        bound.apply_defaults()
+        adapter, names = arguments()
+        adapter.validate_python({name: value for name, value in bound.arguments.items() if name in names})
+
+    if inspect.iscoroutinefunction(method):
+
+        @functools.wraps(method)
+        async def check_then_await(*args: Any, **kwargs: Any) -> Any:
+            check(args, kwargs)
+            return await method(*args, **kwargs)
+
+        return cast(F, check_then_await)
+
+    @functools.wraps(method)
+    def check_then_call(*args: Any, **kwargs: Any) -> Any:
+        check(args, kwargs)
+        return method(*args, **kwargs)
+
+    return cast(F, check_then_call)
 
 
 def to_wire(value: Any) -> Any:

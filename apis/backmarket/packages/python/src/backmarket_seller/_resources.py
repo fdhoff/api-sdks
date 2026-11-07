@@ -4,15 +4,17 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from backmarket_seller.api import backbox_api
-from backmarket_seller.api import buyback_api
-from backmarket_seller.api import care_api
-from backmarket_seller.api import categories_api
-from backmarket_seller.api import listings_api
-from backmarket_seller.api import orders_api
-from backmarket_seller.api import shipping_api
-from backmarket_seller.api import tasks_api
 from backmarket_seller._runtime import AsyncTransport, Operation, SyncTransport
+from backmarket_seller.api import (
+    backbox_api,
+    buyback_api,
+    care_api,
+    categories_api,
+    listings_api,
+    orders_api,
+    shipping_api,
+    tasks_api,
+)
 
 OPERATIONS: Dict[str, Operation[Any]] = {
     operation.id: operation

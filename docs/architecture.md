@@ -95,7 +95,7 @@ Generated code is never edited by hand. Each problem has one fix:
 
 Generated clients are committed under `apis/backmarket/packages/<language>/`, so a spec change shows up as a reviewable diff. CI regenerates them and fails if the result differs.
 
-The spec has been wrong before, so clients do not trust it when reading. Requests are validated against the models, but a response that does not fit them still reaches the caller, with the raw value in place of the field that failed. In TypeScript the models are types only, so requests are checked at compile time and responses are decoded JSON.
+The spec has been wrong before, so clients do not trust it when reading. Requests are validated against the models, but a response that does not fit them still reaches the caller, with the raw value in place of the field that failed. In Python, as in Go, a top-level body that is not the declared type at all raises `decode` with the body in `raw_body`, and method arguments are checked against their annotations, constraints such as a maximum page size included, before anything is sent. In TypeScript the models are types only, so requests are checked at compile time and responses are decoded JSON.
 
 Model fields follow each language's conventions where a client maps them. The TypeScript client does not: it keeps the API's field names, because any mapping would need per-model code at runtime, and unknown or mistyped fields are meant to pass through. Its methods, parameters and options are camelCase.
 
