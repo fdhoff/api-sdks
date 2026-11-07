@@ -45,12 +45,13 @@ Your token is read from nowhere and stored nowhere: you pass it in, and the clie
 
 ## Behaviour
 
-* **Methods** are grouped by resource: `categories`, `listings`, `tasks`, `orders`, `buyback`, `shipping`, `care` and `backbox`. Path parameters come first, then the JSON body if there is one, then an object of query or form parameters.
+* **Methods** are grouped by resource: `categories`, `listings`, `tasks`, `orders`, `buyback`, `shipping`, `care` and `backbox`. Path parameters come first, then the JSON body if there is one, then an object of query or form parameters, then options for that call.
 * **Names:** methods, parameters and client options are camelCase. Fields of request and response objects keep the API's own names, such as `order_id`, because they pass through unchanged. That keeps them matching the API's documentation, and lets unknown fields through.
 * **Pagination:** `list` methods return one page and `iter` methods walk all of them with `for await`, following `next` only for its position, against your configured server.
 * **Retries:** 429 on every method, honouring `Retry-After`, otherwise after `rateLimitWaitMs`. A `Retry-After` longer than `maxRetryWaitMs`, 60 seconds by default, is not waited for: the 429 is thrown at once with the header's value in `retryAfter`, so you can reschedule. A wait longer than a timer can hold, about 24 days, is thrown the same way. 5xx, timeouts and connection failures on GET only, with exponential backoff, because a repeated `POST` could repeat a refund.
 * **Timeouts:** `timeoutMs` covers each attempt, including reading the body.
-* **Errors** derive from `ApiError` and carry `kind`, `status`, `code`, `requestId` and `rawBody` with your token removed. `WafBlockedError` also has `cfRay`. If your process loads both the ESM and CommonJS builds, `instanceof` only matches errors from the same build, so compare `kind` instead.
+* **Cancellation:** pass `{ signal }` as a call's last argument. Aborting it stops the request and any wait before a retry, and the call rejects with the signal's reason.
+* **Errors** derive from `ApiError` and carry `kind`, `status`, `code`, `requestId` and `rawBody` with your token removed. `WafBlockedError` also has `cfRay`. If your process loads both the ESM and CommonJS builds, `instanceof` only matches errors from the same build, so compare `kind` instead. Cast to `ClientError`, and comparing `kind` narrows it to one class.
 * **Logging** is off unless you pass `logger`, which can be `console`. It receives methods, URLs and statuses, never your token or response bodies.
 * **Requests** are checked by the compiler only. There is no runtime validation.
 * **Responses** are not checked at all, because the spec has not been confirmed against the live API. The types describe what the spec declares: a field can hold another type, a required field can be missing, an enum can hold a new value, and unknown fields are kept. Check values if you depend on them.

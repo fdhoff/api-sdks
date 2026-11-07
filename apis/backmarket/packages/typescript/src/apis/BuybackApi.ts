@@ -20,7 +20,7 @@ import type {
   ValidationErrorResponseV3,
 } from '../models/index.js';
 import type * as models from '../models/index.js';
-import { Resource, type FileInput, type Operation } from '../runtime/index.js';
+import { Resource, type FileInput, type Operation, type RequestOptions } from '../runtime/index.js';
 
 const getWsBuybackV1Competitors: Operation = {
   id: 'get-ws-buyback-v1-competitors',
@@ -197,32 +197,34 @@ export const OPERATIONS: readonly Operation[] = [
 
 export class BuybackApi extends Resource {
   /** List competitors for a buyback listing. */
-  listCompetitors(listingId: string): Promise<Array<BuybackCompetitor>> {
-    return this.call(getWsBuybackV1Competitors, undefined, { listingId });
+  listCompetitors(listingId: string, options?: RequestOptions): Promise<Array<BuybackCompetitor>> {
+    return this.call(getWsBuybackV1Competitors, undefined, { listingId }, options);
   }
 
   /** Get one buyback listing. */
-  getListing(buybackListingId: string): Promise<BuybackListing> {
-    return this.call(getWsBuybackV1Listing, undefined, { buybackListingId });
+  getListing(buybackListingId: string, options?: RequestOptions): Promise<BuybackListing> {
+    return this.call(getWsBuybackV1Listing, undefined, { buybackListingId }, options);
   }
 
   /** List one page of buyback listings. */
   listListings(
     params: { productId?: string; cursor?: string; pageSize?: number } = {},
+    options?: RequestOptions,
   ): Promise<BuybackPaginatedListingResponse> {
-    return this.call(getWsBuybackV1Listings, undefined, { ...params });
+    return this.call(getWsBuybackV1Listings, undefined, { ...params }, options);
   }
 
   /** Iterate every item across all pages. */
   iterListings(
     params: { productId?: string; cursor?: string; pageSize?: number } = {},
+    options?: RequestOptions,
   ): AsyncGenerator<models.BuybackListing, void, undefined> {
-    return this.paginate(getWsBuybackV1Listings, undefined, { ...params });
+    return this.paginate(getWsBuybackV1Listings, undefined, { ...params }, options);
   }
 
   /** Get one buyback order. */
-  getOrder(buybackOrderId: string): Promise<BuybackOrder> {
-    return this.call(getWsBuybackV1Order, undefined, { buybackOrderId });
+  getOrder(buybackOrderId: string, options?: RequestOptions): Promise<BuybackOrder> {
+    return this.call(getWsBuybackV1Order, undefined, { buybackOrderId }, options);
   }
 
   /** List one page of buyback orders. */
@@ -238,8 +240,9 @@ export class BuybackApi extends Resource {
       paymentDate?: string;
       page?: number;
     } = {},
+    options?: RequestOptions,
   ): Promise<BuybackOrderPage> {
-    return this.call(getWsBuybackV1Orders, undefined, { ...params });
+    return this.call(getWsBuybackV1Orders, undefined, { ...params }, options);
   }
 
   /** Iterate every item across all pages. */
@@ -255,68 +258,85 @@ export class BuybackApi extends Resource {
       paymentDate?: string;
       page?: number;
     } = {},
+    options?: RequestOptions,
   ): AsyncGenerator<models.BuybackOrder, void, undefined> {
-    return this.paginate(getWsBuybackV1Orders, undefined, { ...params });
+    return this.paginate(getWsBuybackV1Orders, undefined, { ...params }, options);
   }
 
   /** List one page of a buyback order&#39;s messages. */
-  listMessages(buybackOrderId: string, params: { page?: number } = {}): Promise<BuybackMessagePage> {
-    return this.call(getWsBuybackV1OrdersMessages, undefined, { buybackOrderId, ...params });
+  listMessages(
+    buybackOrderId: string,
+    params: { page?: number } = {},
+    options?: RequestOptions,
+  ): Promise<BuybackMessagePage> {
+    return this.call(getWsBuybackV1OrdersMessages, undefined, { buybackOrderId, ...params }, options);
   }
 
   /** Iterate every item across all pages. */
   iterMessages(
     buybackOrderId: string,
     params: { page?: number } = {},
+    options?: RequestOptions,
   ): AsyncGenerator<models.BuybackMessage, void, undefined> {
-    return this.paginate(getWsBuybackV1OrdersMessages, undefined, { buybackOrderId, ...params });
+    return this.paginate(getWsBuybackV1OrdersMessages, undefined, { buybackOrderId, ...params }, options);
   }
 
   /** List one page of buyback orders awaiting a reply. */
-  listPendingOrders(params: { page?: number } = {}): Promise<BuybackOrderPage> {
-    return this.call(getWsBuybackV1OrdersPendingReply, undefined, { ...params });
+  listPendingOrders(params: { page?: number } = {}, options?: RequestOptions): Promise<BuybackOrderPage> {
+    return this.call(getWsBuybackV1OrdersPendingReply, undefined, { ...params }, options);
   }
 
   /** Iterate every item across all pages. */
-  iterPendingOrders(params: { page?: number } = {}): AsyncGenerator<models.BuybackOrder, void, undefined> {
-    return this.paginate(getWsBuybackV1OrdersPendingReply, undefined, { ...params });
+  iterPendingOrders(
+    params: { page?: number } = {},
+    options?: RequestOptions,
+  ): AsyncGenerator<models.BuybackOrder, void, undefined> {
+    return this.paginate(getWsBuybackV1OrdersPendingReply, undefined, { ...params }, options);
   }
 
   /** List the reasons a buyback order can be suspended. */
-  listSuspendReasons(): Promise<Array<BuybackReason>> {
-    return this.call(getWsBuybackV1OrdersSuspendReasons, undefined, {});
+  listSuspendReasons(options?: RequestOptions): Promise<Array<BuybackReason>> {
+    return this.call(getWsBuybackV1OrdersSuspendReasons, undefined, {}, options);
   }
 
   /** List the counter-offer reasons for a buyback order. */
-  listCounterOfferReasons(buybackOrderId: string): Promise<Array<BuybackCounterOfferReasonsInner>> {
-    return this.call(getWsCounterOfferReason, undefined, { buybackOrderId });
+  listCounterOfferReasons(
+    buybackOrderId: string,
+    options?: RequestOptions,
+  ): Promise<Array<BuybackCounterOfferReasonsInner>> {
+    return this.call(getWsCounterOfferReason, undefined, { buybackOrderId }, options);
   }
 
   /** Send a message on a buyback order. */
-  sendMessage(buybackOrderId: string, body: BuybackMessagePayload): Promise<BuybackMessage> {
-    return this.call(postWsBuybackV1OrdersMessages, body, { buybackOrderId });
+  sendMessage(buybackOrderId: string, body: BuybackMessagePayload, options?: RequestOptions): Promise<BuybackMessage> {
+    return this.call(postWsBuybackV1OrdersMessages, body, { buybackOrderId }, options);
   }
 
   /** Update one buyback listing. */
-  updateListing(buybackListingId: string, body: BuybackListingUpdate): Promise<object> {
-    return this.call(putWsBuybackV1Listing, body, { buybackListingId });
+  updateListing(buybackListingId: string, body: BuybackListingUpdate, options?: RequestOptions): Promise<object> {
+    return this.call(putWsBuybackV1Listing, body, { buybackListingId }, options);
   }
 
   /** Suspend a buyback order. */
-  suspendOrder(buybackOrderId: string, body: BuybackOrderSuspensionPayload): Promise<BuybackOrder> {
-    return this.call(putWsBuybackV1OrdersSuspend, body, { buybackOrderId });
+  suspendOrder(
+    buybackOrderId: string,
+    body: BuybackOrderSuspensionPayload,
+    options?: RequestOptions,
+  ): Promise<BuybackOrder> {
+    return this.call(putWsBuybackV1OrdersSuspend, body, { buybackOrderId }, options);
   }
 
   /** Validate a buyback order. */
-  validateOrder(buybackOrderId: string): Promise<BuybackOrder> {
-    return this.call(putWsBuybackV1OrdersValidate, undefined, { buybackOrderId });
+  validateOrder(buybackOrderId: string, options?: RequestOptions): Promise<BuybackOrder> {
+    return this.call(putWsBuybackV1OrdersValidate, undefined, { buybackOrderId }, options);
   }
 
   /** Make a counter-offer on a buyback order. */
   counterOffer(
     buybackOrderId: string,
     params: { price: number; comment?: string; reasons: Array<string>; files: FileInput[] },
+    options?: RequestOptions,
   ): Promise<void> {
-    return this.call(putWsRefurbisherCounterOffer, undefined, { buybackOrderId, ...params });
+    return this.call(putWsRefurbisherCounterOffer, undefined, { buybackOrderId, ...params }, options);
   }
 }

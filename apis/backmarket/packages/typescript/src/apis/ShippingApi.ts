@@ -2,7 +2,7 @@
 
 import type { Delivery, DeliveryPage, OrderIdValidationError, ReturnPage, ReturnShipment } from '../models/index.js';
 import type * as models from '../models/index.js';
-import { Resource, type FileInput, type Operation } from '../runtime/index.js';
+import { Resource, type FileInput, type Operation, type RequestOptions } from '../runtime/index.js';
 
 const getDeliveries: Operation = {
   id: 'GetDeliveries',
@@ -75,8 +75,9 @@ export class ShippingApi extends Resource {
       orderState?: 0 | 1 | 3 | 8 | 9;
       hubScanned?: boolean;
     } = {},
+    options?: RequestOptions,
   ): Promise<DeliveryPage> {
-    return this.call(getDeliveries, undefined, { ...params });
+    return this.call(getDeliveries, undefined, { ...params }, options);
   }
 
   /** Iterate every item across all pages. */
@@ -91,18 +92,19 @@ export class ShippingApi extends Resource {
       orderState?: 0 | 1 | 3 | 8 | 9;
       hubScanned?: boolean;
     } = {},
+    options?: RequestOptions,
   ): AsyncGenerator<models.Delivery, void, undefined> {
-    return this.paginate(getDeliveries, undefined, { ...params });
+    return this.paginate(getDeliveries, undefined, { ...params }, options);
   }
 
   /** Get one delivery. */
-  getDelivery(id: number): Promise<Delivery> {
-    return this.call(getDelivery, undefined, { id });
+  getDelivery(id: number, options?: RequestOptions): Promise<Delivery> {
+    return this.call(getDelivery, undefined, { id }, options);
   }
 
   /** Get one return. */
-  getReturn(id: number): Promise<ReturnShipment> {
-    return this.call(getReturn, undefined, { id });
+  getReturn(id: number, options?: RequestOptions): Promise<ReturnShipment> {
+    return this.call(getReturn, undefined, { id }, options);
   }
 
   /** List one page of returns. */
@@ -117,8 +119,9 @@ export class ShippingApi extends Resource {
       orderState?: 0 | 1 | 3 | 8 | 9;
       hubScanned?: boolean;
     } = {},
+    options?: RequestOptions,
   ): Promise<ReturnPage> {
-    return this.call(getReturns, undefined, { ...params });
+    return this.call(getReturns, undefined, { ...params }, options);
   }
 
   /** Iterate every item across all pages. */
@@ -133,7 +136,8 @@ export class ShippingApi extends Resource {
       orderState?: 0 | 1 | 3 | 8 | 9;
       hubScanned?: boolean;
     } = {},
+    options?: RequestOptions,
   ): AsyncGenerator<models.ReturnShipment, void, undefined> {
-    return this.paginate(getReturns, undefined, { ...params });
+    return this.paginate(getReturns, undefined, { ...params }, options);
   }
 }

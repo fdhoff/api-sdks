@@ -10,7 +10,7 @@ import type {
   UpdatedOrderLine,
 } from '../models/index.js';
 import type * as models from '../models/index.js';
-import { Resource, type FileInput, type Operation } from '../runtime/index.js';
+import { Resource, type FileInput, type Operation, type RequestOptions } from '../runtime/index.js';
 
 const getWsListOrder: Operation = {
   id: 'get-ws-list-order',
@@ -89,8 +89,9 @@ export class OrdersApi extends Resource {
       page?: number;
       pageSize?: number;
     } = {},
+    options?: RequestOptions,
   ): Promise<OrderPage> {
-    return this.call(getWsListOrder, undefined, { ...params });
+    return this.call(getWsListOrder, undefined, { ...params }, options);
   }
 
   /** Iterate every item across all pages. */
@@ -103,27 +104,28 @@ export class OrdersApi extends Resource {
       page?: number;
       pageSize?: number;
     } = {},
+    options?: RequestOptions,
   ): AsyncGenerator<models.Order, void, undefined> {
-    return this.paginate(getWsListOrder, undefined, { ...params });
+    return this.paginate(getWsListOrder, undefined, { ...params }, options);
   }
 
   /** Get one order. */
-  get(orderId: number): Promise<Order> {
-    return this.call(getWsSpecificOrder, undefined, { orderId });
+  get(orderId: number, options?: RequestOptions): Promise<Order> {
+    return this.call(getWsSpecificOrder, undefined, { orderId }, options);
   }
 
   /** Upload invoices for an order. */
-  uploadInvoice(orderId: number, params: { invoice?: FileInput[] } = {}): Promise<void> {
-    return this.call(postWsSpecificOrderInvoice, undefined, { orderId, ...params });
+  uploadInvoice(orderId: number, params: { invoice?: FileInput[] } = {}, options?: RequestOptions): Promise<void> {
+    return this.call(postWsSpecificOrderInvoice, undefined, { orderId, ...params }, options);
   }
 
   /** Update one order. */
-  update(orderId: number, body?: UpdateOrder): Promise<Order> {
-    return this.call(updateWsSpecificOrder, body, { orderId });
+  update(orderId: number, body?: UpdateOrder, options?: RequestOptions): Promise<Order> {
+    return this.call(updateWsSpecificOrder, body, { orderId }, options);
   }
 
   /** Update one order line. */
-  updateLine(orderlineId: number, body?: OrderLineUpdate): Promise<UpdatedOrderLine> {
-    return this.call(updateWsSpecificOrderline, body, { orderlineId });
+  updateLine(orderlineId: number, body?: OrderLineUpdate, options?: RequestOptions): Promise<UpdatedOrderLine> {
+    return this.call(updateWsSpecificOrderline, body, { orderlineId }, options);
   }
 }

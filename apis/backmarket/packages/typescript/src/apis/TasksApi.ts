@@ -2,7 +2,7 @@
 
 import type { ErrorResponseV1, Task } from '../models/index.js';
 import type * as models from '../models/index.js';
-import { Resource, type FileInput, type Operation } from '../runtime/index.js';
+import { Resource, type FileInput, type Operation, type RequestOptions } from '../runtime/index.js';
 
 const getWsTask: Operation = {
   id: 'get-ws-task',
@@ -17,7 +17,7 @@ export const OPERATIONS: readonly Operation[] = [getWsTask];
 
 export class TasksApi extends Resource {
   /** Get the state of a background task. */
-  get(taskId: number): Promise<Task> {
-    return this.call(getWsTask, undefined, { taskId });
+  get(taskId: number, options?: RequestOptions): Promise<Task> {
+    return this.call(getWsTask, undefined, { taskId }, options);
   }
 }
