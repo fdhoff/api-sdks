@@ -13,7 +13,7 @@ public enum {{classname}}{{#isLong}} : long{{/isLong}}
 {{#isString}}
     [JsonStringEnumMemberName("{{{value}}}")]
 {{/isString}}
-    {{#isString}}{{#lambda.titlecase}}{{#lambda.pascalcase}}{{#lambda.snakecase}}{{{value}}}{{/lambda.snakecase}}{{/lambda.pascalcase}}{{/lambda.titlecase}}{{/isString}}{{^isString}}Value{{{value}}} = {{{value}}}{{/isString}},
+    {{#isString}}{{#lambda.titlecase}}{{#lambda.pascalcase}}{{#lambda.snakecase}}{{{value}}}{{/lambda.snakecase}}{{/lambda.pascalcase}}{{/lambda.titlecase}}{{/isString}}{{^isString}}{{#lambda.pascalcase}}{{#lambda.lowercase}}{{name}}{{/lambda.lowercase}}{{/lambda.pascalcase}} = {{{value}}}{{/isString}},
 {{/enumVars}}
 {{/allowableValues}}
 }

@@ -6,14 +6,14 @@ package backmarketseller
 type ReturnReason int64
 
 const (
-	ReturnReason0  ReturnReason = 0
-	ReturnReason1  ReturnReason = 1
-	ReturnReason11 ReturnReason = 11
-	ReturnReason12 ReturnReason = 12
-	ReturnReason13 ReturnReason = 13
-	ReturnReason21 ReturnReason = 21
-	ReturnReason22 ReturnReason = 22
-	ReturnReason23 ReturnReason = 23
-	ReturnReason24 ReturnReason = 24
-	ReturnReason25 ReturnReason = 25
+	ReturnReasonStockMistake        ReturnReason = 0
+	ReturnReasonWithdrawal          ReturnReason = 1
+	ReturnReasonNotAtAddress        ReturnReason = 11
+	ReturnReasonNotDelivered        ReturnReason = 12
+	ReturnReasonLostParcel          ReturnReason = 13
+	ReturnReasonFaultyOnArrival     ReturnReason = 21
+	ReturnReasonFailedOnFirstUse    ReturnReason = 22
+	ReturnReasonFailedUnderWarranty ReturnReason = 23
+	ReturnReasonNonCompliant        ReturnReason = 24
+	ReturnReasonOther               ReturnReason = 25
 )

@@ -3,9 +3,9 @@
 crate::runtime::open_enum! {
     /// ProductCondition is an enumerated value. A value this version does not list is kept in `Unlisted`.
     ProductCondition: i64 {
-        Variant9 = 9,
-        Variant10 = 10,
-        Variant11 = 11,
-        Variant12 = 12,
+        Premium = 9,
+        Excellent = 10,
+        Good = 11,
+        Fair = 12,
     }
 }

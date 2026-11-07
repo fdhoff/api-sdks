@@ -11,9 +11,9 @@ from enum import Enum
 class OrderState(int, Enum):
     """Allowed values of OrderState."""
 
-    NUMBER_0 = 0
-    NUMBER_10 = 10
-    NUMBER_1 = 1
-    NUMBER_3 = 3
-    NUMBER_8 = 8
-    NUMBER_9 = 9
+    CREATED = 0
+    PENDING_PAYMENT = 10
+    PAYMENT_VALIDATED = 1
+    PENDING_SHIPMENT = 3
+    NOT_PAID = 8
+    SHIPPED = 9

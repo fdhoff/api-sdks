@@ -6,8 +6,8 @@ package backmarketseller
 type ProductCondition int64
 
 const (
-	ProductCondition9  ProductCondition = 9
-	ProductCondition10 ProductCondition = 10
-	ProductCondition11 ProductCondition = 11
-	ProductCondition12 ProductCondition = 12
+	ProductConditionPremium   ProductCondition = 9
+	ProductConditionExcellent ProductCondition = 10
+	ProductConditionGood      ProductCondition = 11
+	ProductConditionFair      ProductCondition = 12
 )

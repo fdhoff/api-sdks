@@ -8,7 +8,7 @@ crate::runtime::open_enum! {
     {{{classname}}}: {{#isString}}String{{/isString}}{{^isString}}i64{{/isString}} {
 {{#allowableValues}}
 {{#enumVars}}
-        {{{name}}} = {{#isString}}"{{{value}}}"{{/isString}}{{^isString}}{{{value}}}{{/isString}},
+        {{#isString}}{{{name}}}{{/isString}}{{^isString}}{{#lambda.pascalcase}}{{#lambda.lowercase}}{{name}}{{/lambda.lowercase}}{{/lambda.pascalcase}}{{/isString}} = {{#isString}}"{{{value}}}"{{/isString}}{{^isString}}{{{value}}}{{/isString}},
 {{/enumVars}}
 {{/allowableValues}}
     }

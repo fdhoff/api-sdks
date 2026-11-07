@@ -11,9 +11,9 @@ from enum import Enum
 class ListingStateValue(int, Enum):
     """Allowed values of ListingStateValue."""
 
-    NUMBER_9 = 9
-    NUMBER_0 = 0
-    NUMBER_1 = 1
-    NUMBER_2 = 2
-    NUMBER_3 = 3
-    NUMBER_4 = 4
+    PREMIUM = 9
+    EXCELLENT = 0
+    VERY_GOOD = 1
+    GOOD = 2
+    FAIR = 3
+    STALLONE = 4

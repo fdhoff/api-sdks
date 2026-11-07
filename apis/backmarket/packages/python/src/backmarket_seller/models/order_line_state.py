@@ -11,13 +11,13 @@ from enum import Enum
 class OrderLineState(int, Enum):
     """Allowed values of OrderLineState."""
 
-    NUMBER_0 = 0
-    NUMBER_9 = 9
-    NUMBER_8 = 8
-    NUMBER_1 = 1
-    NUMBER_2 = 2
-    NUMBER_3 = 3
-    NUMBER_4 = 4
-    NUMBER_5 = 5
-    NUMBER_6 = 6
-    NUMBER_7 = 7
+    CREATED = 0
+    ON_HOLD = 9
+    PENDING_PAYMENT = 8
+    PAID = 1
+    ACCEPTED = 2
+    SHIPPED = 3
+    CANCELLED = 4
+    REFUNDED_BEFORE_SHIPPING = 5
+    REFUNDED_AFTER_SHIPPING = 6
+    NOT_PAID = 7

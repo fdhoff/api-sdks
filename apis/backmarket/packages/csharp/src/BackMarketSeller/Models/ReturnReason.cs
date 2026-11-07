@@ -9,14 +9,14 @@ namespace BackMarketSeller.Models;
 /// <summary>An enumerated value. In a response, a value this version does not list is kept in the property as that number.</summary>
 public enum ReturnReason
 {
-    Value0 = 0,
-    Value1 = 1,
-    Value11 = 11,
-    Value12 = 12,
-    Value13 = 13,
-    Value21 = 21,
-    Value22 = 22,
-    Value23 = 23,
-    Value24 = 24,
-    Value25 = 25,
+    StockMistake = 0,
+    Withdrawal = 1,
+    NotAtAddress = 11,
+    NotDelivered = 12,
+    LostParcel = 13,
+    FaultyOnArrival = 21,
+    FailedOnFirstUse = 22,
+    FailedUnderWarranty = 23,
+    NonCompliant = 24,
+    Other = 25,
 }

@@ -9,8 +9,8 @@ namespace BackMarketSeller.Models;
 /// <summary>An enumerated value. In a response, a value this version does not list is kept in the property as that number.</summary>
 public enum ProductCondition
 {
-    Value9 = 9,
-    Value10 = 10,
-    Value11 = 11,
-    Value12 = 12,
+    Premium = 9,
+    Excellent = 10,
+    Good = 11,
+    Fair = 12,
 }

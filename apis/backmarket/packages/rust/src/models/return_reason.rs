@@ -3,15 +3,15 @@
 crate::runtime::open_enum! {
     /// ReturnReason is an enumerated value. A value this version does not list is kept in `Unlisted`.
     ReturnReason: i64 {
-        Variant0 = 0,
-        Variant1 = 1,
-        Variant11 = 11,
-        Variant12 = 12,
-        Variant13 = 13,
-        Variant21 = 21,
-        Variant22 = 22,
-        Variant23 = 23,
-        Variant24 = 24,
-        Variant25 = 25,
+        StockMistake = 0,
+        Withdrawal = 1,
+        NotAtAddress = 11,
+        NotDelivered = 12,
+        LostParcel = 13,
+        FaultyOnArrival = 21,
+        FailedOnFirstUse = 22,
+        FailedUnderWarranty = 23,
+        NonCompliant = 24,
+        Other = 25,
     }
 }

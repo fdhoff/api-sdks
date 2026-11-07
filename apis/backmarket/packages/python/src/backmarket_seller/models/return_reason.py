@@ -11,13 +11,13 @@ from enum import Enum
 class ReturnReason(int, Enum):
     """Allowed values of ReturnReason."""
 
-    NUMBER_0 = 0
-    NUMBER_1 = 1
-    NUMBER_11 = 11
-    NUMBER_12 = 12
-    NUMBER_13 = 13
-    NUMBER_21 = 21
-    NUMBER_22 = 22
-    NUMBER_23 = 23
-    NUMBER_24 = 24
-    NUMBER_25 = 25
+    STOCK_MISTAKE = 0
+    WITHDRAWAL = 1
+    NOT_AT_ADDRESS = 11
+    NOT_DELIVERED = 12
+    LOST_PARCEL = 13
+    FAULTY_ON_ARRIVAL = 21
+    FAILED_ON_FIRST_USE = 22
+    FAILED_UNDER_WARRANTY = 23
+    NON_COMPLIANT = 24
+    OTHER = 25
