@@ -4,16 +4,16 @@ Unofficial spec-driven SDKs for the Back Market Seller API.
 
 This project is unofficial and is not affiliated with, endorsed by, or supported by Back Market.
 
-The Python and TypeScript SDKs are unpublished alphas: see [`apis/backmarket/packages/python/`](apis/backmarket/packages/python/README.md) and [`apis/backmarket/packages/typescript/`](apis/backmarket/packages/typescript/README.md). The Go SDK is an untagged alpha: see [`apis/backmarket/packages/go/`](apis/backmarket/packages/go/README.md). The C# and Rust SDKs are unpublished alphas: see [`apis/backmarket/packages/csharp/`](apis/backmarket/packages/csharp/README.md) and [`apis/backmarket/packages/rust/`](apis/backmarket/packages/rust/README.md).
+The Python and TypeScript SDKs are alphas on PyPI and npm: see [`apis/backmarket/packages/python/`](apis/backmarket/packages/python/README.md) and [`apis/backmarket/packages/typescript/`](apis/backmarket/packages/typescript/README.md). The Go SDK is a tagged alpha: see [`apis/backmarket/packages/go/`](apis/backmarket/packages/go/README.md). The C# and Rust SDKs are unpublished alphas: see [`apis/backmarket/packages/csharp/`](apis/backmarket/packages/csharp/README.md) and [`apis/backmarket/packages/rust/`](apis/backmarket/packages/rust/README.md).
 
 ## Quickstart
 
-None of the SDKs is published yet. Install one from a checkout of this repository, and pass in your own API token.
+Python, TypeScript and Go install from their registries. C# and Rust install from a checkout of this repository. Pass in your own API token.
 
 ### Python
 
 ```sh
-pip install ./apis/backmarket/packages/python
+pip install --pre backmarket-seller
 ```
 
 ```python
@@ -33,13 +33,10 @@ The [Python README](apis/backmarket/packages/python/README.md) covers async use,
 
 ### TypeScript
 
-Requires Node 22 or later. Build a tarball, then `npm install` it in your project:
+Requires Node 22 or later.
 
 ```sh
-cd apis/backmarket/packages/typescript
-npm ci --ignore-scripts
-npm run build
-npm pack
+npm install backmarket-seller@alpha
 ```
 
 ```ts
@@ -81,7 +78,7 @@ for order, err := range client.Orders.Iter(context.Background(), nil) {
 }
 ```
 
-The [Go README](apis/backmarket/packages/go/README.md) covers installing from a checkout, errors, configuration and behaviour.
+The [Go README](apis/backmarket/packages/go/README.md) covers installing, errors, configuration and behaviour.
 
 ### C#
 

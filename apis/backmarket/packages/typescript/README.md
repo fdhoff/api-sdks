@@ -2,20 +2,15 @@
 
 Unofficial TypeScript client for the Back Market Seller API. This project is unofficial and is not affiliated with, endorsed by, or supported by Back Market.
 
-**Alpha, and not published yet.** It is tested only against a mock built from the public spec, never against the live API. If you use it for real, please report what you find, working or not, as a GitHub issue. Those reports are what move it past 0.x.
+**Alpha.** It is tested only against a mock built from the public spec, never against the live API. If you use it for real, please report what you find, working or not, as a GitHub issue. Those reports are what move it past 0.x.
 
 ## Install
 
-From a checkout of this repository, until it is published:
-
 ```sh
-cd apis/backmarket/packages/typescript
-npm ci --ignore-scripts
-npm run build
-npm pack
+npm install backmarket-seller@alpha
 ```
 
-Then `npm install` the tarball in your project. Requires Node.js 22 or later. It works from ESM and CommonJS, uses the built-in `fetch`, and has no runtime dependencies.
+Requires Node.js 22 or later. It works from ESM and CommonJS, uses the built-in `fetch`, and has no runtime dependencies.
 
 ## Quickstart
 
