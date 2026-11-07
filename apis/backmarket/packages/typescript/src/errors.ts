@@ -4,48 +4,67 @@ const BOT_CHALLENGE_CODE = 'bot-need-challenge';
 
 /** HTTP 400. */
 export class BadRequestError extends ApiError {
-  override readonly kind: string = 'bad_request';
+  override readonly kind = 'bad_request';
 }
 
 /** HTTP 401. */
 export class AuthenticationError extends ApiError {
-  override readonly kind: string = 'authentication';
+  override readonly kind = 'authentication';
 }
 
 /** HTTP 403 that is neither of the two below. */
 export class PermissionDeniedError extends ApiError {
-  override readonly kind: string = 'permission';
+  override readonly kind: 'permission' | 'waf_blocked' | 'bot_challenge' = 'permission';
 }
 
 /** HTTP 403 HTML block from the firewall. Give `cfRay` to your seller contact. */
 export class WafBlockedError extends PermissionDeniedError {
-  override readonly kind: string = 'waf_blocked';
+  override readonly kind = 'waf_blocked';
 }
 
 /** HTTP 403 from bot management. */
 export class BotChallengeError extends PermissionDeniedError {
-  override readonly kind: string = 'bot_challenge';
+  override readonly kind = 'bot_challenge';
 }
 
 /** HTTP 404. */
 export class NotFoundError extends ApiError {
-  override readonly kind: string = 'not_found';
+  override readonly kind = 'not_found';
 }
 
 /** HTTP 422. */
 export class UnprocessableError extends ApiError {
-  override readonly kind: string = 'validation';
+  override readonly kind = 'validation';
 }
 
 /** HTTP 429, after retries. */
 export class RateLimitedError extends ApiError {
-  override readonly kind: string = 'rate_limited';
+  override readonly kind = 'rate_limited';
 }
 
 /** HTTP 5xx, after retries. */
 export class ServerError extends ApiError {
-  override readonly kind: string = 'server';
+  override readonly kind = 'server';
 }
+
+/** Every error the client throws. Compare `kind`, and the type narrows to that class. */
+export type ClientError =
+  | (ApiError & { readonly kind: 'api' })
+  | ApiConnectionError
+  | ApiTimeoutError
+  | AuthenticationError
+  | BadRequestError
+  | BotChallengeError
+  | DecodeError
+  | NotFoundError
+  | PermissionDeniedError
+  | RateLimitedError
+  | ServerError
+  | UnprocessableError
+  | WafBlockedError;
+
+/** The `kind` of every error the client throws. */
+export type ErrorKind = ClientError['kind'];
 
 type ErrorType = new (...args: ConstructorParameters<typeof ApiError>) => ApiError;
 
