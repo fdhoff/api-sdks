@@ -144,14 +144,16 @@ def _parse_json(text: str) -> Any:
         return None
 
 
-def _read(settings: Settings, method: str, response: httpx.Response) -> Any:
+def _read(settings: Settings, operation: Operation[Any], response: httpx.Response) -> Any:
     text = response.text
-    _log(settings, logging.DEBUG, f"<- {method} {response.status_code} ({len(text)} chars)")
+    _log(settings, logging.DEBUG, f"<- {operation.method} {response.status_code} ({len(text)} chars)")
     if not response.is_success:
         clean = text.replace(settings.secret, _REDACTED)
         raise settings.to_error(ErrorContext(response.status_code, response.headers, clean, _parse_json(clean)))
     if text == "":
-        return None
+        if operation.response not in (None, str):
+            raise DecodeError("The response body is empty", status=response.status_code)
+        return "" if operation.response is str else None
     if "json" not in response.headers.get("content-type", ""):
         return text
     try:
@@ -275,7 +277,7 @@ class SyncTransport:
                     response = self._attempt(request)
                 except httpx.TransportError as error:
                     raise _translate(error) from error
-                return _read(settings, operation.method, response)
+                return _read(settings, operation, response)
             except ApiError as error:
                 delay = _retry_delay(settings, error, operation.method, tries)
                 if delay is None:
@@ -310,7 +312,7 @@ class AsyncTransport:
                     raise _translate(error) from error
                 except asyncio.TimeoutError as error:
                     raise ApiTimeoutError("The request timed out") from error
-                return _read(settings, operation.method, response)
+                return _read(settings, operation, response)
             except ApiError as error:
                 delay = _retry_delay(settings, error, operation.method, tries)
                 if delay is None:

@@ -14,6 +14,7 @@ const getBackboxData: Operation = {
     { wire: 'page', name: 'page', location: 'query' },
     { wire: 'page-size', name: 'pageSize', location: 'query' },
   ],
+  returnsJson: true,
   iterator: 'iter',
 };
 
@@ -24,6 +25,7 @@ const getWsBackboxV1Competitors: Operation = {
   resource: 'backbox',
   name: 'listCompetitors',
   params: [{ wire: 'listingId', name: 'listingId', location: 'path' }],
+  returnsJson: true,
 };
 
 export const OPERATIONS: readonly Operation[] = [getBackboxData, getWsBackboxV1Competitors];

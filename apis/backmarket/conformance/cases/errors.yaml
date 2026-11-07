@@ -208,6 +208,33 @@ cases:
     expect:
       error: { kind: decode, status: 200 }
 
+  - name: error-empty-success-body
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/json }
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: decode, status: 200 }
+
+  - name: error-empty-success-body-without-content-type
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 200
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: decode, status: 200 }
+
   - name: error-corrupt-compressed-success-body
     request:
       operation: get-ws-specific-order

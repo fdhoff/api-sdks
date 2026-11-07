@@ -16,6 +16,7 @@ var (
 		Resource:    "Orders",
 		Name:        "List",
 		Iterator:    "Iter",
+		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"date_creation", "date_modification", "country_code", "state", "page", "page-size"},
 	})
@@ -25,6 +26,7 @@ var (
 		Path:        "/ws/orders/{order_id}",
 		Resource:    "Orders",
 		Name:        "Get",
+		ReturnsJSON: true,
 		PathParams:  []string{"order_id"},
 		QueryParams: []string{},
 	})
@@ -43,6 +45,7 @@ var (
 		Path:        "/ws/orders/{order_id}",
 		Resource:    "Orders",
 		Name:        "Update",
+		ReturnsJSON: true,
 		PathParams:  []string{"order_id"},
 		QueryParams: []string{},
 	})
@@ -52,6 +55,7 @@ var (
 		Path:        "/ws/orderlines/{orderline_id}",
 		Resource:    "Orders",
 		Name:        "UpdateLine",
+		ReturnsJSON: true,
 		PathParams:  []string{"orderline_id"},
 		QueryParams: []string{},
 	})

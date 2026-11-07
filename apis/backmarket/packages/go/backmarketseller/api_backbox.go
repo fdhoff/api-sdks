@@ -16,6 +16,7 @@ var (
 		Resource:    "Backbox",
 		Name:        "List",
 		Iterator:    "Iter",
+		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"page", "page-size"},
 	})
@@ -25,6 +26,7 @@ var (
 		Path:        "/ws/backbox/v1/competitors/{listingId}",
 		Resource:    "Backbox",
 		Name:        "ListCompetitors",
+		ReturnsJSON: true,
 		PathParams:  []string{"listingId"},
 		QueryParams: []string{},
 	})

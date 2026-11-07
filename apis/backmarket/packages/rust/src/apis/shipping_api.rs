@@ -22,18 +22,21 @@ const GET_DELIVERIES: Operation = Operation {
         "order_state",
         "hub_scanned",
     ],
+    returns_json: true,
 };
 const GET_DELIVERY: Operation = Operation {
     id: "GetDelivery",
     method: "GET",
     path: "/ws/shipping/v1/deliveries/{id}",
     query_params: &[],
+    returns_json: true,
 };
 const GET_RETURN: Operation = Operation {
     id: "GetReturn",
     method: "GET",
     path: "/ws/shipping/v1/returns/{id}",
     query_params: &[],
+    returns_json: true,
 };
 const GET_RETURNS: Operation = Operation {
     id: "GetReturns",
@@ -49,6 +52,7 @@ const GET_RETURNS: Operation = Operation {
         "order_state",
         "hub_scanned",
     ],
+    returns_json: true,
 };
 
 /// The query parameters of [`ShippingApi::list_deliveries`]. Set only what you need.

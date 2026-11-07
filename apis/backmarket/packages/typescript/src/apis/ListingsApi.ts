@@ -25,6 +25,7 @@ const getWsListListing: Operation = {
     { wire: 'page', name: 'page', location: 'query' },
     { wire: 'page-size', name: 'pageSize', location: 'query' },
   ],
+  returnsJson: true,
   iterator: 'iter',
 };
 
@@ -39,6 +40,7 @@ const getWsListingDetail: Operation = {
     { wire: 'listing_id', name: 'listingId', location: 'query' },
     { wire: 'id', name: 'id', location: 'query' },
   ],
+  returnsJson: true,
 };
 
 const getWsSpecificListing: Operation = {
@@ -48,6 +50,7 @@ const getWsSpecificListing: Operation = {
   resource: 'listings',
   name: 'get',
   params: [{ wire: 'listingId', name: 'listingId', location: 'path' }],
+  returnsJson: true,
 };
 
 const postWsCreateOrUpdateListings: Operation = {
@@ -58,6 +61,7 @@ const postWsCreateOrUpdateListings: Operation = {
   name: 'batchUpdate',
   params: [],
   hasBody: true,
+  returnsJson: true,
 };
 
 const updateWsSpecificListing: Operation = {
@@ -68,6 +72,7 @@ const updateWsSpecificListing: Operation = {
   name: 'update',
   params: [{ wire: 'listingId', name: 'listingId', location: 'path' }],
   hasBody: true,
+  returnsJson: true,
 };
 
 export const OPERATIONS: readonly Operation[] = [

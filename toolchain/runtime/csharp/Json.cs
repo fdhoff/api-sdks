@@ -52,7 +52,7 @@ internal static class Json
         }
     }
 
-    /// <summary>An empty body reads as an empty value, so a call that succeeded does not fail for want of one.</summary>
+    /// <summary>A JSON <c>null</c> reads as an empty value.</summary>
     public static T Empty<T>()
     {
         if (typeof(T) == typeof(string))

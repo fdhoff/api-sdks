@@ -9,11 +9,13 @@ const SPEC = apiPaths(fileURLToPath(new URL('..', import.meta.url))).build;
 const DEFAULTS = { timeout_ms: 30_000, max_retries: 3, retry_base_delay_ms: 500, rate_limit_wait_ms: 10_000, max_retry_wait_ms: 60_000 };
 
 const spec = parse(await readFile(SPEC, 'utf8'));
+const declaresJson = ({ responses = {} }) =>
+  Object.entries(responses).some(([status, { content = {} }]) => status.startsWith('2') && Object.keys(content).some((type) => type.includes('json')));
 const operations = new Map(
   Object.entries(spec.paths).flatMap(([path, item]) =>
     METHODS.filter((method) => item[method]).map((method) => [
       item[method].operationId,
-      { method: method.toUpperCase(), path },
+      { method: method.toUpperCase(), path, json: declaresJson(item[method]) },
     ]),
   ),
 );
@@ -60,8 +62,11 @@ function toError(client, response, text) {
   return new ClientError(fields, response.headers.get('retry-after'));
 }
 
-function decode(response, text) {
-  if (text === '') return null;
+function decode(response, text, json) {
+  if (text === '') {
+    if (json) throw new ClientError({ kind: 'decode', status: response.status });
+    return null;
+  }
   if (!response.headers.get('content-type')?.includes('json')) return text;
   const json = parseJson(text);
   if (json === undefined) throw new ClientError({ kind: 'decode', status: response.status });
@@ -69,7 +74,7 @@ function decode(response, text) {
 }
 
 function buildRequest(client, { operation, params = {}, body, multipart }) {
-  const { method, path } = operations.get(operation);
+  const { method, path, json } = operations.get(operation);
   const query = new URLSearchParams();
   let filled = path;
   for (const [name, value] of Object.entries(params)) {
@@ -94,10 +99,10 @@ function buildRequest(client, { operation, params = {}, body, multipart }) {
     headers['Content-Type'] = 'application/json';
   }
   const search = query.size > 0 ? `?${query}` : '';
-  return { url: `${client.base_url}${filled}${search}`, init };
+  return { url: `${client.base_url}${filled}${search}`, init, json };
 }
 
-async function attempt(client, { url, init }, log) {
+async function attempt(client, { url, init, json }, log) {
   log(`-> ${init.method} ${url} Authorization: ${init.headers.Authorization}`);
   let response;
   let text;
@@ -113,7 +118,7 @@ async function attempt(client, { url, init }, log) {
   }
   log(`<- ${response.status} ${text}`);
   if (!response.ok) throw toError(client, response, text);
-  return decode(response, text);
+  return decode(response, text, json);
 }
 
 function retryAfterMs(value) {

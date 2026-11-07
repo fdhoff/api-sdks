@@ -19,30 +19,35 @@ const GET_WS_LIST_LISTING: Operation = Operation {
         "page",
         "page-size",
     ],
+    returns_json: true,
 };
 const GET_WS_LISTING_DETAIL: Operation = Operation {
     id: "get-ws-listing-detail",
     method: "GET",
     path: "/ws/listings/detail",
     query_params: &["sku", "listing_id", "id"],
+    returns_json: true,
 };
 const GET_WS_SPECIFIC_LISTING: Operation = Operation {
     id: "get-ws-specific-listing",
     method: "GET",
     path: "/ws/listings/{listingId}",
     query_params: &[],
+    returns_json: true,
 };
 const POST_WS_CREATE_OR_UPDATE_LISTINGS: Operation = Operation {
     id: "post-ws-create-or-update-listings",
     method: "POST",
     path: "/ws/listings",
     query_params: &[],
+    returns_json: true,
 };
 const UPDATE_WS_SPECIFIC_LISTING: Operation = Operation {
     id: "update-ws-specific-listing",
     method: "POST",
     path: "/ws/listings/{listingId}",
     query_params: &[],
+    returns_json: true,
 };
 
 /// The query parameters of [`ListingsApi::list`]. Set only what you need.

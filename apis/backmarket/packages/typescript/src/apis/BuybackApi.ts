@@ -29,6 +29,7 @@ const getWsBuybackV1Competitors: Operation = {
   resource: 'buyback',
   name: 'listCompetitors',
   params: [{ wire: 'listingId', name: 'listingId', location: 'path' }],
+  returnsJson: true,
 };
 
 const getWsBuybackV1Listing: Operation = {
@@ -38,6 +39,7 @@ const getWsBuybackV1Listing: Operation = {
   resource: 'buyback',
   name: 'getListing',
   params: [{ wire: 'buybackListingId', name: 'buybackListingId', location: 'path' }],
+  returnsJson: true,
 };
 
 const getWsBuybackV1Listings: Operation = {
@@ -51,6 +53,7 @@ const getWsBuybackV1Listings: Operation = {
     { wire: 'cursor', name: 'cursor', location: 'query' },
     { wire: 'pageSize', name: 'pageSize', location: 'query' },
   ],
+  returnsJson: true,
   iterator: 'iterListings',
 };
 
@@ -61,6 +64,7 @@ const getWsBuybackV1Order: Operation = {
   resource: 'buyback',
   name: 'getOrder',
   params: [{ wire: 'buybackOrderId', name: 'buybackOrderId', location: 'path' }],
+  returnsJson: true,
 };
 
 const getWsBuybackV1Orders: Operation = {
@@ -80,6 +84,7 @@ const getWsBuybackV1Orders: Operation = {
     { wire: 'paymentDate', name: 'paymentDate', location: 'query' },
     { wire: 'page', name: 'page', location: 'query' },
   ],
+  returnsJson: true,
   iterator: 'iterOrders',
 };
 
@@ -93,6 +98,7 @@ const getWsBuybackV1OrdersMessages: Operation = {
     { wire: 'buybackOrderId', name: 'buybackOrderId', location: 'path' },
     { wire: 'page', name: 'page', location: 'query' },
   ],
+  returnsJson: true,
   iterator: 'iterMessages',
 };
 
@@ -103,6 +109,7 @@ const getWsBuybackV1OrdersPendingReply: Operation = {
   resource: 'buyback',
   name: 'listPendingOrders',
   params: [{ wire: 'page', name: 'page', location: 'query' }],
+  returnsJson: true,
   iterator: 'iterPendingOrders',
 };
 
@@ -113,6 +120,7 @@ const getWsBuybackV1OrdersSuspendReasons: Operation = {
   resource: 'buyback',
   name: 'listSuspendReasons',
   params: [],
+  returnsJson: true,
 };
 
 const getWsCounterOfferReason: Operation = {
@@ -122,6 +130,7 @@ const getWsCounterOfferReason: Operation = {
   resource: 'buyback',
   name: 'listCounterOfferReasons',
   params: [{ wire: 'buybackOrderId', name: 'buybackOrderId', location: 'path' }],
+  returnsJson: true,
 };
 
 const postWsBuybackV1OrdersMessages: Operation = {
@@ -132,6 +141,7 @@ const postWsBuybackV1OrdersMessages: Operation = {
   name: 'sendMessage',
   params: [{ wire: 'buybackOrderId', name: 'buybackOrderId', location: 'path' }],
   hasBody: true,
+  returnsJson: true,
 };
 
 const putWsBuybackV1Listing: Operation = {
@@ -142,6 +152,7 @@ const putWsBuybackV1Listing: Operation = {
   name: 'updateListing',
   params: [{ wire: 'buybackListingId', name: 'buybackListingId', location: 'path' }],
   hasBody: true,
+  returnsJson: true,
 };
 
 const putWsBuybackV1OrdersSuspend: Operation = {
@@ -152,6 +163,7 @@ const putWsBuybackV1OrdersSuspend: Operation = {
   name: 'suspendOrder',
   params: [{ wire: 'buybackOrderId', name: 'buybackOrderId', location: 'path' }],
   hasBody: true,
+  returnsJson: true,
 };
 
 const putWsBuybackV1OrdersValidate: Operation = {
@@ -161,6 +173,7 @@ const putWsBuybackV1OrdersValidate: Operation = {
   resource: 'buyback',
   name: 'validateOrder',
   params: [{ wire: 'buybackOrderId', name: 'buybackOrderId', location: 'path' }],
+  returnsJson: true,
 };
 
 const putWsRefurbisherCounterOffer: Operation = {

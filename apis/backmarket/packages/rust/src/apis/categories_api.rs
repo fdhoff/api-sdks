@@ -13,12 +13,14 @@ const GET_BM_CATALOG_CATEGORY: Operation = Operation {
     method: "GET",
     path: "/ws/category/tree",
     query_params: &[],
+    returns_json: true,
 };
 const GET_BM_CATALOG_CATEGORY_BRANCH: Operation = Operation {
     id: "get-bm-catalog-category-branch",
     method: "GET",
     path: "/ws/category/tree/{categoryId}",
     query_params: &[],
+    returns_json: true,
 };
 
 /// The `categories` operations, from [`Client::categories`](crate::Client::categories).

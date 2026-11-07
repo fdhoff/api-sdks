@@ -103,7 +103,7 @@ internal sealed class Transport : IDisposable
         }
         if (reply.Text.Length == 0)
         {
-            return Json.Empty<T>();
+            throw new ApiDecodeException($"The response body is empty, so it cannot be a {typeof(T).Name}") { Status = reply.Status, RawBody = reply.Clean };
         }
         throw new ApiDecodeException($"The response is not JSON, so it cannot be a {typeof(T).Name}") { Status = reply.Status, RawBody = reply.Clean };
     }

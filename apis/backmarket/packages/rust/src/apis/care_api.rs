@@ -13,6 +13,7 @@ const GET_CARE_FOLDER_DETAILS: Operation = Operation {
     method: "GET",
     path: "/ws/sav/{careFolderId}",
     query_params: &[],
+    returns_json: true,
 };
 const GET_CARE_FOLDER_LIST: Operation = Operation {
     id: "getCareFolderList",
@@ -26,36 +27,42 @@ const GET_CARE_FOLDER_LIST: Operation = Operation {
         "last_message_date",
         "page",
     ],
+    returns_json: true,
 };
 const POST_ITEM_TRANSFER: Operation = Operation {
     id: "postItemTransfer",
     method: "POST",
     path: "/ws/sav/{careFolderId}/item-transfer",
     query_params: &[],
+    returns_json: false,
 };
 const POST_MESSAGE: Operation = Operation {
     id: "postMessage",
     method: "POST",
     path: "/ws/sav/{careFolderId}/msg",
     query_params: &[],
+    returns_json: true,
 };
 const POST_NOTE: Operation = Operation {
     id: "postNote",
     method: "POST",
     path: "/ws/sav/{careFolderId}/note",
     query_params: &[],
+    returns_json: true,
 };
 const POST_PROBLEM: Operation = Operation {
     id: "postProblem",
     method: "POST",
     path: "/ws/sav/{careFolderId}/problem",
     query_params: &[],
+    returns_json: false,
 };
 const POST_REFUND_CREATE: Operation = Operation {
     id: "postRefundCreate",
     method: "POST",
     path: "/ws/sav/refund",
     query_params: &[],
+    returns_json: false,
 };
 
 /// The query parameters of [`CareApi::list_folders`]. Set only what you need.

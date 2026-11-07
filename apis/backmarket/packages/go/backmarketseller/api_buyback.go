@@ -15,6 +15,7 @@ var (
 		Path:        "/ws/buyback/v1/competitors/{listingId}",
 		Resource:    "Buyback",
 		Name:        "ListCompetitors",
+		ReturnsJSON: true,
 		PathParams:  []string{"listingId"},
 		QueryParams: []string{},
 	})
@@ -24,6 +25,7 @@ var (
 		Path:        "/ws/buyback/v1/listings/{buybackListingId}",
 		Resource:    "Buyback",
 		Name:        "GetListing",
+		ReturnsJSON: true,
 		PathParams:  []string{"buybackListingId"},
 		QueryParams: []string{},
 	})
@@ -34,6 +36,7 @@ var (
 		Resource:    "Buyback",
 		Name:        "ListListings",
 		Iterator:    "IterListings",
+		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"productId", "cursor", "pageSize"},
 	})
@@ -43,6 +46,7 @@ var (
 		Path:        "/ws/buyback/v1/orders/{buybackOrderId}",
 		Resource:    "Buyback",
 		Name:        "GetOrder",
+		ReturnsJSON: true,
 		PathParams:  []string{"buybackOrderId"},
 		QueryParams: []string{},
 	})
@@ -53,6 +57,7 @@ var (
 		Resource:    "Buyback",
 		Name:        "ListOrders",
 		Iterator:    "IterOrders",
+		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"status", "productId", "creationDate", "modificationDate", "shippingDate", "receivedDate", "suspendedDate", "paymentDate", "page"},
 	})
@@ -63,6 +68,7 @@ var (
 		Resource:    "Buyback",
 		Name:        "ListMessages",
 		Iterator:    "IterMessages",
+		ReturnsJSON: true,
 		PathParams:  []string{"buybackOrderId"},
 		QueryParams: []string{"page"},
 	})
@@ -73,6 +79,7 @@ var (
 		Resource:    "Buyback",
 		Name:        "ListPendingOrders",
 		Iterator:    "IterPendingOrders",
+		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"page"},
 	})
@@ -82,6 +89,7 @@ var (
 		Path:        "/ws/buyback/v1/orders/suspend-reasons",
 		Resource:    "Buyback",
 		Name:        "ListSuspendReasons",
+		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{},
 	})
@@ -91,6 +99,7 @@ var (
 		Path:        "/ws/buyback/v1/orders/{buybackOrderId}/counter-offers/reasons",
 		Resource:    "Buyback",
 		Name:        "ListCounterOfferReasons",
+		ReturnsJSON: true,
 		PathParams:  []string{"buybackOrderId"},
 		QueryParams: []string{},
 	})
@@ -100,6 +109,7 @@ var (
 		Path:        "/ws/buyback/v1/orders/{buybackOrderId}/messages",
 		Resource:    "Buyback",
 		Name:        "SendMessage",
+		ReturnsJSON: true,
 		PathParams:  []string{"buybackOrderId"},
 		QueryParams: []string{},
 	})
@@ -109,6 +119,7 @@ var (
 		Path:        "/ws/buyback/v1/listings/{buybackListingId}",
 		Resource:    "Buyback",
 		Name:        "UpdateListing",
+		ReturnsJSON: true,
 		PathParams:  []string{"buybackListingId"},
 		QueryParams: []string{},
 	})
@@ -118,6 +129,7 @@ var (
 		Path:        "/ws/buyback/v1/orders/{buybackOrderId}/suspend",
 		Resource:    "Buyback",
 		Name:        "SuspendOrder",
+		ReturnsJSON: true,
 		PathParams:  []string{"buybackOrderId"},
 		QueryParams: []string{},
 	})
@@ -127,6 +139,7 @@ var (
 		Path:        "/ws/buyback/v1/orders/{buybackOrderId}/validate",
 		Resource:    "Buyback",
 		Name:        "ValidateOrder",
+		ReturnsJSON: true,
 		PathParams:  []string{"buybackOrderId"},
 		QueryParams: []string{},
 	})

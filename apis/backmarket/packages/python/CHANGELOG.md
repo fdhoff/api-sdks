@@ -2,6 +2,10 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
+## Unreleased
+
+* An empty success body where the spec declares JSON raises `DecodeError` instead of returning `None`. Where the spec declares text, it reads as `""`.
+
 ## 0.1.0a2 (2026-11-07)
 
 * Requests now send `Accept-Encoding: gzip`, the only compression the client decodes. httpx otherwise asked for deflate, and br or zstd when their packages were installed, and every such response failed with `DecodeError`.

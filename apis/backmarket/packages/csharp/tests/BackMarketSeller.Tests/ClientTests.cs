@@ -127,6 +127,32 @@ public sealed class ClientTests
     }
 
     [Theory]
+    [InlineData("application/json")]
+    [InlineData(null)]
+    public async Task AnEmptySuccessIsADecodeErrorWhereTheSpecDeclaresJson(string? contentType)
+    {
+        var content = new ByteArrayContent([]);
+        if (contentType is not null)
+        {
+            content.Headers.ContentType = new(contentType);
+        }
+        using var client = Client(new ScriptedHandler(new HttpResponseMessage(HttpStatusCode.OK) { Content = content }));
+
+        var error = await Assert.ThrowsAsync<ApiDecodeException>(() => client.Orders.GetAsync(1, TestContext.Current.CancellationToken));
+
+        Assert.Equal(200, error.Status);
+    }
+
+    [Fact]
+    public async Task AnEmptySuccessIsFineWhereTheSpecDeclaresNoJson()
+    {
+        using var client = Client(new ScriptedHandler(new HttpResponseMessage(HttpStatusCode.Created), new HttpResponseMessage(HttpStatusCode.Created)));
+
+        await client.Care.TransferItemAsync(1, new PostItemTransferCreateRequest(), TestContext.Current.CancellationToken);
+        Assert.Equal("", await client.Care.CreateRefundAsync(new PostRefundCreateRequest(), TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
     [InlineData(10)]
     [InlineData(30)]
     [InlineData(-8)]
@@ -256,17 +282,6 @@ public sealed class ClientTests
         var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.Orders.GetAsync(1, cancel.Token));
 
         Assert.IsNotAssignableFrom<ApiException>(error);
-    }
-
-    [Fact]
-    public async Task AnEmptySuccessBodyReadsAsAnEmptyModel()
-    {
-        using var client = Client(new ScriptedHandler(new HttpResponseMessage(HttpStatusCode.OK)));
-
-        var order = await client.Orders.GetAsync(1, TestContext.Current.CancellationToken);
-
-        Assert.Null(order.OrderId);
-        Assert.Empty(order.Extra);
     }
 
     [Fact]

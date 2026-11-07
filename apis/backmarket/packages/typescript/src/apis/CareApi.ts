@@ -19,6 +19,7 @@ const getCareFolderDetails: Operation = {
   resource: 'care',
   name: 'getFolder',
   params: [{ wire: 'careFolderId', name: 'careFolderId', location: 'path' }],
+  returnsJson: true,
 };
 
 const getCareFolderList: Operation = {
@@ -35,6 +36,7 @@ const getCareFolderList: Operation = {
     { wire: 'last_message_date', name: 'lastMessageDate', location: 'query' },
     { wire: 'page', name: 'page', location: 'query' },
   ],
+  returnsJson: true,
   iterator: 'iterFolders',
 };
 
@@ -59,6 +61,7 @@ const postMessage: Operation = {
     { wire: 'attachment', name: 'attachment', location: 'form' },
     { wire: 'message', name: 'message', location: 'form' },
   ],
+  returnsJson: true,
 };
 
 const postNote: Operation = {
@@ -69,6 +72,7 @@ const postNote: Operation = {
   name: 'addNote',
   params: [{ wire: 'careFolderId', name: 'careFolderId', location: 'path' }],
   hasBody: true,
+  returnsJson: true,
 };
 
 const postProblem: Operation = {

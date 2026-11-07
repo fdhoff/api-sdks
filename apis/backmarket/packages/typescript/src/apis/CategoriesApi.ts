@@ -11,6 +11,7 @@ const getBmCatalogCategory: Operation = {
   resource: 'categories',
   name: 'list',
   params: [],
+  returnsJson: true,
 };
 
 const getBmCatalogCategoryBranch: Operation = {
@@ -20,6 +21,7 @@ const getBmCatalogCategoryBranch: Operation = {
   resource: 'categories',
   name: 'get',
   params: [{ wire: 'categoryId', name: 'categoryId', location: 'path' }],
+  returnsJson: true,
 };
 
 export const OPERATIONS: readonly Operation[] = [getBmCatalogCategory, getBmCatalogCategoryBranch];

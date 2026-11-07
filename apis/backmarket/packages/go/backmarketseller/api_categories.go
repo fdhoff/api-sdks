@@ -15,6 +15,7 @@ var (
 		Path:        "/ws/category/tree",
 		Resource:    "Categories",
 		Name:        "List",
+		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{},
 	})
@@ -24,6 +25,7 @@ var (
 		Path:        "/ws/category/tree/{categoryId}",
 		Resource:    "Categories",
 		Name:        "Get",
+		ReturnsJSON: true,
 		PathParams:  []string{"categoryId"},
 		QueryParams: []string{},
 	})

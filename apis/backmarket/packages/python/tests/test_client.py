@@ -146,6 +146,24 @@ def test_a_non_object_response_comes_back_raw() -> None:
     assert result == ["unexpected"]
 
 
+@pytest.mark.parametrize("headers", [{"content-type": "application/json"}, {}])
+def test_an_empty_success_body_is_a_decode_error(headers: dict[str, str]) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, headers=headers)
+
+    with pytest.raises(DecodeError) as caught:
+        client_for(handler).orders.get(1)
+    assert caught.value.status == 200
+    with pytest.raises(DecodeError):
+        async_order(handler)
+
+
+def test_an_empty_body_is_fine_where_none_is_declared() -> None:
+    client = client_for(lambda request: httpx.Response(201))
+    client.care.transfer_item(1, {})
+    assert client.care.create_refund({}) == ""
+
+
 def test_request_models_are_strict() -> None:
     with pytest.raises(ValidationError):
         UpdateOrder.model_validate({"order_id": "not-an-int", "new_state": 1})

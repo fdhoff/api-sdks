@@ -39,6 +39,8 @@ type Operation struct {
 	Iterator    string
 	PathParams  []string
 	QueryParams []string
+	// ReturnsJSON is set when the spec declares a JSON success body, so an empty one is an error.
+	ReturnsJSON bool
 }
 
 var operations = map[string]*Operation{}
@@ -281,9 +283,12 @@ func (t *Transport) decodeError(message string, answer *response, cause error) *
 	return &Error{Kind: KindDecode, Message: message, Status: answer.status, RawBody: t.redact(string(answer.body)), Cause: cause}
 }
 
-func decode[T any](t *Transport, answer *response) (T, error) {
+func decode[T any](t *Transport, operation *Operation, answer *response) (T, error) {
 	var result, empty T
 	if len(answer.body) == 0 {
+		if operation.ReturnsJSON {
+			return empty, t.decodeError("the response body is empty", answer, nil)
+		}
 		return result, nil
 	}
 	if !strings.Contains(strings.ToLower(answer.header.Get("Content-Type")), "json") {
@@ -314,7 +319,7 @@ func Call[T any](ctx context.Context, t *Transport, operation *Operation, input 
 	if err != nil {
 		return empty, err
 	}
-	return decode[T](t, answer)
+	return decode[T](t, operation, answer)
 }
 
 // nextQuery reads the position out of a page's `next` link and applies it to our own request.

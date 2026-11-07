@@ -33,6 +33,9 @@ const {{nickname}}: Operation = {
 {{#bodyParam}}
   hasBody: true,
 {{/bodyParam}}
+{{#vendorExtensions.x-sdk-returns-json}}
+  returnsJson: true,
+{{/vendorExtensions.x-sdk-returns-json}}
 {{#vendorExtensions.x-sdk-iterator}}
   iterator: '{{vendorExtensions.x-sdk-iterator}}',
 {{/vendorExtensions.x-sdk-iterator}}
