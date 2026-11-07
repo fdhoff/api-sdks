@@ -238,6 +238,22 @@ cases:
     expect:
       result: { order_id: 1, tracking_number: SYNTHETIC-TRACKING-0000000001 }
 
+  - name: accepts-only-encodings-it-decodes
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 200
+          body: { order_id: 1 }
+          gzip: true
+    wire:
+      - method: GET
+        path: /ws/orders/1
+        headers_match: { accept-encoding: '^(gzip|identity)(, ?(gzip|identity))*$' }
+    expect:
+      result: { order_id: 1 }
+
   - name: error-truncated-compressed-success-body-header-only
     request:
       operation: get-ws-specific-order
