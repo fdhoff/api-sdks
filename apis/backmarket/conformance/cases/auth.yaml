@@ -113,3 +113,31 @@ cases:
           content-type: ^multipart/form-data; boundary=
     expect:
       result: { id: 1 }
+
+  - name: redirect-is-an-error-not-followed
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 302
+          headers: { location: /ws/orders/2 }
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: api, status: 302 }
+
+  - name: redirect-of-a-post-is-not-followed
+    request:
+      operation: postRefundCreate
+      body: { amount: 1, orderline_pk: 1, refund_type: 4 }
+    mock:
+      responses:
+        - status: 307
+          headers: { location: /ws/sav/refund-elsewhere }
+    wire:
+      - method: POST
+        path: /ws/sav/refund
+    expect:
+      error: { kind: api, status: 307 }

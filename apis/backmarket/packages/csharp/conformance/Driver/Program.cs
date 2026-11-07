@@ -115,6 +115,10 @@ internal static class Driver
         {
             return new List<UploadFile> { new(name, Encoding.UTF8.GetBytes(value.GetString()!)) };
         }
+        if (target == typeof(List<UploadFile>) && value.ValueKind == JsonValueKind.Array)
+        {
+            return value.EnumerateArray().Select(item => new UploadFile(name, Encoding.UTF8.GetBytes(item.GetString()!))).ToList();
+        }
         return value.Deserialize(type);
     }
 

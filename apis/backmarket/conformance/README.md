@@ -33,6 +33,6 @@ Errors also carry these, when present: `request_id` from `requestId`, `code` fro
 
 ## Limits
 
-10 of the 40 operations have no case yet, mainly the multipart and message operations and the secondary reads. Scripted cases do not pass through Prism, so `mock.responses` wire traffic is checked only by its `wire` entries; `apis/backmarket/docs/spec-audit.md` explains which statuses Prism cannot serve.
+Every operation has at least one case, and a test fails when one does not. Prism rejects multipart array fields, so the upload cases are scripted. Scripted cases do not pass through Prism, so `mock.responses` wire traffic is checked only by its `wire` entries; `apis/backmarket/docs/spec-audit.md` explains which statuses Prism cannot serve.
 
 These cases are checked against the mock only. Nothing here has been confirmed against the live API.

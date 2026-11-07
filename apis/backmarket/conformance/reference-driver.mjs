@@ -85,7 +85,7 @@ function buildRequest(client, { operation, params = {}, body, multipart }) {
     'Accept-Encoding': 'identity',
   };
   if (client.locale) headers['Accept-Language'] = client.locale;
-  const init = { method, headers };
+  const init = { method, headers, redirect: 'manual' };
   if (multipart) {
     init.body = new FormData();
     for (const [name, value] of Object.entries(multipart)) init.body.append(name, value);
@@ -159,8 +159,12 @@ async function paginate(client, request, log) {
     if (!page.next) return items;
     if (!URL.canParse(page.next, client.base_url)) throw new ClientError({ kind: 'decode' });
     const next = new URL(page.next, client.base_url).searchParams;
+    const before = { ...params };
     for (const name of ['page', 'cursor']) {
       if (next.has(name)) params[name] = next.get(name);
+    }
+    if (['page', 'cursor'].every((name) => String(params[name]) === String(before[name]))) {
+      throw new ClientError({ kind: 'decode' });
     }
   }
 }

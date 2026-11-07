@@ -134,5 +134,6 @@ Prism only returns statuses the spec declares; `Prefer: code=429` on any other o
 * 5xx is not available from Prism on the operations probed; they declare it as `application/problem+json`.
 * `POST /ws/sav/refund` declares only `text/plain` and gets a 406.
 * Prism cannot simulate a timeout, a response sequence or a Cloudflare HTML body.
+* Prism rejects every multipart array field, even with repeated parts, as not an array, so the multipart upload operations get a 400 or 422.
 
 The conformance harness in `toolchain/conformance/` scripts all of these. See `apis/backmarket/conformance/README.md`.

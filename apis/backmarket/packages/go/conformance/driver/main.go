@@ -106,6 +106,26 @@ func assign(target reflect.Value, value any) error {
 	return json.Unmarshal([]byte(retry), target.Addr().Interface())
 }
 
+var filesType = reflect.TypeFor[[]backmarketseller.File]()
+
+// files reads file fields, which arrive as strings and are sent as their content.
+func files(value any) []backmarketseller.File {
+	items, isList := value.([]any)
+	if !isList {
+		items = []any{value}
+	}
+	result := make([]backmarketseller.File, 0, len(items))
+	for _, item := range items {
+		text, isText := item.(string)
+		if !isText {
+			encoded, _ := json.Marshal(item)
+			text = string(encoded)
+		}
+		result = append(result, backmarketseller.File{Content: []byte(text)})
+	}
+	return result
+}
+
 func isParams(shape reflect.Type) bool {
 	if shape.Kind() != reflect.Pointer || shape.Elem().Kind() != reflect.Struct || shape.Elem().NumField() == 0 {
 		return false
@@ -124,6 +144,10 @@ func paramsArgument(shape reflect.Type, req request) (reflect.Value, error) {
 		}
 		value, found := values[wire]
 		if !found {
+			continue
+		}
+		if field.Type == filesType {
+			params.Elem().Field(index).Set(reflect.ValueOf(files(value)))
 			continue
 		}
 		if err := assign(params.Elem().Field(index), value); err != nil {
