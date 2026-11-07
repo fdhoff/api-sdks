@@ -2,15 +2,12 @@
 
 Unofficial async Rust client for the Back Market Seller API. This project is unofficial and is not affiliated with, endorsed by, or supported by Back Market.
 
-**Alpha, and not published.** It is tested only against a mock built from the public spec, never against the live API. If you use it for real, please report what you find, working or not, as a GitHub issue. Those reports are what move it past 0.x.
+**Alpha.** It is tested only against a mock built from the public spec, never against the live API. If you use it for real, please report what you find, working or not, as a GitHub issue. Those reports are what move it past 0.x.
 
 ## Install
 
-From a checkout of this repository, until a version is published:
-
-```toml
-[dependencies]
-backmarket-seller = { path = "../backmarket-seller-sdk/apis/backmarket/packages/rust" }
+```sh
+cargo add backmarket-seller@0.1.0-alpha.1
 ```
 
 Requires Rust 1.85 or later and a Tokio runtime. TLS is rustls.

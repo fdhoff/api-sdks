@@ -4,11 +4,11 @@ Unofficial spec-driven SDKs for the Back Market Seller API.
 
 This project is unofficial and is not affiliated with, endorsed by, or supported by Back Market.
 
-The Python and TypeScript SDKs are alphas on PyPI and npm: see [`apis/backmarket/packages/python/`](apis/backmarket/packages/python/README.md) and [`apis/backmarket/packages/typescript/`](apis/backmarket/packages/typescript/README.md). The Go SDK is a tagged alpha: see [`apis/backmarket/packages/go/`](apis/backmarket/packages/go/README.md). The C# and Rust SDKs are unpublished alphas: see [`apis/backmarket/packages/csharp/`](apis/backmarket/packages/csharp/README.md) and [`apis/backmarket/packages/rust/`](apis/backmarket/packages/rust/README.md).
+The Python and TypeScript SDKs are alphas on PyPI and npm: see [`apis/backmarket/packages/python/`](apis/backmarket/packages/python/README.md) and [`apis/backmarket/packages/typescript/`](apis/backmarket/packages/typescript/README.md). The Go SDK is a tagged alpha: see [`apis/backmarket/packages/go/`](apis/backmarket/packages/go/README.md). The C# and Rust SDKs are alphas on NuGet and crates.io: see [`apis/backmarket/packages/csharp/`](apis/backmarket/packages/csharp/README.md) and [`apis/backmarket/packages/rust/`](apis/backmarket/packages/rust/README.md).
 
 ## Quickstart
 
-Python, TypeScript and Go install from their registries. C# and Rust install from a checkout of this repository. Pass in your own API token.
+Every SDK installs from its registry. Pass in your own API token.
 
 ### Python
 
@@ -82,7 +82,13 @@ The [Go README](apis/backmarket/packages/go/README.md) covers installing, errors
 
 ### C#
 
-Requires .NET 10 or later. Every call is async, and pages are walked with `await foreach`:
+Requires .NET 10 or later.
+
+```sh
+dotnet add package BackMarketSeller --prerelease
+```
+
+Every call is async, and pages are walked with `await foreach`:
 
 ```csharp
 using var client = new BackMarketClient("your-token", new BackMarketClientOptions
@@ -98,11 +104,17 @@ await foreach (var order in client.Orders.ListAllAsync())
 }
 ```
 
-The [C# README](apis/backmarket/packages/csharp/README.md) covers installing from a checkout, errors, configuration and behaviour.
+The [C# README](apis/backmarket/packages/csharp/README.md) covers installing, errors, configuration and behaviour.
 
 ### Rust
 
-Requires Rust 1.85 or later and a Tokio runtime. Every call is async and returns a `Result`, and pages are walked as a `Stream`:
+Requires Rust 1.85 or later and a Tokio runtime.
+
+```sh
+cargo add backmarket-seller@0.1.0-alpha.1
+```
+
+Every call is async and returns a `Result`, and pages are walked as a `Stream`:
 
 ```rust
 let client = Client::builder("your-token", "BM-YourCompany-YourIntegration;you@example.com", "fr-fr")
@@ -115,7 +127,7 @@ while let Some(order) = orders.try_next().await? {
 }
 ```
 
-The [Rust README](apis/backmarket/packages/rust/README.md) covers installing from a checkout, errors, configuration and behaviour.
+The [Rust README](apis/backmarket/packages/rust/README.md) covers installing, errors, configuration and behaviour.
 
 ## Live API reports
 

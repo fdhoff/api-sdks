@@ -16,10 +16,10 @@ Sections below describe the design; this table says how much of it is real.
 | Per-language runtime | Built for Python, TypeScript, Go, C# and Rust |
 | Python and TypeScript clients | Alpha, published |
 | Go client | Alpha, tagged |
-| C# client | Alpha, unpublished |
-| Rust client | Alpha, unpublished, async only |
+| C# client | Alpha, published |
+| Rust client | Alpha, published, async only |
 | Spec drift job | Built |
-| Release workflows and changelogs | Built for all five packages; Python and TypeScript published |
+| Release workflows and changelogs | Built for all five packages, publishing on |
 | Quickstarts | Built for Python, TypeScript, Go, C# and Rust |
 
 ## Goals

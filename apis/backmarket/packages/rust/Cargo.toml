@@ -9,8 +9,6 @@ repository = "https://github.com/fdhoff/backmarket-seller-sdk"
 readme = "README.md"
 keywords = ["api", "client", "seller", "marketplace"]
 categories = ["api-bindings", "asynchronous"]
-# Not published until the maintainer approves the first release.
-publish = false
 include = ["/src", "/Cargo.toml", "/README.md", "/CHANGELOG.md", "/LICENSE", "/NOTICE"]
 
 [dependencies]
