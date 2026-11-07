@@ -15,7 +15,7 @@ const operations = new Map(
   Object.entries(spec.paths).flatMap(([path, item]) =>
     METHODS.filter((method) => item[method]).map((method) => [
       item[method].operationId,
-      { method: method.toUpperCase(), path, json: declaresJson(item[method]) },
+      { method: method.toUpperCase(), path, returnsJson: declaresJson(item[method]) },
     ]),
   ),
 );
@@ -62,9 +62,9 @@ function toError(client, response, text) {
   return new ClientError(fields, response.headers.get('retry-after'));
 }
 
-function decode(response, text, json) {
+function decode(response, text, returnsJson) {
   if (text === '') {
-    if (json) throw new ClientError({ kind: 'decode', status: response.status });
+    if (returnsJson) throw new ClientError({ kind: 'decode', status: response.status });
     return null;
   }
   if (!response.headers.get('content-type')?.includes('json')) return text;
@@ -74,7 +74,7 @@ function decode(response, text, json) {
 }
 
 function buildRequest(client, { operation, params = {}, body, multipart }) {
-  const { method, path, json } = operations.get(operation);
+  const { method, path, returnsJson } = operations.get(operation);
   const query = new URLSearchParams();
   let filled = path;
   for (const [name, value] of Object.entries(params)) {
@@ -99,10 +99,10 @@ function buildRequest(client, { operation, params = {}, body, multipart }) {
     headers['Content-Type'] = 'application/json';
   }
   const search = query.size > 0 ? `?${query}` : '';
-  return { url: `${client.base_url}${filled}${search}`, init, json };
+  return { url: `${client.base_url}${filled}${search}`, init, returnsJson };
 }
 
-async function attempt(client, { url, init, json }, log) {
+async function attempt(client, { url, init, returnsJson }, log) {
   log(`-> ${init.method} ${url} Authorization: ${init.headers.Authorization}`);
   let response;
   let text;
@@ -118,7 +118,7 @@ async function attempt(client, { url, init, json }, log) {
   }
   log(`<- ${response.status} ${text}`);
   if (!response.ok) throw toError(client, response, text);
-  return decode(response, text, json);
+  return decode(response, text, returnsJson);
 }
 
 function retryAfterMs(value) {

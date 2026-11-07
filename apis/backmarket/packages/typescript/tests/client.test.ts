@@ -151,7 +151,8 @@ test('an empty success reads as undefined', async () => {
 });
 
 test('an empty success is a decode error where the spec declares a JSON body', async () => {
-  for (const headers of [{ 'content-type': 'application/json' }, {}]) {
+  const variants: Record<string, string>[] = [{ 'content-type': 'application/json' }, {}];
+  for (const headers of variants) {
     const { client } = clientFor(() => new Response(null, { headers }));
     await assert.rejects(
       () => client.orders.get(1),
