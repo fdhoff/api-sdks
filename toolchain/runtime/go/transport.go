@@ -492,7 +492,7 @@ func (t *Transport) decodeError(message string, answer *response, cause error) *
 func decode[T any](t *Transport, operation *Operation, answer *response) (T, error) {
 	var result, empty T
 	if len(answer.body) == 0 {
-		if operation.ReturnsJSON {
+		if operation.ReturnsJSON && answer.status != http.StatusNoContent {
 			return empty, t.decodeError("the response body is empty", answer, nil)
 		}
 		return result, nil

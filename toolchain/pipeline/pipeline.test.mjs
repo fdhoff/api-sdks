@@ -240,7 +240,7 @@ test('header defaults need only be declared by one of an API\'s contracts', () =
   assert.throws(() => checkHeaderDefaults([...defaults, 'X-Tenat'], used), /names no header parameter: x-tenat$/);
 });
 
-test('applyOperations marks operations whose success response declares a JSON body', () => {
+test('applyOperations marks operations whose success response declares a JSON body, beside a 204 or not', () => {
   const names = { a: { resource: 'r', method: 'a', summary: 'A.' } };
   const json = (responses, components) =>
     applyOperations({ paths: { '/x': { get: { operationId: 'a', responses } } }, components }, names).paths['/x'].get[
@@ -253,6 +253,7 @@ test('applyOperations marks operations whose success response declares a JSON bo
   assert.equal(json({ 200: body('text/plain') }), false);
   assert.equal(json({ 400: body('application/json'), 204: {} }), false);
   assert.equal(json({ 200: body('application/json') }), true);
+  assert.equal(json({ 200: body('application/json'), 204: { description: 'None.' } }), true);
   assert.equal(json({ 202: { $ref: '#/components/responses/R' } }, { responses: { R: body('application/json') } }), true);
   assert.equal(json({ 200: body('application/problem+json') }), true);
   assert.equal(json({ 200: body('*/*') }), false);

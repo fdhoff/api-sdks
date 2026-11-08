@@ -75,5 +75,4 @@ Limits are per API and per day, published in prose. eBay documents no `Retry-Aft
 * Whether `SetUserPreferencesRequest` has the shape of `GetUserPreferencesResponse`. Its error codes name fields, such as `excludedUsers`, that the response does not have.
 * Whether Feed's `uploadFile` needs the `name` and `type` fields its example shows.
 * Identity: the contract serves it from `apiz`, and eBay's PHP SDK uses `apiz.sandbox`, but eBay's .NET SDK documents `apim.sandbox`.
-* 103 operations declare a 204 beside a JSON success. The reference driver treats an empty 204 as no result, but the runtimes treat any empty body as a decode error where a JSON success is declared. TODO: the runtimes must accept an empty 204 before the first eBay package.
 * Whether any operation besides `uploadPostOrderDocument` answers 201 without its declared body.

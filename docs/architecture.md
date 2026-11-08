@@ -183,6 +183,8 @@ A body the spec declares as `type: string, format: binary` is bytes, never text.
 
 A text response that is not JSON, such as `text/plain` or `text/tab-separated-values`, is returned as text, as before.
 
+An empty 204 is no result: `None`, `undefined`, `nil`, `null` or the type's default, even where the operation also declares a JSON success. An empty body with any other status is a decode error where JSON is declared. TODO: make the return type optional where an operation declares a 204 beside a JSON success.
+
 ### Timeouts
 
 The timeout is one deadline for each attempt, from sending the request to reading the last byte of the response, and is configurable. A body that keeps trickling must not outlast it. A timeout that exhausts its retries raises a `timeout` error.
@@ -229,7 +231,7 @@ Errors map on status first, then parse the body best-effort. A body that fits no
 | `api` | Any other status |
 | `timeout` | No response in time, after retries |
 | `connection` | The connection failed or dropped before a full response, after retries |
-| `decode` | A success response whose declared JSON is empty or does not parse, or whose compressed body cannot be decompressed or ends early; a page whose `next` link is not a valid URL. Never retried. |
+| `decode` | A success response other than 204 whose declared JSON is empty or does not parse, or whose compressed body cannot be decompressed or ends early; a page whose `next` link is not a valid URL. Never retried. |
 
 Errors also carry `request_id`, `code` and `cf_ray` when present. Each language exposes these under its own naming conventions.
 

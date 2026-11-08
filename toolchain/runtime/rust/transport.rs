@@ -428,7 +428,7 @@ impl Transport {
 
     fn decode<T: DeserializeOwned + Default>(&self, operation: &Operation, answer: &Answer) -> Result<T, Error> {
         if answer.body.is_empty() {
-            if operation.returns_json {
+            if operation.returns_json && answer.status != StatusCode::NO_CONTENT.as_u16() {
                 return Err(self.decode_error("the response body is empty", answer));
             }
             return Ok(T::default());
@@ -673,6 +673,14 @@ mod tests {
 
     fn next_url(operation: &'static Operation, query: &[(&str, &str)], page: Value, received: usize) -> Option<String> {
         next(operation, query, page, received).unwrap()
+    }
+
+    #[test]
+    fn an_empty_204_is_no_result_even_where_json_is_declared() {
+        let transport = Transport::new(settings(HeaderMap::new())).unwrap();
+        let empty = |status| Answer { status, headers: HeaderMap::new(), body: Vec::new() };
+        assert_eq!(transport.decode::<Value>(&OFFSET_LIST, &empty(204)).unwrap(), Value::Null);
+        assert!(transport.decode::<Value>(&OFFSET_LIST, &empty(200)).is_err());
     }
 
     #[test]

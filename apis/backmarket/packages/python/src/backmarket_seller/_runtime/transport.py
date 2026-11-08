@@ -280,7 +280,7 @@ def _read(settings: Settings, operation: Operation[Any], response: httpx.Respons
     if status == 204:
         return _Reply(None, text, status)
     if text == "":
-        if operation.returns_json:
+        if operation.returns_json and status != 204:
             raise DecodeError("The response body is empty", status=status)
         return _Reply("" if operation.response is str else None, text, status)
     if "json" not in response.headers.get("content-type", ""):
@@ -771,6 +771,8 @@ class Resource:
 
     def _call(self, operation: Operation[T], /, *, _body: Any = None, **params: Any) -> T:
         reply = self._transport.fetch(operation, _body, params)
+        if reply.data is None and reply.status == 204:
+            return cast(T, None)
         result: T = _parse(self._transport.settings, operation.response, reply.data, reply)
         return result
 
@@ -795,6 +797,8 @@ class AsyncResource:
 
     async def _call(self, operation: Operation[T], /, *, _body: Any = None, **params: Any) -> T:
         reply = await self._transport.fetch(operation, _body, params)
+        if reply.data is None and reply.status == 204:
+            return cast(T, None)
         result: T = _parse(self._transport.settings, operation.response, reply.data, reply)
         return result
 

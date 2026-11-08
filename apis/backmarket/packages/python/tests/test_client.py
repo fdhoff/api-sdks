@@ -195,6 +195,14 @@ def test_an_empty_body_for_a_typed_response_is_a_decode_error() -> None:
     assert caught.value.raw_body is None
 
 
+def test_an_empty_204_is_no_result_even_where_json_is_declared() -> None:
+    client = client_for(lambda request: httpx.Response(204))
+    untyped: Operation[None] = Operation(id="none", method="GET", path="/x", resource="r", name="n", returns_json=True)
+    assert client.orders.get(1) is None
+    assert client.orders._call(untyped) is None
+    assert async_order(lambda request: httpx.Response(204)) is None
+
+
 def test_an_iterated_item_that_is_not_an_object_is_a_decode_error() -> None:
     page = {"next": None, "results": [{"order_id": 1}, "unexpected"]}
     client = client_for(lambda request: httpx.Response(200, json=page))

@@ -490,7 +490,7 @@ export class Transport {
       });
     }
     if (text === '') {
-      if (returnsJson) throw new DecodeError('The response body is empty', { status: response.status });
+      if (returnsJson && response.status !== 204) throw new DecodeError('The response body is empty', { status: response.status });
       return returnsText ? '' : undefined;
     }
     if (!response.headers.get('content-type')?.includes('json')) return text;

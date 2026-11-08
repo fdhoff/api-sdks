@@ -114,6 +114,10 @@ internal sealed class Transport : IDisposable
         {
             return Json.Read<T>(json, reply.Status, reply.Clean);
         }
+        if (reply.Text.Length == 0 && reply.Status == 204)
+        {
+            return default!;
+        }
         if (reply.Text.Length == 0)
         {
             throw new ApiDecodeException($"The response body is empty, so it cannot be a {typeof(T).Name}") { Status = reply.Status, RawBody = reply.Clean };
@@ -130,7 +134,7 @@ internal sealed class Transport : IDisposable
 
     private static void RejectEmpty(Operation operation, Reply reply)
     {
-        if (operation.ReturnsJson && reply.Text.Length == 0)
+        if (operation.ReturnsJson && reply.Text.Length == 0 && reply.Status != 204)
         {
             throw new ApiDecodeException("The response body is empty") { Status = reply.Status, RawBody = reply.Clean };
         }

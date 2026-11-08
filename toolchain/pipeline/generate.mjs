@@ -96,7 +96,8 @@ export function isJsonMediaType(type) {
   return essence === 'application/json' || /^[a-z0-9.+-]+\/[a-z0-9.+-]+\+json$/.test(essence);
 }
 
-// True when a success response declares a JSON body, so an empty one cannot be a result.
+// True when a success response declares a JSON body, so an empty one cannot be a result. An empty 204 is
+// still no result: runtimes check the status, since most operations that answer 204 also declare JSON.
 export function returnsJson(spec, operation) {
   return Object.entries(operation.responses ?? {}).some(
     ([status, response]) => status.startsWith('2') && Object.keys(dereference(spec, response)?.content ?? {}).some(isJsonMediaType),
