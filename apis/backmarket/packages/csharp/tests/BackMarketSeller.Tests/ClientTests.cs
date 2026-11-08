@@ -117,16 +117,40 @@ public sealed class ClientTests
     [Fact]
     public void OffsetPagingAdvancesByTheItemsReceivedUntilTheTotal()
     {
-        Assert.Equal([2L, 2L], Next(OffsetList, [2L, null], """{"total": 5}""", 2));
-        Assert.Equal([2L, 6L], Next(OffsetList, [2L, 4L], """{"total": 7}""", 2));
-        Assert.Null(Next(OffsetList, [2L, 4L], """{"total": 5}""", 1));
+        Assert.Equal([2L, 2L], Next(OffsetList, [2L, null], """{"total": 5, "data": []}""", 2));
+        Assert.Equal([2L, 6L], Next(OffsetList, [2L, 4L], """{"total": 7, "data": []}""", 2));
+        Assert.Null(Next(OffsetList, [2L, 4L], """{"total": 5, "data": []}""", 1));
     }
 
     [Fact]
     public void OffsetPagingStartsAtTheCallersOffsetAndStopsAtAnEmptyPage()
     {
-        Assert.Equal([null, 4L], Next(OffsetList, [null, 3L], """{"total": null}""", 1));
-        Assert.Null(Next(OffsetList, [null, 4L], "{}", 0));
+        Assert.Equal([null, 4L], Next(OffsetList, [null, 3L], """{"total": null, "data": []}""", 1));
+        Assert.Null(Next(OffsetList, [null, 4L], """{"data": []}""", 0));
+    }
+
+    [Fact]
+    public void OffsetPagingStopsAtATotalThatIsNotAnInteger()
+    {
+        Assert.Null(Next(OffsetList, [null, null], """{"total": 2.0, "data": []}""", 2));
+    }
+
+    [Theory]
+    [InlineData("later")]
+    [InlineData(2.5)]
+    public void OffsetPagingRejectsAnOffsetThatIsNotAnInteger(object start)
+    {
+        var error = Assert.Throws<ApiDecodeException>(() => Next(OffsetList, [null, start], """{"data": []}""", 1));
+        Assert.Contains("`start` parameter is not an integer", error.Message);
+    }
+
+    [Theory]
+    [InlineData("""{"total": 1}""")]
+    [InlineData("""{"data": null}""")]
+    [InlineData("""{"data": {}}""")]
+    public void OffsetPagingRejectsAPageWithoutAnItemsList(string page)
+    {
+        Assert.Throws<ApiDecodeException>(() => Next(OffsetList, [null, null], page, 0));
     }
 
     [Fact]

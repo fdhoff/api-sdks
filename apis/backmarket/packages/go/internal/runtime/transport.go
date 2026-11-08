@@ -412,6 +412,10 @@ func (t *Transport) nextLink(operation *Operation, paging NextLink, query url.Va
 
 // nextOffset moves the offset past the items received. A nil result means the last page.
 func (t *Transport) nextOffset(paging Offset, query url.Values, page map[string]json.RawMessage, answer *response, received int) (url.Values, error) {
+	var items []json.RawMessage
+	if err := json.Unmarshal(page[paging.Items], &items); err != nil || items == nil {
+		return nil, t.decodeError(fmt.Sprintf("the %s field of a page is not a list", paging.Items), answer, err)
+	}
 	if received == 0 {
 		return nil, nil
 	}

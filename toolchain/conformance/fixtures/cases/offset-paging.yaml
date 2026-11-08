@@ -55,3 +55,17 @@ cases:
         path: /items
     expect:
       result: []
+
+  - name: offset-paging-page-without-an-items-list
+    request:
+      operation: list-items
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 3 }
+    wire:
+      - method: GET
+        path: /items
+    expect:
+      error: { kind: decode }
