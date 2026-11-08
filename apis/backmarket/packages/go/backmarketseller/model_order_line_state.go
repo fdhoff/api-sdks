@@ -6,14 +6,14 @@ package backmarketseller
 type OrderLineState int64
 
 const (
-	OrderLineState0 OrderLineState = 0
-	OrderLineState9 OrderLineState = 9
-	OrderLineState8 OrderLineState = 8
-	OrderLineState1 OrderLineState = 1
-	OrderLineState2 OrderLineState = 2
-	OrderLineState3 OrderLineState = 3
-	OrderLineState4 OrderLineState = 4
-	OrderLineState5 OrderLineState = 5
-	OrderLineState6 OrderLineState = 6
-	OrderLineState7 OrderLineState = 7
+	OrderLineStateCreated                OrderLineState = 0
+	OrderLineStateOnHold                 OrderLineState = 9
+	OrderLineStatePendingPayment         OrderLineState = 8
+	OrderLineStatePaid                   OrderLineState = 1
+	OrderLineStateAccepted               OrderLineState = 2
+	OrderLineStateShipped                OrderLineState = 3
+	OrderLineStateCancelled              OrderLineState = 4
+	OrderLineStateRefundedBeforeShipping OrderLineState = 5
+	OrderLineStateRefundedAfterShipping  OrderLineState = 6
+	OrderLineStateNotPaid                OrderLineState = 7
 )

@@ -5,6 +5,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 ## Unreleased
 
 * An empty success body where the spec declares JSON is an `ErrorKind::Decode` error instead of a default model.
+* Breaking: integer enum members are named after their meaning, such as `OrderState::PendingShipment` instead of `Variant3`. This covers `OrderState`, `OrderLineState`, `ListingStateValue`, `ProductCondition` and `ReturnReason`; the wire values are unchanged.
 
 ## 0.1.0-alpha.1 (2026-11-07)
 

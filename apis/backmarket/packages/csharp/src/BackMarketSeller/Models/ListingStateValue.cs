@@ -9,10 +9,10 @@ namespace BackMarketSeller.Models;
 /// <summary>An enumerated value. In a response, a value this version does not list is kept in the property as that number.</summary>
 public enum ListingStateValue
 {
-    Value9 = 9,
-    Value0 = 0,
-    Value1 = 1,
-    Value2 = 2,
-    Value3 = 3,
-    Value4 = 4,
+    Premium = 9,
+    Excellent = 0,
+    VeryGood = 1,
+    Good = 2,
+    Fair = 3,
+    Stallone = 4,
 }

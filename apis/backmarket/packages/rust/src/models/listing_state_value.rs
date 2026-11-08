@@ -3,11 +3,11 @@
 crate::runtime::open_enum! {
     /// ListingStateValue is an enumerated value. A value this version does not list is kept in `Unlisted`.
     ListingStateValue: i64 {
-        Variant9 = 9,
-        Variant0 = 0,
-        Variant1 = 1,
-        Variant2 = 2,
-        Variant3 = 3,
-        Variant4 = 4,
+        Premium = 9,
+        Excellent = 0,
+        VeryGood = 1,
+        Good = 2,
+        Fair = 3,
+        Stallone = 4,
     }
 }

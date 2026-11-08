@@ -178,3 +178,25 @@ test('every changelog keeps unreleased entries under one Unreleased heading', as
     for (const heading of released) assert.match(heading, /^## \S+ \(\d{4}-\d{2}-\d{2}\)$/, dir);
   }
 });
+
+// Each language's integer enum members, as [type, member] pairs, for checking their names.
+const INTEGER_ENUMS = {
+  Python: [join(PYTHON, 'src/backmarket_seller/models'), /^class (\w+)\(int, Enum\)/m, /^    (\w+) = -?\d+$/gm],
+  Go: [join(GO, 'backmarketseller'), /^type (\w+) int64$/m, /^\t(\w+)\s+\w+ = -?\d+$/gm],
+  'C#': [join(CSHARP, 'src/BackMarketSeller/Models'), /^public enum (\w+)/m, /^    (\w+) = -?\d+,$/gm],
+  Rust: [join(RUST, 'src/models'), /^    (\w+): i64 \{$/m, /^        (\w+) = -?\d+,$/gm],
+};
+
+test('generated integer enum members have names, not numbers', async () => {
+  for (const [language, [dir, declaration, member]] of Object.entries(INTEGER_ENUMS)) {
+    const members = [];
+    for (const name of await readdir(dir)) {
+      const text = await readFile(join(dir, name), 'utf8');
+      const type = text.match(declaration)?.[1];
+      if (type) members.push(...[...text.matchAll(member)].map((match) => [type, match[1]]));
+    }
+    assert.ok(members.length > 0, `${language} has no integer enums to check`);
+    const numeric = members.filter(([type, name]) => /^\d+$/.test(name.replace(type, '').replace(/^(NUMBER|Value|Variant|Var)_?/i, '').replace(/^MINUS_?/i, '')));
+    assert.deepEqual(numeric, [], `${language} names integer enum members after their values`);
+  }
+});

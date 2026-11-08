@@ -9,6 +9,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * Writes reuse pooled connections instead of opening one each. The token and other headers are sent per request, not set on the `HttpClient`.
 * The package has a project URL, Source Link, a symbols package and an icon.
 * An empty success body where the spec declares JSON throws `ApiDecodeException` instead of returning an empty model.
+* Breaking: integer enum members are named after their meaning, such as `OrderState.PendingShipment` instead of `Value3`. This covers `OrderState`, `OrderLineState`, `ListingStateValue`, `ProductCondition` and `ReturnReason`; the wire values are unchanged.
 
 ## 0.1.0-alpha.1 (2026-11-07)
 

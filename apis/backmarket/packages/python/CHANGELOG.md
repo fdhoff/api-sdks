@@ -8,6 +8,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * Method arguments are checked against their declared types and limits, such as `page_size` up to 50, and raise `ValidationError` before a request is sent. Previously they were sent as given.
 * A response body that does not fit its declared type at all raises `DecodeError` with the body in `raw_body`, instead of returning the decoded JSON. Fields inside an object are still parsed tolerantly.
 * Methods with no declared response return `None`, as typed, instead of any body the API sent.
+* Breaking: integer enum members are named after their meaning, such as `OrderState.PENDING_SHIPMENT` instead of `NUMBER_3`. This covers `OrderState`, `OrderLineState`, `ListingStateValue`, `ProductCondition` and `ReturnReason`; the wire values are unchanged.
 
 ## 0.1.0a2 (2026-11-07)
 

@@ -6,10 +6,10 @@ package backmarketseller
 type ListingStateValue int64
 
 const (
-	ListingStateValue9 ListingStateValue = 9
-	ListingStateValue0 ListingStateValue = 0
-	ListingStateValue1 ListingStateValue = 1
-	ListingStateValue2 ListingStateValue = 2
-	ListingStateValue3 ListingStateValue = 3
-	ListingStateValue4 ListingStateValue = 4
+	ListingStateValuePremium   ListingStateValue = 9
+	ListingStateValueExcellent ListingStateValue = 0
+	ListingStateValueVeryGood  ListingStateValue = 1
+	ListingStateValueGood      ListingStateValue = 2
+	ListingStateValueFair      ListingStateValue = 3
+	ListingStateValueStallone  ListingStateValue = 4
 )

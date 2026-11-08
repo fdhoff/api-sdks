@@ -3,15 +3,15 @@
 crate::runtime::open_enum! {
     /// OrderLineState is an enumerated value. A value this version does not list is kept in `Unlisted`.
     OrderLineState: i64 {
-        Variant0 = 0,
-        Variant9 = 9,
-        Variant8 = 8,
-        Variant1 = 1,
-        Variant2 = 2,
-        Variant3 = 3,
-        Variant4 = 4,
-        Variant5 = 5,
-        Variant6 = 6,
-        Variant7 = 7,
+        Created = 0,
+        OnHold = 9,
+        PendingPayment = 8,
+        Paid = 1,
+        Accepted = 2,
+        Shipped = 3,
+        Cancelled = 4,
+        RefundedBeforeShipping = 5,
+        RefundedAfterShipping = 6,
+        NotPaid = 7,
     }
 }

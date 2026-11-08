@@ -11,7 +11,7 @@ from enum import Enum
 class ProductCondition(int, Enum):
     """Allowed values of ProductCondition."""
 
-    NUMBER_9 = 9
-    NUMBER_10 = 10
-    NUMBER_11 = 11
-    NUMBER_12 = 12
+    PREMIUM = 9
+    EXCELLENT = 10
+    GOOD = 11
+    FAIR = 12

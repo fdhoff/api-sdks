@@ -23,6 +23,7 @@ Each gap is handled in one place:
 | A8 | `count` on Buyback lists is `number`. | `integer`, matching other lists. |
 | A9 | `claim.warnings` is an array without `items`. | Empty `items`; the field is deprecated and untyped. |
 | A10 | `category_3.parent` puts `description` and `deprecated` beside a `$ref`, where 3.0 ignores them. | Siblings removed. |
+| A11 | `OrderState`, `OrderLineState`, `ListingStateValue`, `ProductCondition` and `ReturnReason` are integers whose meanings are only in prose tables, so generators name members after the numbers. | `x-enum-varnames` from each table, such as `PENDING_SHIPMENT` for order state 3. Value 0 of both order states is `CREATED`, because C# reserves `new`. `ListingStateValue` reuses the names of `AestheticGradeValue`. |
 
 ## Authentication and headers
 

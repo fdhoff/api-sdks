@@ -115,3 +115,46 @@ actions:
   - description: A10.
     target: $.components.schemas.category_3.properties.parent.description
     remove: true
+
+  - description: >-
+      A11. Integer enums carry their meanings only in prose, so generators name the values after
+      the numbers. Names, in enum order, follow each schema's own table.
+    target: $.components.schemas.OrderState
+    update:
+      x-enum-varnames: [CREATED, PENDING_PAYMENT, PAYMENT_VALIDATED, PENDING_SHIPMENT, NOT_PAID, SHIPPED]
+  - description: A11.
+    target: $.components.schemas.OrderLineState
+    update:
+      x-enum-varnames:
+        - CREATED
+        - ON_HOLD
+        - PENDING_PAYMENT
+        - PAID
+        - ACCEPTED
+        - SHIPPED
+        - CANCELLED
+        - REFUNDED_BEFORE_SHIPPING
+        - REFUNDED_AFTER_SHIPPING
+        - NOT_PAID
+  - description: A11. Names match the string grades of AestheticGradeValue.
+    target: $.components.schemas.ListingStateValue
+    update:
+      x-enum-varnames: [PREMIUM, EXCELLENT, VERY_GOOD, GOOD, FAIR, STALLONE]
+  - description: A11.
+    target: $.components.schemas.ProductCondition
+    update:
+      x-enum-varnames: [PREMIUM, EXCELLENT, GOOD, FAIR]
+  - description: A11.
+    target: $.components.schemas.ReturnReason
+    update:
+      x-enum-varnames:
+        - STOCK_MISTAKE
+        - WITHDRAWAL
+        - NOT_AT_ADDRESS
+        - NOT_DELIVERED
+        - LOST_PARCEL
+        - FAULTY_ON_ARRIVAL
+        - FAILED_ON_FIRST_USE
+        - FAILED_UNDER_WARRANTY
+        - NON_COMPLIANT
+        - OTHER
