@@ -6,7 +6,7 @@ use etsy_seller::{
 };
 use futures_util::TryStreamExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpListener;
+use tokio::net::{TcpListener, TcpStream};
 
 const KEY: &str = "synthetic-keystring";
 const SECRET: &str = "synthetic-shared-secret";
@@ -42,59 +42,68 @@ impl Sent {
 
 type Log = Arc<Mutex<Vec<Sent>>>;
 
-/// Serves one JSON reply per connection, picked by the request.
-async fn serve(reply: impl Fn(&Sent) -> (u16, String) + Send + 'static) -> (String, Log) {
+/// Serves one JSON reply per connection, picked by the request. Connections are served
+/// concurrently, so a reply may block until the test lets it go.
+async fn serve(reply: impl Fn(&Sent) -> (u16, String) + Send + Sync + 'static) -> (String, Log) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let url = format!("http://{}", listener.local_addr().unwrap());
     let log = Log::default();
     let kept = Arc::clone(&log);
+    let reply = Arc::new(reply);
     tokio::spawn(async move {
-        loop {
-            let Ok((mut stream, _)) = listener.accept().await else {
-                return;
-            };
-            let mut data = Vec::new();
-            let mut buffer = [0; 4096];
-            let head_end = loop {
-                if let Some(end) = data.windows(4).position(|window| window == b"\r\n\r\n") {
-                    break end + 4;
-                }
-                match stream.read(&mut buffer).await {
-                    Ok(0) | Err(_) => return,
-                    Ok(read) => data.extend_from_slice(&buffer[..read]),
-                }
-            };
-            let raw_head = String::from_utf8_lossy(&data[..head_end]).into_owned();
-            let head = raw_head.to_lowercase();
-            let length = head
-                .lines()
-                .find_map(|line| line.strip_prefix("content-length:"))
-                .and_then(|value| value.trim().parse::<usize>().ok())
-                .unwrap_or(0);
-            while data.len() < head_end + length {
-                match stream.read(&mut buffer).await {
-                    Ok(0) | Err(_) => break,
-                    Ok(read) => data.extend_from_slice(&buffer[..read]),
-                }
-            }
-            let target = raw_head.split_whitespace().nth(1).unwrap_or_default();
-            let path = target.split('?').next().unwrap_or_default().to_owned();
-            let sent = Sent {
-                path,
-                head,
-                body: String::from_utf8_lossy(&data[head_end..]).into_owned(),
-            };
-            kept.lock().unwrap().push(sent.clone());
-            let (status, body) = reply(&sent);
-            let response = format!(
-                "HTTP/1.1 {status} Status\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
-                body.len()
-            );
-            let _ = stream.write_all(response.as_bytes()).await;
-            let _ = stream.shutdown().await;
+        while let Ok((stream, _)) = listener.accept().await {
+            tokio::spawn(answer(stream, Arc::clone(&reply), Arc::clone(&kept)));
         }
     });
     (url, log)
+}
+
+async fn answer(
+    mut stream: TcpStream,
+    reply: Arc<impl Fn(&Sent) -> (u16, String) + Send + Sync + 'static>,
+    log: Log,
+) {
+    let mut data = Vec::new();
+    let mut buffer = [0; 4096];
+    let head_end = loop {
+        if let Some(end) = data.windows(4).position(|window| window == b"\r\n\r\n") {
+            break end + 4;
+        }
+        match stream.read(&mut buffer).await {
+            Ok(0) | Err(_) => return,
+            Ok(read) => data.extend_from_slice(&buffer[..read]),
+        }
+    };
+    let raw_head = String::from_utf8_lossy(&data[..head_end]).into_owned();
+    let head = raw_head.to_lowercase();
+    let length = head
+        .lines()
+        .find_map(|line| line.strip_prefix("content-length:"))
+        .and_then(|value| value.trim().parse::<usize>().ok())
+        .unwrap_or(0);
+    while data.len() < head_end + length {
+        match stream.read(&mut buffer).await {
+            Ok(0) | Err(_) => break,
+            Ok(read) => data.extend_from_slice(&buffer[..read]),
+        }
+    }
+    let target = raw_head.split_whitespace().nth(1).unwrap_or_default();
+    let path = target.split('?').next().unwrap_or_default().to_owned();
+    let sent = Sent {
+        path,
+        head,
+        body: String::from_utf8_lossy(&data[head_end..]).into_owned(),
+    };
+    log.lock().unwrap().push(sent.clone());
+    let Ok((status, body)) = tokio::task::spawn_blocking(move || reply(&sent)).await else {
+        return;
+    };
+    let response = format!(
+        "HTTP/1.1 {status} Status\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+        body.len()
+    );
+    let _ = stream.write_all(response.as_bytes()).await;
+    let _ = stream.shutdown().await;
 }
 
 fn builder(url: &str) -> ClientBuilder {
@@ -363,6 +372,49 @@ async fn an_explicit_refresh_and_a_401_share_one_token_request() {
         .collect();
     assert_eq!(refreshed, [REFRESH]);
     assert_eq!(stored.lock().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn a_401_sent_before_an_explicit_refresh_retries_without_another() {
+    let (release, held) = std::sync::mpsc::channel::<()>();
+    let held = Mutex::new(held);
+    let (url, log) = serve(move |sent| {
+        if sent.path != TOKEN_PATH
+            && sent.header("authorization") == Some(format!("bearer {ACCESS}").to_lowercase())
+        {
+            let _ = held.lock().unwrap().recv();
+        }
+        expiring(sent)
+    })
+    .await;
+    let client = builder(&url)
+        .access_token(ACCESS)
+        .refresh_token(REFRESH)
+        .build()
+        .unwrap();
+    let oauth = client.oauth();
+    let users = client.users();
+    let refresh = async {
+        while log.lock().unwrap().is_empty() {
+            tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+        }
+        let token = oauth.refresh().await;
+        release.send(()).unwrap();
+        token
+    };
+    let (me, token) = tokio::join!(users.get_me(), refresh);
+    assert_eq!(token.unwrap().access_token, NEW_ACCESS);
+    assert_eq!(me.unwrap().shop_id, Some(1));
+    let sent = log.lock().unwrap().clone();
+    let paths: Vec<&str> = sent.iter().map(|sent| sent.path.as_str()).collect();
+    assert_eq!(
+        paths,
+        [
+            "/v3/application/users/me",
+            TOKEN_PATH,
+            "/v3/application/users/me"
+        ]
+    );
 }
 
 #[tokio::test]

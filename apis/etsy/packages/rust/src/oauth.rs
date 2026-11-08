@@ -303,6 +303,8 @@ impl EtsyCredentials {
         refresh_token: Option<String>,
     ) -> Result<Token, Error> {
         let _refreshing = self.refreshing.lock().await;
+        // TODO: hand a waiter the error of the refresh it waited on. Re-sending the same refresh token
+        // after a timeout that Etsy already acted on gets invalid_grant instead.
         if let Some(token) = self.replaced(refresh_token.as_deref()) {
             return Ok(token);
         }

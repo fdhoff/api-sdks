@@ -77,7 +77,7 @@ while let Some(receipt) = receipts.try_next().await? {
 # }
 ```
 
-An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, passes it to `on_token`, and retries the call. Concurrent calls, and an explicit `client.oauth().refresh()`, share one refresh. If the refresh fails, the call fails with the refresh's error, such as a 400 `invalid_grant`, rather than the 401.
+An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, passes it to `on_token`, and retries the call. Concurrent calls, and an explicit `client.oauth().refresh()`, share one refresh. If the refresh fails, the call fails with the refresh's error, such as a 400 `invalid_grant`, rather than the 401. `on_token` runs while the client holds its token lock, so it must not block on `client.oauth().refresh()`, `exchange_code`, or a call that could get a 401: those wait for the lock forever. Store the token and return.
 
 Your credentials are read from nowhere and stored nowhere: you pass them in, and the client sends them only to the server you selected.
 

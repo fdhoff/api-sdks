@@ -105,7 +105,7 @@ const offsetList: Operation = {
   paging: { style: 'offset', items: 'data', total: 'total', offset: 'start' },
 };
 
-test('an object in a form-encoded field is sent as JSON', async () => {
+test('an object in a form-encoded field is sent as JSON, and a date as ISO text', async () => {
   const bodies: string[] = [];
   const transport = new Transport({
     baseUrl: BASE,
@@ -131,12 +131,15 @@ test('an object in a form-encoded field is sent as JSON', async () => {
     params: [
       { wire: 'meta', name: 'meta', location: 'urlencoded' },
       { wire: 'tags', name: 'tags', location: 'urlencoded' },
+      { wire: 'at', name: 'at', location: 'urlencoded' },
     ],
   };
-  await transport.fetch(update, undefined, { meta: { n: 1, s: 'a b' }, tags: ['x', 'y'] });
+  const at = new Date(Date.UTC(2026, 0, 2, 3, 4, 5));
+  await transport.fetch(update, undefined, { meta: { n: 1, s: 'a b' }, tags: ['x', 'y'], at });
   const sent = new URLSearchParams(bodies[0]);
   assert.deepEqual(sent.getAll('meta'), ['{"n":1,"s":"a b"}']);
   assert.deepEqual(sent.getAll('tags'), ['x', 'y']);
+  assert.deepEqual(sent.getAll('at'), ['2026-01-02T03:04:05.000Z']);
 });
 
 async function serve(t: TestContext, listener: RequestListener): Promise<string> {
