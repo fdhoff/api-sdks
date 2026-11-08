@@ -18,6 +18,8 @@ pub const RSA_V1_5_SHA256: &str = "rsa-v1_5-sha256";
 const DERIVED: &[&str] = &["@method", "@target-uri", "@authority", "@scheme", "@request-target", "@path", "@query"];
 const PEM_BEGIN: &str = "-----BEGIN PRIVATE KEY-----";
 const PEM_END: &str = "-----END PRIVATE KEY-----";
+/// A shorter last line of a key's base64 body is too common a string to redact.
+const MIN_SECRET_LINE: usize = 16;
 
 /// A key, setting or request that cannot be signed.
 #[derive(Debug)]
@@ -43,7 +45,7 @@ pub struct SignerOptions<'a> {
     pub label: &'a str,
     pub key_id: Option<&'a str>,
     pub include_alg: bool,
-    /// Adds `expires`, this long after `created`.
+    /// Adds `expires`, this long after `created`. Whole seconds, at least 1.
     pub lifetime: Option<Duration>,
 }
 
@@ -60,8 +62,9 @@ enum Key {
 
 /// Signs each attempt's request: a `Content-Digest` of the body when there is one, then
 /// `Signature-Input` and `Signature` over the covered components, with a fresh `created` time.
-/// `content-digest` is left out of a request with no body, and any other field the request lacks
-/// is an error. Call [`MessageSigner::sign`] from `Credentials::apply`.
+/// `content-digest` is left out of a request with no body. A request without `content-length` or
+/// `host` uses the body's length or the URL's authority, which reqwest sends; any other field the
+/// request lacks is an error. Call [`MessageSigner::sign`] from `Credentials::apply`.
 pub struct MessageSigner {
     key: Key,
     secrets: Vec<String>,
@@ -129,12 +132,22 @@ impl MessageSigner {
         if !is_label(options.label) {
             return Err(invalid("the signature label must be a lowercase key"));
         }
+        if options.lifetime.is_some_and(|lifetime| lifetime.subsec_nanos() != 0 || lifetime.as_secs() == 0) {
+            return Err(invalid("the signature lifetime must be a whole number of seconds, at least 1"));
+        }
         let key = load_key(private_key)?;
         let trimmed = private_key.trim();
-        let body = trimmed.lines().skip(1).take(trimmed.lines().count().saturating_sub(2)).map(str::trim).collect();
+        let lines: Vec<&str> =
+            trimmed.lines().skip(1).take(trimmed.lines().count().saturating_sub(2)).map(str::trim).collect();
+        let mut secrets = vec![trimmed.to_owned(), lines.concat()];
+        for line in lines.into_iter().filter(|line| line.len() >= MIN_SECRET_LINE) {
+            if !secrets.iter().any(|secret| secret == line) {
+                secrets.push(line.to_owned());
+            }
+        }
         let mut signer = Self {
             key,
-            secrets: vec![trimmed.to_owned(), body],
+            secrets,
             components: options.components.iter().map(|&name| name.to_owned()).collect(),
             label: options.label.to_owned(),
             extra: String::new(),
@@ -164,7 +177,7 @@ impl MessageSigner {
         }
     }
 
-    /// The private key as given and as its PEM body, to redact.
+    /// The private key as given, as its PEM body and as each line of that body, to redact.
     pub fn secrets(&self) -> Vec<String> {
         self.secrets.clone()
     }
@@ -213,15 +226,29 @@ fn header(text: String) -> Result<HeaderValue, SigningError> {
     HeaderValue::try_from(text).map_err(|_| invalid("a signature parameter is not a valid header value"))
 }
 
+fn authority(url: &Url) -> String {
+    let host = url.host_str().unwrap_or("").to_ascii_lowercase();
+    url.port().map_or(host.clone(), |port| format!("{host}:{port}"))
+}
+
 fn value(request: &AuthRequest, url: &Url, name: &str) -> Result<String, SigningError> {
     if !name.starts_with('@') {
-        let values = request
+        let mut values = request
             .headers
             .get_all(name)
             .iter()
             .map(|value| value.to_str().map(str::trim))
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|_| invalid(format!("the {name} field is not text")))?;
+            .map_err(|_| invalid(format!("the {name} field is not text")))?
+            .into_iter()
+            .map(str::to_owned)
+            .collect::<Vec<_>>();
+        if values.is_empty() && name == "content-length" && !request.body.is_empty() {
+            values.push(request.body.len().to_string());
+        }
+        if values.is_empty() && name == "host" {
+            values.push(authority(url));
+        }
         if values.is_empty() {
             return Err(invalid(format!("the request has no {name} field to sign")));
         }
@@ -231,13 +258,10 @@ fn value(request: &AuthRequest, url: &Url, name: &str) -> Result<String, Signing
     Ok(match name {
         "@method" => request.method.as_str().to_ascii_uppercase(),
         "@target-uri" => url.as_str().to_owned(),
-        "@authority" => {
-            let host = url.host_str().unwrap_or("").to_ascii_lowercase();
-            url.port().map_or(host.clone(), |port| format!("{host}:{port}"))
-        }
+        "@authority" => authority(url),
         "@scheme" => url.scheme().to_owned(),
-        "@request-target" => format!("{}{}", url.path(), url.query().map_or(String::new(), |_| query.clone())),
-        "@path" => url.path().to_owned(),
+        "@request-target" if query.len() > 1 => format!("{}{query}", url.path()),
+        "@request-target" | "@path" => url.path().to_owned(),
         _ => query,
     })
 }
@@ -564,5 +588,59 @@ l9EOzXkzfx4bZxjAHU9mkMdJwOcMDQ==
         let credentials = Signed { signer, seen: Mutex::default() };
         let text = format!("key {} and {body}", ED25519_KEY.trim());
         assert_eq!(redact_with(&redactions(&credentials), &text), "key *** and ***");
+    }
+
+    fn lifetime_signer(lifetime: Duration) -> Result<MessageSigner, SigningError> {
+        let options = SignerOptions { components: &["@method"], lifetime: Some(lifetime), ..SignerOptions::default() };
+        MessageSigner::new(ED25519_KEY, options)
+    }
+
+    #[test]
+    fn lifetime_is_whole_seconds_of_at_least_one() {
+        for lifetime in [Duration::ZERO, Duration::from_millis(500), Duration::from_millis(1500)] {
+            assert!(lifetime_signer(lifetime).is_err(), "accepted {lifetime:?}");
+        }
+        let signer = lifetime_signer(Duration::from_secs(1))
+            .unwrap()
+            .with_clock(|| UNIX_EPOCH + Duration::from_millis(1_700_000_000_900));
+        let mut request = auth_request(Method::GET, "https://example.com/", &[], b"");
+        signer.sign(&mut request).unwrap();
+        assert_eq!(header(&request, "signature-input"), r#"sig1=("@method");created=1700000000;expires=1700000001"#);
+    }
+
+    #[test]
+    fn content_length_and_host_come_from_the_body_and_url_when_absent() {
+        let request = auth_request(Method::POST, "https://Example.com:443/items", &[], b"synthetic");
+        let url = Url::parse(&request.url).unwrap();
+        assert_eq!(value(&request, &url, "content-length").unwrap(), "9");
+        assert_eq!(value(&request, &url, "host").unwrap(), "example.com");
+        let headers = [("content-length", "18"), ("host", "proxy.example")];
+        let given = auth_request(Method::POST, "https://example.com/items", &headers, b"");
+        assert_eq!(value(&given, &url, "content-length").unwrap(), "18");
+        assert_eq!(value(&given, &url, "host").unwrap(), "proxy.example");
+        let options = SignerOptions { components: &["content-length", "host"], ..SignerOptions::default() };
+        let signer = MessageSigner::new(ED25519_KEY, options).unwrap();
+        let mut signed = auth_request(Method::POST, "https://example.com/items", &[], b"synthetic");
+        signer.sign(&mut signed).unwrap();
+        assert!(!signed.headers.contains_key("content-length") && !signed.headers.contains_key("host"));
+        let error = signer.sign(&mut auth_request(Method::GET, "https://example.com/items", &[], b"")).unwrap_err();
+        assert!(error.to_string().contains("content-length"), "{error}");
+    }
+
+    #[test]
+    fn an_empty_query_is_no_query() {
+        let request = auth_request(Method::GET, "https://example.com/p?", &[], b"");
+        let url = Url::parse(&request.url).unwrap();
+        assert_eq!(value(&request, &url, "@request-target").unwrap(), "/p");
+        assert_eq!(value(&request, &url, "@query").unwrap(), "?");
+    }
+
+    #[test]
+    fn each_line_of_the_key_body_is_a_secret() {
+        let options = SignerOptions { components: COVERED, ..SignerOptions::default() };
+        let credentials = Signed { signer: MessageSigner::new(RSA_KEY, options).unwrap(), seen: Mutex::default() };
+        let lines: Vec<&str> = RSA_KEY.trim().lines().skip(1).filter(|line| !line.starts_with("-----")).collect();
+        let stars = vec!["***"; lines.len()].join("\r\n");
+        assert_eq!(redact_with(&redactions(&credentials), &lines.join("\r\n")), stars);
     }
 }
