@@ -47,6 +47,8 @@ dependencies = [
 name = "backmarket-seller"
 version = "0.1.0-alpha.1"
 dependencies = [
+ "aws-lc-rs",
+ "base64",
  "chrono",
  "flate2",
  "futures-core",

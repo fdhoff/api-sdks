@@ -98,7 +98,7 @@ pub(crate) fn redact_with(forms: &[String], text: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{Arc, Mutex};
     use std::time::Duration;
@@ -201,15 +201,15 @@ mod tests {
         }
     }
 
-    struct Sent {
-        head: String,
-        body: Vec<u8>,
+    pub(crate) struct Sent {
+        pub(crate) head: String,
+        pub(crate) body: Vec<u8>,
     }
 
-    type Log = Arc<Mutex<Vec<Sent>>>;
+    pub(crate) type Log = Arc<Mutex<Vec<Sent>>>;
 
     /// Serves one reply per connection, picked by the request's number and lowercased head.
-    async fn serve(reply: impl Fn(usize, &str) -> (u16, String) + Send + 'static) -> (String, Log) {
+    pub(crate) async fn serve(reply: impl Fn(usize, &str) -> (u16, String) + Send + 'static) -> (String, Log) {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let url = format!("http://{}", listener.local_addr().unwrap());
         let log = Log::default();
@@ -257,7 +257,7 @@ mod tests {
         (url, log)
     }
 
-    fn transport(url: &str, credentials: Arc<dyn Credentials>) -> Transport {
+    pub(crate) fn transport(url: &str, credentials: Arc<dyn Credentials>) -> Transport {
         let mut headers = HeaderMap::new();
         headers.insert("user-agent", HeaderValue::from_static("test"));
         Transport::new(Settings {
