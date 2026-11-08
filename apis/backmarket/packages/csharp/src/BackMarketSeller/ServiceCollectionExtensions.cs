@@ -11,8 +11,11 @@ public static class BackMarketSellerServiceCollectionExtensions
     /// <remarks>
     /// The factory's handler is the one the client builds by default, so writes are still never resent and redirects
     /// are not followed. Header values are redacted from the factory's logs. A handler you add to the returned builder
-    /// must not resend a failed write. If <see cref="BackMarketClientOptions.Logger"/> is not set, the client logs
-    /// through the registered <see cref="ILoggerFactory"/>.
+    /// must not resend a failed write. That includes one added to every client, such as
+    /// <c>AddStandardResilienceHandler()</c> in <c>ConfigureHttpClientDefaults</c> or .NET Aspire's service defaults,
+    /// which retries POST and PUT unless configured with <c>o.Retry.DisableForUnsafeHttpMethods()</c>. If
+    /// <see cref="BackMarketClientOptions.Logger"/> is not set, the client logs through the registered
+    /// <see cref="ILoggerFactory"/>.
     /// </remarks>
     /// <param name="services">The service collection.</param>
     /// <param name="token">Your API token, sent verbatim.</param>

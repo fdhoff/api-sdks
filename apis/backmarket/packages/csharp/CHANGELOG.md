@@ -9,6 +9,8 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * Writes reuse pooled connections instead of opening one each. The token and other headers are sent per request, not set on the `HttpClient`.
 * The package has a project URL, Source Link, a symbols package and an icon.
 * An empty success body where the spec declares JSON throws `ApiDecodeException` instead of returning an empty model or string.
+* An `HttpClient` whose `DefaultRequestHeaders.ExpectContinue` is `true` is refused with `ArgumentException`. It overrode the client's own setting, so a failed write could be resent.
+* Docs: a plain `new HttpClient()` follows redirects, and a resilience handler added to every client, as in .NET Aspire's service defaults, retries writes unless configured not to.
 * Breaking: integer enum members are named after their meaning, such as `OrderState.PendingShipment` instead of `Value3`. This covers `OrderState`, `OrderLineState`, `ListingStateValue`, `ProductCondition` and `ReturnReason`; the wire values are unchanged.
 
 ## 0.1.0-alpha.1 (2026-11-07)

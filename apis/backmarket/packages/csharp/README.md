@@ -62,7 +62,7 @@ Your token is read from nowhere and stored nowhere: you pass it in, and the clie
 
 ### HttpClient and dependency injection
 
-To send through an `HttpClient` of your own, pass it as the third argument. The client uses it as it is: it neither changes nor disposes it, and its `Timeout` still applies.
+To send through an `HttpClient` of your own, pass it as the third argument. The client uses it as it is: it neither changes nor disposes it, and its `Timeout` still applies. Its `DefaultRequestHeaders.ExpectContinue` must not be `true`, because that would let a failed write be resent. A plain `new HttpClient()` follows redirects, unlike the client's own handler, so a 307 or 308 resends a write's body to wherever it points. To match the client's own behaviour, build it over `new SocketsHttpHandler { AllowAutoRedirect = false }`.
 
 ```csharp
 using var client = new BackMarketClient("your-token", options, httpClient);
@@ -80,6 +80,13 @@ builder.Services.AddBackMarketSeller(builder.Configuration["BackMarket:Token"]!,
 ```
 
 The factory uses the client's own handler, which follows no redirects, and redacts header values from its logs. With no `Logger` set, the client logs through the registered `ILoggerFactory`. `AddBackMarketSeller` returns the `IHttpClientBuilder`, so you can add handlers; a handler that retries must skip writes, such as `AddStandardResilienceHandler().Configure(o => o.Retry.DisableForUnsafeHttpMethods())`.
+
+Handlers added to every client also wrap this one. That includes `AddStandardResilienceHandler()` in `ConfigureHttpClientDefaults`, as .NET Aspire's service defaults do, and it retries `POST` and `PUT` by default, which can repeat a refund. Configure it to skip writes there:
+
+```csharp
+builder.Services.ConfigureHttpClientDefaults(http =>
+    http.AddStandardResilienceHandler().Configure(o => o.Retry.DisableForUnsafeHttpMethods()));
+```
 
 ## Behaviour
 
