@@ -109,7 +109,7 @@ func assign(target reflect.Value, value any) error {
 var filesType = reflect.TypeFor[[]backmarketseller.File]()
 
 // files reads file fields, which arrive as strings and are sent as their content.
-func files(value any) []backmarketseller.File {
+func files(value any) ([]backmarketseller.File, error) {
 	items, isList := value.([]any)
 	if !isList {
 		items = []any{value}
@@ -118,12 +118,15 @@ func files(value any) []backmarketseller.File {
 	for _, item := range items {
 		text, isText := item.(string)
 		if !isText {
-			encoded, _ := json.Marshal(item)
+			encoded, err := json.Marshal(item)
+			if err != nil {
+				return nil, err
+			}
 			text = string(encoded)
 		}
 		result = append(result, backmarketseller.File{Content: []byte(text)})
 	}
-	return result
+	return result, nil
 }
 
 func isParams(shape reflect.Type) bool {
@@ -147,7 +150,11 @@ func paramsArgument(shape reflect.Type, req request) (reflect.Value, error) {
 			continue
 		}
 		if field.Type == filesType {
-			params.Elem().Field(index).Set(reflect.ValueOf(files(value)))
+			content, err := files(value)
+			if err != nil {
+				return params, fmt.Errorf("%s: %w", wire, err)
+			}
+			params.Elem().Field(index).Set(reflect.ValueOf(content))
 			continue
 		}
 		if err := assign(params.Elem().Field(index), value); err != nil {

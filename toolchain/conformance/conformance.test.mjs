@@ -52,6 +52,7 @@ test('validateCase reports each malformed part', () => {
     [{ mock: { responses: [{ status: 200, gzip: 'yes' }] } }, /gzip must be true/],
     [{ mock: { responses: [{ status: 200, cut: 1.5 }] } }, /cut must be an integer/],
     [{ wire: [] }, /wire must be a non-empty list/],
+    [{ wire: [{ method: 'GET', path: '/items', body: {}, parts: {} }] }, /at most one of body or parts/],
     [{ expect: {} }, /exactly one of result/],
     [{ expect: { error: { status: 500 } } }, /needs a kind/],
   ];
@@ -111,6 +112,36 @@ test('checkCase enforces header patterns, absent headers, bodies and delays', ()
   assert.match(failures, /Authorization must be absent/);
   assert.match(failures, /body is \{"a":2\}/);
   assert.match(failures, /sent after 50ms/);
+});
+
+test('checkCase compares multipart parts by name, including repeated parts', () => {
+  const item = baseCase();
+  item.wire = [{ method: 'POST', path: '/items', parts: { note: ['hi'], files: ['a', 'b'] } }];
+  const body = [
+    '--xyz',
+    'Content-Disposition: form-data; name="files"; filename="files"',
+    'Content-Type: application/octet-stream',
+    '',
+    'a',
+    '--xyz',
+    'content-disposition: form-data; name=note',
+    '',
+    'hi',
+    '--xyz',
+    'Content-Disposition: form-data; name="files"; filename="files"',
+    '',
+    'b',
+    '--xyz--',
+    '',
+  ].join('\r\n');
+  const request = (text, type = 'multipart/form-data; boundary="xyz"') =>
+    sent({ method: 'POST', body: text, headers: { 'content-type': type } });
+  const check = (...args) => checkCase(item, [request(...args)], { result: { id: 1 } }, 't0ken').join('\n');
+  assert.equal(check(body), '');
+  assert.match(check(body.replace('\r\nb\r\n', '\r\nc\r\n')), /parts are .*"files":\["a","c"\]/);
+  const single = ['--xyz', 'Content-Disposition: form-data; name="files"', '', 'a', '--xyz--', ''].join('\r\n');
+  assert.match(check(single), /parts are \{"files":\["a"\]\}/);
+  assert.match(check('{}', 'application/json'), /body is not multipart/);
 });
 
 test('checkCase compares outcomes', () => {

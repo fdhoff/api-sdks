@@ -356,9 +356,9 @@ cases:
       operation: put-ws-refurbisher-counter-offer
       params: { buybackOrderId: EXAMPLE-1 }
       multipart:
-        price: 10
-        reasons: [broken_screen]
-        files: [synthetic file content]
+        price: 10.5
+        reasons: [broken_screen, scratched_body]
+        files: [synthetic file one, synthetic file two]
     mock:
       responses:
         - status: 204
@@ -367,6 +367,10 @@ cases:
         path: /ws/buyback/v2/orders/EXAMPLE-1/counter-offers
         headers_match:
           content-type: ^multipart/form-data; boundary=
+        parts:
+          price: ['10.5']
+          reasons: [broken_screen, scratched_body]
+          files: [synthetic file one, synthetic file two]
     expect:
       result: null
 
@@ -387,7 +391,7 @@ cases:
       operation: post-ws-specific-order-invoice
       params: { order_id: 1 }
       multipart:
-        invoice: [synthetic invoice content]
+        invoice: [synthetic invoice one, synthetic invoice two]
     mock:
       responses:
         - status: 200
@@ -396,6 +400,8 @@ cases:
         path: /ws/orders/1/invoice
         headers_match:
           content-type: ^multipart/form-data; boundary=
+        parts:
+          invoice: [synthetic invoice one, synthetic invoice two]
     expect:
       result: null
 

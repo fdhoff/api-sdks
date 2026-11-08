@@ -111,6 +111,8 @@ cases:
         path: /ws/sav/1/msg
         headers_match:
           content-type: ^multipart/form-data; boundary=
+        parts:
+          message: [Synthetic message]
     expect:
       result: { id: 1 }
 
@@ -141,3 +143,45 @@ cases:
         path: /ws/sav/refund
     expect:
       error: { kind: api, status: 307 }
+
+  - name: permanent-redirect-is-an-error-not-followed
+    request:
+      operation: get-ws-specific-order
+      params: { order_id: 1 }
+    mock:
+      responses:
+        - status: 301
+          headers: { location: /ws/orders/2 }
+    wire:
+      - method: GET
+        path: /ws/orders/1
+    expect:
+      error: { kind: api, status: 301 }
+
+  - name: see-other-after-a-post-is-not-followed
+    request:
+      operation: postRefundCreate
+      body: { amount: 1, orderline_pk: 1, refund_type: 4 }
+    mock:
+      responses:
+        - status: 303
+          headers: { location: /ws/sav/refund-status }
+    wire:
+      - method: POST
+        path: /ws/sav/refund
+    expect:
+      error: { kind: api, status: 303 }
+
+  - name: permanent-redirect-of-a-post-is-not-followed
+    request:
+      operation: postRefundCreate
+      body: { amount: 1, orderline_pk: 1, refund_type: 4 }
+    mock:
+      responses:
+        - status: 308
+          headers: { location: /ws/sav/refund-elsewhere }
+    wire:
+      - method: POST
+        path: /ws/sav/refund
+    expect:
+      error: { kind: api, status: 308 }

@@ -165,6 +165,22 @@ cases:
     expect:
       error: { kind: decode }
 
+  - name: pagination-next-link-changing-only-other-parameters
+    request:
+      operation: get-ws-list-order
+      params: { page: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 2, next: 'https://foreign.invalid/ws/orders?page=1&page-size=50', previous: null, results: [{ order_id: 1 }] }
+    wire:
+      - method: GET
+        path: /ws/orders
+        query: { page: '1' }
+    expect:
+      error: { kind: decode }
+
   - name: pagination-next-link-with-no-position
     request:
       operation: get-ws-list-order
