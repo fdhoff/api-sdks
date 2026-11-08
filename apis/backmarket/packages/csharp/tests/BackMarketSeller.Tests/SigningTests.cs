@@ -228,6 +228,33 @@ public sealed class SigningTests
         Assert.Contains("content-length", error.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("POST")]
+    [InlineData("PUT")]
+    public void APostOrPutWithoutABodySignsAZeroContentLength(string method)
+    {
+        var (pem, publicKey) = FreshKey();
+        using var signer = new MessageSigner(pem, ["content-length"]);
+        var request = Request(method, "https://example.com/items", [], []);
+
+        signer.Sign(request);
+
+        Assert.False(request.Headers.ContainsKey("content-length"));
+        VerifyBase(publicKey, request, ["\"content-length\": 0"]);
+    }
+
+    [Theory]
+    [InlineData("GET")]
+    [InlineData("DELETE")]
+    [InlineData("PATCH")]
+    public void OtherMethodsWithoutABodyHaveNoContentLengthToSign(string method)
+    {
+        var (pem, _) = FreshKey();
+        using var signer = new MessageSigner(pem, ["content-length"]);
+        var error = Assert.Throws<InvalidOperationException>(() => signer.Sign(Request(method, "https://example.com/items", [], [])));
+        Assert.Contains("content-length", error.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void AnEmptyQueryIsNoQuery()
     {

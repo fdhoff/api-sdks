@@ -284,6 +284,22 @@ def test_content_length_and_host_come_from_the_body_and_url_when_absent() -> Non
         signer.sign(auth_request("GET", "https://example.com/items", {}, b""))
 
 
+@pytest.mark.parametrize("method", ["POST", "PUT"])
+def test_a_post_or_put_without_a_body_signs_a_zero_content_length(method: str) -> None:
+    signer = MessageSigner(ED25519_KEY, ["content-length"], clock=lambda: 1700000000)
+    request = auth_request(method, "https://example.com/items", {}, b"")
+    signer.sign(request)
+    assert "content-length" not in request.headers
+    assert MessageSigner._value(request, "content-length") == "0"
+
+
+@pytest.mark.parametrize("method", ["GET", "DELETE", "PATCH"])
+def test_other_methods_without_a_body_have_no_content_length_to_sign(method: str) -> None:
+    signer = MessageSigner(ED25519_KEY, ["content-length"], clock=lambda: 1700000000)
+    with pytest.raises(ValueError, match="content-length"):
+        signer.sign(auth_request(method, "https://example.com/items", {}, b""))
+
+
 def test_an_empty_query_is_no_query() -> None:
     request = auth_request("GET", "https://example.com/p?", {}, b"")
     assert MessageSigner._value(request, "@request-target") == "/p"

@@ -22,6 +22,8 @@ _DERIVED = ("@method", "@target-uri", "@authority", "@scheme", "@request-target"
 _FIELD = re.compile(r"[a-z0-9!#$%&'*+.^_`|~-]+")
 _LABEL = re.compile(r"[a-z*][a-z0-9_.*-]*")
 _DEFAULT_PORTS = {"http": ":80", "https": ":443"}
+# Every runtime's HTTP library sends `Content-Length: 0` for these methods without a body.
+_EMPTY_BODY_LENGTH = ("POST", "PUT")
 # A shorter last line of a key's base64 body is too common a string to redact.
 _MIN_SECRET_LINE = 16
 
@@ -67,14 +69,22 @@ def _quote(value: str) -> str:
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
+def _content_length(request: AuthRequest) -> str | None:
+    """What the HTTP library sends: the body's length, or `0` for a POST or PUT without a body."""
+    if request.body:
+        return str(len(request.body))
+    return "0" if request.method.upper() in _EMPTY_BODY_LENGTH else None
+
+
 class MessageSigner:
     """Signs each attempt's request: a `Content-Digest` of the body when there is one, then `Signature-Input`
     and `Signature` over `components`, with a fresh `created` time.
 
     `components` are lowercase field names and the derived components `@method`, `@target-uri`,
     `@authority`, `@scheme`, `@request-target`, `@path` and `@query`. `content-digest` is left out of a
-    request with no body. A request without `content-length` or `host` uses the body's length or the URL's
-    authority, which the HTTP library sends; any other field the request lacks is an error. The key is an
+    request with no body. A request without `content-length` or `host` uses the body's length, `0` for a
+    POST or PUT without one, or the URL's authority, which the HTTP library sends; any other field the request
+    lacks is an error. The key is an
     unencrypted PKCS #8 PEM Ed25519 or RSA private key, and is a secret. `lifetime` is whole seconds.
     """
 
@@ -138,8 +148,8 @@ class MessageSigner:
         url = urlsplit(request.url)
         if not name.startswith("@"):
             value = request.headers.get(name)
-            if value is None and name == "content-length" and request.body:
-                value = str(len(request.body))
+            if value is None and name == "content-length":
+                value = _content_length(request)
             if value is None and name == "host":
                 value = _authority(url)
             if value is None:

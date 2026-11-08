@@ -52,8 +52,9 @@ type SignerOptions struct {
 // MessageSigner signs each attempt's request with an HTTP message signature (RFC 9421): a
 // Content-Digest (RFC 9530) of the body when there is one, then Signature-Input and Signature over
 // the covered components, with a fresh created time. content-digest is left out of a request with
-// no body. A request without content-length or host uses the body's length or the URL's authority,
-// which net/http sends; any other field the request lacks is an error. Call Sign from
+// no body. A request without content-length or host uses the body's length, 0 for a POST or PUT
+// without one, or the URL's authority, which net/http sends; any other field the request lacks is an
+// error. Call Sign from
 // Credentials.Apply.
 type MessageSigner struct {
 	algorithm  string
@@ -218,13 +219,24 @@ func (s *MessageSigner) Sign(request *AuthRequest) error {
 	return nil
 }
 
+// contentLength is what net/http sends: the body's length, or 0 for a POST or PUT without a body.
+func contentLength(request *AuthRequest) []string {
+	if len(request.Body) > 0 {
+		return []string{strconv.Itoa(len(request.Body))}
+	}
+	if method := strings.ToUpper(request.Method); method == "POST" || method == "PUT" {
+		return []string{"0"}
+	}
+	return nil
+}
+
 func componentValue(request *AuthRequest, target *url.URL, name string) (string, error) {
 	scheme := strings.ToLower(target.Scheme)
 	authority := strings.TrimSuffix(strings.ToLower(target.Host), defaultPorts[scheme])
 	if !strings.HasPrefix(name, "@") {
 		values := slices.Clone(request.Header.Values(name))
-		if len(values) == 0 && name == "content-length" && len(request.Body) > 0 {
-			values = []string{strconv.Itoa(len(request.Body))}
+		if len(values) == 0 && name == "content-length" {
+			values = contentLength(request)
 		}
 		if len(values) == 0 && name == "host" {
 			values = []string{authority}

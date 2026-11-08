@@ -361,6 +361,29 @@ func TestContentLengthAndHostComeFromTheBodyAndURLWhenAbsent(t *testing.T) {
 	}
 }
 
+func TestAPostOrPutWithoutABodySignsAZeroContentLength(t *testing.T) {
+	signer := mustSigner(t, SignerOptions{PrivateKey: rfcEd25519Key, Components: []string{"content-length"}})
+	for _, method := range []string{"POST", "PUT"} {
+		request := &AuthRequest{Method: method, URL: "https://example.com/items", Header: http.Header{}}
+		target, _ := url.Parse(request.URL)
+		if got, err := componentValue(request, target, "content-length"); err != nil || got != "0" {
+			t.Errorf("%s: content-length %q, %v", method, got, err)
+		}
+		if err := signer.Sign(request); err != nil {
+			t.Errorf("%s: %v", method, err)
+		}
+		if request.Header.Get("Content-Length") != "" {
+			t.Errorf("%s: the signer added a header the transport sends: %v", method, request.Header)
+		}
+	}
+	for _, method := range []string{"GET", "DELETE", "PATCH"} {
+		err := signer.Sign(&AuthRequest{Method: method, URL: "https://example.com/items", Header: http.Header{}})
+		if err == nil || !strings.Contains(err.Error(), "content-length") {
+			t.Errorf("%s: got %v", method, err)
+		}
+	}
+}
+
 func TestAnEmptyQueryIsNoQuery(t *testing.T) {
 	request := &AuthRequest{Method: "GET", URL: "https://example.com/p?", Header: http.Header{}}
 	target, _ := url.Parse(request.URL)

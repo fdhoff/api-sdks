@@ -320,6 +320,23 @@ test('content-length and host come from the body and URL when absent', async () 
   );
 });
 
+test('a POST or PUT without a body signs a zero content-length', async () => {
+  const [privateKey, publicKey] = freshKey();
+  const signer = await MessageSigner.create({ privateKey, components: ['content-length'] });
+  for (const method of ['POST', 'PUT']) {
+    const request = authRequest(method, 'https://example.com/items', {}, new Uint8Array());
+    await signer.sign(request);
+    assert.equal(request.headers.has('content-length'), false);
+    verifyBase(publicKey, request, ['"content-length": 0']);
+  }
+  for (const method of ['GET', 'DELETE', 'PATCH']) {
+    await assert.rejects(
+      signer.sign(authRequest(method, 'https://example.com/items', {}, new Uint8Array())),
+      /content-length/,
+    );
+  }
+});
+
 test('an empty query is no query', async () => {
   const [privateKey, publicKey] = freshKey();
   const signer = await MessageSigner.create({ privateKey, components: ['@request-target', '@query'] });

@@ -63,8 +63,8 @@ enum Key {
 /// Signs each attempt's request: a `Content-Digest` of the body when there is one, then
 /// `Signature-Input` and `Signature` over the covered components, with a fresh `created` time.
 /// `content-digest` is left out of a request with no body. A request without `content-length` or
-/// `host` uses the body's length or the URL's authority, which reqwest sends; any other field the
-/// request lacks is an error. Call [`MessageSigner::sign`] from `Credentials::apply`.
+/// `host` uses the body's length, `0` for a POST or PUT without one, or the URL's authority, which
+/// reqwest sends; any other field the request lacks is an error. Call [`MessageSigner::sign`] from `Credentials::apply`.
 pub struct MessageSigner {
     key: Key,
     secrets: Vec<String>,
@@ -231,6 +231,14 @@ fn authority(url: &Url) -> String {
     url.port().map_or(host.clone(), |port| format!("{host}:{port}"))
 }
 
+/// What reqwest sends: the body's length, or `0` for a POST or PUT without a body.
+fn content_length(request: &AuthRequest) -> Option<String> {
+    if !request.body.is_empty() {
+        return Some(request.body.len().to_string());
+    }
+    matches!(request.method.as_str(), "POST" | "PUT").then(|| "0".to_owned())
+}
+
 fn value(request: &AuthRequest, url: &Url, name: &str) -> Result<String, SigningError> {
     if !name.starts_with('@') {
         let mut values = request
@@ -243,8 +251,8 @@ fn value(request: &AuthRequest, url: &Url, name: &str) -> Result<String, Signing
             .into_iter()
             .map(str::to_owned)
             .collect::<Vec<_>>();
-        if values.is_empty() && name == "content-length" && !request.body.is_empty() {
-            values.push(request.body.len().to_string());
+        if values.is_empty() && name == "content-length" {
+            values.extend(content_length(request));
         }
         if values.is_empty() && name == "host" {
             values.push(authority(url));
@@ -606,6 +614,24 @@ l9EOzXkzfx4bZxjAHU9mkMdJwOcMDQ==
         let mut request = auth_request(Method::GET, "https://example.com/", &[], b"");
         signer.sign(&mut request).unwrap();
         assert_eq!(header(&request, "signature-input"), r#"sig1=("@method");created=1700000000;expires=1700000001"#);
+    }
+
+    #[test]
+    fn a_post_or_put_without_a_body_signs_a_zero_content_length() {
+        let options = SignerOptions { components: &["content-length"], ..SignerOptions::default() };
+        let signer = MessageSigner::new(ED25519_KEY, options).unwrap();
+        for method in [Method::POST, Method::PUT] {
+            let mut request = auth_request(method.clone(), "https://example.com/items", &[], b"");
+            let url = Url::parse(&request.url).unwrap();
+            assert_eq!(value(&request, &url, "content-length").unwrap(), "0", "{method}");
+            signer.sign(&mut request).unwrap();
+            assert!(!request.headers.contains_key("content-length"), "{method}");
+        }
+        for method in [Method::GET, Method::DELETE, Method::PATCH] {
+            let mut request = auth_request(method.clone(), "https://example.com/items", &[], b"");
+            let error = signer.sign(&mut request).unwrap_err();
+            assert!(error.to_string().contains("content-length"), "{method}: {error}");
+        }
     }
 
     #[test]
