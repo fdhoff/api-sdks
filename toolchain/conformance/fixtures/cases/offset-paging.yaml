@@ -1,0 +1,57 @@
+# Offset paging, in the toolchain's default field names. An API that pages this way can copy these cases.
+cases:
+  - name: offset-paging-advances-by-the-items-received-until-the-count
+    request:
+      operation: list-items
+      params: { limit: 2 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 3, results: [{ id: a }, { id: b }] }
+        - status: 200
+          body: { count: 3, results: [{ id: c }] }
+    wire:
+      - method: GET
+        path: /items
+        query: { limit: '2' }
+      - method: GET
+        path: /items
+        query: { limit: '2', offset: '2' }
+    expect:
+      result: [{ id: a }, { id: b }, { id: c }]
+
+  - name: offset-paging-starts-at-the-callers-offset-and-stops-at-an-empty-page
+    request:
+      operation: list-items
+      params: { offset: 5 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { results: [{ id: f }] }
+        - status: 200
+          body: { results: [] }
+    wire:
+      - method: GET
+        path: /items
+        query: { offset: '5' }
+      - method: GET
+        path: /items
+        query: { offset: '6' }
+    expect:
+      result: [{ id: f }]
+
+  - name: offset-paging-empty-first-page
+    request:
+      operation: list-items
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 0, results: [] }
+    wire:
+      - method: GET
+        path: /items
+    expect:
+      result: []
