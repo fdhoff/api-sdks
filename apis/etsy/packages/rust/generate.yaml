@@ -1,0 +1,31 @@
+# How `npm run generate:rust` builds this package. Public method names are in operations.yaml.
+generator: rust
+output: src
+source: src
+generated: [apis, models]
+resources: resources.rs
+runtime: runtime
+ignore: [src/apis/configuration.rs]
+supporting_files:
+  dispatch.mustache: conformance/dispatch.rs
+format: [sh, -c, cargo fmt, --]
+properties:
+  packageName: etsy_seller
+  library: reqwest
+# Every field is an Option here, so None already means null or absent.
+drop_nullable: true
+# A field of several types becomes a serde_json::Value.
+drop_unions: true
+# Every page types its `results` as a union of one schema; this types them as that schema.
+collapse_single_unions: true
+type_mappings:
+  integer: i64
+  i32: i64
+  float: f64
+  file: File
+  File: File
+  binary: File
+  DateTime: chrono::DateTime<chrono::FixedOffset>
+  date: String
+  UUID: String
+  URI: String
