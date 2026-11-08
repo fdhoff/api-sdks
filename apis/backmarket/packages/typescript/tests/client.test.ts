@@ -145,9 +145,10 @@ test('a non-object response comes back as decoded', async () => {
   assert.deepEqual(await client.orders.get(1), ['raw']);
 });
 
-test('an empty success reads as undefined', async () => {
-  const { client } = clientFor(() => new Response(null, { status: 204 }));
+test('an empty success reads as undefined, or as an empty string where the spec declares text', async () => {
+  const { client } = clientFor(() => new Response(null, { status: 201 }));
   assert.equal(await client.orders.uploadInvoice(1), undefined);
+  assert.equal(await client.care.createRefund({}), '');
 });
 
 test('an empty success is a decode error where the spec declares a JSON body', async () => {
@@ -431,12 +432,41 @@ test('a signal cancels the wait before a retry', { timeout: 5000 }, async () => 
   assert.equal(sent.length, 1);
 });
 
-test('an aborted signal is not retried', async () => {
+test('an aborted signal sends nothing', async () => {
   const controller = new AbortController();
   controller.abort();
   const { client, sent } = clientFor(() => json({}));
   await assert.rejects(() => client.orders.get(1, { signal: controller.signal }), { name: 'AbortError' });
+  assert.equal(sent.length, 0);
+});
+
+test('a signal aborted after an attempt fails rejects with its reason, not the failure', async () => {
+  const controller = new AbortController();
+  const reason = new Error('stopped');
+  const { client, sent } = clientFor(() => {
+    controller.abort(reason);
+    return new Response(null, { status: 500 });
+  });
+  await assert.rejects(
+    () => client.orders.get(1, { signal: controller.signal }),
+    (error) => error === reason,
+  );
   assert.equal(sent.length, 1);
+});
+
+test('a signal aborts a body that is still arriving with its reason', async (t) => {
+  const controller = new AbortController();
+  const reason = new Error('stopped');
+  const baseUrl = await serve(t, (_request, response) => {
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.write('{"order_id":');
+    setTimeout(() => controller.abort(reason), 20);
+  });
+  const client = new BackMarketClient({ token: TOKEN, baseUrl, ...required });
+  await assert.rejects(
+    () => client.orders.get(1, { signal: controller.signal }),
+    (error) => error === reason,
+  );
 });
 
 test('iter passes the signal to every page', async () => {
@@ -447,7 +477,7 @@ test('iter passes the signal to every page', async () => {
     for await (const _order of client.orders.iter({}, { signal: controller.signal })) controller.abort();
   };
   await assert.rejects(walk, { name: 'AbortError' });
-  assert.equal(sent.length, 2);
+  assert.equal(sent.length, 1);
 });
 
 test('the timeout still applies alongside a signal', async (t) => {

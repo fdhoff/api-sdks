@@ -36,6 +36,11 @@ const {{nickname}}: Operation = {
 {{#vendorExtensions.x-sdk-returns-json}}
   returnsJson: true,
 {{/vendorExtensions.x-sdk-returns-json}}
+{{^vendorExtensions.x-sdk-returns-json}}
+{{#returnType}}
+  returnsText: true,
+{{/returnType}}
+{{/vendorExtensions.x-sdk-returns-json}}
 {{#vendorExtensions.x-sdk-iterator}}
   iterator: '{{vendorExtensions.x-sdk-iterator}}',
 {{/vendorExtensions.x-sdk-iterator}}
