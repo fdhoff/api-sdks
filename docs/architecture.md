@@ -73,7 +73,7 @@ The upstream spec is OpenAPI 3.0.3, with 40 operations on 35 paths and 75 schema
 | --- | --- |
 | `toolchain/` | Pipeline, templates, runtime and conformance runner |
 | `apis/backmarket/` | Spec pin, overlay, package config, conformance cases and spec audit |
-| `apis/etsy/` | The same for Etsy's Open API v3, with a Python package so far |
+| `apis/etsy/` | The same for Etsy's Open API v3, with Python and C# packages so far |
 
 `toolchain/` must not name this API or contain its endpoints or schemas. `apis/backmarket/tests/boundary.test.mjs` enforces that. API-specific values the toolchain needs arrive as configuration or case data: the conformance error kinds, for example, are defined by the cases, not by the runner.
 

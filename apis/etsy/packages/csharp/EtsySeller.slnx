@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/EtsySeller/EtsySeller.csproj" />
+  <Project Path="tests/EtsySeller.Tests/EtsySeller.Tests.csproj" />
+  <Project Path="conformance/Driver/EtsySeller.Conformance.csproj" />
+</Solution>

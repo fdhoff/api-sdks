@@ -1,0 +1,17 @@
+api-sdks
+Copyright 2026 Foster Hoff
+
+This project is unofficial. It is not affiliated with, endorsed by, or
+supported by Etsy.
+
+The term 'Etsy' is a trademark of Etsy, Inc. This Application uses Etsy's API,
+but is not endorsed or certified by Etsy.
+
+The Apache License, Version 2.0 covers only this project's own code.
+
+The Etsy Open API v3 OpenAPI specification is not included in this repository.
+It is fetched at build time from
+https://www.etsy.com/openapi/generated/oas/3.0.0.json, belongs to Etsy, and is
+not covered by this licence.
+
+This licence grants no right to the Etsy name.
