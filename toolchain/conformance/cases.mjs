@@ -8,6 +8,7 @@ const REQUEST_KEYS = ['operation', 'params', 'body', 'multipart', 'paginate'];
 const RESPONSE_KEYS = ['status', 'headers', 'body', 'delay_ms', 'drop', 'trickle_ms', 'gzip', 'cut'];
 const WIRE_KEYS = [
   'method',
+  'host',
   'path',
   'query',
   'headers',

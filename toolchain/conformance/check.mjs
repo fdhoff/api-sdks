@@ -85,6 +85,7 @@ function checkWire(wire, requests, failures) {
     if (!actual) return;
     const label = `wire[${index}]`;
     if (actual.method !== expected.method) failures.push(`${label}: method is ${actual.method}`);
+    if (expected.host !== undefined && actual.host !== expected.host) failures.push(`${label}: host is ${actual.host}`);
     if (actual.path !== expected.path) failures.push(`${label}: path is ${actual.path}`);
     if (!isDeepStrictEqual(actual.query, expected.query ?? {})) {
       failures.push(`${label}: query is ${JSON.stringify(actual.query)}`);

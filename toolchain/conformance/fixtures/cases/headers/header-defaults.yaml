@@ -1,0 +1,68 @@
+# Header parameters with a client-level default. `list-items` declares `X-Tenant`; `list-files` does not.
+cases:
+  - name: header-default-is-sent-on-an-operation-that-declares-it
+    client:
+      header_defaults: { x-tenant: acme }
+    request:
+      operation: list-items
+    mock:
+      responses:
+        - status: 200
+          body: { results: [] }
+    wire:
+      - method: GET
+        host: main
+        path: /items
+        headers: { x-tenant: acme }
+    expect:
+      result: { results: [] }
+
+  - name: header-passed-to-the-call-overrides-the-default
+    client:
+      header_defaults: { X-Tenant: acme }
+    request:
+      operation: list-items
+      params: { X-Tenant: other }
+    mock:
+      responses:
+        - status: 200
+          body: { results: [] }
+    wire:
+      - method: GET
+        host: main
+        path: /items
+        headers: { x-tenant: other }
+    expect:
+      result: { results: [] }
+
+  - name: header-default-is-not-sent-on-an-operation-that-does-not-declare-it
+    client:
+      header_defaults: { X-Tenant: acme }
+    request:
+      operation: list-files
+    mock:
+      responses:
+        - status: 200
+          body: { results: [] }
+    wire:
+      - method: GET
+        host: files
+        path: /files
+        headers_absent: [x-tenant]
+    expect:
+      result: { results: [] }
+
+  - name: header-without-a-default-or-a-value-is-not-sent
+    request:
+      operation: list-items
+    mock:
+      responses:
+        - status: 200
+          body: { results: [] }
+    wire:
+      - method: GET
+        host: main
+        path: /items
+        headers_absent: [x-tenant]
+    expect:
+      result: { results: [] }
