@@ -93,6 +93,7 @@ Values a case or `defaults.yaml` may set. The runner adds `base_url` and `token`
 | `rate_limit_wait_ms` | Wait after a rate limit with no usable `Retry-After` |
 | `max_retry_wait_ms` | Longest `Retry-After` to wait for |
 | `header_defaults` | Client-level values for header parameters that take one, by header name |
+| `environment` | A named host map. A driver given one sends each host key's requests to `<base_url>/_host/<hostname>`, the hostname that environment maps the key to, so a wire item's `host` checks the map |
 
 ## Driver protocol
 

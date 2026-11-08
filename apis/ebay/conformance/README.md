@@ -26,6 +26,7 @@ An operation accepts an application token when any scope it lists is one its sch
 | --- | --- |
 | `header_defaults` | Values for `X-EBAY-C-MARKETPLACE-ID` and `Content-Language`, by header name. Sent only by operations that declare the header. A call's own value, passed in `params` by header name, wins |
 | `signature_key` | The public key JWE from the Key Management API. When set, every request is signed as described below |
+| `environment` | `production` or `sandbox`, from `environments` in `sdk.yaml`. When set, the driver sends each host's requests to `/_host/<hostname>`, that environment's hostname for the key, instead of `/_host/<key>` |
 
 ## Signatures
 
@@ -50,6 +51,10 @@ A driver reports these in `error.kind`, with the HTTP `status` where there was o
 | `connection` | The connection failed or dropped before a full response, after retries |
 | `decode` | A success response other than 204 whose declared JSON body is empty or does not parse, or a page without its items list or whose `next` does not advance |
 
+## Hosts
+
+Each operation goes to its first server's host key, `api`, `apiz` or `apim`, from `hosts` in `sdk.yaml`. The driver sends key `K` to `<base_url>/_host/K`, and every page of an iteration goes to the operation's own host.
+
 ## Retries and paging
 
 Retries follow the toolchain runtime: a 429 is retried on every method, and 5xx, timeouts and dropped connections on GET only. eBay documents no `Retry-After`, so a 429 without one waits the rate-limit wait.
@@ -58,10 +63,9 @@ Paged operations answer `next` until their last page. The iterator copies `offse
 
 ## Limits
 
-* Every case goes to one base URL. TODO: add host routing and sandbox cases once the harness records each request's host key.
 * No case downloads a binary body: the case format has no way to state bytes. TODO: add Feed file, evidence and document downloads once runtimes return binary bodies.
 * The raw video upload has no case, for the same reason.
 * Signature cases check the headers' form and the exact digest, not the signature itself, since the key is the driver's own.
-* Feedback's two paged operations have no iterator, so no paging case.
+* Feedback's two paged operations are not iterated, so they have no paging case.
 
 These cases are checked against the mock only. Nothing here has been confirmed against the live API.
