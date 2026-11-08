@@ -133,6 +133,8 @@ The [Rust README](apis/backmarket/packages/rust/README.md) covers installing, er
 
 Every test runs against a mock built from the public spec, so nothing here is confirmed against the live API. If you use an SDK for real, please report what you find, working or not, as a GitHub issue. The packages stay on 0.x until those reports confirm their behaviour.
 
+One gap to watch for: where the spec declares a JSON success body, every SDK treats an empty body as a decode error. A write that really answers with nothing, such as the buyback listing update (`202`) or a listing create or update, would then fail even though the API accepted it. If you see that, please report the operation and status. Confirmed cases are fixed in the overlay.
+
 ## Layout
 
 | Path | Contents |
