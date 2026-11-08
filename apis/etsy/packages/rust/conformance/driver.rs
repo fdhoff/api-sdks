@@ -84,15 +84,6 @@ pub fn param<T: DeserializeOwned>(values: &Map<String, Value>, name: &str) -> Op
     values.get(name).map(coerce)
 }
 
-/// A form-encoded body's fields arrive as the case's body.
-pub fn form_fields(case: &Case) -> Map<String, Value> {
-    case.body
-        .as_ref()
-        .and_then(Value::as_object)
-        .cloned()
-        .unwrap_or_default()
-}
-
 /// One file or a list of them, as the client's field expects.
 pub trait Files: Sized {
     fn from_files(files: Vec<File>) -> Self;

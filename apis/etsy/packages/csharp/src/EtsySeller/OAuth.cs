@@ -49,6 +49,7 @@ public sealed partial class EtsyOAuth
 
     private readonly EtsyCredentials credentials;
     private readonly Transport transport;
+    private readonly SemaphoreSlim requesting = new(1, 1);
 
     internal EtsyOAuth(EtsyCredentials credentials, Transport transport)
     {
@@ -110,23 +111,57 @@ public sealed partial class EtsyOAuth
         ArgumentException.ThrowIfNullOrEmpty(codeVerifier);
         ArgumentException.ThrowIfNullOrEmpty(redirectUri);
         credentials.Remember(code, codeVerifier);
-        return RequestAsync(["authorization_code", credentials.ApiKey, redirectUri, code, codeVerifier, null], cancellationToken);
+        return OneAtATimeAsync(() => RequestAsync(["authorization_code", credentials.ApiKey, redirectUri, code, codeVerifier, null]), cancellationToken);
     }
 
-    /// <summary>Replaces the access token now. The client also does this itself after a 401.</summary>
+    /// <summary>
+    /// Replaces the access token now. The client also does this itself after a 401. A refresh asked for while another
+    /// is under way waits for it and returns its token.
+    /// </summary>
     /// <exception cref="InvalidOperationException">There is no refresh token yet.</exception>
     public Task<EtsyToken> RefreshAsync(CancellationToken cancellationToken = default)
     {
         var refreshToken = credentials.RefreshToken
             ?? throw new InvalidOperationException("There is no refresh token: set RefreshToken, or exchange a code first");
-        return RequestAsync(["refresh_token", credentials.ApiKey, null, null, null, refreshToken], cancellationToken);
+        return OneAtATimeAsync(
+            () => credentials.Replaced(refreshToken) is { } token
+                ? Task.FromResult(token)
+                : RequestAsync(["refresh_token", credentials.ApiKey, null, null, null, refreshToken]),
+            cancellationToken);
     }
 
-    private async Task<EtsyToken> RequestAsync(object?[] values, CancellationToken cancellationToken)
+    /// <summary>
+    /// Sends one token request at a time, since each refresh token works only once. Cancelling stops the wait, not a
+    /// request already sent, so a pair Etsy has rotated is still stored. The transport's timeout bounds the request.
+    /// </summary>
+    private async Task<EtsyToken> OneAtATimeAsync(Func<Task<EtsyToken>> request, CancellationToken cancellationToken)
     {
-        var reply = await transport.CallAsync<JsonElement>(TokenOperation, values, cancellationToken).ConfigureAwait(false);
+        await requesting.WaitAsync(cancellationToken).ConfigureAwait(false);
+        Task<EtsyToken> pending;
+        try
+        {
+            pending = request();
+        }
+        catch
+        {
+            requesting.Release();
+            throw;
+        }
+        _ = pending.ContinueWith(
+            done =>
+            {
+                _ = done.Exception;
+                requesting.Release();
+            },
+            CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        return await pending.WaitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<EtsyToken> RequestAsync(object?[] values)
+    {
+        var reply = await transport.CallAsync<JsonElement>(TokenOperation, values, CancellationToken.None).ConfigureAwait(false);
         var token = Read(reply) ?? throw new ApiDecodeException("The token response has no access and refresh token") { Status = 200 };
-        await credentials.StoreAsync(token, cancellationToken).ConfigureAwait(false);
+        await credentials.StoreAsync(token, CancellationToken.None).ConfigureAwait(false);
         return token;
     }
 
@@ -160,12 +195,14 @@ public sealed partial class EtsyOAuth
 /// </summary>
 internal sealed class EtsyCredentials : ICredentialProvider
 {
+    private const int Remembered = 16;
     private readonly object gate = new();
     private readonly string sharedSecret;
     private readonly Func<EtsyToken, CancellationToken, Task>? onToken;
     private readonly List<string> seen = [];
     private string? accessToken;
     private string? refreshToken;
+    private EtsyToken? token;
 
     public EtsyCredentials(string apiKey, string sharedSecret, EtsyClientOptions options)
     {
@@ -223,7 +260,7 @@ internal sealed class EtsyCredentials : ICredentialProvider
     {
         lock (gate)
         {
-            return [ApiKey, sharedSecret, .. seen];
+            return [ApiKey, sharedSecret, .. new[] { accessToken, refreshToken }.Where(value => !string.IsNullOrEmpty(value))!, .. seen];
         }
     }
 
@@ -233,16 +270,36 @@ internal sealed class EtsyCredentials : ICredentialProvider
         {
             return false;
         }
+        lock (gate)
+        {
+            // Another refresh replaced the token this request sent, so retry with the new one.
+            if (request.Headers.GetValueOrDefault("Authorization") != (string.IsNullOrEmpty(accessToken) ? null : $"Bearer {accessToken}"))
+            {
+                return true;
+            }
+        }
         await refresher(cancellationToken).ConfigureAwait(false);
         return true;
     }
 
-    /// <summary>Keeps values out of logs and errors from now on, such as a code about to be exchanged.</summary>
+    /// <summary>
+    /// Keeps values out of logs and errors from now on, such as a code about to be exchanged. Only the most recent
+    /// values are kept, so a long-lived client does not grow.
+    /// </summary>
     public void Remember(params string?[] values)
     {
         lock (gate)
         {
-            seen.AddRange(values.Where(value => !string.IsNullOrEmpty(value))!);
+            Keep(values);
+        }
+    }
+
+    /// <summary>The token another refresh stored while this one waited, since each refresh token works only once.</summary>
+    public EtsyToken? Replaced(string refreshToken)
+    {
+        lock (gate)
+        {
+            return token is not null && this.refreshToken != refreshToken ? token : null;
         }
     }
 
@@ -250,14 +307,23 @@ internal sealed class EtsyCredentials : ICredentialProvider
     {
         lock (gate)
         {
-            seen.Add(token.AccessToken);
-            seen.Add(token.RefreshToken);
+            Keep(token.AccessToken, token.RefreshToken);
             accessToken = token.AccessToken;
             refreshToken = token.RefreshToken;
+            this.token = token;
         }
         if (onToken is not null)
         {
             await onToken(token, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private void Keep(params string?[] values)
+    {
+        seen.AddRange(values.Where(value => !string.IsNullOrEmpty(value))!);
+        if (seen.Count > Remembered)
+        {
+            seen.RemoveRange(0, seen.Count - Remembered);
         }
     }
 

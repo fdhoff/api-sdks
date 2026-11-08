@@ -315,6 +315,90 @@ func TestConcurrent401sShareOneRefresh(t *testing.T) {
 	}
 }
 
+func (r *recorder) refreshTokens() []string {
+	tokens := []string{}
+	for index, request := range r.all() {
+		if request.URL.Path == tokenPath {
+			tokens = append(tokens, r.form(index).Get("refresh_token"))
+		}
+	}
+	return tokens
+}
+
+func TestAnExplicitRefreshAndA401ShareOneTokenRequest(t *testing.T) {
+	started := make(chan struct{})
+	var once sync.Once
+	client, seen := server(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == tokenPath:
+			once.Do(func() { close(started) })
+			time.Sleep(200 * time.Millisecond)
+		case r.Header.Get("Authorization") == "Bearer "+access:
+			<-started
+		}
+		expiring(w, r)
+	}, etsy.WithAccessToken(access), etsy.WithRefreshToken(refresh))
+	explicit := make(chan error, 1)
+	go func() {
+		_, err := client.OAuth.Refresh(context.Background())
+		explicit <- err
+	}()
+	me, err := client.Users.GetMe(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := <-explicit; err != nil {
+		t.Fatal(err)
+	}
+	if *me.ShopID != 1 || !slices.Equal(seen.refreshTokens(), []string{refresh}) {
+		t.Errorf("sent %v", seen.paths())
+	}
+}
+
+func TestA401SentBeforeAnExplicitRefreshRetriesWithoutAnother(t *testing.T) {
+	refreshed := make(chan struct{})
+	client, seen := server(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == mePath && r.Header.Get("Authorization") == "Bearer "+access {
+			<-refreshed
+		}
+		expiring(w, r)
+	}, etsy.WithAccessToken(access), etsy.WithRefreshToken(refresh))
+	call := make(chan error, 1)
+	go func() {
+		_, err := client.Users.GetMe(context.Background())
+		call <- err
+	}()
+	for !slices.Contains(seen.paths(), mePath) {
+		time.Sleep(time.Millisecond)
+	}
+	if _, err := client.OAuth.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	close(refreshed)
+	if err := <-call; err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(seen.paths(), []string{mePath, tokenPath, mePath}) {
+		t.Errorf("sent %v", seen.paths())
+	}
+}
+
+func TestACancelledCallerDoesNotLoseARotatedToken(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	var stored []etsy.Token
+	client, _ := server(t, func(w http.ResponseWriter, r *http.Request) {
+		cancel()
+		time.Sleep(50 * time.Millisecond)
+		newToken(w)
+	}, etsy.WithRefreshToken(refresh), etsy.WithOnToken(func(token etsy.Token) { stored = append(stored, token) }))
+	if _, err := client.OAuth.Refresh(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if len(stored) != 1 || stored[0].RefreshToken != newRefresh {
+		t.Errorf("stored %d tokens", len(stored))
+	}
+}
+
 func TestASecond401AfterARefreshIsReturned(t *testing.T) {
 	client, seen := server(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == tokenPath {
@@ -493,6 +577,19 @@ func TestAuthorizationRequestUsesPKCES256AndState(t *testing.T) {
 	other, err := etsy.NewAuthorizationRequest(key, etsy.AuthorizationParams{RedirectURI: "https://example.com/callback", Scopes: []string{"listings_r"}})
 	if err != nil || other.State == request.State || other.CodeVerifier == request.CodeVerifier {
 		t.Errorf("a second request reused the state or verifier: %v", err)
+	}
+}
+
+func TestPrintingAnAuthorizationRequestHidesItsVerifier(t *testing.T) {
+	request, err := etsy.NewAuthorizationRequest(key, etsy.AuthorizationParams{RedirectURI: "https://example.com/callback", Scopes: []string{"shops_r"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var logs bytes.Buffer
+	slog.New(slog.NewTextHandler(&logs, nil)).Info("authorize", "request", request)
+	text := fmt.Sprintf("%v %+v %#v %v %s", request, request, request, *request, logs.String())
+	if strings.Contains(text, request.CodeVerifier) || !strings.Contains(text, request.State) {
+		t.Errorf("printed %q", text)
 	}
 }
 

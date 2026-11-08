@@ -26,7 +26,7 @@ from pydantic import ValidationError
 
 from .credentials import AuthRequest, Credentials, Requirement, redact
 from .errors import ApiConnectionError, ApiError, ApiTimeoutError, DecodeError, ErrorContext
-from .model import parse_response, to_wire
+from .model import ApiModel, parse_response, to_wire
 
 T = TypeVar("T")
 
@@ -123,6 +123,12 @@ def _text(value: Any) -> str:
     return str(value)
 
 
+def _field(value: Any) -> str:
+    if isinstance(value, (Mapping, ApiModel)):
+        return json.dumps(to_wire(value), separators=(",", ":"))
+    return _text(value)
+
+
 def _multipart(wire: str, value: Any) -> list[tuple[str, Any]]:
     if isinstance(value, (list, set)):
         return [part for item in value for part in _multipart(wire, item)]
@@ -153,7 +159,7 @@ def _build_request(
             query.extend((param.wire, _text(item)) for item in items)
         elif param.location == "urlencoded":
             items = value if isinstance(value, (list, set)) else [value]
-            fields.setdefault(param.wire, []).extend(_text(item) for item in items)
+            fields.setdefault(param.wire, []).extend(_field(item) for item in items)
         else:
             parts.extend(_multipart(param.wire, value))
     search = f"?{urlencode(query)}" if query else ""

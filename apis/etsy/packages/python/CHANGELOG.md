@@ -15,3 +15,4 @@ The first alpha.
 * After a 401, the access token is refreshed once and the call retried. Concurrent calls, and an explicit `oauth.refresh()`, share one refresh.
 * The current tokens are always redacted. Of earlier tokens and codes only the most recent are kept, so a long-lived client does not grow.
 * Offset pagination iterators, retries, rate-limit handling, typed errors and redacted logging.
+* A mapping or model in a form-encoded field is sent as JSON, as in the other SDKs, not as its Python repr.

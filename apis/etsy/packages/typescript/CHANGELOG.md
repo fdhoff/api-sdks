@@ -15,3 +15,4 @@ The first alpha.
 * The current tokens are always redacted. Of earlier tokens and codes only the most recent are kept, so a long-lived client does not grow.
 * Form bodies are sent form-encoded, with array fields repeated.
 * Offset pagination iterators, retries, rate-limit handling, cancellation, typed errors and redacted logging.
+* An object in a form-encoded field is sent as JSON, as in the other SDKs, not as `[object Object]`.

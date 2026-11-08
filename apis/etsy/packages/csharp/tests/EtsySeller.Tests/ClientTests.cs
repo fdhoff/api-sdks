@@ -245,21 +245,112 @@ public sealed class ClientTests
     public async Task ConcurrentCallsShareOneRefresh()
     {
         var refreshes = 0;
+        var rejected = 0;
+        var tokens = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
         var handler = new Router(request =>
         {
             if (request.Path == TokenPath)
             {
                 Interlocked.Increment(ref refreshes);
-                Thread.Sleep(20);
-                return Tokens();
+                return tokens.Task;
             }
-            return Accepts(request, NewAccess);
+            if (request.Headers.GetValueOrDefault("Authorization") == $"Bearer {Access}" && Interlocked.Increment(ref rejected) == 4)
+            {
+                tokens.SetResult(Tokens());
+            }
+            return Task.FromResult(Accepts(request, NewAccess));
         });
         using var client = Client(handler, new() { AccessToken = Access, RefreshToken = Refresh });
 
         await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => client.Users.GetMeAsync(Cancel)));
 
+        Assert.Equal(4, rejected);
         Assert.Equal(1, refreshes);
+    }
+
+    [Fact]
+    public async Task AnExplicitRefreshAndA401ShareOneTokenRequest()
+    {
+        var tokens = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new Router(request =>
+        {
+            if (request.Path == TokenPath)
+            {
+                return tokens.Task;
+            }
+            if (request.Headers.GetValueOrDefault("Authorization") == $"Bearer {Access}")
+            {
+                tokens.TrySetResult(Tokens());
+            }
+            return Task.FromResult(Accepts(request, NewAccess));
+        });
+        using var client = Client(handler, new() { AccessToken = Access, RefreshToken = Refresh });
+
+        var refresh = client.OAuth.RefreshAsync(Cancel);
+        var me = await client.Users.GetMeAsync(Cancel);
+
+        Assert.Equal(NewAccess, (await refresh).AccessToken);
+        Assert.Equal(1, me.ShopId);
+        var requests = handler.Sent.Where(sent => sent.Path == TokenPath).Select(sent => sent.Body);
+        Assert.Equal([$"grant_type=refresh_token&client_id={Key}&refresh_token={Uri.EscapeDataString(Refresh)}"], requests);
+    }
+
+    [Fact]
+    public async Task ACancelledRefreshStillStoresTheRotatedToken()
+    {
+        var tokens = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var stored = new TaskCompletionSource<EtsyToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new Router(request => request.Path == TokenPath ? tokens.Task : Task.FromResult(Accepts(request, NewAccess)));
+        using var client = Client(handler, new()
+        {
+            AccessToken = Access,
+            RefreshToken = Refresh,
+            OnToken = (token, _) =>
+            {
+                stored.SetResult(token);
+                return Task.CompletedTask;
+            },
+        });
+        using var cancel = CancellationTokenSource.CreateLinkedTokenSource(Cancel);
+
+        var call = client.Users.GetMeAsync(cancel.Token);
+        while (!handler.Sent.Any(sent => sent.Path == TokenPath))
+        {
+            await Task.Delay(1, Cancel);
+        }
+        await cancel.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => call);
+        tokens.SetResult(Tokens());
+
+        Assert.Equal(NewRefresh, (await stored.Task.WaitAsync(Cancel)).RefreshToken);
+        await client.Users.GetMeAsync(Cancel);
+        Assert.Equal(1, handler.Sent.Count(sent => sent.Path == TokenPath));
+        Assert.Equal($"Bearer {NewAccess}", handler.Sent.Last().Headers["Authorization"]);
+    }
+
+    [Fact]
+    public void CredentialsKeepTheCurrentTokensAndOnlyRecentValuesForRedaction()
+    {
+        var credentials = new EtsyCredentials(Key, Shared, new EtsyClientOptions { AccessToken = Access, RefreshToken = Refresh });
+
+        credentials.Remember([.. Enumerable.Range(0, 100).Select(index => $"synthetic-old-{index}")]);
+
+        var secrets = credentials.Secrets();
+        Assert.True(secrets.Count < 25);
+        Assert.Superset(new HashSet<string> { Key, Shared, Access, Refresh, "synthetic-old-99" }, secrets.ToHashSet());
+        Assert.DoesNotContain("synthetic-old-0", secrets);
+    }
+
+    [Fact]
+    public async Task NullItemsInAListParameterAreSkipped()
+    {
+        var handler = new Router(_ => Json("""{"listing_id": 9}"""));
+        using var client = Client(handler, new() { AccessToken = Access });
+
+        await client.Listings.CreateDraftAsync(
+            1, 2, "Mug", "Synthetic", 12.5, "i_did", "made_to_order", 3, tags: ["a", null!, "c"], cancellationToken: Cancel);
+
+        Assert.Contains("tags=a&tags=c", Assert.Single(handler.Sent).Body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -377,8 +468,13 @@ public sealed class ClientTests
 
     private sealed record Sent(string Url, string Path, Dictionary<string, string> Headers, string Body);
 
-    private sealed class Router(Func<Sent, HttpResponseMessage> respond) : HttpMessageHandler
+    private sealed class Router(Func<Sent, Task<HttpResponseMessage>> respond) : HttpMessageHandler
     {
+        public Router(Func<Sent, HttpResponseMessage> respond)
+            : this(sent => Task.FromResult(respond(sent)))
+        {
+        }
+
         public ConcurrentQueue<Sent> Sent { get; } = new();
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -391,7 +487,7 @@ public sealed class ClientTests
             }
             var sent = new Sent(request.RequestUri!.AbsoluteUri, request.RequestUri.AbsolutePath, headers, body);
             Sent.Enqueue(sent);
-            return respond(sent);
+            return await respond(sent);
         }
     }
 

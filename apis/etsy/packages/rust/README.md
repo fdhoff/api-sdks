@@ -77,7 +77,7 @@ while let Some(receipt) = receipts.try_next().await? {
 # }
 ```
 
-An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, passes it to `on_token`, and retries the call. Concurrent calls share one refresh.
+An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, passes it to `on_token`, and retries the call. Concurrent calls, and an explicit `client.oauth().refresh()`, share one refresh. If the refresh fails, the call fails with the refresh's error, such as a 400 `invalid_grant`, rather than the 401.
 
 Your credentials are read from nowhere and stored nowhere: you pass them in, and the client sends them only to the server you selected.
 
@@ -145,7 +145,7 @@ With `http_client`, the client still sends its own headers and applies its timeo
 * **Redirects** are never followed by the default client. A 3xx fails with `ErrorKind::Api`, so your credentials stay on the server you selected.
 * **Errors** are one `Error` type. Match on `error.kind()`, an `ErrorKind` such as `NotFound`, `Conflict` or `RateLimited`, and read `status()`, `detail()` (the body's `error` text), `retry_after()` and `raw_body()`, with every credential removed.
 * **Logging** goes through the `log` crate, at debug and info levels, and holds operation names, methods, URLs and statuses, never your credentials or response bodies.
-* **Requests:** parameter and model fields are `Option`s, so a `None` field is not sent. Build them with `..Default::default()`. Form bodies are fields of the method's params struct, sent form-encoded, beside any query parameters. A body the spec marks optional takes `&body` or `None`.
+* **Requests:** parameter and model fields are `Option`s, so a `None` field is not sent. Build them with `..Default::default()`. Form bodies are fields of the method's params struct, sent form-encoded, beside any query parameters. An empty list sends nothing, so an update leaves that field as it was. A body the spec marks optional takes `&body` or `None`.
 * **Responses** are decoded tolerantly, because the spec has not been confirmed against the live API. Every field is an `Option` because a required field can be missing. A field that does not fit its declared type stays `None` and keeps its raw value in the model's `extra` map, and so do unknown fields and nulls. Serialising a model with `serde_json` gives all of it back with the API's field names. A body whose top level is not the declared type fails with `ErrorKind::Decode`, with the body in `raw_body()`.
 * **Uploads** take `File` values, with an optional name.
 

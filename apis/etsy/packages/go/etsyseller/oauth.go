@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -20,6 +21,9 @@ import (
 
 // AuthorizationEndpoint is where a user grants your app access.
 const AuthorizationEndpoint = "https://www.etsy.com/oauth/connect"
+
+// remembered is how many earlier tokens and codes stay redacted besides the current tokens.
+const remembered = 16
 
 var verifierPattern = regexp.MustCompile(`^[A-Za-z0-9\-._~]{43,128}$`)
 
@@ -86,6 +90,17 @@ type AuthorizationRequest struct {
 	CodeVerifier string
 }
 
+// String hides the code verifier.
+func (r AuthorizationRequest) String() string {
+	return fmt.Sprintf("AuthorizationRequest{URL: %s, State: %s}", r.URL, r.State)
+}
+
+// GoString hides the code verifier.
+func (r AuthorizationRequest) GoString() string { return r.String() }
+
+// LogValue hides the code verifier.
+func (r AuthorizationRequest) LogValue() slog.Value { return slog.StringValue(r.String()) }
+
 // CodeChallenge is the S256 challenge for a PKCE code verifier.
 func CodeChallenge(codeVerifier string) string {
 	digest := sha256.Sum256([]byte(codeVerifier))
@@ -141,7 +156,7 @@ func needs(operation *runtime.Operation, scheme string) bool {
 
 // credentials sends x-api-key on every operation that names it and the access token on those that
 // need OAuth. After a 401 on one of those, it refreshes the access token once, when it has a
-// refresh token.
+// refresh token and the call sent the current access token.
 type credentials struct {
 	apiKey       string
 	sharedSecret string
@@ -151,6 +166,7 @@ type credentials struct {
 	lock         sync.Mutex
 	accessToken  string
 	refreshToken string
+	token        *Token
 	seen         []string
 }
 
@@ -176,10 +192,17 @@ func (c *credentials) Apply(_ context.Context, request *runtime.AuthRequest) err
 func (c *credentials) Secrets() []string {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	return append([]string{c.apiKey, c.sharedSecret}, c.seen...)
+	secrets := []string{c.apiKey, c.sharedSecret}
+	for _, current := range []string{c.accessToken, c.refreshToken} {
+		if current != "" {
+			secrets = append(secrets, current)
+		}
+	}
+	return append(secrets, c.seen...)
 }
 
 // remember keeps values out of logs and errors from now on, such as a code about to be exchanged.
+// Only the most recent values are kept, so a long-lived client does not grow.
 func (c *credentials) remember(values ...string) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -188,12 +211,15 @@ func (c *credentials) remember(values ...string) {
 			c.seen = append(c.seen, value)
 		}
 	}
+	if extra := len(c.seen) - remembered; extra > 0 {
+		c.seen = slices.Delete(c.seen, 0, extra)
+	}
 }
 
 func (c *credentials) store(token Token) Token {
 	c.remember(token.AccessToken, token.RefreshToken)
 	c.lock.Lock()
-	c.accessToken, c.refreshToken = token.AccessToken, token.RefreshToken
+	c.accessToken, c.refreshToken, c.token = token.AccessToken, token.RefreshToken, &token
 	c.lock.Unlock()
 	if c.onToken != nil {
 		c.onToken(token)
@@ -207,9 +233,30 @@ func (c *credentials) currentRefreshToken() string {
 	return c.refreshToken
 }
 
+// replaced is the token another refresh stored since refreshToken was read, since each refresh
+// token works only once.
+func (c *credentials) replaced(refreshToken string) (Token, bool) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if c.token == nil || c.refreshToken == refreshToken {
+		return Token{}, false
+	}
+	return *c.token, true
+}
+
 func (c *credentials) Refresh(ctx context.Context, request *runtime.AuthRequest) (bool, error) {
-	if c.currentRefreshToken() == "" || !needs(request.Operation, "oauth2") {
+	c.lock.Lock()
+	access, refreshToken := c.accessToken, c.refreshToken
+	c.lock.Unlock()
+	if refreshToken == "" || !needs(request.Operation, "oauth2") {
 		return false, nil
+	}
+	sent := ""
+	if access != "" {
+		sent = "Bearer " + access
+	}
+	if request.Header.Get("Authorization") != sent {
+		return true, nil
 	}
 	if _, err := c.oauth.Refresh(ctx); err != nil {
 		return false, err
@@ -222,6 +269,7 @@ func (c *credentials) Refresh(ctx context.Context, request *runtime.AuthRequest)
 type OAuth struct {
 	credentials *credentials
 	transport   *runtime.Transport
+	busy        chan struct{}
 }
 
 // AuthorizationRequest builds the URL that asks a user to grant your app the given scopes.
@@ -233,6 +281,10 @@ func (o *OAuth) AuthorizationRequest(params AuthorizationParams) (*Authorization
 // authorization request's.
 func (o *OAuth) ExchangeCode(ctx context.Context, code, codeVerifier, redirectURI string) (Token, error) {
 	o.credentials.remember(code, codeVerifier)
+	if err := o.acquire(ctx); err != nil {
+		return Token{}, err
+	}
+	defer o.release()
 	return o.request(ctx, tokenForm{
 		GrantType:    "authorization_code",
 		ClientID:     o.credentials.apiKey,
@@ -242,17 +294,39 @@ func (o *OAuth) ExchangeCode(ctx context.Context, code, codeVerifier, redirectUR
 	})
 }
 
-// Refresh replaces the access token now. The client also does this itself after a 401.
+// Refresh replaces the access token now. The client also does this itself after a 401. A refresh
+// asked for while another is under way waits for it and returns its token.
 func (o *OAuth) Refresh(ctx context.Context) (Token, error) {
 	refreshToken := o.credentials.currentRefreshToken()
 	if refreshToken == "" {
 		return Token{}, errors.New("there is no refresh token: pass WithRefreshToken, or exchange a code first")
 	}
-	return o.request(ctx, tokenForm{GrantType: "refresh_token", ClientID: o.credentials.apiKey, RefreshToken: refreshToken})
+	if err := o.acquire(ctx); err != nil {
+		return Token{}, err
+	}
+	defer o.release()
+	if token, ok := o.credentials.replaced(refreshToken); ok {
+		return token, nil
+	}
+	return o.request(ctx, tokenForm{GrantType: "refresh_token", ClientID: o.credentials.apiKey, RefreshToken: o.credentials.currentRefreshToken()})
 }
 
+// acquire lets one token request run at a time. A caller can stop waiting for its turn.
+func (o *OAuth) acquire(ctx context.Context) error {
+	select {
+	case o.busy <- struct{}{}:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (o *OAuth) release() { <-o.busy }
+
+// request is not cancelled with ctx once sent, so a token pair Etsy has already rotated is still
+// stored. The timeout bounds it.
 func (o *OAuth) request(ctx context.Context, form tokenForm) (Token, error) {
-	reply, err := runtime.Call[map[string]any](ctx, o.transport, tokenOperation, runtime.Input{Params: &form})
+	reply, err := runtime.Call[map[string]any](context.WithoutCancel(ctx), o.transport, tokenOperation, runtime.Input{Params: &form})
 	if err != nil {
 		return Token{}, err
 	}
