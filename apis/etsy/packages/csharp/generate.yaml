@@ -1,0 +1,34 @@
+# How `npm run generate:csharp` builds this package. Public method names are in operations.yaml.
+generator: csharp
+output: src/EtsySeller
+source: src/EtsySeller
+generated: [Api, Models]
+resources: ClientResources.cs
+runtime: Runtime
+# The runtime's namespaces are written with a placeholder, because C# has no relative imports.
+runtime_package: EtsySeller
+format: [dotnet, format, whitespace, --folder]
+properties:
+  packageName: EtsySeller
+  library: httpclient
+  apiPackage: Api
+  modelPackage: Models
+  apiNameSuffix: Resource
+  disallowAdditionalPropertiesIfNotPresent: false
+  nullableReferenceTypes: true
+  useDateTimeOffset: true
+# Every page types its `results` as a union of one schema; this types them as that schema.
+collapse_single_unions: true
+# Every property is nullable here, so null already means null or absent.
+drop_nullable: true
+# A value of several types becomes `object`, which reads as a JsonElement.
+drop_unions: true
+type_mappings:
+  integer: long
+  float: double
+  AnyType: object
+  object: object
+  file: UploadFile
+  binary: UploadFile
+# Supporting files the generator would otherwise add to a generated directory.
+ignore: [src/EtsySeller/Models/AbstractOpenAPISchema.cs]

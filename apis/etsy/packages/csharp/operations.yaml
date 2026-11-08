@@ -1,0 +1,134 @@
+# Public names for every operation, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`, with the paging set in ../../sdk.yaml.
+ping: { resource: Application, method: PingAsync, summary: Check that the API key works. }
+tokenScopes: { resource: Application, method: GetTokenScopesAsync, summary: List the scopes an access token grants. }
+
+getBuyerTaxonomyNodes: { resource: BuyerTaxonomy, method: ListNodesAsync, summary: List the buyer taxonomy tree. }
+getPropertiesByBuyerTaxonomyId: { resource: BuyerTaxonomy, method: ListPropertiesAsync, summary: List the properties of one buyer taxonomy node. }
+getSellerTaxonomyNodes: { resource: SellerTaxonomy, method: ListNodesAsync, summary: List the seller taxonomy tree. }
+getPropertiesByTaxonomyId: { resource: SellerTaxonomy, method: ListPropertiesAsync, summary: List the properties of one seller taxonomy node. }
+
+findAllListingsActive: { resource: Listings, method: ListActiveAsync, iterator: ListAllActiveAsync, items: ShopListing, summary: Search one page of active listings across all shops. }
+findAllActiveListingsByShop: { resource: Listings, method: ListActiveByShopAsync, iterator: ListAllActiveByShopAsync, items: ShopListing, summary: List one page of a shop's active listings. }
+getListingsByShop: { resource: Listings, method: ListByShopAsync, iterator: ListAllByShopAsync, items: ShopListingWithAssociations, summary: List one page of a shop's listings in any state. }
+getFeaturedListingsByShop: { resource: Listings, method: ListFeaturedAsync, iterator: ListAllFeaturedAsync, items: ShopListing, summary: List one page of a shop's featured listings. }
+getListingsByShopReceipt: { resource: Listings, method: ListByReceiptAsync, iterator: ListAllByReceiptAsync, items: ShopListing, summary: List one page of the listings on a receipt. }
+getListingsByShopReturnPolicy: { resource: Listings, method: ListByReturnPolicyAsync, summary: List the listings that use a return policy. }
+getListingsByShopSectionId: { resource: Listings, method: ListBySectionsAsync, iterator: ListAllBySectionsAsync, items: ShopListing, summary: List one page of the listings in shop sections. }
+getListingsByListingIds: { resource: Listings, method: ListByIdsAsync, summary: Get several listings by ID. }
+getListing: { resource: Listings, method: GetAsync, summary: Get one listing. }
+createDraftListing: { resource: Listings, method: CreateDraftAsync, summary: Create a draft listing. }
+updateListing: { resource: Listings, method: UpdateAsync, summary: Update a listing. }
+deleteListing: { resource: Listings, method: DeleteAsync, summary: Delete a listing. }
+getListingsShippingByListingIds: { resource: Listings, method: ListShippingByIdsAsync, summary: Get the shipping details of several listings by ID. }
+
+getAllListingFiles: { resource: ListingFiles, method: ListAsync, summary: List a digital listing's files. }
+getListingFile: { resource: ListingFiles, method: GetAsync, summary: Get one file of a digital listing. }
+uploadListingFile: { resource: ListingFiles, method: UploadAsync, summary: "Upload a file to a digital listing, or attach an existing one." }
+deleteListingFile: { resource: ListingFiles, method: DeleteAsync, summary: Delete a file from a digital listing. }
+
+getListingImages: { resource: ListingImages, method: ListAsync, summary: List a listing's images. }
+getListingImage: { resource: ListingImages, method: GetAsync, summary: Get one image of a listing. }
+uploadListingImage: { resource: ListingImages, method: UploadAsync, summary: "Upload an image to a listing, or attach an existing one." }
+deleteListingImage: { resource: ListingImages, method: DeleteAsync, summary: Delete an image from a listing. }
+
+getListingInventory: { resource: ListingInventory, method: GetAsync, summary: Get a listing's inventory. }
+updateListingInventory: { resource: ListingInventory, method: UpdateAsync, summary: Replace a listing's inventory. }
+getListingsInventoryByListingIds: { resource: ListingInventory, method: ListByIdsAsync, summary: Get the inventory of several listings by ID. }
+getListingProduct: { resource: ListingInventory, method: GetProductAsync, summary: Get one product of a listing's inventory. }
+
+getListingPersonalization: { resource: ListingPersonalization, method: GetAsync, summary: Get a listing's personalization questions. }
+updateListingPersonalization: { resource: ListingPersonalization, method: UpdateAsync, summary: Set a listing's personalization questions. }
+deleteListingPersonalization: { resource: ListingPersonalization, method: DeleteAsync, summary: Remove a listing's personalization questions. }
+
+getListingProperties: { resource: ListingProperties, method: ListAsync, summary: List a listing's property values. }
+getListingProperty: { resource: ListingProperties, method: GetAsync, summary: Get one property value of a listing. }
+updateListingProperty: { resource: ListingProperties, method: UpdateAsync, summary: Set one property value of a listing. }
+deleteListingProperty: { resource: ListingProperties, method: DeleteAsync, summary: Remove one property value from a listing. }
+
+getListingTranslation: { resource: ListingTranslations, method: GetAsync, summary: Get a listing's translation into one language. }
+createListingTranslation: { resource: ListingTranslations, method: CreateAsync, summary: Add a listing's translation into one language. }
+updateListingTranslation: { resource: ListingTranslations, method: UpdateAsync, summary: Update a listing's translation into one language. }
+
+getListingVariationImages: { resource: ListingVariationImages, method: ListAsync, summary: List the images mapped to a listing's variations. }
+updateVariationImages: { resource: ListingVariationImages, method: UpdateAsync, summary: Replace the images mapped to a listing's variations. }
+
+getListingVideos: { resource: ListingVideos, method: ListAsync, summary: List a listing's videos. }
+getListingVideo: { resource: ListingVideos, method: GetAsync, summary: Get one video of a listing. }
+uploadListingVideo: { resource: ListingVideos, method: UploadAsync, summary: "Upload a video to a listing, or attach an existing one." }
+deleteListingVideo: { resource: ListingVideos, method: DeleteAsync, summary: Delete a video from a listing. }
+
+getShopPaymentAccountLedgerEntries: { resource: LedgerEntries, method: ListAsync, iterator: ListAllAsync, items: PaymentAccountLedgerEntry, summary: List one page of a shop's payment account ledger entries. }
+getShopPaymentAccountLedgerEntry: { resource: LedgerEntries, method: GetAsync, summary: Get one payment account ledger entry. }
+
+getPayments: { resource: Payments, method: ListAsync, summary: Get several payments by ID. }
+getPaymentAccountLedgerEntryPayments: { resource: Payments, method: ListByLedgerEntriesAsync, summary: Get the payments behind several ledger entries. }
+getShopPaymentByReceiptId: { resource: Payments, method: ListByReceiptAsync, summary: List the payments for a receipt. }
+
+getShopReceipts: { resource: Receipts, method: ListAsync, iterator: ListAllAsync, items: ShopReceipt, summary: List one page of a shop's receipts. }
+getShopReceipt: { resource: Receipts, method: GetAsync, summary: Get one receipt. }
+updateShopReceipt: { resource: Receipts, method: UpdateAsync, summary: Update a receipt's shipped or paid state. }
+createReceiptShipment: { resource: Receipts, method: CreateShipmentAsync, summary: Add tracking to a receipt and mark it shipped. }
+
+getShopReceiptTransactionsByShop: { resource: Transactions, method: ListAsync, iterator: ListAllAsync, items: ShopReceiptTransaction, summary: List one page of a shop's transactions. }
+getShopReceiptTransactionsByListing: { resource: Transactions, method: ListByListingAsync, iterator: ListAllByListingAsync, items: ShopReceiptTransaction, summary: List one page of a listing's transactions. }
+getShopReceiptTransactionsByReceipt: { resource: Transactions, method: ListByReceiptAsync, summary: List the transactions on a receipt. }
+getShopReceiptTransaction: { resource: Transactions, method: GetAsync, summary: Get one transaction. }
+
+getReviewsByListing: { resource: Reviews, method: ListByListingAsync, iterator: ListAllByListingAsync, items: ListingReview, summary: List one page of a listing's reviews. }
+getReviewsByShop: { resource: Reviews, method: ListByShopAsync, iterator: ListAllByShopAsync, items: TransactionReview, summary: List one page of a shop's reviews. }
+
+getShop: { resource: Shops, method: GetAsync, summary: Get one shop. }
+updateShop: { resource: Shops, method: UpdateAsync, summary: Update a shop. }
+getShopByOwnerUserId: { resource: Shops, method: GetByOwnerAsync, summary: Get the shop a user owns. }
+findShops: { resource: Shops, method: FindAsync, iterator: FindAllAsync, items: Shop, summary: Search one page of shops by name. }
+
+getShopEconomicOperators: { resource: EconomicOperators, method: ListAsync, summary: List a shop's economic operators. }
+getShopEconomicOperator: { resource: EconomicOperators, method: GetAsync, summary: Get one economic operator. }
+createShopEconomicOperator: { resource: EconomicOperators, method: CreateAsync, summary: Add an economic operator to a shop. }
+updateShopEconomicOperator: { resource: EconomicOperators, method: UpdateAsync, summary: Update an economic operator. }
+
+getHolidayPreferences: { resource: HolidayPreferences, method: ListAsync, summary: List a shop's holiday preferences. }
+updateHolidayPreferences: { resource: HolidayPreferences, method: UpdateAsync, summary: Update a shop's preference for one holiday. }
+
+getShopProductionPartners: { resource: ProductionPartners, method: ListAsync, summary: List a shop's production partners. }
+
+getShopReadinessStateDefinitions: { resource: ProcessingProfiles, method: ListAsync, iterator: ListAllAsync, items: ShopProcessingProfile, summary: List one page of a shop's processing profiles. }
+getShopReadinessStateDefinition: { resource: ProcessingProfiles, method: GetAsync, summary: Get one processing profile. }
+createShopReadinessStateDefinition: { resource: ProcessingProfiles, method: CreateAsync, summary: Create a processing profile. }
+updateShopReadinessStateDefinition: { resource: ProcessingProfiles, method: UpdateAsync, summary: Update a processing profile. }
+deleteShopReadinessStateDefinition: { resource: ProcessingProfiles, method: DeleteAsync, summary: Delete a processing profile. }
+
+getShopReturnPolicies: { resource: ReturnPolicies, method: ListAsync, summary: List a shop's return policies. }
+getShopReturnPolicy: { resource: ReturnPolicies, method: GetAsync, summary: Get one return policy. }
+createShopReturnPolicy: { resource: ReturnPolicies, method: CreateAsync, summary: Create a return policy. }
+updateShopReturnPolicy: { resource: ReturnPolicies, method: UpdateAsync, summary: Update a return policy. }
+deleteShopReturnPolicy: { resource: ReturnPolicies, method: DeleteAsync, summary: Delete a return policy. }
+consolidateShopReturnPolicies: { resource: ReturnPolicies, method: ConsolidateAsync, summary: Move every listing from one return policy to another and delete the first. }
+
+getShopSections: { resource: ShopSections, method: ListAsync, summary: List a shop's sections. }
+getShopSection: { resource: ShopSections, method: GetAsync, summary: Get one shop section. }
+createShopSection: { resource: ShopSections, method: CreateAsync, summary: Create a shop section. }
+updateShopSection: { resource: ShopSections, method: UpdateAsync, summary: Rename a shop section. }
+deleteShopSection: { resource: ShopSections, method: DeleteAsync, summary: Delete a shop section. }
+
+getShippingCarriers: { resource: ShippingProfiles, method: ListCarriersAsync, summary: List the shipping carriers and mail classes for an origin country. }
+getShopShippingProfiles: { resource: ShippingProfiles, method: ListAsync, summary: List a shop's shipping profiles. }
+getShopShippingProfile: { resource: ShippingProfiles, method: GetAsync, summary: Get one shipping profile. }
+createShopShippingProfile: { resource: ShippingProfiles, method: CreateAsync, summary: Create a shipping profile. }
+updateShopShippingProfile: { resource: ShippingProfiles, method: UpdateAsync, summary: Update a shipping profile. }
+deleteShopShippingProfile: { resource: ShippingProfiles, method: DeleteAsync, summary: Delete a shipping profile. }
+getShopShippingProfileDestinationsByShippingProfile: { resource: ShippingProfiles, method: ListDestinationsAsync, iterator: ListAllDestinationsAsync, items: ShopShippingProfileDestination, summary: List one page of a shipping profile's destinations. }
+createShopShippingProfileDestination: { resource: ShippingProfiles, method: CreateDestinationAsync, summary: Add a destination to a shipping profile. }
+updateShopShippingProfileDestination: { resource: ShippingProfiles, method: UpdateDestinationAsync, summary: Update a shipping profile destination. }
+deleteShopShippingProfileDestination: { resource: ShippingProfiles, method: DeleteDestinationAsync, summary: Delete a shipping profile destination. }
+getShopShippingProfileUpgrades: { resource: ShippingProfiles, method: ListUpgradesAsync, summary: List a shipping profile's upgrades. }
+createShopShippingProfileUpgrade: { resource: ShippingProfiles, method: CreateUpgradeAsync, summary: Add an upgrade to a shipping profile. }
+updateShopShippingProfileUpgrade: { resource: ShippingProfiles, method: UpdateUpgradeAsync, summary: Update a shipping profile upgrade. }
+deleteShopShippingProfileUpgrade: { resource: ShippingProfiles, method: DeleteUpgradeAsync, summary: Delete a shipping profile upgrade. }
+
+getUser: { resource: Users, method: GetAsync, summary: Get one user. }
+getMe: { resource: Users, method: GetMeAsync, summary: Get the user and shop IDs the access token belongs to. }
+
+getUserAddresses: { resource: UserAddresses, method: ListAsync, iterator: ListAllAsync, items: UserAddress, summary: List one page of the user's addresses. }
+getUserAddress: { resource: UserAddresses, method: GetAsync, summary: Get one of the user's addresses. }

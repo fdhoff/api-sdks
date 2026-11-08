@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net8.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Generated models carry no upstream prose, so most public members have no XML docs. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <PackageId>EtsySeller</PackageId>
+    <Version>0.1.0-alpha.1</Version>
+    <Authors>api-sdks contributors</Authors>
+    <Description>Unofficial client for the Etsy Open API v3. Not affiliated with Etsy.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageProjectUrl>https://github.com/fdhoff/api-sdks/tree/main/apis/etsy/packages/csharp</PackageProjectUrl>
+    <PackageTags>open-api-v3;sdk;unofficial</PackageTags>
+    <RepositoryUrl>https://github.com/fdhoff/api-sdks</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <!-- Source Link ships with the .NET SDK; these record the commit and let debuggers fetch the source. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md;../../LICENSE;../../NOTICE;../../icon.png" Pack="true" PackagePath="/" />
+    <InternalsVisibleTo Include="EtsySeller.Tests" />
+    <InternalsVisibleTo Include="EtsySeller.Conformance" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="System.Text.Json" Version="10.0.14" />
+  </ItemGroup>
+
+</Project>

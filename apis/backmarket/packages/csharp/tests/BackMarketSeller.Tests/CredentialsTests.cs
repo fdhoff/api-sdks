@@ -20,6 +20,9 @@ public sealed class CredentialsTests
     private static readonly Operation Upload = new(
         "upload", "POST", "/files", "Files", "UploadAsync", null, [new("file", "file", ParamLocation.Form)], Security: [[new("key", [])]]);
 
+    private static readonly Operation Token = new(
+        "token", "POST", "/token", "Auth", "TokenAsync", null, [new("grant", "grant", ParamLocation.Urlencoded), new("scope", "scope", ParamLocation.Urlencoded)], Security: []);
+
     [Fact]
     public async Task ApplySeesTheFinalRequestOnEveryAttempt()
     {
@@ -55,6 +58,35 @@ public sealed class CredentialsTests
         Assert.Contains("hello", Encoding.UTF8.GetString(sent.Body), StringComparison.Ordinal);
         Assert.Equal(seen.Headers["Content-Type"], sent.Headers["Content-Type"]);
         Assert.False(sent.Headers.ContainsKey("Authorization"));
+    }
+
+    [Fact]
+    public async Task UrlencodedFieldsAreFormEncodedAndRepeatedPerItem()
+    {
+        var credentials = new Tokens();
+        var handler = new Handler(_ => Ok());
+        using var transport = TransportFor(credentials, handler);
+
+        await transport.CallAsync<JsonElement>(Token, ["a b&c", new List<string> { "r", "w" }], TestContext.Current.CancellationToken);
+
+        var seen = Assert.Single(credentials.Seen);
+        var sent = Assert.Single(handler.Sent);
+        Assert.Equal("grant=a+b%26c&scope=r&scope=w", Encoding.UTF8.GetString(sent.Body));
+        Assert.Equal(seen.Body.ToArray(), sent.Body);
+        Assert.Equal("application/x-www-form-urlencoded", sent.Headers["Content-Type"]);
+    }
+
+    [Fact]
+    public async Task A401OnAnOperationWithoutSecurityDoesNotRefresh()
+    {
+        var credentials = new Tokens();
+        var handler = new Handler(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized));
+        using var transport = TransportFor(credentials, handler);
+
+        await Assert.ThrowsAnyAsync<ApiException>(() => transport.CallAsync<JsonElement>(Token, ["refresh", null], TestContext.Current.CancellationToken));
+
+        Assert.Equal(0, credentials.Refreshes);
+        Assert.Single(handler.Sent);
     }
 
     [Fact]
