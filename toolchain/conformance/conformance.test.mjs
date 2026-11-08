@@ -395,12 +395,6 @@ for (const style of ['hosts', 'headers']) {
     assert.ok(cases.length > 0);
     assert.deepEqual(await runWith('routed', cases), []);
   });
-
-  test(`${style} cases fail a driver that sends everything to the base URL with no headers`, async () => {
-    const cases = await loadCases(fixtureCases(style), operations);
-    const failed = await runWith('good', cases);
-    assert.ok(failed.length > 0);
-  });
 }
 
 test('signing cases fail a driver that sends a valid digest but no signature', async () => {
@@ -411,4 +405,20 @@ test('signing cases fail a driver that sends a valid digest but no signature', a
     assert.ok(failures.some((failure) => /header signature is undefined/.test(failure)));
     assert.ok(!failures.some((failure) => /Content-Digest is/.test(failure)));
   }
+});
+
+test('hosts cases fail only on the host for a driver that sends every request to the base URL', async () => {
+  const cases = await loadCases(fixtureCases('hosts'), operations);
+  const failed = await runWith('unhosted', cases);
+  assert.equal(failed.length, cases.length);
+  assert.ok(failed.every(({ failures }) => failures.length > 0 && failures.every((failure) => /: host is undefined$/.test(failure))));
+});
+
+test('headers cases fail only on the header for a driver that ignores the client defaults', async () => {
+  const cases = await loadCases(fixtureCases('headers'), operations);
+  const failed = await runWith('undefaulted', cases);
+  assert.deepEqual(
+    failed.map(({ failures }) => failures),
+    [['wire[0]: header x-tenant is undefined, expected acme']],
+  );
 });

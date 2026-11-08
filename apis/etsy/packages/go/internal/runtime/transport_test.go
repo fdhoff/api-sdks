@@ -17,7 +17,7 @@ import (
 
 func TestARequestThatCannotBeBuiltDoesNotShowTheTokenEvenEscaped(t *testing.T) {
 	const secret = "synthetic/test+token="
-	transport := NewTransport(Settings{BaseURL: "http://example.invalid\x7f", Credentials: StaticCredentials{Values: []string{secret}}, Timeout: time.Second})
+	transport := mustTransport(t, Settings{BaseURL: "http://example.invalid\x7f", Credentials: StaticCredentials{Values: []string{secret}}, Timeout: time.Second})
 	operation := &Operation{ID: "op", Method: "GET", Path: "/items/{id}", PathParams: []string{"id"}}
 	_, err := Call[any](context.Background(), transport, operation, Input{Path: []any{secret}})
 	var failure *Error
@@ -54,7 +54,7 @@ func walk(t *testing.T, operation *Operation, params any, serve func(query url.V
 		_ = json.NewEncoder(w).Encode(serve(r.URL.Query()))
 	}))
 	t.Cleanup(server.Close)
-	transport := NewTransport(Settings{BaseURL: server.URL, Timeout: time.Second})
+	transport := mustTransport(t, Settings{BaseURL: server.URL, Timeout: time.Second})
 	var items []map[string]any
 	var failure error
 	for item, err := range Paginate[map[string]any](context.Background(), transport, operation, Input{Params: params}) {

@@ -100,13 +100,28 @@ class Settings:
     """The base URL for each host key. An operation without a key goes to `base_url`."""
     header_defaults: Mapping[str, str] = field(default_factory=dict)
     """Values for header parameters that a call leaves out, by header name in any case."""
+    _defaults_by_name: dict[str, str] = field(init=False, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "_defaults_by_name", _by_lowercase(self.header_defaults))
+
+
+def _by_lowercase(defaults: Mapping[str, str]) -> dict[str, str]:
+    """`defaults` keyed by lowercase name. Two names that differ only by case are an error."""
+    names: dict[str, list[str]] = {}
+    for name in defaults:
+        names.setdefault(name.lower(), []).append(name)
+    clashes = sorted(name for group in names.values() if len(group) > 1 for name in group)
+    if clashes:
+        raise ValueError(f"header_defaults has names that differ only by case: {', '.join(clashes)}")
+    return {name.lower(): value for name, value in defaults.items()}
 
 
 def select_hosts(
     environments: Mapping[str, Mapping[str, str]], environment: str, hosts: Mapping[str, str] | None = None
 ) -> dict[str, str]:
     """The caller's own host map, which must name exactly the keys the environments use, or else the
-    named environment's."""
+    named environment's. Trailing slashes are removed from every URL."""
     if hosts:
         keys = {key for urls in environments.values() for key in urls}
         missing, unknown = sorted(keys - hosts.keys()), sorted(hosts.keys() - keys)
@@ -117,7 +132,7 @@ def select_hosts(
         return {key: url.rstrip("/") for key, url in hosts.items()}
     if environment not in environments:
         raise ValueError(f"Unknown environment {environment!r}; expected one of: {', '.join(sorted(environments))}")
-    return dict(environments[environment])
+    return {key: url.rstrip("/") for key, url in environments[environment].items()}
 
 
 def _base_url(settings: Settings, operation: Operation[Any]) -> str:
@@ -130,8 +145,7 @@ def _base_url(settings: Settings, operation: Operation[Any]) -> str:
 
 
 def _header_default(settings: Settings, wire: str) -> str | None:
-    lowered = wire.lower()
-    return next((value for name, value in settings.header_defaults.items() if name.lower() == lowered), None)
+    return settings._defaults_by_name.get(wire.lower())
 
 
 class _Deadline(httpx.SyncByteStream):
