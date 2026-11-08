@@ -189,6 +189,9 @@ test('applyHosts gives each operation the host key of its first server, unless t
   );
   assert.equal(applyHosts(spec(), undefined).paths['/a'].get['x-sdk-host'], undefined);
   assert.throws(() => applyHosts(spec(), { 'https://main.example.test': 'main' }), /b: no host key for server/);
+  const typo = spec();
+  typo.paths['/d'].get['x-sdk-host'] = 'mian';
+  assert.throws(() => applyHosts(typo, servers), /d: x-sdk-host mian is not a host key; expected one of: files, main/);
 });
 
 test('applyHeaders flags default-able headers as optional and drops headers the runtime sets', () => {
@@ -216,6 +219,7 @@ test('applyHeaders flags default-able headers as optional and drops headers the 
   assert.deepEqual(built.components.parameters.Tenant, { name: 'X-Tenant', in: 'header', required: false, 'x-sdk-header-default': true });
   assert.equal(applyHeaders(spec()).components.parameters.Tenant['x-sdk-header-default'], undefined);
   assert.throws(() => applyHeaders(spec(), ['Content-Type']), /runtime sets: content-type/);
+  assert.throws(() => applyHeaders(spec(), ['X-Tenant', 'X-Tenat']), /names no header parameter: x-tenat$/);
 
   const names = { a: { resource: 'r', method: 'a', summary: 'A.' } };
   const { get } = applyOperations(built, names).paths['/x'];

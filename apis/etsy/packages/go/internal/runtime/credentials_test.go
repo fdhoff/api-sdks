@@ -64,11 +64,20 @@ func (c *tokens) Refresh(context.Context, *AuthRequest) (bool, error) {
 	return true, nil
 }
 
+func mustTransport(t *testing.T, settings Settings) *Transport {
+	t.Helper()
+	transport, err := NewTransport(settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return transport
+}
+
 func serveFor(t *testing.T, credentials Credentials, handler http.HandlerFunc, logger *slog.Logger) *Transport {
 	t.Helper()
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
-	return NewTransport(Settings{
+	return mustTransport(t, Settings{
 		BaseURL:     server.URL,
 		Credentials: credentials,
 		Headers:     http.Header{"User-Agent": {"test"}},

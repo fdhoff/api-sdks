@@ -5,6 +5,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 ## Unreleased
 
 * A `Date` in a form field is sent as ISO 8601 text, not as a quoted JSON string.
+
 ## 0.1.0-alpha.1 (2026-11-08)
 
 The first alpha.

@@ -84,7 +84,7 @@ mod tests {
         (
             "sandbox",
             &[
-                ("main", "https://main.sandbox.example.test"),
+                ("main", "https://main.sandbox.example.test/"),
                 ("files", "https://files.sandbox.example.test"),
             ],
         ),
@@ -143,11 +143,24 @@ mod tests {
         credentials: Arc<Tokens>,
         headers: HeaderMap,
     ) -> Transport {
-        Transport::new(Settings {
-            base_url: base_url.to_owned(),
-            hosts,
+        let settings = Settings {
             credentials,
             headers,
+            ..settings_for(base_url, hosts, defaults)
+        };
+        Transport::new(settings).unwrap()
+    }
+
+    fn settings_for(
+        base_url: &str,
+        hosts: HashMap<String, String>,
+        defaults: &[(&str, &str)],
+    ) -> Settings {
+        Settings {
+            base_url: base_url.to_owned(),
+            hosts,
+            credentials: Arc::new(Tokens::default()),
+            headers: HeaderMap::new(),
             header_defaults: map(defaults),
             to_error: |context| {
                 Error::new(ErrorKind::Api, format!("status {}", context.status))
@@ -159,8 +172,7 @@ mod tests {
             rate_limit_wait: Duration::ZERO,
             max_retry_wait: Duration::ZERO,
             http: None,
-        })
-        .unwrap()
+        }
     }
 
     fn line<'a>(head: &'a str, name: &str) -> Option<&'a str> {
@@ -179,8 +191,8 @@ mod tests {
             ])
         );
         assert_eq!(
-            select_hosts(ENVIRONMENTS, "sandbox", Some(&HashMap::new())).unwrap()["files"],
-            "https://files.sandbox.example.test"
+            select_hosts(ENVIRONMENTS, "sandbox", Some(&HashMap::new())).unwrap()["main"],
+            "https://main.sandbox.example.test"
         );
     }
 
@@ -331,6 +343,24 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(line(&log.lock().unwrap()[0].head, "x-tenant"), None);
+    }
+
+    #[test]
+    fn header_defaults_that_differ_only_by_case_are_rejected_at_construction() {
+        let settings = settings_for(
+            "http://127.0.0.1:1",
+            HashMap::new(),
+            &[
+                ("x-tenant", "acme"),
+                ("X-Tenant", "other"),
+                ("X-Other", "unused"),
+            ],
+        );
+        let error = Transport::new(settings).err().unwrap();
+        assert_eq!(
+            error.to_string(),
+            "header_defaults has names that differ only by case: X-Tenant, x-tenant"
+        );
     }
 
     #[tokio::test]

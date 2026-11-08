@@ -164,11 +164,38 @@ fn form(parts: &[Part]) -> multipart::Form {
         })
 }
 
+/// `defaults` keyed by lowercase name.
+fn by_lowercase(defaults: HashMap<String, String>) -> Result<HashMap<String, String>, Error> {
+    let mut clashes: Vec<&str> = defaults
+        .keys()
+        .filter(|name| {
+            defaults
+                .keys()
+                .any(|other| other != *name && other.eq_ignore_ascii_case(name))
+        })
+        .map(String::as_str)
+        .collect();
+    if !clashes.is_empty() {
+        clashes.sort_unstable();
+        let message = format!(
+            "header_defaults has names that differ only by case: {}",
+            clashes.join(", ")
+        );
+        return Err(Error::new(ErrorKind::Api, message));
+    }
+    Ok(defaults
+        .into_iter()
+        .map(|(name, value)| (name.to_ascii_lowercase(), value))
+        .collect())
+}
+
 impl Transport {
     /// Builds a transport. Its own client never follows a redirect: a redirect is reported as a
     /// failure, so the token cannot be sent anywhere but the configured server. A caller's client
     /// keeps its own redirect policy. Headers are sent on each request, so either client sends them.
-    pub fn new(mut settings: Settings) -> Result<Self, reqwest::Error> {
+    /// Header defaults whose names differ only by case are an error.
+    pub fn new(mut settings: Settings) -> Result<Self, Error> {
+        settings.header_defaults = by_lowercase(std::mem::take(&mut settings.header_defaults))?;
         settings
             .headers
             .insert(ACCEPT_ENCODING, HeaderValue::from_static("gzip"));
@@ -176,7 +203,10 @@ impl Transport {
             Some(http) => http,
             None => reqwest::Client::builder()
                 .redirect(redirect::Policy::none())
-                .build()?,
+                .build()
+                .map_err(|error| {
+                    Error::new(ErrorKind::Api, "the HTTP client cannot be built").with_source(error)
+                })?,
         };
         Ok(Self {
             settings,
@@ -204,11 +234,10 @@ impl Transport {
     }
 
     fn header_default(&self, name: &str) -> Option<&str> {
-        let defaults = &self.settings.header_defaults;
-        defaults
-            .iter()
-            .find(|(key, _)| key.eq_ignore_ascii_case(name))
-            .map(|(_, value)| value.as_str())
+        self.settings
+            .header_defaults
+            .get(&name.to_ascii_lowercase())
+            .map(String::as_str)
     }
 
     fn redact(&self, text: &str) -> String {
