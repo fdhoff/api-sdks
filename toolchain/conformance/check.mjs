@@ -1,7 +1,9 @@
 import { isDeepStrictEqual } from 'node:util';
 
 export function fill(value, vars) {
-  if (typeof value === 'string') return value.replaceAll('{{token}}', vars.token);
+  if (typeof value === 'string') {
+    return value.replace(/\{\{(\w+)\}\}/g, (match, name) => (typeof vars[name] === 'string' ? vars[name] : match));
+  }
   if (Array.isArray(value)) return value.map((item) => fill(item, vars));
   if (value !== null && typeof value === 'object') {
     return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, fill(item, vars)]));
@@ -113,11 +115,15 @@ function checkOutcome(expect, outcome, failures) {
   if (expect.logs_required && !(outcome.logs?.length > 0)) failures.push('client logged nothing');
 }
 
-export function checkCase(item, requests, outcome, token) {
+// `secrets` maps each secret's name to its value; `{{name}}` expands to it, and none may reach the output.
+export function checkCase(item, requests, outcome, secrets) {
   const failures = [];
-  checkWire(fill(item.wire, { token }), requests, failures);
-  checkOutcome(fill(item.expect, { token }), outcome, failures);
+  checkWire(fill(item.wire, secrets), requests, failures);
+  checkOutcome(fill(item.expect, secrets), outcome, failures);
   const { result, error, logs } = outcome;
-  if (JSON.stringify({ result, error, logs }).includes(token)) failures.push('token leaked into the client output');
+  const output = JSON.stringify({ result, error, logs });
+  for (const [name, value] of Object.entries(secrets)) {
+    if (value && output.includes(value)) failures.push(`${name} leaked into the client output`);
+  }
   return failures;
 }

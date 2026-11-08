@@ -1,0 +1,142 @@
+cases:
+  - name: auth-sends-the-api-key-on-a-key-only-operation
+    request:
+      operation: ping
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /v3/application/openapi-ping
+        headers:
+          x-api-key: '{{api_key}}:{{shared_secret}}'
+          accept: application/json
+        headers_absent: [authorization]
+    expect:
+      result_keys: [application_id]
+
+  - name: auth-keeps-the-access-token-off-public-reads
+    request:
+      operation: getListing
+      params: { listing_id: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /v3/application/listings/1
+        headers:
+          x-api-key: '{{api_key}}:{{shared_secret}}'
+        headers_absent: [authorization]
+    expect:
+      result_keys: [listing_id]
+
+  - name: auth-sends-both-headers-on-an-oauth-operation
+    request:
+      operation: getMe
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /v3/application/users/me
+        headers:
+          x-api-key: '{{api_key}}:{{shared_secret}}'
+          authorization: 'Bearer {{token}}'
+    expect:
+      result_keys: [user_id, shop_id]
+
+  - name: auth-sends-the-access-token-verbatim
+    client:
+      token: 87654321.synthetic+token/==
+    request:
+      operation: getMe
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /v3/application/users/me
+        headers:
+          authorization: Bearer 87654321.synthetic+token/==
+    expect:
+      result_keys: [user_id]
+
+  - name: auth-sends-both-headers-on-a-write
+    request:
+      operation: createReceiptShipment
+      params: { shop_id: 1, receipt_id: 2 }
+      body: { tracking_code: SYNTHETIC-TRACKING-1, carrier_name: synthetic-carrier }
+    mock:
+      prism: {}
+    wire:
+      - method: POST
+        path: /v3/application/shops/1/receipts/2/tracking
+        headers:
+          x-api-key: '{{api_key}}:{{shared_secret}}'
+          authorization: 'Bearer {{token}}'
+        headers_match:
+          content-type: ^application/json
+        body: { tracking_code: SYNTHETIC-TRACKING-1, carrier_name: synthetic-carrier }
+    expect:
+      result_keys: [receipt_id]
+
+  - name: headers-form-encode-form-bodies
+    request:
+      operation: createDraftListing
+      params: { shop_id: 1 }
+      body:
+        quantity: 1
+        title: Synthetic listing
+        description: Synthetic description
+        price: 1.5
+        who_made: i_did
+        when_made: made_to_order
+        taxonomy_id: 1
+    mock:
+      prism: {}
+    wire:
+      - method: POST
+        path: /v3/application/shops/1/listings
+        headers_match:
+          content-type: ^application/x-www-form-urlencoded
+    expect:
+      result_keys: [listing_id]
+
+  - name: auth-401-is-an-authentication-error
+    request:
+      operation: getMe
+    mock:
+      responses:
+        - status: 401
+          body: { error: invalid_token }
+    wire:
+      - method: GET
+        path: /v3/application/users/me
+    expect:
+      error: { kind: authentication, status: 401, message: invalid_token }
+
+  - name: redirect-is-an-error-not-followed
+    request:
+      operation: getShop
+      params: { shop_id: 1 }
+    mock:
+      responses:
+        - status: 302
+          headers: { location: /v3/application/shops/2 }
+    wire:
+      - method: GET
+        path: /v3/application/shops/1
+    expect:
+      error: { kind: api, status: 302 }
+
+  - name: redirect-of-a-post-is-not-followed
+    request:
+      operation: createReceiptShipment
+      params: { shop_id: 1, receipt_id: 2 }
+      body: { tracking_code: SYNTHETIC-TRACKING-1 }
+    mock:
+      responses:
+        - status: 307
+          headers: { location: /v3/application/shops/1/receipts/3/tracking }
+    wire:
+      - method: POST
+        path: /v3/application/shops/1/receipts/2/tracking
+    expect:
+      error: { kind: api, status: 307 }

@@ -1,0 +1,64 @@
+# Corrections to the pinned upstream spec, in OpenAPI Overlay 1.0.0 format.
+# Every action must justify itself in ../docs/spec-audit.md, and every action must
+# match something: the build fails on one that no longer applies.
+overlay: 1.0.0
+info:
+  title: Corrections to the Etsy Open API v3 spec
+  version: 0.1.0
+actions:
+  - description: E1. A null default on a schema that is not nullable fails schema validation; it means no default.
+    target: $..[?(@.default == null)].default
+    remove: true
+
+  - description: >-
+      E2. Every operation can answer 429 with retry-after and the rate-limit headers, but only the video
+      upload declares 429, without headers.
+    target: $.paths['/v3/application/shops/{shop_id}/listings/{listing_id}/videos'].post.responses['429']
+    remove: true
+  - description: E2.
+    target: $.components
+    update:
+      headers:
+        RetryAfter:
+          schema:
+            type: integer
+            minimum: 0
+        LimitPerSecond:
+          schema:
+            type: integer
+            minimum: 0
+        RemainingThisSecond:
+          schema:
+            type: integer
+            minimum: 0
+        LimitPerDay:
+          schema:
+            type: integer
+            minimum: 0
+        RemainingToday:
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        RateLimited:
+          description: Too many requests.
+          headers:
+            retry-after:
+              $ref: '#/components/headers/RetryAfter'
+            x-limit-per-second:
+              $ref: '#/components/headers/LimitPerSecond'
+            x-remaining-this-second:
+              $ref: '#/components/headers/RemainingThisSecond'
+            x-limit-per-day:
+              $ref: '#/components/headers/LimitPerDay'
+            x-remaining-today:
+              $ref: '#/components/headers/RemainingToday'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorSchema'
+  - description: E2.
+    target: $.paths.*.*.responses
+    update:
+      '429':
+        $ref: '#/components/responses/RateLimited'

@@ -136,6 +136,7 @@ jobs:
         run: |
           if [ -d "$PACKAGES/python" ]; then python -m pip install -e "$PACKAGES/python[dev]"; fi
           if [ -d "$PACKAGES/typescript" ]; then (cd "$PACKAGES/typescript" && npm ci --ignore-scripts); fi
+          shopt -s nullglob
           for config in "$PACKAGES"/*/generate.yaml; do
             language=$(basename "$(dirname "$config")")
             npm run "generate:$language"
@@ -174,12 +175,13 @@ jobs:
           } > "$RUNNER_TEMP/body.md"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [ "$JOB" != success ]; then
+          if [ "$JOB" != success ] && [ -d "$PACKAGES" ]; then
             git checkout HEAD -- "$PACKAGES"
             git clean -fdq "$PACKAGES"
           fi
           git checkout -B "$BRANCH"
-          git add "$LOCK" "$PACKAGES"
+          git add "$LOCK"
+          if [ -d "$PACKAGES" ]; then git add "$PACKAGES"; fi
           git commit --quiet -m "Update $API upstream spec pin to ${upstream:0:12}"
           gh auth setup-git
           git push --force origin "$BRANCH"

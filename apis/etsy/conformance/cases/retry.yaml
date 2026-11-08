@@ -1,0 +1,258 @@
+cases:
+  - name: retry-429-honours-retry-after
+    request:
+      operation: createReceiptShipment
+      params: { shop_id: 1, receipt_id: 2 }
+      body: { tracking_code: SYNTHETIC-TRACKING-1 }
+    mock:
+      responses:
+        - status: 429
+          headers:
+            retry-after: '1'
+            x-limit-per-second: '10'
+            x-remaining-this-second: '0'
+            x-limit-per-day: '10000'
+            x-remaining-today: '9000'
+          body: { error: Synthetic rate limit }
+        - status: 200
+          body: { receipt_id: 2 }
+    wire:
+      - method: POST
+        path: /v3/application/shops/1/receipts/2/tracking
+        body: { tracking_code: SYNTHETIC-TRACKING-1 }
+      - method: POST
+        path: /v3/application/shops/1/receipts/2/tracking
+        body: { tracking_code: SYNTHETIC-TRACKING-1 }
+        min_delay_ms: 900
+    expect:
+      result: { receipt_id: 2 }
+
+  - name: retry-429-from-the-spec-with-retries-off
+    client:
+      max_retries: 0
+    request:
+      operation: getShop
+      params: { shop_id: 1 }
+    mock:
+      prism: { code: 429 }
+    wire:
+      - method: GET
+        path: /v3/application/shops/1
+    expect:
+      error: { kind: rate_limited, status: 429 }
+
+  - name: retry-429-without-retry-after-waits-the-rate-limit-wait
+    client:
+      rate_limit_wait_ms: 200
+    request:
+      operation: getShop
+      params: { shop_id: 1 }
+    mock:
+      responses:
+        - status: 429
+          body: { error: Synthetic rate limit }
+        - status: 200
+          body: { shop_id: 1 }
+    wire:
+      - method: GET
+        path: /v3/application/shops/1
+      - method: GET
+        path: /v3/application/shops/1
+        min_delay_ms: 180
+    expect:
+      result: { shop_id: 1 }
+
+  - name: retry-429-gives-up-when-retry-after-exceeds-the-maximum
+    request:
+      operation: getShop
+      params: { shop_id: 1 }
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '86400', x-remaining-today: '0' }
+          body: { error: Synthetic daily limit }
+    wire:
+      - method: GET
+        path: /v3/application/shops/1
+    expect:
+      error: { kind: rate_limited, status: 429 }
+
+  - name: retry-429-gives-up-after-max-retries
+    client:
+      max_retries: 1
+    request:
+      operation: getShop
+      params: { shop_id: 1 }
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '0' }
+        - status: 429
+          headers: { retry-after: '0' }
+    wire:
+      - method: GET
+        path: /v3/application/shops/1
+      - method: GET
+        path: /v3/application/shops/1
+    expect:
+      error: { kind: rate_limited, status: 429 }
+
+  - name: retry-5xx-on-get
+    request:
+      operation: getShop
+      params: { shop_id: 1 }
+    mock:
+      responses:
+        - status: 503
+          body: { error: Synthetic outage }
+        - status: 200
+          body: { shop_id: 1 }
+    wire:
+      - method: GET
+        path: /v3/application/shops/1
+      - method: GET
+        path: /v3/application/shops/1
+    expect:
+      result: { shop_id: 1 }
+
+  - name: retry-5xx-gives-up-after-max-retries
+    client:
+      max_retries: 1
+    request:
+      operation: getShop
+      params: { shop_id: 1 }
+    mock:
+      responses:
+        - status: 500
+        - status: 503
+    wire:
+      - method: GET
+        path: /v3/application/shops/1
+      - method: GET
+        path: /v3/application/shops/1
+    expect:
+      error: { kind: server, status: 503 }
+
+  - name: retry-never-repeats-a-failed-post
+    request:
+      operation: createReceiptShipment
+      params: { shop_id: 1, receipt_id: 2 }
+      body: { tracking_code: SYNTHETIC-TRACKING-1 }
+    mock:
+      responses:
+        - status: 500
+    wire:
+      - method: POST
+        path: /v3/application/shops/1/receipts/2/tracking
+    expect:
+      error: { kind: server, status: 500 }
+
+  - name: retry-never-repeats-a-failed-put
+    request:
+      operation: updateListingInventory
+      params: { listing_id: 1 }
+      body: { products: [] }
+    mock:
+      responses:
+        - status: 503
+    wire:
+      - method: PUT
+        path: /v3/application/listings/1/inventory
+        body: { products: [] }
+    expect:
+      error: { kind: server, status: 503 }
+
+  - name: retry-never-repeats-a-failed-delete
+    request:
+      operation: deleteListing
+      params: { listing_id: 1 }
+    mock:
+      responses:
+        - status: 500
+    wire:
+      - method: DELETE
+        path: /v3/application/listings/1
+    expect:
+      error: { kind: server, status: 500 }
+
+  - name: retry-does-not-repeat-a-4xx
+    request:
+      operation: getShop
+      params: { shop_id: 1 }
+    mock:
+      responses:
+        - status: 404
+          body: { error: Synthetic missing shop }
+    wire:
+      - method: GET
+        path: /v3/application/shops/1
+    expect:
+      error: { kind: not_found, status: 404 }
+
+  - name: timeout-retries-a-get-then-succeeds
+    client:
+      timeout_ms: 100
+    request:
+      operation: getShop
+      params: { shop_id: 1 }
+    mock:
+      responses:
+        - status: 200
+          delay_ms: 2000
+        - status: 200
+          body: { shop_id: 1 }
+    wire:
+      - method: GET
+        path: /v3/application/shops/1
+      - method: GET
+        path: /v3/application/shops/1
+    expect:
+      result: { shop_id: 1 }
+
+  - name: timeout-never-repeats-a-post
+    client:
+      timeout_ms: 100
+    request:
+      operation: createReceiptShipment
+      params: { shop_id: 1, receipt_id: 2 }
+      body: { tracking_code: SYNTHETIC-TRACKING-1 }
+    mock:
+      responses:
+        - status: 200
+          delay_ms: 2000
+    wire:
+      - method: POST
+        path: /v3/application/shops/1/receipts/2/tracking
+    expect:
+      error: { kind: timeout }
+
+  - name: connection-retries-a-get-then-succeeds
+    request:
+      operation: getShop
+      params: { shop_id: 1 }
+    mock:
+      responses:
+        - drop: true
+        - status: 200
+          body: { shop_id: 1 }
+    wire:
+      - method: GET
+        path: /v3/application/shops/1
+      - method: GET
+        path: /v3/application/shops/1
+    expect:
+      result: { shop_id: 1 }
+
+  - name: connection-never-repeats-a-post
+    request:
+      operation: createReceiptShipment
+      params: { shop_id: 1, receipt_id: 2 }
+      body: { tracking_code: SYNTHETIC-TRACKING-1 }
+    mock:
+      responses:
+        - drop: true
+    wire:
+      - method: POST
+        path: /v3/application/shops/1/receipts/2/tracking
+    expect:
+      error: { kind: connection }

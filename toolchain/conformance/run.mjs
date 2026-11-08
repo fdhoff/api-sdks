@@ -57,13 +57,14 @@ export function startDriver(command) {
   };
 }
 
-export async function runCases({ cases, defaults, driver, harness, report = () => {} }) {
+export async function runCases({ cases, defaults, secrets = [], driver, harness, report = () => {} }) {
   const failed = [];
   for (const item of cases) {
     const client = { token: SYNTHETIC_TOKEN, ...defaults, ...item.client, base_url: harness.url };
-    harness.play(fill(item.mock, { token: client.token }));
+    const vars = Object.fromEntries(['token', ...secrets].map((name) => [name, client[name]]));
+    harness.play(fill(item.mock, vars));
     const outcome = await driver.call({ case: item.name, client, request: item.request });
-    const failures = checkCase(item, harness.requests(), outcome, client.token);
+    const failures = checkCase(item, harness.requests(), outcome, vars);
     report(item.name, failures);
     if (failures.length > 0) failed.push({ name: item.name, failures });
   }
@@ -75,13 +76,15 @@ export async function runSuite({ apiDir, driverCommand, report }) {
   const dir = join(apiDir, 'conformance');
   const operations = operationIds(parse(await readFile(paths.build, 'utf8')));
   const cases = await loadCases(join(dir, 'cases'), operations);
-  const { client: defaults } = parse(await readFile(join(dir, 'defaults.yaml'), 'utf8'));
+  const { client: defaults, secrets = [] } = parse(await readFile(join(dir, 'defaults.yaml'), 'utf8'));
+  const unset = secrets.filter((name) => typeof defaults?.[name] !== 'string' || defaults[name] === '');
+  if (unset.length > 0) throw new Error(`defaults.yaml names secrets with no synthetic value: ${unset.join(', ')}`);
 
   const prism = await startPrism(paths.build);
   const harness = await startHarness(prism.url);
   const driver = startDriver(driverCommand);
   try {
-    const failed = await runCases({ cases, defaults, driver, harness, report });
+    const failed = await runCases({ cases, defaults, secrets, driver, harness, report });
     return { total: cases.length, failed };
   } finally {
     driver.stop();

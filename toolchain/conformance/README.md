@@ -19,7 +19,7 @@ It prints one line per case and exits non-zero if any case fails.
 
 ## Case format
 
-Each file in `cases/` holds a `cases:` list. `apis/<api>/conformance/defaults.yaml` holds a `client:` map merged under every case's `client`.
+Each file in `cases/` holds a `cases:` list. `apis/<api>/conformance/defaults.yaml` holds a `client:` map merged under every case's `client`, and optionally a `secrets:` list naming client settings, besides `token`, that are credentials. Each named secret needs a synthetic value in `client:`.
 
 ```yaml
 cases:
@@ -68,9 +68,9 @@ cases:
 * `parts` lists every part of a multipart body: a list sends one part per item, so two files are two `files` parts.
 * `result_keys: [id]` asserts that those keys exist, for Prism responses whose values come from spec examples. On a list it checks the first element.
 * `error` is a subset match on the driver's error object.
-* `{{token}}` in `mock` and `wire` expands to the case's token.
+* `{{token}}` in `mock`, `wire` and `expect` expands to the case's token, and `{{<name>}}` to each other secret.
 
-Every case also asserts that the token appears nowhere in the driver's result, error or logs.
+Every case also asserts that the token and every other secret appear nowhere in the driver's result, error or logs.
 
 ## Client settings
 
@@ -80,6 +80,7 @@ Values a case or `defaults.yaml` may set. The runner adds `base_url` and `token`
 | --- | --- |
 | `base_url` | Server root; the client must send every request here |
 | `token` | Credential |
+| Each name in `secrets` | Another credential, defined by the API's cases |
 | `user_agent` | `User-Agent` value |
 | `locale` | Client-level locale |
 | `timeout_ms` | Per-attempt deadline, covering the whole response |

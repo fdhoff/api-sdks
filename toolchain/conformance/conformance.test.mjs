@@ -75,7 +75,7 @@ test('fill expands the token at any depth', () => {
 });
 
 test('checkCase passes a matching exchange', () => {
-  assert.deepEqual(checkCase(baseCase(), [sent()], { result: { id: 1, extra: 2 }, logs: [] }, 't0ken'), []);
+  assert.deepEqual(checkCase(baseCase(), [sent()], { result: { id: 1, extra: 2 }, logs: [] }, { token: 't0ken' }), []);
 });
 
 test('checkCase reports a wire mismatch', () => {
@@ -89,7 +89,7 @@ test('checkCase reports a wire mismatch', () => {
     [[sent({ headers: {} })], /header authorization is undefined/],
   ];
   for (const [requests, pattern] of cases) {
-    assert.match(checkCase(item, requests, { result: { id: 1 } }, 't0ken').join('\n'), pattern);
+    assert.match(checkCase(item, requests, { result: { id: 1 } }, { token: 't0ken' }).join('\n'), pattern);
   }
 });
 
@@ -107,7 +107,7 @@ test('checkCase enforces header patterns, absent headers, bodies and delays', ()
     },
   ];
   const requests = [sent({ at: 0 }), sent({ at: 50, body: '{"a":2}', headers: { authorization: 'x' } })];
-  const failures = checkCase(item, requests, { result: { id: 1 } }, 't0ken').join('\n');
+  const failures = checkCase(item, requests, { result: { id: 1 } }, { token: 't0ken' }).join('\n');
   assert.match(failures, /content-type is undefined/);
   assert.match(failures, /Authorization must be absent/);
   assert.match(failures, /body is \{"a":2\}/);
@@ -136,7 +136,7 @@ test('checkCase compares multipart parts by name, including repeated parts', () 
   ].join('\r\n');
   const request = (text, type = 'multipart/form-data; boundary="xyz"') =>
     sent({ method: 'POST', body: text, headers: { 'content-type': type } });
-  const check = (...args) => checkCase(item, [request(...args)], { result: { id: 1 } }, 't0ken').join('\n');
+  const check = (...args) => checkCase(item, [request(...args)], { result: { id: 1 } }, { token: 't0ken' }).join('\n');
   assert.equal(check(body), '');
   assert.match(check(body.replace('\r\nb\r\n', '\r\nc\r\n')), /parts are .*"files":\["a","c"\]/);
   const single = ['--xyz', 'Content-Disposition: form-data; name="files"', '', 'a', '--xyz--', ''].join('\r\n');
@@ -146,19 +146,19 @@ test('checkCase compares multipart parts by name, including repeated parts', () 
 
 test('checkCase compares outcomes', () => {
   const item = baseCase();
-  assert.match(checkCase(item, [sent()], { error: { kind: 'server' } }, 't0ken').join(), /unexpected error/);
-  assert.match(checkCase(item, [sent()], { result: { id: 2 } }, 't0ken').join(), /outcome is/);
+  assert.match(checkCase(item, [sent()], { error: { kind: 'server' } }, { token: 't0ken' }).join(), /unexpected error/);
+  assert.match(checkCase(item, [sent()], { result: { id: 2 } }, { token: 't0ken' }).join(), /outcome is/);
 
   item.expect = { error: { kind: 'server', status: 500 } };
-  assert.deepEqual(checkCase(item, [sent()], { error: { kind: 'server', status: 500 } }, 't0ken'), []);
-  assert.match(checkCase(item, [sent()], { result: {} }, 't0ken').join(), /outcome is/);
+  assert.deepEqual(checkCase(item, [sent()], { error: { kind: 'server', status: 500 } }, { token: 't0ken' }), []);
+  assert.match(checkCase(item, [sent()], { result: {} }, { token: 't0ken' }).join(), /outcome is/);
 
   item.expect = { result_keys: ['id'] };
-  assert.deepEqual(checkCase(item, [sent()], { result: [{ id: 1 }] }, 't0ken'), []);
-  assert.match(checkCase(item, [sent()], { result: { other: 1 } }, 't0ken').join(), /result lacks id/);
+  assert.deepEqual(checkCase(item, [sent()], { result: [{ id: 1 }] }, { token: 't0ken' }), []);
+  assert.match(checkCase(item, [sent()], { result: { other: 1 } }, { token: 't0ken' }).join(), /result lacks id/);
 
   item.expect = { result: { id: 1 }, logs_required: true };
-  assert.match(checkCase(item, [sent()], { result: { id: 1 }, logs: [] }, 't0ken').join(), /logged nothing/);
+  assert.match(checkCase(item, [sent()], { result: { id: 1 }, logs: [] }, { token: 't0ken' }).join(), /logged nothing/);
 });
 
 test('checkCase fails any output containing the token', () => {
@@ -168,8 +168,20 @@ test('checkCase fails any output containing the token', () => {
     { error: { kind: 'server', raw_body: 't0ken' } },
   ];
   for (const outcome of leaks) {
-    assert.match(checkCase(baseCase(), [sent()], outcome, 't0ken').join(), /token leaked/);
+    assert.match(checkCase(baseCase(), [sent()], outcome, { token: 't0ken' }).join(), /token leaked/);
   }
+});
+
+test('fill expands every named secret and leaves unknown placeholders', () => {
+  const vars = { token: 't', api_key: 'k' };
+  assert.equal(fill('{{api_key}}:{{token}} {{other}} {{http_date+2s}}', vars), 'k:t {{other}} {{http_date+2s}}');
+});
+
+test('checkCase fails output containing any secret, by name', () => {
+  const secrets = { token: 't0ken', api_key: 'k3y', shared_secret: 's3cret' };
+  const outcome = { result: { id: 1 }, logs: ['x-api-key: k3y:s3cret'] };
+  const failures = checkCase(baseCase(), [sent()], outcome, secrets);
+  assert.deepEqual(failures, ['api_key leaked into the client output', 'shared_secret leaked into the client output']);
 });
 
 let harness;

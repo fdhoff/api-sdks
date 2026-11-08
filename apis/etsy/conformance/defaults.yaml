@@ -1,0 +1,7 @@
+# Synthetic credentials. `token` is the OAuth access token, which Etsy prefixes with the user's numeric ID.
+secrets: [api_key, shared_secret]
+client:
+  api_key: conformance-synthetic-keystring
+  shared_secret: conformance-synthetic-shared-secret
+  token: 12345678.conformance-synthetic-access-token
+  retry_base_delay_ms: 1
