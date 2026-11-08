@@ -1,6 +1,7 @@
 node_modules/
 build/
 apis/*/spec/upstream/openapi.yaml
+apis/*/spec/upstream/contracts/
 __pycache__/
 *.egg-info/
 .mypy_cache/

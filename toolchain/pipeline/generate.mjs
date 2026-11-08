@@ -3,11 +3,11 @@
 import { spawnSync } from 'node:child_process';
 import { copyFile, cp, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse, stringify } from 'yaml';
 import { sha256 } from './fetch-spec.mjs';
-import { apiPaths } from './paths.mjs';
+import { apiPaths, lockSources, sourcePaths } from './paths.mjs';
 
 const TOOLCHAIN = fileURLToPath(new URL('..', import.meta.url));
 const METHODS = ['get', 'put', 'post', 'delete', 'patch'];
@@ -286,20 +286,44 @@ const pairs = (mapping = {}) =>
     .map(([key, value]) => `${key}=${value}`)
     .join(',');
 
-async function generate(apiDir, language) {
-  const paths = apiPaths(apiDir);
-  const packageDir = resolve(apiDir, 'packages', language);
-  const config = parse(await readFile(join(packageDir, 'generate.yaml'), 'utf8'));
-  const sharedNames = join(apiDir, 'packages', 'names.yaml');
-  const shared = (await exists(sharedNames)) ? parse(await readFile(sharedNames, 'utf8')) : {};
+const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+
+// Nested maps merge, and anything else in `over` replaces what `base` has.
+export function mergeConfig(base, over = {}) {
+  const merged = { ...base };
+  for (const [key, value] of Object.entries(over)) merged[key] = isPlainObject(value) && isPlainObject(base[key]) ? mergeConfig(base[key], value) : value;
+  return merged;
+}
+
+// An API built from several contracts generates each one into its own sub-module of the one package, from
+// that contract's own build, so contracts never share a model namespace. `contracts` in generate.yaml gives
+// each contract the settings it overrides, such as `output`, `source`, `operations` and `properties`.
+export function contractConfigs(config, names) {
+  const { contracts, ...base } = config;
+  if (names.length === 1 && names[0] === null) {
+    if (contracts) throw new Error('generate.yaml sets contracts, but the lock pins a single spec');
+    return [{ name: null, config: base }];
+  }
+  const missing = names.filter((name) => !(name in (contracts ?? {})));
+  if (missing.length > 0) throw new Error(`generate.yaml configures no sub-module for contracts: ${missing.join(', ')}`);
+  const unknown = Object.keys(contracts).filter((name) => !names.includes(name));
+  if (unknown.length > 0) throw new Error(`generate.yaml configures unknown contracts: ${unknown.join(', ')}`);
+  return names.map((name) => ({ name, config: mergeConfig(base, contracts[name] ?? {}) }));
+}
+
+// Outputs that sit inside another one are formatted with it.
+export function outermost(paths) {
+  const unique = [...new Set(paths)];
+  return unique.filter((path) => !unique.some((other) => other !== path && path.startsWith(`${other}/`)));
+}
+
+async function generateContract({ apiDir, language, packageDir, config, built, shared, sdk }) {
   Object.assign(config, packageNames(shared, config));
-  const operations = parse(await readFile(join(packageDir, 'operations.yaml'), 'utf8'));
-  const sdk = (await exists(join(apiDir, 'sdk.yaml'))) ? parse(await readFile(join(apiDir, 'sdk.yaml'), 'utf8')) : {};
+  const operations = parse(await readFile(join(packageDir, config.operations ?? 'operations.yaml'), 'utf8'));
   const output = join(packageDir, config.output);
   const source = config.source ?? config.properties.packageName.replaceAll('.', '/');
 
-  const built = stripProse(parse(await readFile(paths.build, 'utf8')));
-  const spec = applyOperations(renameSchemas(relax(built, config), config.schema_names), operations, sdk?.paging);
+  const spec = applyOperations(renameSchemas(relax(stripProse(parse(await readFile(built, 'utf8'))), config), config.schema_names), operations, sdk?.paging);
   const work = await mkdtemp(join(tmpdir(), 'generate-'));
   try {
     const input = join(work, 'openapi.yaml');
@@ -309,7 +333,7 @@ async function generate(apiDir, language) {
     await mkdir(join(work, 'out'));
     await writeFile(join(work, 'out', '.openapi-generator-ignore'), ignoreFile(config));
     run('java', [
-      '-jar', await ensureGenerator(dirname(paths.build)),
+      '-jar', await ensureGenerator(dirname(apiPaths(apiDir).build)),
       'generate', '--generator-name', config.generator, '--skip-validate-spec',
       '--input-spec', input,
       '--output', join(work, 'out'),
@@ -334,11 +358,33 @@ async function generate(apiDir, language) {
   } finally {
     await rm(work, { recursive: true, force: true });
   }
+  return output;
+}
+
+// TODO: each language's templates still import the runtime from `packageName`; a contract's sub-module
+// needs them to import it from the package root instead. Add that with the first multi-contract package.
+async function generate(apiDir, language) {
+  const packageDir = resolve(apiDir, 'packages', language);
+  const config = parse(await readFile(join(packageDir, 'generate.yaml'), 'utf8'));
+  const sharedNames = join(apiDir, 'packages', 'names.yaml');
+  const shared = (await exists(sharedNames)) ? parse(await readFile(sharedNames, 'utf8')) : {};
+  const sdk = (await exists(join(apiDir, 'sdk.yaml'))) ? parse(await readFile(join(apiDir, 'sdk.yaml'), 'utf8')) : {};
+  const sources = lockSources(JSON.parse(await readFile(apiPaths(apiDir).lock, 'utf8')));
+  const outputs = [];
+  for (const { name, config: contract } of contractConfigs(config, sources.map((source) => source.name))) {
+    const source = sources.find((item) => item.name === name);
+    // A contract's shared names sit under its name in names.yaml.
+    const names = name === null ? shared : (shared?.[name] ?? {});
+    outputs.push(await generateContract({ apiDir, language, packageDir, config: contract, built: sourcePaths(apiDir, source).build, shared: names, sdk }));
+  }
+  const output = join(packageDir, config.output);
   await rm(join(output, config.runtime), { recursive: true, force: true });
   await cp(join(TOOLCHAIN, 'runtime', language), join(output, config.runtime), { recursive: true });
   if (config.runtime_package) await fillPackageName(join(output, config.runtime), config.runtime_package);
-  run(config.format[0], [...config.format.slice(1), config.output], { cwd: packageDir });
-  console.log(`Generated ${output}`);
+  for (const path of outermost([output, ...outputs])) {
+    run(config.format[0], [...config.format.slice(1), relative(packageDir, path)], { cwd: packageDir });
+    console.log(`Generated ${path}`);
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
