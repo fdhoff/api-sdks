@@ -110,9 +110,21 @@ In Rust, every model field is an `Option`, a field holding another model is boxe
 
 Every language implements the same behaviour. The conformance cases are the authority, and `spec-audit.md` has the reasoning. Nothing here has been confirmed against the live API.
 
+### Credentials
+
+Each runtime takes a credential provider instead of a single secret. The provider has three parts:
+
+* `apply` runs before every attempt, retries included, and receives the final request: method, absolute URL, headers, body bytes and the operation. It may change only the headers, so it can add a static header, a bearer token or a signature over the whole request. It is asynchronous where the language is.
+* `secrets` lists every value to redact. It is read again each time, so it may change as tokens rotate.
+* `refresh`, optional, runs after a 401. A call refreshes at most once and retries at most once, so a 401 never loops. Calls on one client share one refresh: a call whose credentials were refreshed after it sent them retries without refreshing again.
+
+Each generated operation carries the spec's security requirements: the alternatives, each listing the scheme names and scopes it needs. A provider reads them to decide what to apply. An API package builds the provider; the runtime holds nothing specific to any scheme.
+
+TODO: a helper for tokens that are minted and refreshed, with a persist callback that accepts a missing refresh token and an optional early refresh before `expires_in`, once a second API needs it. Until then the interface covers it and the API package implements it.
+
 ### Authentication and headers
 
-* Send `Authorization: Basic <token>` with the token verbatim: no username and no base64. Generated Basic-auth helpers must not be used.
+* Back Market uses a static provider that sends `Authorization: Basic <token>` with the token verbatim: no username and no base64. Generated Basic-auth helpers must not be used.
 * `User-Agent` is required client configuration, because the API may refuse a request without it and no default can be correct.
 * Send `Accept-Language` on every call, from a client-level locale.
 * Do not force a JSON `Content-Type` on multipart operations.
@@ -170,7 +182,7 @@ Errors also carry `request_id`, `code` and `cf_ray` when present. Each language 
 
 ### Redaction
 
-The token must not appear in any result, error or log, at any log level. Every conformance case asserts this, whatever else it tests.
+No secret the provider lists may appear in any result, error or log, at any log level. There may be any number of them, of any length, such as a PEM key or a JWE; the longest is removed first, so a secret that contains another goes whole. Every conformance case asserts this for the token and every other secret, whatever else it tests.
 
 ## Conformance format
 
