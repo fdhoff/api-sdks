@@ -183,7 +183,7 @@ There are 81 cases, covering auth, pagination, 4xx and 5xx errors, 429 retry, ti
 
 ## Versioning and release
 
-* Each language package has its own semantic version and changelog. Every user-visible change needs a changelog entry.
+* Each language package has its own semantic version and changelog. Every user-visible change needs a changelog entry. A change adds its entry under `## Unreleased` at the top of the changelog and leaves the package version alone; only the release pull request sets the version.
 * Packages stay on 0.x until outside users confirm behaviour against the live API. In 0.x, a breaking change bumps the minor version.
 * Python and TypeScript are published first, as alphas. The others follow as each passes conformance. A later language never delays an earlier release.
 * Publishing is done only by a release workflow. Each package's first publish is approved by the maintainer.
@@ -207,9 +207,9 @@ Every package description and README says the project is unofficial and not affi
 | Python | Add a PyPI trusted publisher for this repository, workflow `release-python.yml`, environment `pypi` | `pypi`, with the maintainer as required reviewer | `PUBLISH_PYTHON` = `true` | `python/v<version>` |
 | TypeScript | Add an npm trusted publisher for this repository, workflow `release-typescript.yml`, environment `npm` | `npm`, with the maintainer as required reviewer | `PUBLISH_TYPESCRIPT` = `true` | `typescript/v<version>` |
 | C# | Add a nuget.org trusted publishing policy for this repository, workflow `release-csharp.yml`, environment `nuget` | `nuget`, with the maintainer as required reviewer | `PUBLISH_CSHARP` = `true` | `csharp/v<version>` |
-| Rust | Remove `publish = false` from `Cargo.toml`. For the first release, add a `CARGO_REGISTRY_TOKEN` secret to the environment. Then add a crates.io trusted publisher for this repository, workflow `release-rust.yml`, environment `crates-io`, and delete the secret | `crates-io`, with the maintainer as required reviewer | `PUBLISH_RUST` = `true` | `rust/v<version>` |
+| Rust | Add a crates.io trusted publisher for this repository, workflow `release-rust.yml`, environment `crates-io` | `crates-io`, with the maintainer as required reviewer | `PUBLISH_RUST` = `true` | `rust/v<version>` |
 
-To release, replace `(unreleased)` in the package changelog with the date, merge, and tag that commit on `main`. The build job fails unless the tag matches the package version and changelog and the commit is on `main`.
+To release, rename `## Unreleased` in the package changelog to `## <version> (<date>)`, set that version in the package manifest, merge, and tag that commit on `main`. The build job fails unless the tag matches the package version and changelog and the commit is on `main`.
 
 A release run can be rerun after it published. Each publish job skips a version the registry already has: `skip-existing` for PyPI, `--skip-duplicate` for NuGet, and a registry lookup before `npm publish` and `cargo publish`. `apis/backmarket/tests/workflows.test.mjs` checks this.
 
@@ -217,7 +217,7 @@ A release run can be rerun after it published. Each publish job skips a version 
 
 Upstream serves only its latest spec, so an older pin cannot be fetched again. Once upstream changes, a machine with no cached copy fails closed until the pin moves. Released versions are unaffected, because their generated code is committed.
 
-CI and release jobs get the spec through `.github/actions/upstream-spec`, which restores it from the Actions cache under `upstream-spec-<sha256>`, the hash in `lock.json`, and downloads it only on a miss. Caches saved on `main` are visible to every pull request and tag, and the spec drift job keeps them there, so an upstream change does not break an unrelated pull request or release. Only the spec drift job reads upstream on purpose. The Actions cache is not public, so this keeps the rule that the repository does not redistribute the spec. `apis/backmarket/tests/workflows.test.mjs` fails if any other job fetches the spec itself.
+CI and release jobs get the spec through `.github/actions/upstream-spec`, which restores it from the Actions cache under `upstream-spec-<sha256>`, the hash in `lock.json`, and downloads it only on a miss. Caches saved on `main` are visible to every pull request and tag, and the spec drift job keeps them there, so an upstream change does not break an unrelated pull request or release. Only the spec drift job reads upstream on purpose. A pull request from a fork can restore those caches too, but the spec is never committed, uploaded as an artifact or attached to a release, so the repository does not redistribute it. `apis/backmarket/tests/workflows.test.mjs` fails if any other job fetches the spec itself.
 
 To move the pin by hand, run `npm run spec:pin`, review what changed, and commit `lock.json`. It rewrites the hash, version, `Last-Modified` and date in the lock, and replaces the cached spec. On other machines the old cache then fails verification; delete it and run `npm run spec:fetch`.
 
