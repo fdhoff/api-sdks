@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::Error;
 #[allow(unused_imports)]
-use crate::runtime::{Items, Operation, Paging, Params, Request, Transport};
+use crate::runtime::{Items, Operation, Paging, Params, Request, Scheme, Transport};
 #[allow(unused_imports)]
 use crate::{File, models};
 
@@ -15,6 +15,10 @@ const GET_CARE_FOLDER_DETAILS: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const GET_CARE_FOLDER_LIST: Operation = Operation {
     id: "getCareFolderList",
@@ -34,6 +38,10 @@ const GET_CARE_FOLDER_LIST: Operation = Operation {
         link: "next",
         params: &["page", "cursor"],
     }),
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const POST_ITEM_TRANSFER: Operation = Operation {
     id: "postItemTransfer",
@@ -42,6 +50,10 @@ const POST_ITEM_TRANSFER: Operation = Operation {
     query_params: &[],
     returns_json: false,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const POST_MESSAGE: Operation = Operation {
     id: "postMessage",
@@ -50,6 +62,10 @@ const POST_MESSAGE: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const POST_NOTE: Operation = Operation {
     id: "postNote",
@@ -58,6 +74,10 @@ const POST_NOTE: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const POST_PROBLEM: Operation = Operation {
     id: "postProblem",
@@ -66,6 +86,10 @@ const POST_PROBLEM: Operation = Operation {
     query_params: &[],
     returns_json: false,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const POST_REFUND_CREATE: Operation = Operation {
     id: "postRefundCreate",
@@ -74,6 +98,10 @@ const POST_REFUND_CREATE: Operation = Operation {
     query_params: &[],
     returns_json: false,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 
 /// The query parameters of [`CareApi::list_folders`]. Set only what you need.

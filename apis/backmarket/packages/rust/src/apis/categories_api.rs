@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::Error;
 #[allow(unused_imports)]
-use crate::runtime::{Items, Operation, Paging, Params, Request, Transport};
+use crate::runtime::{Items, Operation, Paging, Params, Request, Scheme, Transport};
 #[allow(unused_imports)]
 use crate::{File, models};
 
@@ -15,6 +15,10 @@ const GET_BM_CATALOG_CATEGORY: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const GET_BM_CATALOG_CATEGORY_BRANCH: Operation = Operation {
     id: "get-bm-catalog-category-branch",
@@ -23,6 +27,10 @@ const GET_BM_CATALOG_CATEGORY_BRANCH: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 
 /// The `categories` operations, from [`Client::categories`](crate::Client::categories).

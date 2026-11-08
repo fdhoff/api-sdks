@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::Error;
 #[allow(unused_imports)]
-use crate::runtime::{Items, Operation, Paging, Params, Request, Transport};
+use crate::runtime::{Items, Operation, Paging, Params, Request, Scheme, Transport};
 #[allow(unused_imports)]
 use crate::{File, models};
 
@@ -25,6 +25,10 @@ const GET_WS_LIST_LISTING: Operation = Operation {
         link: "next",
         params: &["page", "cursor"],
     }),
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const GET_WS_LISTING_DETAIL: Operation = Operation {
     id: "get-ws-listing-detail",
@@ -33,6 +37,10 @@ const GET_WS_LISTING_DETAIL: Operation = Operation {
     query_params: &["sku", "listing_id", "id"],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const GET_WS_SPECIFIC_LISTING: Operation = Operation {
     id: "get-ws-specific-listing",
@@ -41,6 +49,10 @@ const GET_WS_SPECIFIC_LISTING: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const POST_WS_CREATE_OR_UPDATE_LISTINGS: Operation = Operation {
     id: "post-ws-create-or-update-listings",
@@ -49,6 +61,10 @@ const POST_WS_CREATE_OR_UPDATE_LISTINGS: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const UPDATE_WS_SPECIFIC_LISTING: Operation = Operation {
     id: "update-ws-specific-listing",
@@ -57,6 +73,10 @@ const UPDATE_WS_SPECIFIC_LISTING: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 
 /// The query parameters of [`ListingsApi::list`]. Set only what you need.

@@ -72,6 +72,11 @@ impl Error {
         self
     }
 
+    pub(crate) fn map_message(mut self, map: impl FnOnce(&str) -> String) -> Self {
+        self.inner.message = map(&self.inner.message);
+        self
+    }
+
     pub(crate) fn with_source(mut self, source: impl Into<Source>) -> Self {
         self.inner.source = Some(source.into());
         self

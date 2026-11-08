@@ -5,7 +5,7 @@ use std::time::Duration;
 use reqwest::header::{ACCEPT, ACCEPT_LANGUAGE, AUTHORIZATION, HeaderMap, HeaderValue, USER_AGENT};
 
 use crate::errors::to_error;
-use crate::runtime::{Settings, Transport};
+use crate::runtime::{Settings, StaticCredentials, Transport};
 
 /// A marketplace region.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -52,15 +52,21 @@ fn invalid(message: &str) -> BuildError {
     BuildError(message.to_owned())
 }
 
-fn headers(token: &str, user_agent: &str, locale: &str) -> Result<HeaderMap, BuildError> {
-    let value = |text: &str, name: &str| {
-        HeaderValue::from_str(text)
-            .map_err(|_| BuildError(format!("{name} cannot be sent as a header")))
-    };
+fn value(text: &str, name: &str) -> Result<HeaderValue, BuildError> {
+    HeaderValue::from_str(text)
+        .map_err(|_| BuildError(format!("{name} cannot be sent as a header")))
+}
+
+fn credentials(token: String) -> Result<StaticCredentials, BuildError> {
     let mut authorization = value(&format!("Basic {token}"), "the token")?;
     authorization.set_sensitive(true);
     let mut headers = HeaderMap::new();
     headers.insert(AUTHORIZATION, authorization);
+    Ok(StaticCredentials::new(headers, vec![token]))
+}
+
+fn headers(user_agent: &str, locale: &str) -> Result<HeaderMap, BuildError> {
+    let mut headers = HeaderMap::new();
     headers.insert(USER_AGENT, value(user_agent, "user_agent")?);
     headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
     headers.insert(ACCEPT_LANGUAGE, value(locale, "locale")?);
@@ -230,8 +236,8 @@ impl ClientBuilder {
         let locale = required(&self.locale, "locale is required")?;
         let transport = Transport::new(Settings {
             base_url: self.server()?,
-            headers: headers(&token, &user_agent, &locale)?,
-            secret: token,
+            headers: headers(&user_agent, &locale)?,
+            credentials: Arc::new(credentials(token)?),
             to_error,
             timeout: self.timeout,
             max_retries: self.max_retries,

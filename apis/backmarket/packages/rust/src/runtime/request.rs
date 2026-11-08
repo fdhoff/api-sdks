@@ -3,10 +3,11 @@ use serde::Serialize;
 use serde::ser::{self, Error as _, Impossible};
 use serde_json::Value;
 
+use super::credentials::Scheme;
 use super::model::FormValue;
 
 /// Characters a path segment keeps as they are. Everything else is percent-encoded, `/` included.
-const PATH_SEGMENT: &AsciiSet = &NON_ALPHANUMERIC
+pub(crate) const PATH_SEGMENT: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'-')
     .remove(b'.')
     .remove(b'_')
@@ -56,6 +57,9 @@ pub struct Operation {
     pub returns_json: bool,
     /// How an iterator walks pages. `None` means [`Paging::DEFAULT`].
     pub paging: Option<Paging>,
+    /// The spec's security requirements: any one alternative, each needing all its schemes.
+    #[allow(dead_code, reason = "only credentials that vary by operation read it")]
+    pub security: &'static [&'static [Scheme]],
 }
 
 impl Operation {
@@ -388,6 +392,7 @@ mod tests {
         query_params: &["page"],
         returns_json: true,
         paging: None,
+        security: &[],
     };
 
     struct Query {
