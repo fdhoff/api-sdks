@@ -51,9 +51,11 @@ async function offsetPages(client, params = {}, url = `${client.base_url}/items`
 const { privateKey } = generateKeyPairSync('ed25519');
 const digest = (bytes) => `sha-256=:${createHash('sha256').update(bytes).digest('base64')}:`;
 
-// Signs each attempt as the runtimes' message signer does, retrying once after a rate limit. `wrongDigest`
-// digests the body as it would be serialised with spaces, not the bytes sent.
-async function signedCall(client, request, wrongDigest) {
+// Signs each attempt as the runtimes' message signer does, retrying once after a rate limit. `wrong-digest`
+// digests the body as it would be serialised with spaces, not the bytes sent, and `unsigned` sends a valid
+// digest with no signature.
+async function signedCall(client, request) {
+  const wrongDigest = mode === 'wrong-digest';
   const url = new URL(`${client.base_url}/items`);
   const method = request.body === undefined ? 'GET' : 'POST';
   for (let attempt = 0; ; attempt += 1) {
@@ -70,8 +72,10 @@ async function signedCall(client, request, wrongDigest) {
     }
     const params = `(${covered.map((name) => `"${name}"`).join(' ')});created=${Math.floor(Date.now() / 1000)}`;
     lines.push(`"@signature-params": ${params}`);
-    headers['signature-input'] = `sig1=${params}`;
-    headers.signature = `sig1=:${sign(null, Buffer.from(lines.join('\n')), privateKey).toString('base64')}:`;
+    if (mode !== 'unsigned') {
+      headers['signature-input'] = `sig1=${params}`;
+      headers.signature = `sig1=:${sign(null, Buffer.from(lines.join('\n')), privateKey).toString('base64')}:`;
+    }
     const response = await fetch(url, { method, headers, body });
     if (response.status !== 429 || attempt > 0) return { result: await response.json() };
   }
@@ -83,8 +87,8 @@ for await (const line of createInterface({ input: process.stdin })) {
     console.log(JSON.stringify({ result: { id: 1 }, logs: [] }));
     continue;
   }
-  if (mode === 'signed' || mode === 'wrong-digest') {
-    console.log(JSON.stringify({ ...(await signedCall(client, request, mode === 'wrong-digest')), logs: [] }));
+  if (['signed', 'wrong-digest', 'unsigned'].includes(mode)) {
+    console.log(JSON.stringify({ ...(await signedCall(client, request)), logs: [] }));
     continue;
   }
   if (mode === 'routed') {

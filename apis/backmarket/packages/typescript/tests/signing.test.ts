@@ -272,3 +272,65 @@ test('the private key is a secret', async () => {
   assert.equal(inspect(signer).includes(body), false);
   assert.equal(redact(new Signed(signer), `key ${ED25519_KEY.trim()} and ${body}`), 'key *** and ***');
 });
+
+function verifyBase(publicKey: KeyObject, request: AuthRequest, lines: string[]): void {
+  const input = request.headers.get('signature-input') ?? '';
+  const base = [...lines, `"@signature-params": ${input.slice('sig1='.length)}`].join('\n');
+  const signature = (request.headers.get('signature') ?? '').slice('sig1=:'.length, -1);
+  assert.ok(verify(null, Buffer.from(base), publicKey, Buffer.from(signature, 'base64')));
+}
+
+test('lifetime is whole seconds of at least one', async () => {
+  for (const lifetimeSeconds of [0, -1, 0.5, 1.5, Number.NaN]) {
+    await assert.rejects(
+      MessageSigner.create({ privateKey: ED25519_KEY, components: COVERED, lifetimeSeconds }),
+      /lifetime/,
+    );
+  }
+  const signer = await MessageSigner.create({
+    privateKey: ED25519_KEY,
+    components: ['@method'],
+    lifetimeSeconds: 1,
+    now: () => 1700000000_900,
+  });
+  const request = authRequest('GET', 'https://example.com/', {}, new Uint8Array());
+  await signer.sign(request);
+  assert.equal(request.headers.get('signature-input'), 'sig1=("@method");created=1700000000;expires=1700000001');
+});
+
+test('content-length and host come from the body and URL when absent', async () => {
+  const [privateKey, publicKey] = freshKey();
+  const signer = await MessageSigner.create({ privateKey, components: ['content-length', 'host'] });
+  const request = authRequest('POST', 'https://Example.com:443/items', {}, new TextEncoder().encode('synthetic'));
+  await signer.sign(request);
+  assert.equal(request.headers.has('content-length'), false);
+  assert.equal(request.headers.has('host'), false);
+  verifyBase(publicKey, request, ['"content-length": 9', '"host": example.com']);
+  const given = authRequest(
+    'POST',
+    'https://example.com/items',
+    { 'content-length': '18', host: 'proxy.example' },
+    new Uint8Array(),
+  );
+  await signer.sign(given);
+  verifyBase(publicKey, given, ['"content-length": 18', '"host": proxy.example']);
+  await assert.rejects(
+    signer.sign(authRequest('GET', 'https://example.com/items', {}, new Uint8Array())),
+    /content-length/,
+  );
+});
+
+test('an empty query is no query', async () => {
+  const [privateKey, publicKey] = freshKey();
+  const signer = await MessageSigner.create({ privateKey, components: ['@request-target', '@query'] });
+  const request = authRequest('GET', 'https://example.com/p?', {}, new Uint8Array());
+  await signer.sign(request);
+  verifyBase(publicKey, request, ['"@request-target": /p', '"@query": ?']);
+});
+
+test('each line of the key body is a secret', async () => {
+  const signer = await MessageSigner.create({ privateKey: RSA_KEY, components: COVERED });
+  const lines = RSA_KEY.trim().split('\n').slice(1, -1);
+  assert.ok(lines.every((line) => signer.secrets().includes(line)));
+  assert.equal(redact(new Signed(signer), lines.join('\r\n')), lines.map(() => '***').join('\r\n'));
+});

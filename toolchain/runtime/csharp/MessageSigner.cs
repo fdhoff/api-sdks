@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -12,8 +13,10 @@ namespace PackageNamespace.Runtime;
 /// <summary>
 /// Signs each attempt's request with an HTTP message signature (RFC 9421): a <c>Content-Digest</c> (RFC 9530) of the
 /// body when there is one, then <c>Signature-Input</c> and <c>Signature</c> over the covered components, with a fresh
-/// <c>created</c> time. <c>content-digest</c> is left out of a request with no body, and any other field the request
-/// lacks is an error. Call <see cref="Sign"/> from <see cref="ICredentialProvider.ApplyAsync"/>.
+/// <c>created</c> time. <c>content-digest</c> is left out of a request with no body. A request without
+/// <c>content-length</c> or <c>host</c> uses the body's length or the URL's authority, which <see cref="HttpClient"/>
+/// sends; any other field the request lacks is an error, and so is a value that is not ASCII. Call <see cref="Sign"/>
+/// from <see cref="ICredentialProvider.ApplyAsync"/>.
 /// </summary>
 /// <remarks>
 /// .NET has no Ed25519, so this file needs BouncyCastle.Cryptography. A package that does not sign removes it from its
@@ -26,6 +29,9 @@ internal sealed partial class MessageSigner : IDisposable
 
     private static readonly HashSet<string> Derived = ["@method", "@target-uri", "@authority", "@scheme", "@request-target", "@path", "@query"];
 
+    // A shorter last line of a key's base64 body is too common a string to redact.
+    private const int MinSecretLine = 16;
+
     private readonly RSA? rsa;
     private readonly Func<byte[], byte[]> sign;
     private readonly string[] secrets;
@@ -37,6 +43,7 @@ internal sealed partial class MessageSigner : IDisposable
 
     /// <param name="privateKey">An unencrypted PKCS #8 PEM Ed25519 or RSA private key. It is a secret.</param>
     /// <param name="components">Lowercase field names, and <c>@method</c>, <c>@target-uri</c>, <c>@authority</c>, <c>@scheme</c>, <c>@request-target</c>, <c>@path</c> and <c>@query</c>.</param>
+    /// <param name="lifetime">Adds <c>expires</c>, this long after <c>created</c>. Whole seconds, at least 1.</param>
     public MessageSigner(
         string privateKey,
         IReadOnlyList<string> components,
@@ -57,10 +64,14 @@ internal sealed partial class MessageSigner : IDisposable
         {
             throw new ArgumentException("The signature label must be a lowercase key", nameof(label));
         }
+        if (lifetime is { } span && (span.Ticks % TimeSpan.TicksPerSecond != 0 || span < TimeSpan.FromSeconds(1)))
+        {
+            throw new ArgumentException("The signature lifetime must be a whole number of seconds, at least 1", nameof(lifetime));
+        }
         (Algorithm, sign, rsa) = LoadKey(privateKey);
         var trimmed = privateKey.Trim();
-        var lines = trimmed.Split('\n');
-        secrets = [trimmed, string.Concat(lines[1..^1].Select(line => line.Trim()))];
+        var lines = trimmed.Split('\n')[1..^1].Select(line => line.Trim()).ToArray();
+        secrets = [.. new[] { trimmed, string.Concat(lines) }.Concat(lines.Where(line => line.Length >= MinSecretLine)).Distinct()];
         this.components = [.. components];
         this.label = label;
         extra = (keyId is null ? "" : $";keyid={Quote(keyId)}") + (includeAlg ? $";alg=\"{Algorithm}\"" : "");
@@ -70,7 +81,7 @@ internal sealed partial class MessageSigner : IDisposable
 
     public string Algorithm { get; }
 
-    /// <summary>The private key as given and as its PEM body, to redact.</summary>
+    /// <summary>The private key as given, as its PEM body and as each line of that body, to redact.</summary>
     public IReadOnlyCollection<string> Secrets() => secrets;
 
     public override string ToString() => $"MessageSigner({Algorithm}, ***)";
@@ -95,7 +106,12 @@ internal sealed partial class MessageSigner : IDisposable
             parameters += $";expires={created + (long)span.TotalSeconds}";
         }
         var lines = covered.Select(name => $"\"{name}\": {Value(request, name)}").Append($"\"@signature-params\": {parameters}");
-        var signature = sign(Encoding.ASCII.GetBytes(string.Join('\n', lines)));
+        var signatureBase = string.Join('\n', lines);
+        if (!Ascii.IsValid(signatureBase))
+        {
+            throw new InvalidOperationException("A covered component of the request is not ASCII");
+        }
+        var signature = sign(Encoding.ASCII.GetBytes(signatureBase));
         headers["Signature-Input"] = $"{label}={parameters}";
         headers["Signature"] = $"{label}=:{Convert.ToBase64String(signature)}:";
     }
@@ -157,20 +173,27 @@ internal sealed partial class MessageSigner : IDisposable
 
     private static string Value(AuthRequest request, string name)
     {
+        var url = request.Url;
         if (!name.StartsWith('@'))
         {
-            return request.Headers.TryGetValue(name, out var value)
-                ? value.Trim()
-                : throw new InvalidOperationException($"The request has no {name} field to sign");
+            if (request.Headers.TryGetValue(name, out var value))
+            {
+                return value.Trim();
+            }
+            return name switch
+            {
+                "content-length" when !request.Body.IsEmpty => request.Body.Length.ToString(CultureInfo.InvariantCulture),
+                "host" => url.Authority.ToLowerInvariant(),
+                _ => throw new InvalidOperationException($"The request has no {name} field to sign"),
+            };
         }
-        var url = request.Url;
         return name switch
         {
             "@method" => request.Method.ToUpperInvariant(),
             "@target-uri" => url.AbsoluteUri,
             "@authority" => url.Authority.ToLowerInvariant(),
             "@scheme" => url.Scheme,
-            "@request-target" => url.PathAndQuery,
+            "@request-target" => url.AbsolutePath + (url.Query.Length > 1 ? url.Query : ""),
             "@path" => url.AbsolutePath,
             _ => url.Query.Length > 0 ? url.Query : "?",
         };

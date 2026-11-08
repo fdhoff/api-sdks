@@ -11,7 +11,7 @@ import hashlib
 import re
 import time
 from collections.abc import Callable, Sequence
-from urllib.parse import urlsplit
+from urllib.parse import SplitResult, urlsplit
 
 from .credentials import AuthRequest
 
@@ -22,6 +22,8 @@ _DERIVED = ("@method", "@target-uri", "@authority", "@scheme", "@request-target"
 _FIELD = re.compile(r"[a-z0-9!#$%&'*+.^_`|~-]+")
 _LABEL = re.compile(r"[a-z*][a-z0-9_.*-]*")
 _DEFAULT_PORTS = {"http": ":80", "https": ":443"}
+# A shorter last line of a key's base64 body is too common a string to redact.
+_MIN_SECRET_LINE = 16
 
 
 def content_digest(body: bytes) -> str:
@@ -29,11 +31,17 @@ def content_digest(body: bytes) -> str:
     return f"sha-256=:{base64.b64encode(hashlib.sha256(body).digest()).decode()}:"
 
 
-def _pem_body(pem: str) -> str:
-    return "".join(line.strip() for line in pem.strip().splitlines()[1:-1])
+def _pem_lines(pem: str) -> list[str]:
+    return [line.strip() for line in pem.strip().splitlines()[1:-1]]
+
+
+def _authority(url: SplitResult) -> str:
+    scheme = url.scheme.lower()
+    return url.netloc.rpartition("@")[2].lower().removesuffix(_DEFAULT_PORTS.get(scheme, ""))
 
 
 def _load_key(pem: str) -> tuple[str, Callable[[bytes], bytes]]:
+    from cryptography.exceptions import UnsupportedAlgorithm
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import ed25519, padding, rsa
 
@@ -41,6 +49,8 @@ def _load_key(pem: str) -> tuple[str, Callable[[bytes], bytes]]:
         raise ValueError("The signing key must be an unencrypted PKCS #8 PEM private key")
     try:
         key = serialization.load_pem_private_key(pem.encode(), password=None)
+    except UnsupportedAlgorithm:
+        raise ValueError("The signing key must be Ed25519 or RSA") from None
     except (ValueError, TypeError):
         raise ValueError("The signing key is not a valid private key") from None
     if isinstance(key, ed25519.Ed25519PrivateKey):
@@ -63,8 +73,9 @@ class MessageSigner:
 
     `components` are lowercase field names and the derived components `@method`, `@target-uri`,
     `@authority`, `@scheme`, `@request-target`, `@path` and `@query`. `content-digest` is left out of a
-    request with no body, and any other field the request lacks is an error. The key is an unencrypted
-    PKCS #8 PEM Ed25519 or RSA private key, and is a secret.
+    request with no body. A request without `content-length` or `host` uses the body's length or the URL's
+    authority, which the HTTP library sends; any other field the request lacks is an error. The key is an
+    unencrypted PKCS #8 PEM Ed25519 or RSA private key, and is a secret. `lifetime` is whole seconds.
     """
 
     def __init__(
@@ -85,8 +96,12 @@ class MessageSigner:
                 raise ValueError(f"A covered field must be a lowercase field name: {component}")
         if not _LABEL.fullmatch(label):
             raise ValueError("The signature label must be a lowercase key")
+        if lifetime is not None and (type(lifetime) is not int or lifetime < 1):
+            raise ValueError("The signature lifetime must be a whole number of seconds, at least 1")
         self.algorithm, self._sign = _load_key(private_key)
-        self._secrets = (private_key.strip(), _pem_body(private_key))
+        lines = _pem_lines(private_key)
+        long_lines = [line for line in lines if len(line) >= _MIN_SECRET_LINE]
+        self._secrets = tuple(dict.fromkeys((private_key.strip(), "".join(lines), *long_lines)))
         self._components = tuple(components)
         self._label = label
         self._extra = (f";keyid={_quote(key_id)}" if key_id is not None else "") + (
@@ -99,7 +114,7 @@ class MessageSigner:
         return f"MessageSigner({self.algorithm}, ***)"
 
     def secrets(self) -> tuple[str, ...]:
-        """The private key as given and as its PEM body, to redact."""
+        """The private key as given, as its PEM body and as each line of that body, to redact."""
         return self._secrets
 
     def sign(self, request: AuthRequest) -> None:
@@ -120,22 +135,23 @@ class MessageSigner:
 
     @staticmethod
     def _value(request: AuthRequest, name: str) -> str:
+        url = urlsplit(request.url)
         if not name.startswith("@"):
             value = request.headers.get(name)
+            if value is None and name == "content-length" and request.body:
+                value = str(len(request.body))
+            if value is None and name == "host":
+                value = _authority(url)
             if value is None:
                 raise ValueError(f"The request has no {name} field to sign")
             return value.strip()
-        url = urlsplit(request.url)
-        scheme = url.scheme.lower()
-        authority = url.netloc.rpartition("@")[2].lower()
-        authority = authority.removesuffix(_DEFAULT_PORTS.get(scheme, ""))
         path = url.path or "/"
         query = f"?{url.query}"
         return {
             "@method": request.method.upper(),
             "@target-uri": request.url,
-            "@authority": authority,
-            "@scheme": scheme,
+            "@authority": _authority(url),
+            "@scheme": url.scheme.lower(),
             "@request-target": path + (query if url.query else ""),
             "@path": path,
             "@query": query,

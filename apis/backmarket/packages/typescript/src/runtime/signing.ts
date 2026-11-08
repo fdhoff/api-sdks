@@ -12,7 +12,7 @@ export interface MessageSignerOptions {
   label?: string;
   keyId?: string;
   includeAlg?: boolean;
-  /** Adds `expires`, this many seconds after `created`. */
+  /** Adds `expires`, this many whole seconds after `created`, at least 1. */
   lifetimeSeconds?: number;
   /** Milliseconds since the epoch. */
   now?: () => number;
@@ -24,6 +24,8 @@ type Params = Parameters<typeof crypto.subtle.sign>[0];
 const DERIVED = new Set(['@method', '@target-uri', '@authority', '@scheme', '@request-target', '@path', '@query']);
 const FIELD = /^[a-z0-9!#$%&'*+.^_`|~-]+$/;
 const LABEL = /^[a-z*][a-z0-9_.*-]*$/;
+// A shorter last line of a key's base64 body is too common a string to redact.
+const MIN_SECRET_LINE = 16;
 const ALGORITHMS: readonly [SignatureAlgorithm, Params][] = [
   [ED25519, { name: 'Ed25519' }],
   [RSA_V1_5_SHA256, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }],
@@ -66,7 +68,8 @@ async function importKey(pem: string): Promise<[SignatureAlgorithm, Params, Key]
 /**
  * Signs each attempt's request: a `Content-Digest` of the body when there is one, then `Signature-Input` and
  * `Signature` over the covered components, with a fresh `created` time. `content-digest` is left out of a request
- * with no body, and any other field the request lacks is an error.
+ * with no body. A request without `content-length` or `host` uses the body's length or the URL's authority, which
+ * `fetch` sends; any other field the request lacks is an error.
  */
 export class MessageSigner {
   readonly algorithm: SignatureAlgorithm;
@@ -84,7 +87,13 @@ export class MessageSigner {
     this.algorithm = algorithm;
     this.#params = params;
     this.#key = key;
-    this.#secrets = [privateKey.trim(), privateKey.trim().split(/\r?\n/).slice(1, -1).join('')];
+    const lines = privateKey
+      .trim()
+      .split(/\r?\n/)
+      .slice(1, -1)
+      .map((line) => line.trim());
+    const longLines = lines.filter((line) => line.length >= MIN_SECRET_LINE);
+    this.#secrets = [...new Set([privateKey.trim(), lines.join(''), ...longLines])];
     this.#components = [...options.components];
     this.#label = options.label ?? 'sig1';
     this.#extra = (keyId === undefined ? '' : `;keyid=${quote(keyId)}`) + (includeAlg ? `;alg="${algorithm}"` : '');
@@ -99,10 +108,14 @@ export class MessageSigner {
       }
     }
     if (!LABEL.test(options.label ?? 'sig1')) throw new TypeError('The signature label must be a lowercase key');
+    const lifetime = options.lifetimeSeconds;
+    if (lifetime !== undefined && !(Number.isInteger(lifetime) && lifetime >= 1)) {
+      throw new TypeError('The signature lifetime must be a whole number of seconds, at least 1');
+    }
     return new MessageSigner(options, await importKey(options.privateKey));
   }
 
-  /** The private key as given and as its PEM body, to redact. */
+  /** The private key as given, as its PEM body and as each line of that body, to redact. */
   secrets(): readonly string[] {
     return this.#secrets;
   }
@@ -122,12 +135,14 @@ export class MessageSigner {
 }
 
 function value(request: AuthRequest, name: string): string {
+  const url = new URL(request.url);
   if (!name.startsWith('@')) {
-    const field = request.headers.get(name);
+    let field = request.headers.get(name);
+    if (field === null && name === 'content-length' && request.body.length > 0) field = String(request.body.length);
+    if (field === null && name === 'host') field = url.host;
     if (field === null) throw new TypeError(`The request has no ${name} field to sign`);
     return field.trim();
   }
-  const url = new URL(request.url);
   const derived: Record<string, string> = {
     '@method': request.method.toUpperCase(),
     '@target-uri': url.href,

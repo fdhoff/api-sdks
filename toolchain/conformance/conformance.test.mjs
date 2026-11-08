@@ -402,3 +402,13 @@ for (const style of ['hosts', 'headers']) {
     assert.ok(failed.length > 0);
   });
 }
+
+test('signing cases fail a driver that sends a valid digest but no signature', async () => {
+  const cases = await loadCases(SIGNING_CASES, operations);
+  const failed = await runWith('unsigned', cases);
+  assert.equal(failed.length, cases.length);
+  for (const { failures } of failed) {
+    assert.ok(failures.some((failure) => /header signature is undefined/.test(failure)));
+    assert.ok(!failures.some((failure) => /Content-Digest is/.test(failure)));
+  }
+});
