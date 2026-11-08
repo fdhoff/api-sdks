@@ -11,11 +11,11 @@ public sealed class OrdersResource
 {
     internal static readonly Operation GetWsListOrderOperation = new(
         "get-ws-list-order", "GET", "/ws/orders", "Orders", "ListAsync", "ListAllAsync",
-        [new("date_creation", "dateCreation", ParamLocation.Query), new("date_modification", "dateModification", ParamLocation.Query), new("country_code", "countryCode", ParamLocation.Query), new("state", "state", ParamLocation.Query), new("page", "page", ParamLocation.Query), new("page-size", "pageSize", ParamLocation.Query),]);
+        [new("date_creation", "dateCreation", ParamLocation.Query), new("date_modification", "dateModification", ParamLocation.Query), new("country_code", "countryCode", ParamLocation.Query), new("state", "state", ParamLocation.Query), new("page", "page", ParamLocation.Query), new("page-size", "pageSize", ParamLocation.Query),], ReturnsJson: true);
 
     internal static readonly Operation GetWsSpecificOrderOperation = new(
         "get-ws-specific-order", "GET", "/ws/orders/{order_id}", "Orders", "GetAsync", null,
-        [new("order_id", "orderId", ParamLocation.Path),]);
+        [new("order_id", "orderId", ParamLocation.Path),], ReturnsJson: true);
 
     internal static readonly Operation PostWsSpecificOrderInvoiceOperation = new(
         "post-ws-specific-order-invoice", "POST", "/ws/orders/{order_id}/invoice", "Orders", "UploadInvoiceAsync", null,
@@ -23,11 +23,11 @@ public sealed class OrdersResource
 
     internal static readonly Operation UpdateWsSpecificOrderOperation = new(
         "update-ws-specific-order", "POST", "/ws/orders/{order_id}", "Orders", "UpdateAsync", null,
-        [new("order_id", "orderId", ParamLocation.Path), new("UpdateOrder", "body", ParamLocation.Body),]);
+        [new("order_id", "orderId", ParamLocation.Path), new("UpdateOrder", "body", ParamLocation.Body),], ReturnsJson: true);
 
     internal static readonly Operation UpdateWsSpecificOrderlineOperation = new(
         "update-ws-specific-orderline", "PATCH", "/ws/orderlines/{orderline_id}", "Orders", "UpdateLineAsync", null,
-        [new("orderline_id", "orderlineId", ParamLocation.Path), new("OrderLineUpdate", "body", ParamLocation.Body),]);
+        [new("orderline_id", "orderlineId", ParamLocation.Path), new("OrderLineUpdate", "body", ParamLocation.Body),], ReturnsJson: true);
 
     internal static readonly Operation[] Operations = [GetWsListOrderOperation, GetWsSpecificOrderOperation, PostWsSpecificOrderInvoiceOperation, UpdateWsSpecificOrderOperation, UpdateWsSpecificOrderlineOperation,];
 

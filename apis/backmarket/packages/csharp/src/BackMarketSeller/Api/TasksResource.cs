@@ -11,7 +11,7 @@ public sealed class TasksResource
 {
     internal static readonly Operation GetWsTaskOperation = new(
         "get-ws-task", "GET", "/ws/tasks/{taskId}", "Tasks", "GetAsync", null,
-        [new("taskId", "taskId", ParamLocation.Path),]);
+        [new("taskId", "taskId", ParamLocation.Path),], ReturnsJson: true);
 
     internal static readonly Operation[] Operations = [GetWsTaskOperation,];
 

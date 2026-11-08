@@ -11,11 +11,11 @@ public sealed class CareResource
 {
     internal static readonly Operation GetCareFolderDetailsOperation = new(
         "getCareFolderDetails", "GET", "/ws/sav/{careFolderId}", "Care", "GetFolderAsync", null,
-        [new("careFolderId", "careFolderId", ParamLocation.Path),]);
+        [new("careFolderId", "careFolderId", ParamLocation.Path),], ReturnsJson: true);
 
     internal static readonly Operation GetCareFolderListOperation = new(
         "getCareFolderList", "GET", "/ws/sav", "Care", "ListFoldersAsync", "ListAllFoldersAsync",
-        [new("last_id", "lastId", ParamLocation.Query), new("state", "state", ParamLocation.Query), new("orderline", "orderline", ParamLocation.Query), new("last_modification_date", "lastModificationDate", ParamLocation.Query), new("last_message_date", "lastMessageDate", ParamLocation.Query), new("page", "page", ParamLocation.Query),]);
+        [new("last_id", "lastId", ParamLocation.Query), new("state", "state", ParamLocation.Query), new("orderline", "orderline", ParamLocation.Query), new("last_modification_date", "lastModificationDate", ParamLocation.Query), new("last_message_date", "lastMessageDate", ParamLocation.Query), new("page", "page", ParamLocation.Query),], ReturnsJson: true);
 
     internal static readonly Operation PostItemTransferOperation = new(
         "postItemTransfer", "POST", "/ws/sav/{careFolderId}/item-transfer", "Care", "TransferItemAsync", null,
@@ -23,11 +23,11 @@ public sealed class CareResource
 
     internal static readonly Operation PostMessageOperation = new(
         "postMessage", "POST", "/ws/sav/{careFolderId}/msg", "Care", "SendMessageAsync", null,
-        [new("careFolderId", "careFolderId", ParamLocation.Path), new("message", "message", ParamLocation.Form), new("attachment", "attachment", ParamLocation.Form),]);
+        [new("careFolderId", "careFolderId", ParamLocation.Path), new("message", "message", ParamLocation.Form), new("attachment", "attachment", ParamLocation.Form),], ReturnsJson: true);
 
     internal static readonly Operation PostNoteOperation = new(
         "postNote", "POST", "/ws/sav/{careFolderId}/note", "Care", "AddNoteAsync", null,
-        [new("careFolderId", "careFolderId", ParamLocation.Path), new("PostNoteRequest", "body", ParamLocation.Body),]);
+        [new("careFolderId", "careFolderId", ParamLocation.Path), new("PostNoteRequest", "body", ParamLocation.Body),], ReturnsJson: true);
 
     internal static readonly Operation PostProblemOperation = new(
         "postProblem", "POST", "/ws/sav/{careFolderId}/problem", "Care", "ReportProblemAsync", null,

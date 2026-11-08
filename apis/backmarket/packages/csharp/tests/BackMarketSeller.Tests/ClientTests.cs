@@ -144,6 +144,20 @@ public sealed class ClientTests
     }
 
     [Fact]
+    public async Task AnEmptySuccessIsADecodeErrorWhereTheSpecDeclaresJsonEvenForAString()
+    {
+        var options = new BackMarketClientOptions { UserAgent = "BM-Example-Tests;tests@example.com", Locale = "fr-fr", BaseUrl = new Uri("https://mock.invalid/") };
+        var handler = new ScriptedHandler(new HttpResponseMessage(HttpStatusCode.OK), new HttpResponseMessage(HttpStatusCode.OK), new HttpResponseMessage(HttpStatusCode.OK));
+        using var transport = new Transport(BackMarketClient.CreateSettings(Token, options, null), Transport.OwnClient(handler), ownsClient: true);
+        Operation Op(bool returnsJson) => new("op", "GET", "/x", "r", "n", null, [], returnsJson);
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        Assert.Equal("", await transport.CallAsync<string>(Op(false), [], cancellationToken));
+        await Assert.ThrowsAsync<ApiDecodeException>(() => transport.CallAsync<string>(Op(true), [], cancellationToken));
+        await Assert.ThrowsAsync<ApiDecodeException>(() => transport.SendAsync(Op(true), [], cancellationToken));
+    }
+
+    [Fact]
     public async Task AnEmptySuccessIsFineWhereTheSpecDeclaresNoJson()
     {
         using var client = Client(new ScriptedHandler(new HttpResponseMessage(HttpStatusCode.Created), new HttpResponseMessage(HttpStatusCode.Created)));
