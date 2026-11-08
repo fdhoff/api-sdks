@@ -1,0 +1,7 @@
+# Schema names shared by every package, so a model has the same name in every language. A package's
+# generate.yaml may add names for schemas only it sees, but cannot rename these.
+# `Self` is a reserved word in several languages.
+schema_names:
+  Etsy_Modules_ListingPersonalization_Api_Resources_OpenApi_ListingPersonalization: ListingPersonalization
+  Etsy_Modules_ListingPersonalization_Api_Resources_OpenApi_PersonalizationQuestion: PersonalizationQuestion
+  Self: Me

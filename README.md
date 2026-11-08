@@ -5,9 +5,9 @@ Unofficial, spec-driven SDKs for third-party APIs, one directory per API under `
 | API | Directory | Status |
 | --- | --- | --- |
 | Back Market Seller API | [`apis/backmarket/`](apis/backmarket/) | Alphas in Python, TypeScript, Go, C# and Rust |
-| Etsy Open API | — | In progress, not yet in this repository |
+| Etsy Open API v3 | [`apis/etsy/`](apis/etsy/) | Python alpha, not yet published |
 
-Every SDK here is unofficial and is not affiliated with, endorsed by, or supported by the company whose API it calls, including Back Market.
+Every SDK here is unofficial and is not affiliated with, endorsed by, or supported by the company whose API it calls, including Back Market and Etsy.
 
 ## Back Market Seller API
 
@@ -142,6 +142,10 @@ Every test runs against a mock built from the public spec, so nothing here is co
 
 One gap to watch for: where the spec declares a JSON success body, every SDK treats an empty body as a decode error. A write that really answers with nothing, such as the buyback listing update (`202`) or a listing create or update, would then fail even though the API accepted it. If you see that, please report the operation and status. Confirmed cases are fixed in the overlay.
 
+## Etsy Open API v3
+
+The Python SDK is an alpha, not yet published: see [`apis/etsy/packages/python/`](apis/etsy/packages/python/README.md). The term 'Etsy' is a trademark of Etsy, Inc. This Application uses Etsy's API, but is not endorsed or certified by Etsy.
+
 ## Layout
 
 | Path | Contents |
@@ -152,7 +156,7 @@ One gap to watch for: where the spec declares a JSON success body, every SDK tre
 | `apis/backmarket/packages/` | Per-language package config and generated clients |
 | `apis/backmarket/conformance/` | Language-neutral test cases and the reference driver |
 | `apis/backmarket/docs/spec-audit.md` | Known gaps in the spec and where each is handled |
-| `apis/etsy/` | The same for Etsy's Open API v3: spec pin, overlay, conformance cases and spec audit. No package yet |
+| `apis/etsy/` | The same for Etsy's Open API v3: spec pin, overlay, conformance cases, spec audit and a Python package |
 
 `toolchain/` must not name this API or contain its endpoints or schemas; a test enforces that. This boundary keeps later extraction cheap and is not a framework.
 

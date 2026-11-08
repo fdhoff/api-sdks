@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "etsy-seller"
+dynamic = ["version"]
+description = "Unofficial Python client for the Etsy Open API v3. Not affiliated with Etsy."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Typing :: Typed",
+]
+dependencies = [
+    "httpx>=0.27,<1",
+    "pydantic>=2.7,<3",
+    "typing-extensions>=4.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "build==1.3.0",
+    "mypy==2.4.1",
+    "pytest==9.0.2",
+    "ruff==0.17.3",
+]
+
+[tool.hatch.version]
+path = "src/etsy_seller/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/etsy_seller"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+exclude = ["src/etsy_seller/models/*"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/etsy_seller/api/*" = ["UP"]
+"src/etsy_seller/_resources.py" = ["UP"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["src", "conformance", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
