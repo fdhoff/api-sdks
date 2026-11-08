@@ -169,3 +169,12 @@ test('generated Rust carries no upstream prose', async () => {
   }
   assert.deepEqual(offenders, []);
 });
+
+test('every changelog keeps unreleased entries under one Unreleased heading', async () => {
+  for (const dir of [PYTHON, TYPESCRIPT, GO, CSHARP, RUST]) {
+    const headings = (await readFile(join(dir, 'CHANGELOG.md'), 'utf8')).match(/^## .*$/gm) ?? [];
+    const released = headings.filter((heading) => heading !== '## Unreleased');
+    assert.ok(headings.indexOf('## Unreleased') <= 0, `${dir}: Unreleased must come first`);
+    for (const heading of released) assert.match(heading, /^## \S+ \(\d{4}-\d{2}-\d{2}\)$/, dir);
+  }
+});

@@ -2,7 +2,7 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
-## 0.1.0-alpha.2 (unreleased)
+## Unreleased
 
 * Targets .NET 8 as well as .NET 10.
 * A constructor takes your own `HttpClient`, and `services.AddBackMarketSeller(token, options)` registers the client with `IHttpClientFactory`. Writes are still never resent.
