@@ -29,6 +29,7 @@ const getWsListOrder: Operation = {
   returnsJson: true,
   iterator: 'iter',
   paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getWsSpecificOrder: Operation = {
@@ -39,6 +40,7 @@ const getWsSpecificOrder: Operation = {
   name: 'get',
   params: [{ wire: 'order_id', name: 'orderId', location: 'path' }],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const postWsSpecificOrderInvoice: Operation = {
@@ -51,6 +53,7 @@ const postWsSpecificOrderInvoice: Operation = {
     { wire: 'order_id', name: 'orderId', location: 'path' },
     { wire: 'invoice', name: 'invoice', location: 'form' },
   ],
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const updateWsSpecificOrder: Operation = {
@@ -62,6 +65,7 @@ const updateWsSpecificOrder: Operation = {
   params: [{ wire: 'order_id', name: 'orderId', location: 'path' }],
   hasBody: true,
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const updateWsSpecificOrderline: Operation = {
@@ -73,6 +77,7 @@ const updateWsSpecificOrderline: Operation = {
   params: [{ wire: 'orderline_id', name: 'orderlineId', location: 'path' }],
   hasBody: true,
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 export const OPERATIONS: readonly Operation[] = [

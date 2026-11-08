@@ -11,59 +11,59 @@ public sealed class BuybackResource
 {
     internal static readonly Operation GetWsBuybackV1CompetitorsOperation = new(
         "get-ws-buyback-v1-competitors", "GET", "/ws/buyback/v1/competitors/{listingId}", "Buyback", "ListCompetitorsAsync", null,
-        [new("listingId", "listingId", ParamLocation.Path),], ReturnsJson: true);
+        [new("listingId", "listingId", ParamLocation.Path),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation GetWsBuybackV1ListingOperation = new(
         "get-ws-buyback-v1-listing", "GET", "/ws/buyback/v1/listings/{buybackListingId}", "Buyback", "GetListingAsync", null,
-        [new("buybackListingId", "buybackListingId", ParamLocation.Path),], ReturnsJson: true);
+        [new("buybackListingId", "buybackListingId", ParamLocation.Path),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation GetWsBuybackV1ListingsOperation = new(
         "get-ws-buyback-v1-listings", "GET", "/ws/buyback/v1/listings", "Buyback", "ListListingsAsync", "ListAllListingsAsync",
-        [new("productId", "productId", ParamLocation.Query), new("cursor", "cursor", ParamLocation.Query), new("pageSize", "pageSize", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
+        [new("productId", "productId", ParamLocation.Query), new("cursor", "cursor", ParamLocation.Query), new("pageSize", "pageSize", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]), Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation GetWsBuybackV1OrderOperation = new(
         "get-ws-buyback-v1-order", "GET", "/ws/buyback/v1/orders/{buybackOrderId}", "Buyback", "GetOrderAsync", null,
-        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path),], ReturnsJson: true);
+        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation GetWsBuybackV1OrdersOperation = new(
         "get-ws-buyback-v1-orders", "GET", "/ws/buyback/v1/orders", "Buyback", "ListOrdersAsync", "ListAllOrdersAsync",
-        [new("status", "status", ParamLocation.Query), new("productId", "productId", ParamLocation.Query), new("creationDate", "creationDate", ParamLocation.Query), new("modificationDate", "modificationDate", ParamLocation.Query), new("shippingDate", "shippingDate", ParamLocation.Query), new("receivedDate", "receivedDate", ParamLocation.Query), new("suspendedDate", "suspendedDate", ParamLocation.Query), new("paymentDate", "paymentDate", ParamLocation.Query), new("page", "page", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
+        [new("status", "status", ParamLocation.Query), new("productId", "productId", ParamLocation.Query), new("creationDate", "creationDate", ParamLocation.Query), new("modificationDate", "modificationDate", ParamLocation.Query), new("shippingDate", "shippingDate", ParamLocation.Query), new("receivedDate", "receivedDate", ParamLocation.Query), new("suspendedDate", "suspendedDate", ParamLocation.Query), new("paymentDate", "paymentDate", ParamLocation.Query), new("page", "page", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]), Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation GetWsBuybackV1OrdersMessagesOperation = new(
         "get-ws-buyback-v1-orders-messages", "GET", "/ws/buyback/v1/orders/{buybackOrderId}/messages", "Buyback", "ListMessagesAsync", "ListAllMessagesAsync",
-        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path), new("page", "page", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
+        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path), new("page", "page", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]), Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation GetWsBuybackV1OrdersPendingReplyOperation = new(
         "get-ws-buyback-v1-orders-pending-reply", "GET", "/ws/buyback/v1/orders/pending-reply", "Buyback", "ListPendingOrdersAsync", "ListAllPendingOrdersAsync",
-        [new("page", "page", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
+        [new("page", "page", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]), Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation GetWsBuybackV1OrdersSuspendReasonsOperation = new(
         "get-ws-buyback-v1-orders-suspend-reasons", "GET", "/ws/buyback/v1/orders/suspend-reasons", "Buyback", "ListSuspendReasonsAsync", null,
-        [], ReturnsJson: true);
+        [], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation GetWsCounterOfferReasonOperation = new(
         "get-ws-counter-offer-reason", "GET", "/ws/buyback/v1/orders/{buybackOrderId}/counter-offers/reasons", "Buyback", "ListCounterOfferReasonsAsync", null,
-        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path),], ReturnsJson: true);
+        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation PostWsBuybackV1OrdersMessagesOperation = new(
         "post-ws-buyback-v1-orders-messages", "POST", "/ws/buyback/v1/orders/{buybackOrderId}/messages", "Buyback", "SendMessageAsync", null,
-        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path), new("BuybackMessagePayload", "body", ParamLocation.Body),], ReturnsJson: true);
+        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path), new("BuybackMessagePayload", "body", ParamLocation.Body),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation PutWsBuybackV1ListingOperation = new(
         "put-ws-buyback-v1-listing", "PUT", "/ws/buyback/v1/listings/{buybackListingId}", "Buyback", "UpdateListingAsync", null,
-        [new("buybackListingId", "buybackListingId", ParamLocation.Path), new("BuybackListingUpdate", "body", ParamLocation.Body),], ReturnsJson: true);
+        [new("buybackListingId", "buybackListingId", ParamLocation.Path), new("BuybackListingUpdate", "body", ParamLocation.Body),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation PutWsBuybackV1OrdersSuspendOperation = new(
         "put-ws-buyback-v1-orders-suspend", "PUT", "/ws/buyback/v1/orders/{buybackOrderId}/suspend", "Buyback", "SuspendOrderAsync", null,
-        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path), new("BuybackOrderSuspensionPayload", "body", ParamLocation.Body),], ReturnsJson: true);
+        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path), new("BuybackOrderSuspensionPayload", "body", ParamLocation.Body),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation PutWsBuybackV1OrdersValidateOperation = new(
         "put-ws-buyback-v1-orders-validate", "PUT", "/ws/buyback/v1/orders/{buybackOrderId}/validate", "Buyback", "ValidateOrderAsync", null,
-        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path),], ReturnsJson: true);
+        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation PutWsRefurbisherCounterOfferOperation = new(
         "put-ws-refurbisher-counter-offer", "PUT", "/ws/buyback/v2/orders/{buybackOrderId}/counter-offers", "Buyback", "CounterOfferAsync", null,
-        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path), new("price", "price", ParamLocation.Form), new("reasons", "reasons", ParamLocation.Form), new("files", "files", ParamLocation.Form), new("comment", "comment", ParamLocation.Form),]);
+        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path), new("price", "price", ParamLocation.Form), new("reasons", "reasons", ParamLocation.Form), new("files", "files", ParamLocation.Form), new("comment", "comment", ParamLocation.Form),], Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation[] Operations = [GetWsBuybackV1CompetitorsOperation, GetWsBuybackV1ListingOperation, GetWsBuybackV1ListingsOperation, GetWsBuybackV1OrderOperation, GetWsBuybackV1OrdersOperation, GetWsBuybackV1OrdersMessagesOperation, GetWsBuybackV1OrdersPendingReplyOperation, GetWsBuybackV1OrdersSuspendReasonsOperation, GetWsCounterOfferReasonOperation, PostWsBuybackV1OrdersMessagesOperation, PutWsBuybackV1ListingOperation, PutWsBuybackV1OrdersSuspendOperation, PutWsBuybackV1OrdersValidateOperation, PutWsRefurbisherCounterOfferOperation,];
 

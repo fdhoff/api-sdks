@@ -6,7 +6,14 @@ from typing import List
 
 from pydantic import StrictInt
 
-from backmarket_seller._runtime import AsyncResource, Operation, Param, Resource, checked
+from backmarket_seller._runtime import (
+    AsyncResource,
+    Operation,
+    Param,
+    Resource,
+    Scheme,
+    checked,
+)
 from backmarket_seller.models.category_tree import CategoryTree
 
 _get_bm_catalog_category: Operation[List[CategoryTree]] = Operation(
@@ -18,6 +25,7 @@ _get_bm_catalog_category: Operation[List[CategoryTree]] = Operation(
     params=(),
     response=List[CategoryTree],
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_bm_catalog_category_branch: Operation[CategoryTree] = Operation(
     id="get-bm-catalog-category-branch",
@@ -28,6 +36,7 @@ _get_bm_catalog_category_branch: Operation[CategoryTree] = Operation(
     params=(Param("categoryId", "category_id", "path"),),
     response=CategoryTree,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 
 OPERATIONS = (

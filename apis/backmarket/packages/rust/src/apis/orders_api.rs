@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::Error;
 #[allow(unused_imports)]
-use crate::runtime::{Items, Operation, Paging, Params, Request, Transport};
+use crate::runtime::{Items, Operation, Paging, Params, Request, Scheme, Transport};
 #[allow(unused_imports)]
 use crate::{File, models};
 
@@ -26,6 +26,10 @@ const GET_WS_LIST_ORDER: Operation = Operation {
         link: "next",
         params: &["page", "cursor"],
     }),
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const GET_WS_SPECIFIC_ORDER: Operation = Operation {
     id: "get-ws-specific-order",
@@ -34,6 +38,10 @@ const GET_WS_SPECIFIC_ORDER: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const POST_WS_SPECIFIC_ORDER_INVOICE: Operation = Operation {
     id: "post-ws-specific-order-invoice",
@@ -42,6 +50,10 @@ const POST_WS_SPECIFIC_ORDER_INVOICE: Operation = Operation {
     query_params: &[],
     returns_json: false,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const UPDATE_WS_SPECIFIC_ORDER: Operation = Operation {
     id: "update-ws-specific-order",
@@ -50,6 +62,10 @@ const UPDATE_WS_SPECIFIC_ORDER: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const UPDATE_WS_SPECIFIC_ORDERLINE: Operation = Operation {
     id: "update-ws-specific-orderline",
@@ -58,6 +74,10 @@ const UPDATE_WS_SPECIFIC_ORDERLINE: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 
 /// The query parameters of [`OrdersApi::list`]. Set only what you need.

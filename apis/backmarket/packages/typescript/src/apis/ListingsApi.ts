@@ -28,6 +28,7 @@ const getWsListListing: Operation = {
   returnsJson: true,
   iterator: 'iter',
   paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getWsListingDetail: Operation = {
@@ -42,6 +43,7 @@ const getWsListingDetail: Operation = {
     { wire: 'id', name: 'id', location: 'query' },
   ],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getWsSpecificListing: Operation = {
@@ -52,6 +54,7 @@ const getWsSpecificListing: Operation = {
   name: 'get',
   params: [{ wire: 'listingId', name: 'listingId', location: 'path' }],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const postWsCreateOrUpdateListings: Operation = {
@@ -63,6 +66,7 @@ const postWsCreateOrUpdateListings: Operation = {
   params: [],
   hasBody: true,
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const updateWsSpecificListing: Operation = {
@@ -74,6 +78,7 @@ const updateWsSpecificListing: Operation = {
   params: [{ wire: 'listingId', name: 'listingId', location: 'path' }],
   hasBody: true,
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 export const OPERATIONS: readonly Operation[] = [

@@ -18,6 +18,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"taskId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 )
 

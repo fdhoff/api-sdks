@@ -23,6 +23,7 @@ const getDeliveries: Operation = {
   returnsJson: true,
   iterator: 'iterDeliveries',
   paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getDelivery: Operation = {
@@ -33,6 +34,7 @@ const getDelivery: Operation = {
   name: 'getDelivery',
   params: [{ wire: 'id', name: 'id', location: 'path' }],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getReturn: Operation = {
@@ -43,6 +45,7 @@ const getReturn: Operation = {
   name: 'getReturn',
   params: [{ wire: 'id', name: 'id', location: 'path' }],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getReturns: Operation = {
@@ -64,6 +67,7 @@ const getReturns: Operation = {
   returnsJson: true,
   iterator: 'iterReturns',
   paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 export const OPERATIONS: readonly Operation[] = [getDeliveries, getDelivery, getReturn, getReturns];

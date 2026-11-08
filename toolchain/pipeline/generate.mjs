@@ -119,6 +119,14 @@ export function resolvePaging(operationId, queryParams, override = {}, fallback 
   return { [style]: paging };
 }
 
+// The requirements an operation's request must meet: any one of them, each naming its schemes and their scopes.
+// An operation without its own `security` inherits the spec's, and an empty list means none.
+export function securityOf(spec, operation) {
+  return (operation.security ?? spec.security ?? []).map((requirement) => ({
+    schemes: Object.entries(requirement).map(([scheme, scopes]) => ({ scheme, scopes: scopes ?? [] })),
+  }));
+}
+
 export function applyOperations(spec, operations, paging = {}) {
   const unused = new Set(Object.keys(operations));
   for (const item of Object.values(spec.paths)) {
@@ -133,6 +141,7 @@ export function applyOperations(spec, operations, paging = {}) {
       operation['x-sdk-resource'] = names.resource;
       operation['x-sdk-params-required'] = paramsRequired(spec, [...shared, ...(operation.parameters ?? [])], operation);
       operation['x-sdk-returns-json'] = returnsJson(spec, operation);
+      operation['x-sdk-security'] = securityOf(spec, operation);
       if (names.iterator) {
         const parameters = [...shared, ...(operation.parameters ?? [])].map((parameter) => dereference(spec, parameter));
         const queryParams = parameters.filter((parameter) => parameter.in === 'query').map((parameter) => parameter.name);

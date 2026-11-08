@@ -17,6 +17,7 @@ const getBackboxData: Operation = {
   returnsJson: true,
   iterator: 'iter',
   paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getWsBackboxV1Competitors: Operation = {
@@ -27,6 +28,7 @@ const getWsBackboxV1Competitors: Operation = {
   name: 'listCompetitors',
   params: [{ wire: 'listingId', name: 'listingId', location: 'path' }],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 export const OPERATIONS: readonly Operation[] = [getBackboxData, getWsBackboxV1Competitors];

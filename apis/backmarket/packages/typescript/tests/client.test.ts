@@ -22,7 +22,7 @@ import {
   type Region,
 } from 'backmarket-seller';
 import { OPERATIONS } from '../dist/esm/resources.js';
-import { Resource, Transport, type Operation } from '../dist/esm/runtime/index.js';
+import { Resource, StaticCredentials, Transport, type Operation } from '../dist/esm/runtime/index.js';
 
 const TOKEN = 'synthetic-token';
 const BASE = 'http://mock.invalid';
@@ -53,6 +53,10 @@ function clientFor(handler: Handler, options: Partial<ClientOptions> = {}) {
   return { client, sent };
 }
 
+/** A multipart body is sent as its encoded bytes. */
+const formOf = (init: RequestInit): Promise<FormData> =>
+  new Request(BASE, { method: 'POST', body: init.body ?? null, headers: init.headers ?? {} }).formData();
+
 async function collect<T>(items: AsyncIterable<T>): Promise<T[]> {
   const all: T[] = [];
   for await (const item of items) all.push(item);
@@ -69,7 +73,7 @@ function pagesFor(handler: (url: URL) => Response) {
   const queries: string[] = [];
   const transport = new Transport({
     baseUrl: BASE,
-    secret: TOKEN,
+    credentials: new StaticCredentials({}, [TOKEN]),
     headers: {},
     toError: (context) => new ApiError(`status ${context.status}`, { status: context.status }),
     fetch: async (input) => {
@@ -380,8 +384,8 @@ test('uploads are multipart, with no JSON content type', async () => {
     ],
   });
   const { init } = sent[0] as Sent;
-  assert.equal(new Headers(init.headers).get('content-type'), null);
-  const parts = (init.body as FormData).getAll('invoice') as File[];
+  assert.match(new Headers(init.headers).get('content-type') ?? '', /^multipart\/form-data; boundary=/);
+  const parts = (await formOf(init)).getAll('invoice') as File[];
   assert.deepEqual(
     parts.map((part) => part.name),
     ['invoice', 'named.pdf', 'file.pdf'],
@@ -391,7 +395,7 @@ test('uploads are multipart, with no JSON content type', async () => {
 test('form fields are text, one part per list item', async () => {
   const { client, sent } = clientFor(() => new Response(null, { status: 204 }));
   await client.buyback.counterOffer('EXAMPLE-1', { price: 10, reasons: ['a', 'b'], files: [] });
-  const form = sent[0]?.init.body as FormData;
+  const form = await formOf(sent[0]?.init ?? {});
   assert.equal(form.get('price'), '10');
   assert.deepEqual(form.getAll('reasons'), ['a', 'b']);
 });

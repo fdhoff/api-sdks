@@ -30,6 +30,7 @@ const getWsBuybackV1Competitors: Operation = {
   name: 'listCompetitors',
   params: [{ wire: 'listingId', name: 'listingId', location: 'path' }],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getWsBuybackV1Listing: Operation = {
@@ -40,6 +41,7 @@ const getWsBuybackV1Listing: Operation = {
   name: 'getListing',
   params: [{ wire: 'buybackListingId', name: 'buybackListingId', location: 'path' }],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getWsBuybackV1Listings: Operation = {
@@ -56,6 +58,7 @@ const getWsBuybackV1Listings: Operation = {
   returnsJson: true,
   iterator: 'iterListings',
   paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getWsBuybackV1Order: Operation = {
@@ -66,6 +69,7 @@ const getWsBuybackV1Order: Operation = {
   name: 'getOrder',
   params: [{ wire: 'buybackOrderId', name: 'buybackOrderId', location: 'path' }],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getWsBuybackV1Orders: Operation = {
@@ -88,6 +92,7 @@ const getWsBuybackV1Orders: Operation = {
   returnsJson: true,
   iterator: 'iterOrders',
   paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getWsBuybackV1OrdersMessages: Operation = {
@@ -103,6 +108,7 @@ const getWsBuybackV1OrdersMessages: Operation = {
   returnsJson: true,
   iterator: 'iterMessages',
   paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getWsBuybackV1OrdersPendingReply: Operation = {
@@ -115,6 +121,7 @@ const getWsBuybackV1OrdersPendingReply: Operation = {
   returnsJson: true,
   iterator: 'iterPendingOrders',
   paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getWsBuybackV1OrdersSuspendReasons: Operation = {
@@ -125,6 +132,7 @@ const getWsBuybackV1OrdersSuspendReasons: Operation = {
   name: 'listSuspendReasons',
   params: [],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getWsCounterOfferReason: Operation = {
@@ -135,6 +143,7 @@ const getWsCounterOfferReason: Operation = {
   name: 'listCounterOfferReasons',
   params: [{ wire: 'buybackOrderId', name: 'buybackOrderId', location: 'path' }],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const postWsBuybackV1OrdersMessages: Operation = {
@@ -146,6 +155,7 @@ const postWsBuybackV1OrdersMessages: Operation = {
   params: [{ wire: 'buybackOrderId', name: 'buybackOrderId', location: 'path' }],
   hasBody: true,
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const putWsBuybackV1Listing: Operation = {
@@ -157,6 +167,7 @@ const putWsBuybackV1Listing: Operation = {
   params: [{ wire: 'buybackListingId', name: 'buybackListingId', location: 'path' }],
   hasBody: true,
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const putWsBuybackV1OrdersSuspend: Operation = {
@@ -168,6 +179,7 @@ const putWsBuybackV1OrdersSuspend: Operation = {
   params: [{ wire: 'buybackOrderId', name: 'buybackOrderId', location: 'path' }],
   hasBody: true,
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const putWsBuybackV1OrdersValidate: Operation = {
@@ -178,6 +190,7 @@ const putWsBuybackV1OrdersValidate: Operation = {
   name: 'validateOrder',
   params: [{ wire: 'buybackOrderId', name: 'buybackOrderId', location: 'path' }],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const putWsRefurbisherCounterOffer: Operation = {
@@ -193,6 +206,7 @@ const putWsRefurbisherCounterOffer: Operation = {
     { wire: 'reasons', name: 'reasons', location: 'form' },
     { wire: 'files', name: 'files', location: 'form' },
   ],
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 export const OPERATIONS: readonly Operation[] = [

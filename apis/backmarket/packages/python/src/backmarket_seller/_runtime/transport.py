@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import logging
 import re
+import threading
 import time
 import zlib
 from collections.abc import AsyncIterator, Callable, Iterator, Mapping, Sequence
@@ -22,6 +24,7 @@ from urllib.parse import parse_qs, quote, urlencode, urlsplit
 import httpx
 from pydantic import ValidationError
 
+from .credentials import AuthRequest, Credentials, Requirement, redact
 from .errors import ApiConnectionError, ApiError, ApiTimeoutError, DecodeError, ErrorContext
 from .model import parse_response, to_wire
 
@@ -30,7 +33,6 @@ T = TypeVar("T")
 FileInput = bytes | tuple[str, bytes]
 """A file to upload: its content, or its name and content."""
 
-_REDACTED = "***"
 _INTEGER = re.compile(r"[+-]?[0-9]+")
 # Only gzip is decoded, and httpx would otherwise also ask for deflate, br and zstd.
 _ACCEPT_ENCODING = {"Accept-Encoding": "gzip"}
@@ -75,12 +77,13 @@ class Operation(Generic[T]):
     iterator: str | None = None
     item: Any = None
     paging: NextLink | Offset = NextLink()
+    security: tuple[Requirement, ...] = ()
 
 
 @dataclass(frozen=True)
 class Settings:
     base_url: str
-    secret: str = field(repr=False)
+    credentials: Credentials = field(repr=False)
     headers: Mapping[str, str] = field(repr=False)
     to_error: Callable[[ErrorContext], ApiError]
     logger: logging.Logger
@@ -166,7 +169,7 @@ class _Reply:
 
 
 def _log(settings: Settings, level: int, message: str) -> None:
-    settings.logger.log(level, "%s", message.replace(settings.secret, _REDACTED))
+    settings.logger.log(level, "%s", redact(settings.credentials, message))
 
 
 def _parse_json(text: str) -> Any:
@@ -180,7 +183,7 @@ def _read(settings: Settings, operation: Operation[Any], response: httpx.Respons
     text = response.text
     _log(settings, logging.DEBUG, f"<- {operation.method} {response.status_code} ({len(text)} chars)")
     if not response.is_success:
-        clean = text.replace(settings.secret, _REDACTED)
+        clean = redact(settings.credentials, text)
         raise settings.to_error(ErrorContext(response.status_code, response.headers, clean, _parse_json(clean)))
     status = response.status_code
     if text == "":
@@ -318,33 +321,84 @@ def _next_params(operation: Operation[Any], params: dict[str, Any], page: Any, r
     return _next_link(operation, paging, params, page)
 
 
+def _auth_request(operation: Operation[Any], outgoing: httpx.Request, body: bytes) -> AuthRequest:
+    return AuthRequest(operation.method, str(outgoing.url), dict(outgoing.headers), body, operation)
+
+
+def _signed(outgoing: httpx.Request, auth: AuthRequest) -> httpx.Request:
+    outgoing.headers = httpx.Headers(dict(auth.headers))
+    return outgoing
+
+
+def _sync(value: Any, method: str) -> Any:
+    if inspect.isawaitable(value):
+        if inspect.iscoroutine(value):
+            value.close()
+        raise TypeError(f"Credentials.{method} returned an awaitable, which only the asynchronous client accepts")
+    return value
+
+
+async def _settle(value: Any) -> Any:
+    return await value if inspect.isawaitable(value) else value
+
+
+def _unauthorized(error: ApiError, refreshed: bool) -> bool:
+    return error.status == 401 and not refreshed
+
+
 class SyncTransport:
     def __init__(self, settings: Settings, http_transport: httpx.BaseTransport | None = None) -> None:
         self.settings = settings
         self.http = httpx.Client(timeout=settings.timeout, headers=dict(settings.headers), transport=http_transport)
+        self._refresh_lock = threading.Lock()
+        self._generation = 0
+
+    def _refresh(self, auth: AuthRequest, generation: int) -> bool:
+        """Calls waiting on a refresh share it, and a call whose credentials were refreshed since it sent
+        them retries without another."""
+        with self._refresh_lock:
+            if self._generation != generation:
+                return True
+            refreshed = bool(_sync(self.settings.credentials.refresh(auth), "refresh"))
+            if refreshed:
+                self._generation += 1
+            return refreshed
 
     # TODO: httpx has no deadline of its own and a blocking read cannot be interrupted, so the deadline
     # is checked as each chunk arrives. A stalled read can overrun it by one timeout, and headers that
     # trickle are not caught. Closing that gap needs a worker thread or a custom network backend.
-    def _attempt(self, request: dict[str, Any]) -> httpx.Response:
+    def _attempt(self, outgoing: httpx.Request) -> httpx.Response:
         deadline = time.monotonic() + self.settings.timeout
-        with self.http.stream(**request, headers=_ACCEPT_ENCODING) as response:
+        response = self.http.send(outgoing, stream=True)
+        try:
             # The stream itself, because iter_raw refuses a body that was read already, as a mock transport's is.
             return _decoded(response, b"".join(_Deadline(response.stream, deadline)))
+        finally:
+            response.close()
 
     def fetch(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> _Reply:
         settings = self.settings
         request = _build_request(settings, operation, body, params)
         tries = 0
+        refreshed = False
         while True:
             _log(settings, logging.DEBUG, f"-> {request['method']} {request['url']}")
+            generation = self._generation
+            outgoing = self.http.build_request(**request, headers=_ACCEPT_ENCODING)
+            auth = _auth_request(operation, outgoing, outgoing.read())
+            _sync(settings.credentials.apply(auth), "apply")
             try:
                 try:
-                    response = self._attempt(request)
+                    response = self._attempt(_signed(outgoing, auth))
                 except httpx.TransportError as error:
                     raise _translate(error) from error
                 return _read(settings, operation, response)
             except ApiError as error:
+                if _unauthorized(error, refreshed):
+                    refreshed = True
+                    if self._refresh(auth, generation):
+                        _log(settings, logging.INFO, "retrying after refreshing credentials")
+                        continue
                 delay = _retry_delay(settings, error, operation.method, tries)
                 if delay is None:
                     raise
@@ -359,27 +413,53 @@ class AsyncTransport:
         self.http = httpx.AsyncClient(
             timeout=settings.timeout, headers=dict(settings.headers), transport=http_transport
         )
+        self._refresh_lock = asyncio.Lock()
+        self._generation = 0
 
-    async def _attempt(self, request: dict[str, Any]) -> httpx.Response:
-        async with self.http.stream(**request, headers=_ACCEPT_ENCODING) as response:
+    async def _refresh(self, auth: AuthRequest, generation: int) -> bool:
+        """Calls waiting on a refresh share it, and a call whose credentials were refreshed since it sent
+        them retries without another."""
+        async with self._refresh_lock:
+            if self._generation != generation:
+                return True
+            refreshed = bool(await _settle(self.settings.credentials.refresh(auth)))
+            if refreshed:
+                self._generation += 1
+            return refreshed
+
+    async def _attempt(self, outgoing: httpx.Request) -> httpx.Response:
+        response = await self.http.send(outgoing, stream=True)
+        try:
             stream = cast(httpx.AsyncByteStream, response.stream)
             return _decoded(response, b"".join([chunk async for chunk in stream]))
+        finally:
+            await response.aclose()
 
     async def fetch(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> _Reply:
         settings = self.settings
         request = _build_request(settings, operation, body, params)
         tries = 0
+        refreshed = False
         while True:
             _log(settings, logging.DEBUG, f"-> {request['method']} {request['url']}")
+            generation = self._generation
+            outgoing = self.http.build_request(**request, headers=_ACCEPT_ENCODING)
+            auth = _auth_request(operation, outgoing, await outgoing.aread())
+            await _settle(settings.credentials.apply(auth))
             try:
                 try:
-                    response = await asyncio.wait_for(self._attempt(request), settings.timeout)
+                    response = await asyncio.wait_for(self._attempt(_signed(outgoing, auth)), settings.timeout)
                 except httpx.TransportError as error:
                     raise _translate(error) from error
                 except asyncio.TimeoutError as error:
                     raise ApiTimeoutError("The request timed out") from error
                 return _read(settings, operation, response)
             except ApiError as error:
+                if _unauthorized(error, refreshed):
+                    refreshed = True
+                    if await self._refresh(auth, generation):
+                        _log(settings, logging.INFO, "retrying after refreshing credentials")
+                        continue
                 delay = _retry_delay(settings, error, operation.method, tries)
                 if delay is None:
                     raise
@@ -393,7 +473,7 @@ def _parse(settings: Settings, response_type: Any, data: Any, reply: _Reply) -> 
     try:
         return parse_response(response_type, data)
     except ValidationError:
-        clean = reply.text.replace(settings.secret, _REDACTED)
+        clean = redact(settings.credentials, reply.text)
         raise DecodeError(
             "The response body does not fit its declared type", status=reply.status, raw_body=clean
         ) from None

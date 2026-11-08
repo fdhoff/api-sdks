@@ -11,23 +11,23 @@ public sealed class ListingsResource
 {
     internal static readonly Operation GetWsListListingOperation = new(
         "get-ws-list-listing", "GET", "/ws/listings", "Listings", "ListAsync", "ListAllAsync",
-        [new("publication_state", "publicationState", ParamLocation.Query), new("min_quantity", "minQuantity", ParamLocation.Query), new("max_quantity", "maxQuantity", ParamLocation.Query), new("page", "page", ParamLocation.Query), new("page-size", "pageSize", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
+        [new("publication_state", "publicationState", ParamLocation.Query), new("min_quantity", "minQuantity", ParamLocation.Query), new("max_quantity", "maxQuantity", ParamLocation.Query), new("page", "page", ParamLocation.Query), new("page-size", "pageSize", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]), Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation GetWsListingDetailOperation = new(
         "get-ws-listing-detail", "GET", "/ws/listings/detail", "Listings", "FindAsync", null,
-        [new("sku", "sku", ParamLocation.Query), new("listing_id", "listingId", ParamLocation.Query), new("id", "id", ParamLocation.Query),], ReturnsJson: true);
+        [new("sku", "sku", ParamLocation.Query), new("listing_id", "listingId", ParamLocation.Query), new("id", "id", ParamLocation.Query),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation GetWsSpecificListingOperation = new(
         "get-ws-specific-listing", "GET", "/ws/listings/{listingId}", "Listings", "GetAsync", null,
-        [new("listingId", "listingId", ParamLocation.Path),], ReturnsJson: true);
+        [new("listingId", "listingId", ParamLocation.Path),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation PostWsCreateOrUpdateListingsOperation = new(
         "post-ws-create-or-update-listings", "POST", "/ws/listings", "Listings", "BatchUpdateAsync", null,
-        [new("ListingsCatalog", "body", ParamLocation.Body),], ReturnsJson: true);
+        [new("ListingsCatalog", "body", ParamLocation.Body),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation UpdateWsSpecificListingOperation = new(
         "update-ws-specific-listing", "POST", "/ws/listings/{listingId}", "Listings", "UpdateAsync", null,
-        [new("listingId", "listingId", ParamLocation.Path), new("ListingUpdate", "body", ParamLocation.Body),], ReturnsJson: true);
+        [new("listingId", "listingId", ParamLocation.Path), new("ListingUpdate", "body", ParamLocation.Body),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation[] Operations = [GetWsListListingOperation, GetWsListingDetailOperation, GetWsSpecificListingOperation, PostWsCreateOrUpdateListingsOperation, UpdateWsSpecificListingOperation,];
 

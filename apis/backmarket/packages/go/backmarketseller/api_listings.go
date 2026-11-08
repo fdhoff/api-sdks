@@ -20,6 +20,7 @@ var (
 		PathParams:  []string{},
 		QueryParams: []string{"publication_state", "min_quantity", "max_quantity", "page", "page-size"},
 		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetWsListingDetail = runtime.Register(runtime.Operation{
 		ID:          "get-ws-listing-detail",
@@ -30,6 +31,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"sku", "listing_id", "id"},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetWsSpecificListing = runtime.Register(runtime.Operation{
 		ID:          "get-ws-specific-listing",
@@ -40,6 +42,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"listingId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opPostWsCreateOrUpdateListings = runtime.Register(runtime.Operation{
 		ID:          "post-ws-create-or-update-listings",
@@ -50,6 +53,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opUpdateWsSpecificListing = runtime.Register(runtime.Operation{
 		ID:          "update-ws-specific-listing",
@@ -60,6 +64,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"listingId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 )
 

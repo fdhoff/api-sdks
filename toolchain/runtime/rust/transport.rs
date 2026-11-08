@@ -3,6 +3,7 @@ use std::fmt;
 use std::io::Read;
 use std::pin::Pin;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime};
 
 use futures_core::Stream;
@@ -11,11 +12,10 @@ use reqwest::{Method, StatusCode, multipart, redirect};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
+use super::credentials::{AuthRequest, Credentials, redact_with, redactions};
 use super::error::{Error, ErrorContext};
 use super::request::{Body, Operation, Paging, Part, Request};
 use crate::ErrorKind;
-
-const REDACTED: &str = "***";
 
 /// A backoff doubles per retry, and this keeps the shift in range for any retry count.
 const MAX_BACKOFF_DOUBLINGS: u32 = 20;
@@ -26,7 +26,7 @@ pub type Items<T> = Pin<Box<dyn Stream<Item = Result<T, Error>> + Send>>;
 /// Configures a [`Transport`].
 pub struct Settings {
     pub base_url: String,
-    pub secret: String,
+    pub credentials: Arc<dyn Credentials>,
     pub headers: HeaderMap,
     pub to_error: fn(ErrorContext) -> Error,
     pub timeout: Duration,
@@ -43,6 +43,10 @@ pub struct Settings {
 pub struct Transport {
     settings: Settings,
     http: reqwest::Client,
+    refreshing: tokio::sync::Mutex<()>,
+    /// Counts refreshes, so that a call whose credentials were refreshed since it sent them retries
+    /// without another.
+    generation: AtomicU64,
 }
 
 impl fmt::Debug for Transport {
@@ -101,6 +105,23 @@ pub fn retry_after(value: Option<&str>, now: SystemTime) -> Option<Duration> {
     when.duration_since(now).ok().filter(|wait| !wait.is_zero())
 }
 
+/// The body's content type and bytes, encoded once so that credentials see exactly what is sent.
+async fn encode(body: &Body) -> Result<(Option<String>, Vec<u8>), Error> {
+    let parts = match body {
+        Body::Empty => return Ok((None, Vec::new())),
+        Body::Json(bytes) => return Ok((Some("application/json".to_owned()), bytes.clone())),
+        Body::Multipart(parts) => parts,
+    };
+    let form = form(parts);
+    let content_type = format!("multipart/form-data; boundary={}", form.boundary());
+    let mut stream = std::pin::pin!(form.into_stream());
+    let mut bytes = Vec::new();
+    while let Some(chunk) = futures_util::StreamExt::next(&mut stream).await {
+        bytes.extend_from_slice(&chunk.map_err(translate)?);
+    }
+    Ok((Some(content_type), bytes))
+}
+
 fn form(parts: &[Part]) -> multipart::Form {
     parts.iter().fold(multipart::Form::new(), |form, part| match part {
         Part::Text { name, value } => form.text(name.clone(), value.clone()),
@@ -116,25 +137,57 @@ impl Transport {
     /// failure, so the token cannot be sent anywhere but the configured server. A caller's client
     /// keeps its own redirect policy. Headers are sent on each request, so either client sends them.
     pub fn new(mut settings: Settings) -> Result<Self, reqwest::Error> {
-        let secret = settings.secret.as_bytes();
-        for value in settings.headers.values_mut() {
-            if !secret.is_empty() && value.as_bytes().windows(secret.len()).any(|window| window == secret) {
-                value.set_sensitive(true);
-            }
-        }
         settings.headers.insert(ACCEPT_ENCODING, HeaderValue::from_static("gzip"));
         let http = match settings.http.take() {
             Some(http) => http,
             None => reqwest::Client::builder().redirect(redirect::Policy::none()).build()?,
         };
-        Ok(Self { settings, http })
+        Ok(Self { settings, http, refreshing: tokio::sync::Mutex::new(()), generation: AtomicU64::new(0) })
     }
 
     fn redact(&self, text: &str) -> String {
-        if self.settings.secret.is_empty() {
-            return text.to_owned();
+        redact_with(&redactions(self.settings.credentials.as_ref()), text)
+    }
+
+    /// The request for one attempt, with the credentials applied. A header that holds a secret is
+    /// marked sensitive, so that a debug print of it shows nothing.
+    pub(super) async fn authorize(&self, request: &Request, method: Method, content_type: Option<&str>, body: Vec<u8>) -> Result<AuthRequest, Error> {
+        let mut headers = self.settings.headers.clone();
+        if let Some(content_type) = content_type {
+            let value = HeaderValue::from_str(content_type)
+                .map_err(|error| Error::new(ErrorKind::Api, "the content type is not valid").with_source(error))?;
+            headers.insert(CONTENT_TYPE, value);
         }
-        text.replace(&self.settings.secret, REDACTED)
+        let url = request.url(&self.settings.base_url);
+        let mut auth = AuthRequest { method, url, headers, body, operation: request.operation };
+        let credentials = self.settings.credentials.as_ref();
+        credentials.apply(&mut auth).await.map_err(|error| error.map_message(|text| self.redact(text)))?;
+        let secrets: Vec<String> = credentials.secrets().into_iter().filter(|secret| !secret.is_empty()).collect();
+        for value in auth.headers.values_mut() {
+            let bytes = value.as_bytes();
+            if secrets.iter().any(|secret| bytes.windows(secret.len()).any(|window| window == secret.as_bytes())) {
+                value.set_sensitive(true);
+            }
+        }
+        Ok(auth)
+    }
+
+    /// Lets calls waiting on a refresh share it.
+    async fn refresh(&self, auth: &AuthRequest, generation: u64) -> Result<bool, Error> {
+        let _refreshing = self.refreshing.lock().await;
+        if self.generation.load(Ordering::Acquire) != generation {
+            return Ok(true);
+        }
+        let refreshed = self
+            .settings
+            .credentials
+            .refresh(auth)
+            .await
+            .map_err(|error| error.map_message(|text| self.redact(text)))?;
+        if refreshed {
+            self.generation.fetch_add(1, Ordering::AcqRel);
+        }
+        Ok(refreshed)
     }
 
     fn log(&self, level: log::Level, message: fmt::Arguments<'_>) {
@@ -154,14 +207,11 @@ impl Transport {
         Error::new(ErrorKind::Decode, message).with_status(answer.status).with_raw_body(Some(text))
     }
 
-    async fn send(&self, request: &Request, method: Method) -> Result<Answer, Error> {
-        let mut outgoing =
-            self.http.request(method, request.url(&self.settings.base_url)).headers(self.settings.headers.clone());
-        outgoing = match &request.body {
-            Body::Empty => outgoing,
-            Body::Json(bytes) => outgoing.header(CONTENT_TYPE, "application/json").body(bytes.clone()),
-            Body::Multipart(parts) => outgoing.multipart(form(parts)),
-        };
+    async fn send(&self, auth: &AuthRequest) -> Result<Answer, Error> {
+        let mut outgoing = self.http.request(auth.method.clone(), &auth.url).headers(auth.headers.clone());
+        if !auth.body.is_empty() {
+            outgoing = outgoing.body(auth.body.clone());
+        }
         let incoming = outgoing.send().await.map_err(translate)?;
         let status = incoming.status().as_u16();
         let headers = incoming.headers().clone();
@@ -170,8 +220,8 @@ impl Transport {
     }
 
     /// One attempt, with one deadline from sending the request to reading the last byte.
-    async fn attempt(&self, request: &Request, method: Method) -> Result<Answer, Error> {
-        let sent = tokio::time::timeout(self.settings.timeout, self.send(request, method));
+    async fn attempt(&self, auth: &AuthRequest) -> Result<Answer, Error> {
+        let sent = tokio::time::timeout(self.settings.timeout, self.send(auth));
         let Answer { status, headers, body } = sent
             .await
             .map_err(|elapsed| Error::new(ErrorKind::Timeout, "the request timed out").with_source(elapsed))??;
@@ -185,7 +235,7 @@ impl Transport {
             }
             Err(_) => Vec::new(),
         };
-        let method = &request.operation.method;
+        let method = &auth.method;
         self.log(log::Level::Debug, format_args!("response {method} {status} ({} bytes)", body.len()));
         let answer = Answer { status, headers, body };
         if !success {
@@ -217,14 +267,24 @@ impl Transport {
         }
         let method = Method::from_bytes(request.operation.method.as_bytes())
             .map_err(|error| Error::new(ErrorKind::Api, "the request method is not valid").with_source(error))?;
+        let (content_type, body) = encode(&request.body).await?;
         let mut tries = 0;
+        let mut refreshed = false;
         loop {
-            let url = request.url(&self.settings.base_url);
-            self.log(log::Level::Debug, format_args!("request {} {method} {url}", request.operation.id));
-            let failure = match self.attempt(request, method.clone()).await {
+            let generation = self.generation.load(Ordering::Acquire);
+            let auth = self.authorize(request, method.clone(), content_type.as_deref(), body.clone()).await?;
+            self.log(log::Level::Debug, format_args!("request {} {method} {}", request.operation.id, auth.url));
+            let failure = match self.attempt(&auth).await {
                 Ok(answer) => return Ok(answer),
                 Err(failure) => failure,
             };
+            if failure.status() == Some(StatusCode::UNAUTHORIZED.as_u16()) && !refreshed {
+                refreshed = true;
+                if self.refresh(&auth, generation).await? {
+                    self.log(log::Level::Info, format_args!("retrying after refreshing credentials"));
+                    continue;
+                }
+            }
             let Some(delay) = self.retry_delay(&failure, &method, tries) else {
                 return Err(failure);
             };
@@ -381,6 +441,7 @@ impl Transport {
 
 #[cfg(test)]
 mod tests {
+    use super::super::credentials::StaticCredentials;
     use super::*;
 
     #[test]
@@ -425,7 +486,7 @@ mod tests {
     fn settings(headers: HeaderMap) -> Settings {
         Settings {
             base_url: "http://127.0.0.1:1".to_owned(),
-            secret: String::new(),
+            credentials: Arc::new(StaticCredentials::new(HeaderMap::new(), Vec::new())),
             headers,
             to_error: |context| Error::new(ErrorKind::Api, format!("status {}", context.status)),
             timeout: Duration::from_secs(1),
@@ -437,14 +498,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn an_empty_secret_marks_no_header_sensitive() {
-        let mut headers = HeaderMap::new();
-        headers.insert("x-name", HeaderValue::from_static("value"));
-        let transport = Transport::new(settings(headers)).unwrap();
-        assert!(!transport.settings.headers["x-name"].is_sensitive());
-    }
-
     const OFFSET_LIST: Operation = Operation {
         id: "list-items",
         method: "GET",
@@ -452,6 +505,7 @@ mod tests {
         query_params: &["limit", "start"],
         returns_json: true,
         paging: Some(Paging::Offset { items: "data", total: "total", offset: "start" }),
+        security: &[],
     };
 
     const LINKED_LIST: Operation = Operation {
@@ -461,6 +515,7 @@ mod tests {
         query_params: &["token"],
         returns_json: true,
         paging: Some(Paging::NextLink { items: "data", link: "more", params: &["token"] }),
+        security: &[],
     };
 
     fn next(operation: &'static Operation, query: &[(&str, &str)], page: Value, received: usize) -> Result<Option<String>, Error> {
@@ -519,8 +574,6 @@ mod tests {
         assert_eq!(OFFSET_LIST.paging().items(), "data");
         assert_eq!(Operation { paging: None, ..LINKED_LIST }.paging().items(), "results");
     }
-
-
 
     #[test]
     fn a_request_that_cannot_be_built_is_not_a_connection_failure() {

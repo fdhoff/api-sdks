@@ -27,6 +27,7 @@ type Input struct {
 }
 
 type request struct {
+	operation   *Operation
 	method      string
 	path        string
 	query       url.Values
@@ -159,7 +160,7 @@ func newRequest(operation *Operation, input Input) (*request, error) {
 		value := url.PathEscape(text(reflect.ValueOf(input.Path[index])))
 		path = strings.ReplaceAll(path, "{"+name+"}", value)
 	}
-	built := &request{method: operation.Method, path: path, query: url.Values{}}
+	built := &request{operation: operation, method: operation.Method, path: path, query: url.Values{}}
 	if err := built.addParams(input.Params); err != nil {
 		return nil, fmt.Errorf("the request cannot be encoded: %w", err)
 	}

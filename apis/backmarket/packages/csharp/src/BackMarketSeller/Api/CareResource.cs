@@ -11,31 +11,31 @@ public sealed class CareResource
 {
     internal static readonly Operation GetCareFolderDetailsOperation = new(
         "getCareFolderDetails", "GET", "/ws/sav/{careFolderId}", "Care", "GetFolderAsync", null,
-        [new("careFolderId", "careFolderId", ParamLocation.Path),], ReturnsJson: true);
+        [new("careFolderId", "careFolderId", ParamLocation.Path),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation GetCareFolderListOperation = new(
         "getCareFolderList", "GET", "/ws/sav", "Care", "ListFoldersAsync", "ListAllFoldersAsync",
-        [new("last_id", "lastId", ParamLocation.Query), new("state", "state", ParamLocation.Query), new("orderline", "orderline", ParamLocation.Query), new("last_modification_date", "lastModificationDate", ParamLocation.Query), new("last_message_date", "lastMessageDate", ParamLocation.Query), new("page", "page", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
+        [new("last_id", "lastId", ParamLocation.Query), new("state", "state", ParamLocation.Query), new("orderline", "orderline", ParamLocation.Query), new("last_modification_date", "lastModificationDate", ParamLocation.Query), new("last_message_date", "lastMessageDate", ParamLocation.Query), new("page", "page", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]), Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation PostItemTransferOperation = new(
         "postItemTransfer", "POST", "/ws/sav/{careFolderId}/item-transfer", "Care", "TransferItemAsync", null,
-        [new("careFolderId", "careFolderId", ParamLocation.Path), new("PostItemTransferCreateRequest", "body", ParamLocation.Body),]);
+        [new("careFolderId", "careFolderId", ParamLocation.Path), new("PostItemTransferCreateRequest", "body", ParamLocation.Body),], Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation PostMessageOperation = new(
         "postMessage", "POST", "/ws/sav/{careFolderId}/msg", "Care", "SendMessageAsync", null,
-        [new("careFolderId", "careFolderId", ParamLocation.Path), new("message", "message", ParamLocation.Form), new("attachment", "attachment", ParamLocation.Form),], ReturnsJson: true);
+        [new("careFolderId", "careFolderId", ParamLocation.Path), new("message", "message", ParamLocation.Form), new("attachment", "attachment", ParamLocation.Form),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation PostNoteOperation = new(
         "postNote", "POST", "/ws/sav/{careFolderId}/note", "Care", "AddNoteAsync", null,
-        [new("careFolderId", "careFolderId", ParamLocation.Path), new("PostNoteRequest", "body", ParamLocation.Body),], ReturnsJson: true);
+        [new("careFolderId", "careFolderId", ParamLocation.Path), new("PostNoteRequest", "body", ParamLocation.Body),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation PostProblemOperation = new(
         "postProblem", "POST", "/ws/sav/{careFolderId}/problem", "Care", "ReportProblemAsync", null,
-        [new("careFolderId", "careFolderId", ParamLocation.Path), new("problem_type", "problemType", ParamLocation.Form), new("message", "message", ParamLocation.Form), new("attachment", "attachment", ParamLocation.Form),]);
+        [new("careFolderId", "careFolderId", ParamLocation.Path), new("problem_type", "problemType", ParamLocation.Form), new("message", "message", ParamLocation.Form), new("attachment", "attachment", ParamLocation.Form),], Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation PostRefundCreateOperation = new(
         "postRefundCreate", "POST", "/ws/sav/refund", "Care", "CreateRefundAsync", null,
-        [new("PostRefundCreateRequest", "body", ParamLocation.Body),]);
+        [new("PostRefundCreateRequest", "body", ParamLocation.Body),], Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation[] Operations = [GetCareFolderDetailsOperation, GetCareFolderListOperation, PostItemTransferOperation, PostMessageOperation, PostNoteOperation, PostProblemOperation, PostRefundCreateOperation,];
 

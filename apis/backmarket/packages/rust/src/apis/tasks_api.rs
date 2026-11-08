@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::Error;
 #[allow(unused_imports)]
-use crate::runtime::{Items, Operation, Paging, Params, Request, Transport};
+use crate::runtime::{Items, Operation, Paging, Params, Request, Scheme, Transport};
 #[allow(unused_imports)]
 use crate::{File, models};
 
@@ -15,6 +15,10 @@ const GET_WS_TASK: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 
 /// The `tasks` operations, from [`Client::tasks`](crate::Client::tasks).

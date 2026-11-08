@@ -12,6 +12,7 @@ const getBmCatalogCategory: Operation = {
   name: 'list',
   params: [],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getBmCatalogCategoryBranch: Operation = {
@@ -22,6 +23,7 @@ const getBmCatalogCategoryBranch: Operation = {
   name: 'get',
   params: [{ wire: 'categoryId', name: 'categoryId', location: 'path' }],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 export const OPERATIONS: readonly Operation[] = [getBmCatalogCategory, getBmCatalogCategoryBranch];

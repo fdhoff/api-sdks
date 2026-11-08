@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::Error;
 #[allow(unused_imports)]
-use crate::runtime::{Items, Operation, Paging, Params, Request, Transport};
+use crate::runtime::{Items, Operation, Paging, Params, Request, Scheme, Transport};
 #[allow(unused_imports)]
 use crate::{File, models};
 
@@ -15,6 +15,10 @@ const GET_WS_BUYBACK_V1_COMPETITORS: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const GET_WS_BUYBACK_V1_LISTING: Operation = Operation {
     id: "get-ws-buyback-v1-listing",
@@ -23,6 +27,10 @@ const GET_WS_BUYBACK_V1_LISTING: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const GET_WS_BUYBACK_V1_LISTINGS: Operation = Operation {
     id: "get-ws-buyback-v1-listings",
@@ -35,6 +43,10 @@ const GET_WS_BUYBACK_V1_LISTINGS: Operation = Operation {
         link: "next",
         params: &["page", "cursor"],
     }),
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const GET_WS_BUYBACK_V1_ORDER: Operation = Operation {
     id: "get-ws-buyback-v1-order",
@@ -43,6 +55,10 @@ const GET_WS_BUYBACK_V1_ORDER: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const GET_WS_BUYBACK_V1_ORDERS: Operation = Operation {
     id: "get-ws-buyback-v1-orders",
@@ -65,6 +81,10 @@ const GET_WS_BUYBACK_V1_ORDERS: Operation = Operation {
         link: "next",
         params: &["page", "cursor"],
     }),
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const GET_WS_BUYBACK_V1_ORDERS_MESSAGES: Operation = Operation {
     id: "get-ws-buyback-v1-orders-messages",
@@ -77,6 +97,10 @@ const GET_WS_BUYBACK_V1_ORDERS_MESSAGES: Operation = Operation {
         link: "next",
         params: &["page", "cursor"],
     }),
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const GET_WS_BUYBACK_V1_ORDERS_PENDING_REPLY: Operation = Operation {
     id: "get-ws-buyback-v1-orders-pending-reply",
@@ -89,6 +113,10 @@ const GET_WS_BUYBACK_V1_ORDERS_PENDING_REPLY: Operation = Operation {
         link: "next",
         params: &["page", "cursor"],
     }),
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const GET_WS_BUYBACK_V1_ORDERS_SUSPEND_REASONS: Operation = Operation {
     id: "get-ws-buyback-v1-orders-suspend-reasons",
@@ -97,6 +125,10 @@ const GET_WS_BUYBACK_V1_ORDERS_SUSPEND_REASONS: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const GET_WS_COUNTER_OFFER_REASON: Operation = Operation {
     id: "get-ws-counter-offer-reason",
@@ -105,6 +137,10 @@ const GET_WS_COUNTER_OFFER_REASON: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const POST_WS_BUYBACK_V1_ORDERS_MESSAGES: Operation = Operation {
     id: "post-ws-buyback-v1-orders-messages",
@@ -113,6 +149,10 @@ const POST_WS_BUYBACK_V1_ORDERS_MESSAGES: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const PUT_WS_BUYBACK_V1_LISTING: Operation = Operation {
     id: "put-ws-buyback-v1-listing",
@@ -121,6 +161,10 @@ const PUT_WS_BUYBACK_V1_LISTING: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const PUT_WS_BUYBACK_V1_ORDERS_SUSPEND: Operation = Operation {
     id: "put-ws-buyback-v1-orders-suspend",
@@ -129,6 +173,10 @@ const PUT_WS_BUYBACK_V1_ORDERS_SUSPEND: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const PUT_WS_BUYBACK_V1_ORDERS_VALIDATE: Operation = Operation {
     id: "put-ws-buyback-v1-orders-validate",
@@ -137,6 +185,10 @@ const PUT_WS_BUYBACK_V1_ORDERS_VALIDATE: Operation = Operation {
     query_params: &[],
     returns_json: true,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 const PUT_WS_REFURBISHER_COUNTER_OFFER: Operation = Operation {
     id: "put-ws-refurbisher-counter-offer",
@@ -145,6 +197,10 @@ const PUT_WS_REFURBISHER_COUNTER_OFFER: Operation = Operation {
     query_params: &[],
     returns_json: false,
     paging: None,
+    security: &[&[Scheme {
+        name: "ApiKeyAuth",
+        scopes: &[],
+    }]],
 };
 
 /// The query parameters of [`BuybackApi::list_listings`]. Set only what you need.

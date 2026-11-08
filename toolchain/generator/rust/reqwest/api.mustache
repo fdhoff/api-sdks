@@ -6,7 +6,7 @@ use crate::Error;
 #[allow(unused_imports)]
 use crate::{File, models};
 #[allow(unused_imports)]
-use crate::runtime::{Items, Operation, Paging, Params, Request, Transport};
+use crate::runtime::{Items, Operation, Paging, Params, Request, Scheme, Transport};
 
 {{#operations}}
 {{#operation}}
@@ -25,6 +25,7 @@ const {{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}: Operat
 {{^vendorExtensions.x-sdk-paging}}
     paging: None,
 {{/vendorExtensions.x-sdk-paging}}
+    security: &[{{#vendorExtensions.x-sdk-security}}&[{{#schemes}}Scheme { name: "{{scheme}}", scopes: &[{{#scopes}}"{{.}}", {{/scopes}}] }, {{/schemes}}], {{/vendorExtensions.x-sdk-security}}],
 };
 {{/operation}}
 {{#operation}}

@@ -11,19 +11,19 @@ public sealed class ShippingResource
 {
     internal static readonly Operation GetDeliveriesOperation = new(
         "GetDeliveries", "GET", "/ws/shipping/v1/deliveries", "Shipping", "ListDeliveriesAsync", "ListAllDeliveriesAsync",
-        [new("page", "page", ParamLocation.Query), new("order_id", "orderId", ParamLocation.Query), new("start_date", "startDate", ParamLocation.Query), new("end_date", "endDate", ParamLocation.Query), new("pickup_start_date", "pickupStartDate", ParamLocation.Query), new("pickup_end_date", "pickupEndDate", ParamLocation.Query), new("order_state", "orderState", ParamLocation.Query), new("hub_scanned", "hubScanned", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
+        [new("page", "page", ParamLocation.Query), new("order_id", "orderId", ParamLocation.Query), new("start_date", "startDate", ParamLocation.Query), new("end_date", "endDate", ParamLocation.Query), new("pickup_start_date", "pickupStartDate", ParamLocation.Query), new("pickup_end_date", "pickupEndDate", ParamLocation.Query), new("order_state", "orderState", ParamLocation.Query), new("hub_scanned", "hubScanned", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]), Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation GetDeliveryOperation = new(
         "GetDelivery", "GET", "/ws/shipping/v1/deliveries/{id}", "Shipping", "GetDeliveryAsync", null,
-        [new("id", "id", ParamLocation.Path),], ReturnsJson: true);
+        [new("id", "id", ParamLocation.Path),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation GetReturnOperation = new(
         "GetReturn", "GET", "/ws/shipping/v1/returns/{id}", "Shipping", "GetReturnAsync", null,
-        [new("id", "id", ParamLocation.Path),], ReturnsJson: true);
+        [new("id", "id", ParamLocation.Path),], ReturnsJson: true, Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation GetReturnsOperation = new(
         "GetReturns", "GET", "/ws/shipping/v1/returns", "Shipping", "ListReturnsAsync", "ListAllReturnsAsync",
-        [new("page", "page", ParamLocation.Query), new("order_id", "orderId", ParamLocation.Query), new("start_date", "startDate", ParamLocation.Query), new("end_date", "endDate", ParamLocation.Query), new("pickup_start_date", "pickupStartDate", ParamLocation.Query), new("pickup_end_date", "pickupEndDate", ParamLocation.Query), new("order_state", "orderState", ParamLocation.Query), new("hub_scanned", "hubScanned", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
+        [new("page", "page", ParamLocation.Query), new("order_id", "orderId", ParamLocation.Query), new("start_date", "startDate", ParamLocation.Query), new("end_date", "endDate", ParamLocation.Query), new("pickup_start_date", "pickupStartDate", ParamLocation.Query), new("pickup_end_date", "pickupEndDate", ParamLocation.Query), new("order_state", "orderState", ParamLocation.Query), new("hub_scanned", "hubScanned", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]), Security: [[new("ApiKeyAuth", []),],]);
 
     internal static readonly Operation[] Operations = [GetDeliveriesOperation, GetDeliveryOperation, GetReturnOperation, GetReturnsOperation,];
 

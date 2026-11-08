@@ -20,6 +20,7 @@ var (
 		PathParams:  []string{},
 		QueryParams: []string{"page", "order_id", "start_date", "end_date", "pickup_start_date", "pickup_end_date", "order_state", "hub_scanned"},
 		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetDelivery = runtime.Register(runtime.Operation{
 		ID:          "GetDelivery",
@@ -30,6 +31,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"id"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetReturn = runtime.Register(runtime.Operation{
 		ID:          "GetReturn",
@@ -40,6 +42,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"id"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetReturns = runtime.Register(runtime.Operation{
 		ID:          "GetReturns",
@@ -52,6 +55,7 @@ var (
 		PathParams:  []string{},
 		QueryParams: []string{"page", "order_id", "start_date", "end_date", "pickup_start_date", "pickup_end_date", "order_state", "hub_scanned"},
 		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 )
 

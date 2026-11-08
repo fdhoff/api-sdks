@@ -8,7 +8,7 @@ import httpx
 from typing_extensions import Self
 
 from ._resources import AsyncResources, Resources
-from ._runtime import AsyncTransport, Settings, SyncTransport
+from ._runtime import AsyncTransport, Settings, StaticCredentials, SyncTransport
 from .errors import to_error
 
 logger = logging.getLogger("backmarket_seller")
@@ -57,9 +57,8 @@ def _settings(
     url = _SERVERS[Region(region), Environment(environment)] if base_url is None else base_url
     return Settings(
         base_url=url.rstrip("/"),
-        secret=token,
+        credentials=StaticCredentials({"Authorization": f"Basic {token}"}, secrets=[token]),
         headers={
-            "Authorization": f"Basic {token}",
             "User-Agent": user_agent,
             "Accept": "application/json",
             "Accept-Language": locale,

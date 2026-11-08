@@ -28,7 +28,8 @@ internal sealed record NextLinkPaging(string Items, string Link, string[] Params
 /// </summary>
 internal sealed record OffsetPaging(string Items, string Total, string Offset) : Paging(Items);
 
-internal sealed record Operation(string Id, string Method, string Path, string Resource, string Name, string? Iterator, Param[] Params, bool ReturnsJson = false, Paging? Paging = null);
+/// <remarks>Any one requirement in <see cref="Security"/> authorizes the call; each lists schemes that must all be satisfied.</remarks>
+internal sealed record Operation(string Id, string Method, string Path, string Resource, string Name, string? Iterator, Param[] Params, bool ReturnsJson = false, Paging? Paging = null, Scheme[][]? Security = null);
 
 /// <summary>A failed response, with the credential already removed from <see cref="Text"/> and <see cref="Json"/>.</summary>
 internal sealed record ErrorContext(int Status, IReadOnlyDictionary<string, string> Headers, string Text, JsonElement? Json)
@@ -40,7 +41,7 @@ internal sealed class Settings
 {
     public required string BaseUrl { get; init; }
 
-    public required string Secret { get; init; }
+    public required ICredentialProvider Credentials { get; init; }
 
     public required IReadOnlyDictionary<string, string> Headers { get; init; }
 

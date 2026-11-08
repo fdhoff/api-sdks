@@ -17,7 +17,7 @@ import (
 
 func TestARequestThatCannotBeBuiltDoesNotShowTheTokenEvenEscaped(t *testing.T) {
 	const secret = "synthetic/test+token="
-	transport := NewTransport(Settings{BaseURL: "http://example.invalid\x7f", Secret: secret, Timeout: time.Second})
+	transport := NewTransport(Settings{BaseURL: "http://example.invalid\x7f", Credentials: StaticCredentials{Values: []string{secret}}, Timeout: time.Second})
 	operation := &Operation{ID: "op", Method: "GET", Path: "/items/{id}", PathParams: []string{"id"}}
 	_, err := Call[any](context.Background(), transport, operation, Input{Path: []any{secret}})
 	var failure *Error
