@@ -62,8 +62,8 @@ test('CI runs each language job for every API that has the package', async () =>
   const { jobs } = parse(await readFile(join(WORKFLOWS, 'ci.yml'), 'utf8'));
   const packages = join(ROOT, 'apis/backmarket/packages');
   const languages = [];
-  for (const language of await readdir(packages)) {
-    if ((await readdir(join(packages, language))).includes('generate.yaml')) languages.push(language);
+  for (const entry of await readdir(packages, { withFileTypes: true })) {
+    if (entry.isDirectory() && (await readdir(join(packages, entry.name))).includes('generate.yaml')) languages.push(entry.name);
   }
   assert.ok(languages.length > 0);
   assert.equal(jobs.spec.strategy.matrix.api, '${{ fromJSON(needs.apis.outputs.spec) }}');
