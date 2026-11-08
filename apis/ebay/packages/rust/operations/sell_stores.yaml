@@ -1,0 +1,9 @@
+# Public names for the Stores API, keyed by operationId. Summaries are ours, not upstream's.
+getStore: { resource: store, method: get, summary: Get the seller's eBay store. }
+getStoreCategories: { resource: store, method: list_categories, summary: List the categories of the seller's store. }
+addStoreCategory: { resource: store, method: add_category, summary: Start a task that adds a store category. }
+renameStoreCategory: { resource: store, method: rename_category, summary: Rename a store category. }
+moveStoreCategory: { resource: store, method: move_category, summary: Start a task that moves a store category. }
+deleteStoreCategory: { resource: store, method: delete_category, summary: Start a task that deletes a store category. }
+getStoreTasks: { resource: store, method: list_tasks, summary: List the seller's store category tasks. }
+getStoreTask: { resource: store, method: get_task, summary: Get one store category task. }

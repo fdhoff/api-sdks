@@ -1,0 +1,49 @@
+[package]
+name = "ebay-sell"
+version = "0.1.0-alpha.1"
+edition = "2024"
+rust-version = "1.85"
+description = "Unofficial Rust client for eBay's Sell, Commerce and Developer REST APIs. Not affiliated with, endorsed by or sponsored by eBay Inc."
+license = "Apache-2.0"
+repository = "https://github.com/fdhoff/api-sdks"
+readme = "README.md"
+keywords = ["api", "client", "seller", "marketplace", "oauth"]
+categories = ["api-bindings", "asynchronous"]
+include = ["/src", "/Cargo.toml", "/README.md", "/CHANGELOG.md", "/LICENSE", "/NOTICE"]
+
+[features]
+default = ["rustls", "signing"]
+# TLS through rustls, with the platform's certificate verifier.
+rustls = ["reqwest/rustls"]
+# TLS through the platform's library: OpenSSL on Linux, Security.framework on macOS, SChannel on Windows.
+native-tls = ["reqwest/native-tls"]
+# Request signatures for the calls eBay requires EU and UK sellers to sign, through aws-lc-rs.
+signing = ["dep:aws-lc-rs"]
+
+[dependencies]
+aws-lc-rs = { version = "1.19", optional = true, default-features = false, features = ["aws-lc-sys", "prebuilt-nasm"] }
+base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["serde", "std"] }
+flate2 = "1.1"
+futures-core = "0.3"
+futures-util = { version = "0.3", default-features = false }
+getrandom = "0.3"
+httpdate = "1.0"
+log = "0.4"
+percent-encoding = "2.3"
+reqwest = { version = "0.13", default-features = false, features = ["http2", "multipart"] }
+serde = "1.0"
+serde_json = "1.0"
+tokio = { version = "1.43", features = ["sync", "time"] }
+url = "2.5"
+
+[dev-dependencies]
+aws-lc-rs = { version = "1.19", default-features = false, features = ["aws-lc-sys", "prebuilt-nasm"] }
+serde = { version = "1.0", features = ["derive"] }
+futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
+tokio = { version = "1.43", features = ["io-util", "macros", "net", "rt"] }
+
+[[example]]
+name = "conformance-driver"
+path = "conformance/driver.rs"
+required-features = ["signing"]

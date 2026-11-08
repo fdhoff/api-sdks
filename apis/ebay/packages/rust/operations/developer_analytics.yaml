@@ -1,0 +1,3 @@
+# Public names for the Developer Analytics API, keyed by operationId. Summaries are ours, not upstream's.
+getRateLimits: { resource: rate_limits, method: list, summary: List the app's call limits and current usage. }
+getUserRateLimits: { resource: rate_limits, method: list_for_user, summary: List the call limits and current usage of the user the token belongs to. }
