@@ -123,7 +123,7 @@ class ListingFilesApi(Resource):
         listing_id: Annotated[int, Field(strict=True, ge=1)],
         shop_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ShopListingFiles:
-        """List a digital listing&#39;s files."""
+        """List a digital listing's files."""
         return self._call(
             _get_all_listing_files,
             listing_id=listing_id,
@@ -190,7 +190,7 @@ class AsyncListingFilesApi(AsyncResource):
         listing_id: Annotated[int, Field(strict=True, ge=1)],
         shop_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ShopListingFiles:
-        """List a digital listing&#39;s files."""
+        """List a digital listing's files."""
         return await self._call(
             _get_all_listing_files,
             listing_id=listing_id,

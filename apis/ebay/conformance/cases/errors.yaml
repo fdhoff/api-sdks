@@ -30,14 +30,16 @@ cases:
     expect:
       error: { kind: bad_request, status: 400, raw_body: '<html>bad request</html>' }
 
-  - name: errors-mock-validation-failure-is-a-bad-request
+  - name: errors-declared-400-is-a-bad-request
     request:
       operation: commerce_taxonomy.getDefaultCategoryTreeId
+      params: { marketplace_id: EBAY_US }
     mock:
-      prism: {}
+      prism: { code: 400 }
     wire:
       - method: GET
         path: /commerce/taxonomy/v1/get_default_category_tree_id
+        query: { marketplace_id: EBAY_US }
     expect:
       error: { kind: bad_request, status: 400 }
 

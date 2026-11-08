@@ -1,0 +1,21 @@
+# coding: utf-8
+
+# Generated code. Do not edit by hand; change the templates, the overlay or the runtime instead.
+
+
+from __future__ import annotations
+
+from pydantic import BaseModel, ConfigDict, StrictInt, StrictStr
+from typing import Any, ClassVar, Dict, List, Optional
+from ebay_sell.notification.models.topic import Topic
+from ebay_sell._runtime import ApiModel
+
+
+class TopicSearchResponse(ApiModel):
+    """TopicSearchResponse model."""
+
+    href: Optional[StrictStr] = None
+    limit: Optional[StrictInt] = None
+    next: Optional[StrictStr] = None
+    topics: Optional[List[Topic]] = None
+    total: Optional[StrictInt] = None

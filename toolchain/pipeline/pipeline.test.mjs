@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyHeaders, applyHosts, applyOperations, collapseSingleUnions, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
+import { applyHeaders, applyHosts, applyOperations, checkHeaderDefaults, collapseSingleUnions, omitOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -229,6 +229,17 @@ test('applyHeaders flags default-able headers as optional and drops headers the 
   assert.equal(applyOperations(applyHeaders(spec()), names).paths['/x'].get['x-sdk-has-headers'], false);
 });
 
+test('header defaults need only be declared by one of an API\'s contracts', () => {
+  const contract = (header) => ({ paths: { '/x': { get: { operationId: 'a', parameters: [{ name: header, in: 'header' }] } } } });
+  const used = new Set();
+  const defaults = ['X-Tenant', 'Content-Language'];
+  applyHeaders(contract('X-Tenant'), defaults, used);
+  const second = applyHeaders(contract('Content-Language'), defaults, used);
+  assert.equal(second.paths['/x'].get.parameters[0]['x-sdk-header-default'], true);
+  checkHeaderDefaults(defaults, used);
+  assert.throws(() => checkHeaderDefaults([...defaults, 'X-Tenat'], used), /names no header parameter: x-tenat$/);
+});
+
 test('applyOperations marks operations whose success response declares a JSON body', () => {
   const names = { a: { resource: 'r', method: 'a', summary: 'A.' } };
   const json = (responses, components) =>
@@ -261,6 +272,15 @@ test('applyOperations passes each operation its security requirements, inherited
     { schemes: [{ scheme: 'app', scopes: ['read'] }] },
   ]);
   assert.deepEqual(securityOf({}, { security: [{ key: null }] }), [{ schemes: [{ scheme: 'key', scopes: [] }] }]);
+});
+
+test('omitOperations removes the operations operations.yaml omits, and their empty paths', () => {
+  const names = { a: { resource: 'r', method: 'a', summary: 'A.' }, b: { omit: 'Needs binary bodies.' }, c: { omit: 'Same.' } };
+  const spec = { paths: { '/x': { get: { operationId: 'a' }, post: { operationId: 'b' } }, '/y': { get: { operationId: 'c' } } } };
+  const omitted = applyOperations(omitOperations(spec, names), names);
+  assert.deepEqual(Object.keys(omitted.paths), ['/x']);
+  assert.deepEqual(Object.keys(omitted.paths['/x']), ['get']);
+  assert.throws(() => omitOperations({ paths: {} }, { z: { omit: 'Gone.' } }), /omits unknown operations: z/);
 });
 
 test('isJsonMediaType accepts application/json and +json suffixes only', () => {

@@ -172,8 +172,10 @@ const RUNTIME_HEADERS = new Set(['accept', 'accept-encoding', 'content-length', 
 
 // Header parameters named in `defaults` become optional method arguments that fall back to a client-level
 // value. Runtime-owned headers are dropped, and other header parameters are left for templates to ignore.
+// An API built from several contracts passes one `used` set to every contract and checks it once with
+// checkHeaderDefaults, since a default need only be declared by one of them.
 // TODO: expose other header parameters as method arguments once an API needs one.
-export function applyHeaders(spec, defaults = []) {
+export function applyHeaders(spec, defaults = [], used) {
   const named = new Set(defaults.map((name) => name.toLowerCase()));
   const owned = [...named].filter((name) => RUNTIME_HEADERS.has(name));
   if (owned.length > 0) throw new Error(`header_defaults names headers the runtime sets: ${owned.join(', ')}`);
@@ -181,27 +183,46 @@ export function applyHeaders(spec, defaults = []) {
     const resolved = dereference(spec, parameter);
     return resolved?.in === 'header' && RUNTIME_HEADERS.has(resolved.name.toLowerCase());
   };
-  const unused = new Set(named);
+  const found = used ?? new Set();
   for (const item of Object.values(spec.paths)) {
     const holders = [item, ...METHODS.map((method) => item[method]).filter(Boolean)];
     for (const holder of holders.filter((holder) => holder.parameters)) {
       holder.parameters = holder.parameters.filter((parameter) => !isOwned(parameter));
       for (const parameter of holder.parameters.map((parameter) => dereference(spec, parameter))) {
         if (parameter.in !== 'header' || !named.has(parameter.name.toLowerCase())) continue;
-        unused.delete(parameter.name.toLowerCase());
+        found.add(parameter.name.toLowerCase());
         parameter.required = false;
         parameter['x-sdk-header-default'] = true;
       }
     }
   }
-  if (unused.size > 0) throw new Error(`header_defaults names no header parameter: ${[...unused].join(', ')}`);
+  if (!used) checkHeaderDefaults(defaults, found);
   return spec;
+}
+
+export function checkHeaderDefaults(defaults = [], used) {
+  const unused = [...new Set(defaults.map((name) => name.toLowerCase()))].filter((name) => !used.has(name));
+  if (unused.length > 0) throw new Error(`header_defaults names no header parameter: ${unused.join(', ')}`);
 }
 
 const isDefaultHeader = (parameter) => parameter.in === 'header' && parameter['x-sdk-header-default'] === true;
 
+// An operation whose operations.yaml entry sets `omit`, to the reason it is left out, is not generated.
+export function omitOperations(spec, operations) {
+  const omitted = new Set(Object.keys(operations).filter((id) => operations[id].omit));
+  for (const [path, item] of Object.entries(spec.paths)) {
+    for (const method of METHODS.filter((method) => omitted.has(item[method]?.operationId))) {
+      omitted.delete(item[method].operationId);
+      delete item[method];
+    }
+    if (!METHODS.some((method) => item[method])) delete spec.paths[path];
+  }
+  if (omitted.size > 0) throw new Error(`operations.yaml omits unknown operations: ${[...omitted].join(', ')}`);
+  return spec;
+}
+
 export function applyOperations(spec, operations, paging = {}) {
-  const unused = new Set(Object.keys(operations));
+  const unused = new Set(Object.keys(operations).filter((id) => !operations[id].omit));
   for (const item of Object.values(spec.paths)) {
     const shared = item.parameters ?? [];
     for (const operation of METHODS.map((method) => item[method]).filter(Boolean)) {
@@ -379,15 +400,15 @@ export function outermost(paths) {
   return unique.filter((path) => !unique.some((other) => other !== path && path.startsWith(`${other}/`)));
 }
 
-async function generateContract({ apiDir, language, packageDir, config, built, shared, sdk }) {
+async function generateContract({ apiDir, language, packageDir, config, built, shared, sdk, usedHeaders }) {
   Object.assign(config, packageNames(shared, config));
   const operations = parse(await readFile(join(packageDir, config.operations ?? 'operations.yaml'), 'utf8'));
   const output = join(packageDir, config.output);
   const source = config.source ?? config.properties.packageName.replaceAll('.', '/');
 
   const parsed = stripProse(parse(await readFile(built, 'utf8')));
-  const routed = applyHeaders(applyHosts(renameSchemas(relax(parsed, config), config.schema_names), sdk?.hosts), sdk?.header_defaults);
-  const spec = applyOperations(routed, operations, sdk?.paging);
+  const routed = applyHeaders(applyHosts(renameSchemas(relax(parsed, config), config.schema_names), sdk?.hosts), sdk?.header_defaults, usedHeaders);
+  const spec = applyOperations(omitOperations(routed, operations), operations, sdk?.paging);
   const work = await mkdtemp(join(tmpdir(), 'generate-'));
   try {
     const input = join(work, 'openapi.yaml');
@@ -425,9 +446,9 @@ async function generateContract({ apiDir, language, packageDir, config, built, s
   return output;
 }
 
-// TODO: each language's templates still import the runtime from `packageName`; a contract's sub-module
-// needs them to import it from the package root instead. Add that with the first multi-contract package,
-// with an end-to-end test of generate() for several contracts.
+// TODO: the Python templates import the runtime from `runtimePackage` when it is set, so a contract's
+// sub-module finds it at the package root. The other languages' templates still import it from
+// `packageName`; add the same with each language's first multi-contract package.
 async function generate(apiDir, language) {
   const packageDir = resolve(apiDir, 'packages', language);
   const config = parse(await readFile(join(packageDir, 'generate.yaml'), 'utf8'));
@@ -436,12 +457,14 @@ async function generate(apiDir, language) {
   const sdk = (await exists(join(apiDir, 'sdk.yaml'))) ? parse(await readFile(join(apiDir, 'sdk.yaml'), 'utf8')) : {};
   const sources = lockSources(JSON.parse(await readFile(apiPaths(apiDir).lock, 'utf8')));
   const outputs = [];
+  const usedHeaders = new Set();
   for (const { name, config: contract } of contractConfigs(config, sources.map((source) => source.name))) {
     const source = sources.find((item) => item.name === name);
     // A contract's shared names sit under its name in names.yaml.
     const names = name === null ? shared : (shared?.[name] ?? {});
-    outputs.push(await generateContract({ apiDir, language, packageDir, config: contract, built: sourcePaths(apiDir, source).build, shared: names, sdk }));
+    outputs.push(await generateContract({ apiDir, language, packageDir, config: contract, built: sourcePaths(apiDir, source).build, shared: names, sdk, usedHeaders }));
   }
+  checkHeaderDefaults(sdk?.header_defaults, usedHeaders);
   const output = join(packageDir, config.output);
   await rm(join(output, config.runtime), { recursive: true, force: true });
   await cp(join(TOOLCHAIN, 'runtime', language), join(output, config.runtime), { recursive: true });

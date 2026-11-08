@@ -1,0 +1,18 @@
+# coding: utf-8
+
+# Generated code. Do not edit by hand; change the templates, the overlay or the runtime instead.
+
+
+from __future__ import annotations
+
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from typing import Any, ClassVar, Dict, List, Optional
+from ebay_sell._runtime import ApiModel
+
+
+class ItemMarkdownStatus(ApiModel):
+    """ItemMarkdownStatus model."""
+
+    listing_markdown_status: Optional[StrictStr] = Field(default=None, alias="listingMarkdownStatus")
+    status_changed_date: Optional[StrictStr] = Field(default=None, alias="statusChangedDate")
+    status_message: Optional[StrictStr] = Field(default=None, alias="statusMessage")

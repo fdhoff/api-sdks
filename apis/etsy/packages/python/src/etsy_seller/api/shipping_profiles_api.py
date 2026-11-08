@@ -526,7 +526,7 @@ class ShippingProfilesApi(Resource):
         limit: Optional[Annotated[int, Field(le=100, strict=True, ge=1)]] = None,
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
     ) -> ShopShippingProfileDestinations:
-        """List one page of a shipping profile&#39;s destinations."""
+        """List one page of a shipping profile's destinations."""
         return self._call(
             _get_shop_shipping_profile_destinations_by_shipping_profile,
             shop_id=shop_id,
@@ -559,7 +559,7 @@ class ShippingProfilesApi(Resource):
         shop_id: Annotated[int, Field(strict=True, ge=1)],
         shipping_profile_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ShopShippingProfileUpgrades:
-        """List a shipping profile&#39;s upgrades."""
+        """List a shipping profile's upgrades."""
         return self._call(
             _get_shop_shipping_profile_upgrades,
             shop_id=shop_id,
@@ -571,7 +571,7 @@ class ShippingProfilesApi(Resource):
         self,
         shop_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ShopShippingProfiles:
-        """List a shop&#39;s shipping profiles."""
+        """List a shop's shipping profiles."""
         return self._call(
             _get_shop_shipping_profiles,
             shop_id=shop_id,
@@ -846,7 +846,7 @@ class AsyncShippingProfilesApi(AsyncResource):
         limit: Optional[Annotated[int, Field(le=100, strict=True, ge=1)]] = None,
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
     ) -> ShopShippingProfileDestinations:
-        """List one page of a shipping profile&#39;s destinations."""
+        """List one page of a shipping profile's destinations."""
         return await self._call(
             _get_shop_shipping_profile_destinations_by_shipping_profile,
             shop_id=shop_id,
@@ -879,7 +879,7 @@ class AsyncShippingProfilesApi(AsyncResource):
         shop_id: Annotated[int, Field(strict=True, ge=1)],
         shipping_profile_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ShopShippingProfileUpgrades:
-        """List a shipping profile&#39;s upgrades."""
+        """List a shipping profile's upgrades."""
         return await self._call(
             _get_shop_shipping_profile_upgrades,
             shop_id=shop_id,
@@ -891,7 +891,7 @@ class AsyncShippingProfilesApi(AsyncResource):
         self,
         shop_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ShopShippingProfiles:
-        """List a shop&#39;s shipping profiles."""
+        """List a shop's shipping profiles."""
         return await self._call(
             _get_shop_shipping_profiles,
             shop_id=shop_id,

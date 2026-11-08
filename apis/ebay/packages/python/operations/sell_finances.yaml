@@ -1,0 +1,17 @@
+# Public names for the Finances API, keyed by operationId. Summaries are ours, not upstream's.
+getOrderEarnings: { resource: order_earnings, method: list, iterator: iter, items: OrderEarning, paging: { items: orders }, summary: List one page of the seller's earnings by order. }
+getOrderEarningsById: { resource: order_earnings, method: get, summary: Get the seller's earnings from one order. }
+getOrderEarningsSummary: { resource: order_earnings, method: get_summary, summary: Sum the seller's earnings across orders. }
+
+getPayouts: { resource: payouts, method: list, iterator: iter, items: Payout, paging: { items: payouts }, summary: List one page of the seller's payouts. }
+getPayout: { resource: payouts, method: get, summary: Get one payout. }
+getPayoutSummary: { resource: payouts, method: get_summary, summary: Sum the seller's payouts. }
+
+getSellerFundsSummary: { resource: seller_funds, method: get_summary, summary: Get the seller's funds that are not yet paid out. }
+
+getTransactions: { resource: transactions, method: list, iterator: iter, items: Transaction, paging: { items: transactions }, summary: List one page of the seller's monetary transactions. }
+getTransactionSummary: { resource: transactions, method: get_summary, summary: Sum the seller's monetary transactions by type. }
+
+getTransfer: { resource: transfers, method: get, summary: Get one transfer of funds the seller owes eBay. }
+
+getBillingActivities: { resource: billing_activities, method: list, iterator: iter, items: BillingActivityLineItem, paging: { items: billingActivities }, summary: List one page of the seller's billing activities. }

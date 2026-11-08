@@ -1,0 +1,31 @@
+# Public names for the Metadata API, keyed by operationId. Summaries are ours, not upstream's.
+getAutomotivePartsCompatibilityPolicies: { resource: marketplaces, method: get_automotive_parts_compatibility_policies, summary: List the categories of a marketplace that support parts compatibility. }
+getCategoryPolicies: { resource: marketplaces, method: get_category_policies, summary: List the listing policies of a marketplace's categories. }
+getClassifiedAdPolicies: { resource: marketplaces, method: get_classified_ad_policies, summary: List the classified ad policies of a marketplace's categories. }
+getCurrencies: { resource: marketplaces, method: get_currencies, summary: Get the default currency of a marketplace. }
+getExtendedProducerResponsibilityPolicies: { resource: marketplaces, method: get_extended_producer_responsibility_policies, summary: List the extended producer responsibility policies of a marketplace's categories. }
+getHazardousMaterialsLabels: { resource: marketplaces, method: get_hazardous_materials_labels, summary: List the hazardous materials labels a marketplace accepts. }
+getItemConditionPolicies: { resource: marketplaces, method: get_item_condition_policies, summary: List the item conditions a marketplace's categories accept. }
+getListingStructurePolicies: { resource: marketplaces, method: get_listing_structure_policies, summary: List which of a marketplace's categories accept multi-variation listings. }
+getListingTypePolicies: { resource: marketplaces, method: get_listing_type_policies, summary: List the listing formats and durations of a marketplace's categories. }
+getMotorsListingPolicies: { resource: marketplaces, method: get_motors_listing_policies, summary: List the motors listing policies of a marketplace's categories. }
+getNegotiatedPricePolicies: { resource: marketplaces, method: get_negotiated_price_policies, summary: List the Best Offer policies of a marketplace's categories. }
+getProductSafetyLabels: { resource: marketplaces, method: get_product_safety_labels, summary: List the product safety labels a marketplace accepts. }
+getRegulatoryPolicies: { resource: marketplaces, method: get_regulatory_policies, summary: List the regulatory policies of a marketplace's categories. }
+getReturnPolicies: { resource: marketplaces, method: get_return_policies, summary: List the return policies of a marketplace's categories. }
+getShippingPolicies: { resource: marketplaces, method: get_shipping_policies, summary: List the shipping policies of a marketplace's categories. }
+getSiteVisibilityPolicies: { resource: marketplaces, method: get_site_visibility_policies, summary: List which of a marketplace's categories show on other marketplaces. }
+
+getCompatibilitiesBySpecification: { resource: compatibilities, method: get_by_specification, summary: List the vehicles that match a parts specification. }
+getCompatibilityPropertyNames: { resource: compatibilities, method: get_property_names, summary: List the compatibility property names of a category. }
+getCompatibilityPropertyValues: { resource: compatibilities, method: get_property_values, summary: List the values of one compatibility property. }
+getMultiCompatibilityPropertyValues: { resource: compatibilities, method: get_multi_property_values, summary: List the values of several compatibility properties. }
+getProductCompatibilities: { resource: compatibilities, method: get_product_compatibilities, summary: List the vehicles a product fits. }
+
+getExcludeShippingLocations: { resource: shipping, method: get_excluded_locations, summary: List the regions and countries a seller can exclude from shipping. }
+getHandlingTimes: { resource: shipping, method: get_handling_times, summary: List the handling times a marketplace accepts. }
+getShippingCarriers: { resource: shipping, method: get_carriers, summary: List the shipping carriers of a marketplace. }
+getShippingLocations: { resource: shipping, method: get_locations, summary: List the shipping locations of a marketplace. }
+getShippingServices: { resource: shipping, method: get_services, summary: List the shipping services of a marketplace. }
+
+getSalesTaxJurisdictions: { resource: countries, method: get_sales_tax_jurisdictions, summary: List the sales tax jurisdictions of a country. }

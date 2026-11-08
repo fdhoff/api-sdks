@@ -108,7 +108,7 @@ class ListingInventoryApi(Resource):
         show_deleted: Optional[StrictBool] = None,
         includes: Optional[StrictStr] = None,
     ) -> ListingInventoryWithAssociations:
-        """Get a listing&#39;s inventory."""
+        """Get a listing's inventory."""
         return self._call(
             _get_listing_inventory,
             listing_id=listing_id,
@@ -124,7 +124,7 @@ class ListingInventoryApi(Resource):
         *,
         legacy: Optional[StrictBool] = None,
     ) -> ListingInventoryProduct:
-        """Get one product of a listing&#39;s inventory."""
+        """Get one product of a listing's inventory."""
         return self._call(
             _get_listing_product,
             listing_id=listing_id,
@@ -153,7 +153,7 @@ class ListingInventoryApi(Resource):
         max_variations_supported: Optional[StrictStr] = None,
         enable_scale_validation: Optional[StrictBool] = None,
     ) -> ListingInventory:
-        """Replace a listing&#39;s inventory."""
+        """Replace a listing's inventory."""
         return self._call(
             _update_listing_inventory,
             listing_id=listing_id,
@@ -172,7 +172,7 @@ class AsyncListingInventoryApi(AsyncResource):
         show_deleted: Optional[StrictBool] = None,
         includes: Optional[StrictStr] = None,
     ) -> ListingInventoryWithAssociations:
-        """Get a listing&#39;s inventory."""
+        """Get a listing's inventory."""
         return await self._call(
             _get_listing_inventory,
             listing_id=listing_id,
@@ -188,7 +188,7 @@ class AsyncListingInventoryApi(AsyncResource):
         *,
         legacy: Optional[StrictBool] = None,
     ) -> ListingInventoryProduct:
-        """Get one product of a listing&#39;s inventory."""
+        """Get one product of a listing's inventory."""
         return await self._call(
             _get_listing_product,
             listing_id=listing_id,
@@ -217,7 +217,7 @@ class AsyncListingInventoryApi(AsyncResource):
         max_variations_supported: Optional[StrictStr] = None,
         enable_scale_validation: Optional[StrictBool] = None,
     ) -> ListingInventory:
-        """Replace a listing&#39;s inventory."""
+        """Replace a listing's inventory."""
         return await self._call(
             _update_listing_inventory,
             listing_id=listing_id,

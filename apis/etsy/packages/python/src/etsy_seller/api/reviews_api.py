@@ -70,7 +70,7 @@ class ReviewsApi(Resource):
         min_created: Optional[Annotated[int, Field(strict=True, ge=946684800)]] = None,
         max_created: Optional[Annotated[int, Field(strict=True, ge=946684800)]] = None,
     ) -> ListingReviews:
-        """List one page of a listing&#39;s reviews."""
+        """List one page of a listing's reviews."""
         return self._call(
             _get_reviews_by_listing,
             listing_id=listing_id,
@@ -110,7 +110,7 @@ class ReviewsApi(Resource):
         min_created: Optional[Annotated[int, Field(strict=True, ge=946684800)]] = None,
         max_created: Optional[Annotated[int, Field(strict=True, ge=946684800)]] = None,
     ) -> TransactionReviews:
-        """List one page of a shop&#39;s reviews."""
+        """List one page of a shop's reviews."""
         return self._call(
             _get_reviews_by_shop,
             shop_id=shop_id,
@@ -152,7 +152,7 @@ class AsyncReviewsApi(AsyncResource):
         min_created: Optional[Annotated[int, Field(strict=True, ge=946684800)]] = None,
         max_created: Optional[Annotated[int, Field(strict=True, ge=946684800)]] = None,
     ) -> ListingReviews:
-        """List one page of a listing&#39;s reviews."""
+        """List one page of a listing's reviews."""
         return await self._call(
             _get_reviews_by_listing,
             listing_id=listing_id,
@@ -192,7 +192,7 @@ class AsyncReviewsApi(AsyncResource):
         min_created: Optional[Annotated[int, Field(strict=True, ge=946684800)]] = None,
         max_created: Optional[Annotated[int, Field(strict=True, ge=946684800)]] = None,
     ) -> TransactionReviews:
-        """List one page of a shop&#39;s reviews."""
+        """List one page of a shop's reviews."""
         return await self._call(
             _get_reviews_by_shop,
             shop_id=shop_id,

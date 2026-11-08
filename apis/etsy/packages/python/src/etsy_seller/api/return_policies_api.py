@@ -181,7 +181,7 @@ class ReturnPoliciesApi(Resource):
         self,
         shop_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ShopReturnPolicies:
-        """List a shop&#39;s return policies."""
+        """List a shop's return policies."""
         return self._call(
             _get_shop_return_policies,
             shop_id=shop_id,
@@ -274,7 +274,7 @@ class AsyncReturnPoliciesApi(AsyncResource):
         self,
         shop_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ShopReturnPolicies:
-        """List a shop&#39;s return policies."""
+        """List a shop's return policies."""
         return await self._call(
             _get_shop_return_policies,
             shop_id=shop_id,

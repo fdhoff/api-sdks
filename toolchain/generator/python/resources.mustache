@@ -8,7 +8,7 @@ from typing import Any, Dict
 from {{apiPackage}} import {{classFilename}}
 {{/apis}}
 {{/apiInfo}}
-from {{packageName}}._runtime import AsyncTransport, Operation, SyncTransport
+from {{#runtimePackage}}{{runtimePackage}}{{/runtimePackage}}{{^runtimePackage}}{{packageName}}{{/runtimePackage}}._runtime import AsyncTransport, Operation, SyncTransport
 
 OPERATIONS: Dict[str, Operation[Any]] = {
     operation.id: operation

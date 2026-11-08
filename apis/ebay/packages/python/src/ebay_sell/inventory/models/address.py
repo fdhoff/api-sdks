@@ -1,0 +1,22 @@
+# coding: utf-8
+
+# Generated code. Do not edit by hand; change the templates, the overlay or the runtime instead.
+
+
+from __future__ import annotations
+
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from typing import Any, ClassVar, Dict, List, Optional
+from ebay_sell._runtime import ApiModel
+
+
+class Address(ApiModel):
+    """Address model."""
+
+    address_line1: Optional[StrictStr] = Field(default=None, alias="addressLine1")
+    address_line2: Optional[StrictStr] = Field(default=None, alias="addressLine2")
+    city: Optional[StrictStr] = None
+    country: Optional[StrictStr] = None
+    county: Optional[StrictStr] = None
+    postal_code: Optional[StrictStr] = Field(default=None, alias="postalCode")
+    state_or_province: Optional[StrictStr] = Field(default=None, alias="stateOrProvince")

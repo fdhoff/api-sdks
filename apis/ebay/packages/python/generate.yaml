@@ -1,0 +1,36 @@
+# How `npm run generate:python` builds this package. Each contract becomes a sub-module with its own models,
+# so schema names that repeat across contracts never collide. Public method names are in operations/.
+generator: python
+output: src/ebay_sell
+generated: [api, models]
+resources: _resources.py
+runtime: _runtime
+# Ruff's lint fixes drop the duplicate and unused imports the generator writes, then the formatter runs.
+format: [sh, -c, 'python -m ruff check --fix-only --quiet "$1" && python -m ruff format --quiet "$1"', --]
+properties:
+  runtimePackage: ebay_sell
+  generateSourceCodeOnly: true
+  disallowAdditionalPropertiesIfNotPresent: false
+  mapNumberTo: float
+collapse_single_unions: true
+contracts:
+  sell_account_v1: { output: src/ebay_sell/account, operations: operations/sell_account_v1.yaml, properties: { packageName: ebay_sell.account } }
+  sell_account_v2: { output: src/ebay_sell/account_v2, operations: operations/sell_account_v2.yaml, properties: { packageName: ebay_sell.account_v2 } }
+  sell_analytics: { output: src/ebay_sell/analytics, operations: operations/sell_analytics.yaml, properties: { packageName: ebay_sell.analytics } }
+  sell_feed: { output: src/ebay_sell/feed, operations: operations/sell_feed.yaml, properties: { packageName: ebay_sell.feed } }
+  sell_finances: { output: src/ebay_sell/finances, operations: operations/sell_finances.yaml, properties: { packageName: ebay_sell.finances } }
+  sell_fulfillment: { output: src/ebay_sell/fulfillment, operations: operations/sell_fulfillment.yaml, properties: { packageName: ebay_sell.fulfillment } }
+  sell_inventory: { output: src/ebay_sell/inventory, operations: operations/sell_inventory.yaml, properties: { packageName: ebay_sell.inventory } }
+  sell_marketing: { output: src/ebay_sell/marketing, operations: operations/sell_marketing.yaml, properties: { packageName: ebay_sell.marketing } }
+  sell_metadata: { output: src/ebay_sell/metadata, operations: operations/sell_metadata.yaml, properties: { packageName: ebay_sell.metadata } }
+  sell_negotiation: { output: src/ebay_sell/negotiation, operations: operations/sell_negotiation.yaml, properties: { packageName: ebay_sell.negotiation } }
+  sell_recommendation: { output: src/ebay_sell/recommendation, operations: operations/sell_recommendation.yaml, properties: { packageName: ebay_sell.recommendation } }
+  sell_stores: { output: src/ebay_sell/stores, operations: operations/sell_stores.yaml, properties: { packageName: ebay_sell.stores } }
+  commerce_feedback: { output: src/ebay_sell/feedback, operations: operations/commerce_feedback.yaml, properties: { packageName: ebay_sell.feedback } }
+  commerce_identity: { output: src/ebay_sell/identity, operations: operations/commerce_identity.yaml, properties: { packageName: ebay_sell.identity } }
+  commerce_media: { output: src/ebay_sell/media, operations: operations/commerce_media.yaml, properties: { packageName: ebay_sell.media } }
+  commerce_message: { output: src/ebay_sell/message, operations: operations/commerce_message.yaml, properties: { packageName: ebay_sell.message } }
+  commerce_notification: { output: src/ebay_sell/notification, operations: operations/commerce_notification.yaml, properties: { packageName: ebay_sell.notification } }
+  commerce_taxonomy: { output: src/ebay_sell/taxonomy, operations: operations/commerce_taxonomy.yaml, properties: { packageName: ebay_sell.taxonomy } }
+  developer_analytics: { output: src/ebay_sell/developer_analytics, operations: operations/developer_analytics.yaml, properties: { packageName: ebay_sell.developer_analytics } }
+  developer_key_management: { output: src/ebay_sell/key_management, operations: operations/developer_key_management.yaml, properties: { packageName: ebay_sell.key_management } }

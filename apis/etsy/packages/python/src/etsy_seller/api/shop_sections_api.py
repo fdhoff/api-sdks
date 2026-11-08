@@ -147,7 +147,7 @@ class ShopSectionsApi(Resource):
         self,
         shop_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ShopSections:
-        """List a shop&#39;s sections."""
+        """List a shop's sections."""
         return self._call(
             _get_shop_sections,
             shop_id=shop_id,
@@ -216,7 +216,7 @@ class AsyncShopSectionsApi(AsyncResource):
         self,
         shop_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ShopSections:
-        """List a shop&#39;s sections."""
+        """List a shop's sections."""
         return await self._call(
             _get_shop_sections,
             shop_id=shop_id,
