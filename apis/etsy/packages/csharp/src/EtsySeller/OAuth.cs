@@ -123,6 +123,8 @@ public sealed partial class EtsyOAuth
     {
         var refreshToken = credentials.RefreshToken
             ?? throw new InvalidOperationException("There is no refresh token: set RefreshToken, or exchange a code first");
+        // TODO: hand a waiter the error of the refresh it waited on. Re-sending the same refresh token after a timeout
+        // that Etsy already acted on gets invalid_grant instead.
         return OneAtATimeAsync(
             () => credentials.Replaced(refreshToken) is { } token
                 ? Task.FromResult(token)

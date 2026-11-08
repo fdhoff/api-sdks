@@ -308,6 +308,8 @@ func (o *OAuth) Refresh(ctx context.Context) (Token, error) {
 	if token, ok := o.credentials.replaced(refreshToken); ok {
 		return token, nil
 	}
+	// TODO: hand a waiter the error of the refresh it waited on. Re-sending the same refresh token after a
+	// timeout that Etsy already acted on gets invalid_grant instead.
 	return o.request(ctx, tokenForm{GrantType: "refresh_token", ClientID: o.credentials.apiKey, RefreshToken: refreshToken})
 }
 
