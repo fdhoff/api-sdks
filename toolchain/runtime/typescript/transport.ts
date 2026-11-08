@@ -92,6 +92,8 @@ const MAX_TIMER_MS = 2 ** 31 - 1;
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 const isContent = (value: unknown): value is FileContent => value instanceof Blob || value instanceof Uint8Array;
+const formText = (value: unknown): string =>
+  value instanceof Date ? value.toISOString() : isObject(value) ? JSON.stringify(value) : String(value);
 
 function appendFile(form: FormData, wire: string, content: FileContent, filename: string): void {
   form.append(wire, content instanceof Blob ? content : new Blob([content as Uint8Array<ArrayBuffer>]), filename);
@@ -103,7 +105,7 @@ function appendPart(form: FormData, wire: string, value: unknown): void {
   else if (isContent(value)) appendFile(form, wire, value, wire);
   else if (isObject(value) && isContent(value['content']) && typeof value['filename'] === 'string') {
     appendFile(form, wire, value['content'], value['filename']);
-  } else form.append(wire, isObject(value) ? JSON.stringify(value) : String(value));
+  } else form.append(wire, formText(value));
 }
 
 function buildRequest(settings: Settings, operation: Operation, body: unknown, params: Params): Built {
@@ -123,8 +125,7 @@ function buildRequest(settings: Settings, operation: Operation, body: unknown, p
     } else if (location === 'query') {
       for (const item of Array.isArray(value) ? value : [value]) query.append(wire, String(item));
     } else if (location === 'urlencoded') {
-      for (const item of Array.isArray(value) ? value : [value])
-        fields.append(wire, isObject(item) ? JSON.stringify(item) : String(item));
+      for (const item of Array.isArray(value) ? value : [value]) fields.append(wire, formText(item));
     } else {
       appendPart(form, wire, value);
       hasParts = true;
