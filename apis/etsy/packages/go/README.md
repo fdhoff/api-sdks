@@ -84,7 +84,7 @@ for receipt, err := range client.Receipts.Iter(ctx, *me.ShopID, &etsyseller.Rece
 }
 ```
 
-An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, passes it to the `WithOnToken` function, and retries the call. Concurrent calls, and an explicit `client.OAuth.Refresh`, share one refresh. When the refresh fails, the call returns the refresh's error, such as `ErrBadRequest` for an `invalid_grant`, not the 401.
+An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, passes it to the `WithOnToken` function, and retries the call. Concurrent calls, and an explicit `client.OAuth.Refresh`, share one refresh. When the refresh fails, the call returns the refresh's error, such as `ErrBadRequest` for an `invalid_grant`, not the 401. The `WithOnToken` function runs while the client holds its token lock, so it must not call `client.OAuth.Refresh` or `ExchangeCode`, or make a call that could get a 401: those wait for the lock forever. Store the token and return.
 
 Your credentials are read from nowhere and stored nowhere: you pass them in, and the client sends them only to the server you selected.
 

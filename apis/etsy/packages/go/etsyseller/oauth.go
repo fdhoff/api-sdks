@@ -308,7 +308,7 @@ func (o *OAuth) Refresh(ctx context.Context) (Token, error) {
 	if token, ok := o.credentials.replaced(refreshToken); ok {
 		return token, nil
 	}
-	return o.request(ctx, tokenForm{GrantType: "refresh_token", ClientID: o.credentials.apiKey, RefreshToken: o.credentials.currentRefreshToken()})
+	return o.request(ctx, tokenForm{GrantType: "refresh_token", ClientID: o.credentials.apiKey, RefreshToken: refreshToken})
 }
 
 // acquire lets one token request run at a time. A caller can stop waiting for its turn.

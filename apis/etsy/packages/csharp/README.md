@@ -63,7 +63,7 @@ await foreach (var receipt in client.Receipts.ListAllAsync(me.ShopId!.Value, was
 }
 ```
 
-An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, passes it to `OnToken`, and retries the call. Concurrent calls, and an explicit `OAuth.RefreshAsync`, share one refresh. If the refresh fails, the call throws the refresh's error, such as a `BadRequestException` for `invalid_grant`, not the 401.
+An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, passes it to `OnToken`, and retries the call. Concurrent calls, and an explicit `OAuth.RefreshAsync`, share one refresh. If the refresh fails, the call throws the refresh's error, such as a `BadRequestException` for `invalid_grant`, not the 401. `OnToken` runs while the client holds its token lock, so it must not await `OAuth.RefreshAsync`, `ExchangeCodeAsync`, or a call that could get a 401: those wait for the lock forever. Store the token and return.
 
 Your credentials are read from nowhere and stored nowhere: you pass them in, and the client sends them only to the server you selected.
 
