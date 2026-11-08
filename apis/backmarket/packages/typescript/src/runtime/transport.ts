@@ -206,7 +206,11 @@ export class Transport {
     this.#settings.logger?.[level](message.replaceAll(this.#settings.secret, REDACTED));
   }
 
-  async #attempt({ method, returnsJson }: Operation, { url, init }: Built, signal: AbortSignal | undefined): Promise<unknown> {
+  async #attempt(
+    { method, returnsJson }: Operation,
+    { url, init }: Built,
+    signal: AbortSignal | undefined,
+  ): Promise<unknown> {
     const settings = this.#settings;
     const { fetch } = settings;
     this.#log('debug', `-> ${method} ${url}`);
