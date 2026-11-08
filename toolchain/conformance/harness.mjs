@@ -31,9 +31,10 @@ async function trickle(response, payload, interval) {
   response.end();
 }
 
-function send(response, { status, headers = {}, body, delay_ms: delay = 0, trickle_ms: interval, gzip, cut }, request) {
+function send(response, { status, headers = {}, body, body_base64: base64, delay_ms: delay = 0, trickle_ms: interval, gzip, cut }, request) {
   const isText = typeof body === 'string';
-  let payload = Buffer.from(body === undefined ? '' : isText ? body : JSON.stringify(body));
+  const text = body === undefined ? '' : isText ? body : JSON.stringify(body);
+  let payload = base64 === undefined ? Buffer.from(text) : Buffer.from(base64, 'base64');
   const defaults = body === undefined || isText ? {} : { 'content-type': 'application/json' };
   if (gzip && acceptsGzip(request.headers['accept-encoding'])) {
     payload = gzipSync(payload);
@@ -93,6 +94,7 @@ export async function startHarness(prismUrl) {
       query: Object.fromEntries(url.searchParams),
       headers: request.headers,
       body: body.toString(),
+      base64: body.toString('base64'),
       sha256: createHash('sha256').update(body).digest('base64'),
       at: performance.now(),
     });

@@ -11,7 +11,7 @@ import { runCases, startDriver } from './run.mjs';
 const FIXTURE = fileURLToPath(new URL('./fixtures/driver.mjs', import.meta.url));
 const SIGNING_CASES = fileURLToPath(new URL('./fixtures/signing', import.meta.url));
 const fixtureCases = (style) => fileURLToPath(new URL(`./fixtures/cases/${style}`, import.meta.url));
-const operations = new Set(['list-items', 'create-item', 'list-files']);
+const operations = new Set(['list-items', 'create-item', 'list-files', 'download-file', 'upload-file', 'get-report']);
 
 const baseCase = () => ({
   name: 'lists-items',
@@ -54,7 +54,10 @@ test('validateCase reports each malformed part', () => {
     [{ mock: { responses: [{ status: 200, gzip: 'yes' }] } }, /gzip must be true/],
     [{ mock: { responses: [{ status: 200, cut: 1.5 }] } }, /cut must be an integer/],
     [{ wire: [] }, /wire must be a non-empty list/],
-    [{ wire: [{ method: 'GET', path: '/items', body: {}, parts: {} }] }, /at most one of body or parts/],
+    [{ wire: [{ method: 'GET', path: '/items', body: {}, parts: {} }] }, /at most one of body, body_base64 or parts/],
+    [{ wire: [{ method: 'GET', path: '/items', body: {}, body_base64: '' }] }, /at most one of body, body_base64 or parts/],
+    [{ request: { operation: 'upload-file', body: {}, raw_body_base64: '' } }, /at most one of body, multipart or raw_body_base64/],
+    [{ mock: { responses: [{ status: 200, body: 'a', body_base64: 'YQ==' }] } }, /at most one of body or body_base64/],
     [{ expect: {} }, /exactly one of result/],
     [{ expect: { error: { status: 500 } } }, /needs a kind/],
   ];
@@ -421,4 +424,30 @@ test('headers cases fail only on the header for a driver that ignores the client
     failed.map(({ failures }) => failures),
     [['wire[0]: header x-tenant is undefined, expected acme']],
   );
+});
+
+test('checkCase compares the exact body bytes as base64', () => {
+  const item = { ...baseCase(), wire: [{ method: 'GET', path: '/items', body_base64: 'AP8=' }] };
+  assert.deepEqual(checkCase(item, [sent({ base64: 'AP8=' })], { result: { id: 1 } }, { token: 't0ken' }), []);
+  assert.match(checkCase(item, [sent({ base64: '77+9' })], { result: { id: 1 } }, { token: 't0ken' }).join(), /body is base64 77\+9/);
+});
+
+test('harness sends a base64 body as its bytes and records request bytes as base64', async () => {
+  harness.play({ responses: [{ status: 200, headers: { 'content-type': 'application/pdf' }, body_base64: 'AP/+' }] });
+  const response = await fetch(`${harness.url}/download`, { method: 'POST', body: Buffer.of(0x00, 0xff) });
+  assert.equal(response.headers.get('content-type'), 'application/pdf');
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), Buffer.of(0x00, 0xff, 0xfe));
+  assert.equal(harness.requests()[0].base64, 'AP8=');
+});
+
+test('binary cases hold for a driver that keeps bytes as bytes', async () => {
+  const cases = await loadCases(fixtureCases('binary'), operations);
+  assert.ok(cases.length > 0);
+  assert.deepEqual(await runWith('binary', cases), []);
+});
+
+test('binary cases fail a driver that decodes bodies as text', async () => {
+  const cases = await loadCases(fixtureCases('binary'), operations);
+  const failed = (await runWith('binary-as-text', cases)).map(({ name }) => name);
+  assert.deepEqual(failed, ['binary-download-returns-the-exact-bytes', 'binary-upload-sends-the-bytes-unchanged']);
 });

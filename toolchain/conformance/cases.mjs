@@ -4,8 +4,8 @@ import { parse } from 'yaml';
 
 const METHODS = ['get', 'put', 'post', 'delete', 'patch'];
 const CASE_KEYS = ['name', 'client', 'request', 'mock', 'wire', 'expect'];
-const REQUEST_KEYS = ['operation', 'params', 'body', 'multipart', 'paginate'];
-const RESPONSE_KEYS = ['status', 'headers', 'body', 'delay_ms', 'drop', 'trickle_ms', 'gzip', 'cut'];
+const REQUEST_KEYS = ['operation', 'params', 'body', 'multipart', 'raw_body_base64', 'paginate'];
+const RESPONSE_KEYS = ['status', 'headers', 'body', 'body_base64', 'delay_ms', 'drop', 'trickle_ms', 'gzip', 'cut'];
 const WIRE_KEYS = [
   'method',
   'host',
@@ -15,6 +15,7 @@ const WIRE_KEYS = [
   'headers_match',
   'headers_absent',
   'body',
+  'body_base64',
   'parts',
   'content_digest',
   'min_delay_ms',
@@ -43,8 +44,8 @@ export function validateCase(item, operations) {
 
   unknown('request', item.request, REQUEST_KEYS);
   if (!operations.has(item.request?.operation)) errors.push(`unknown operation ${item.request?.operation}`);
-  if (item.request?.body !== undefined && item.request?.multipart !== undefined) {
-    errors.push('request needs at most one of body or multipart');
+  if (['body', 'multipart', 'raw_body_base64'].filter((key) => item.request?.[key] !== undefined).length > 1) {
+    errors.push('request needs at most one of body, multipart or raw_body_base64');
   }
 
   const { prism, responses } = item.mock ?? {};
@@ -61,13 +62,18 @@ export function validateCase(item, operations) {
     }
     if (response.gzip !== undefined && response.gzip !== true) errors.push('mock.responses[].gzip must be true');
     if (response.cut !== undefined && !Number.isInteger(response.cut)) errors.push('mock.responses[].cut must be an integer');
+    if (response.body !== undefined && response.body_base64 !== undefined) {
+      errors.push('mock.responses[] needs at most one of body or body_base64');
+    }
   }
 
   if (!(Array.isArray(item.wire) && item.wire.length > 0)) errors.push('wire must be a non-empty list');
   for (const request of item.wire ?? []) {
     unknown('wire[]', request, WIRE_KEYS);
     if (!request.method || !request.path) errors.push('wire[] needs method and path');
-    if (request.body !== undefined && request.parts !== undefined) errors.push('wire[] needs at most one of body or parts');
+    if (['body', 'body_base64', 'parts'].filter((key) => request[key] !== undefined).length > 1) {
+      errors.push('wire[] needs at most one of body, body_base64 or parts');
+    }
     if (![undefined, true].includes(request.content_digest)) errors.push('wire[].content_digest can only be true');
   }
   if (Array.isArray(responses) && Array.isArray(item.wire) && responses.length !== item.wire.length) {

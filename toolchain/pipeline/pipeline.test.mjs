@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyHeaders, applyHosts, applyOperations, checkHeaderDefaults, collapseSingleUnions, omitOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
+import { applyBinary, applyHeaders, applyHosts, applyOperations, checkHeaderDefaults, collapseSingleUnions, omitOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -257,6 +257,51 @@ test('applyOperations marks operations whose success response declares a JSON bo
   assert.equal(json({ 200: body('application/problem+json') }), true);
   assert.equal(json({ 200: body('*/*') }), false);
   assert.equal(json({ 200: body('application/x-ndjson') }), false);
+});
+
+test('applyBinary marks binary responses and raw request bodies, and drops what generators would type', () => {
+  const file = { type: 'string', format: 'binary' };
+  const spec = () => ({
+    paths: {
+      '/download': {
+        get: {
+          operationId: 'download',
+          responses: {
+            200: { content: { 'application/pdf': { schema: file } } },
+            206: { $ref: '#/components/responses/Partial' },
+            404: { content: { 'application/json': { schema: {} } } },
+          },
+        },
+      },
+      '/upload': { post: { operationId: 'upload', requestBody: { content: { 'application/octet-stream': { schema: { $ref: '#/components/schemas/File' } } } } } },
+      '/form': { post: { operationId: 'form', requestBody: { content: { 'multipart/form-data': { schema: { properties: { file } } } } } } },
+      '/text': { get: { operationId: 'text', responses: { 200: { content: { 'text/plain': { schema: { type: 'string' } } } } } } },
+    },
+    components: { schemas: { File: file }, responses: { Partial: { content: { 'application/octet-stream': { schema: file } } } } },
+  });
+  const { paths, components } = applyBinary(spec());
+  const download = paths['/download'].get;
+  assert.equal(download['x-sdk-binary-response'], true);
+  assert.deepEqual(download.responses[200], { description: '' });
+  assert.deepEqual(download.responses[206], { description: '' });
+  assert.deepEqual(Object.keys(download.responses[404].content), ['application/json']);
+  assert.ok(components.responses.Partial.content);
+  const upload = paths['/upload'].post;
+  assert.equal(upload['x-sdk-raw-body'], 'application/octet-stream');
+  assert.equal(upload.requestBody, undefined);
+  assert.deepEqual(applyBinary(spec()).paths['/form'], spec().paths['/form']);
+  assert.deepEqual(applyBinary(spec()).paths['/text'], spec().paths['/text']);
+
+  const names = { download: { resource: 'r', method: 'download', summary: 'D.' } };
+  const only = { paths: { '/download': spec().paths['/download'] }, components: spec().components };
+  assert.equal(applyOperations(applyBinary(only), names).paths['/download'].get['x-sdk-returns-json'], false);
+
+  const mixed = spec();
+  mixed.paths['/download'].get.responses[201] = { content: { 'application/json': { schema: {} } } };
+  assert.throws(() => applyBinary(mixed), /download: a success response mixes binary and other bodies/);
+  const offered = spec();
+  offered.paths['/upload'].post.requestBody.content['application/json'] = { schema: {} };
+  assert.throws(() => applyBinary(offered), /upload: a request body offers binary and other media types/);
 });
 
 test('applyOperations passes each operation its security requirements, inherited or its own', () => {
