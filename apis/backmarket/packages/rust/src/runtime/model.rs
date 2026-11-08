@@ -126,6 +126,7 @@ macro_rules! tolerant_model {
 
 /// An enumeration that keeps a value it does not list in `Unlisted`, so a new value from the API
 /// does not fail a whole response.
+#[allow(unused_macros, reason = "an API may declare no enumerations")]
 macro_rules! open_enum {
     ($(#[$meta:meta])* $name:ident: $repr:ty { $($variant:ident = $value:literal),* $(,)? }) => {
         $(#[$meta])*

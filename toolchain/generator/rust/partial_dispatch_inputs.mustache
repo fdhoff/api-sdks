@@ -4,17 +4,13 @@
 {{#bodyParam}}
             let body: {{^required}}Option<{{/required}}{{>partial_value_type}}{{^required}}>{{/required}} = body(case);
 {{/bodyParam}}
-{{#hasQueryParams}}
+{{#vendorExtensions.x-sdk-has-params}}
             let params = {{>partial_params_name}} {
 {{#queryParams}}
                 {{{paramName}}}: param(&case.params, "{{baseName}}"),
 {{/queryParams}}
-            };
-{{/hasQueryParams}}
-{{#hasFormParams}}
-            let params = {{>partial_params_name}} {
 {{#formParams}}
-                {{{paramName}}}: {{#isFile}}files{{/isFile}}{{^isFile}}param{{/isFile}}(&case.multipart, "{{baseName}}"),
+                {{{paramName}}}: {{#isFile}}files{{/isFile}}{{^isFile}}param{{/isFile}}({{#isMultipart}}&case.multipart{{/isMultipart}}{{^isMultipart}}&crate::form_fields(case){{/isMultipart}}, "{{baseName}}"),
 {{/formParams}}
             };
-{{/hasFormParams}}
+{{/vendorExtensions.x-sdk-has-params}}

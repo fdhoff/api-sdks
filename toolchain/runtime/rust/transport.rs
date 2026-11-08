@@ -110,6 +110,10 @@ async fn encode(body: &Body) -> Result<(Option<String>, Vec<u8>), Error> {
     let parts = match body {
         Body::Empty => return Ok((None, Vec::new())),
         Body::Json(bytes) => return Ok((Some("application/json".to_owned()), bytes.clone())),
+        Body::Form(fields) => {
+            let text = url::form_urlencoded::Serializer::new(String::new()).extend_pairs(fields).finish();
+            return Ok((Some("application/x-www-form-urlencoded".to_owned()), text.into_bytes()));
+        }
         Body::Multipart(parts) => parts,
     };
     let form = form(parts);
@@ -278,7 +282,10 @@ impl Transport {
                 Ok(answer) => return Ok(answer),
                 Err(failure) => failure,
             };
-            if failure.status() == Some(StatusCode::UNAUTHORIZED.as_u16()) && !refreshed {
+            // An operation that sends no credentials, such as a token request made during a
+            // refresh, has nothing to refresh.
+            let secured = !request.operation.security.is_empty();
+            if failure.status() == Some(StatusCode::UNAUTHORIZED.as_u16()) && !refreshed && secured {
                 refreshed = true;
                 if self.refresh(&auth, generation).await? {
                     self.log(log::Level::Info, format_args!("retrying after refreshing credentials"));

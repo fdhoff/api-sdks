@@ -57,8 +57,8 @@ pub struct Operation {
     pub returns_json: bool,
     /// How an iterator walks pages. `None` means [`Paging::DEFAULT`].
     pub paging: Option<Paging>,
-    /// The spec's security requirements: any one alternative, each needing all its schemes.
-    #[allow(dead_code, reason = "only credentials that vary by operation read it")]
+    /// The spec's security requirements: any one alternative, each needing all its schemes. Empty
+    /// means the operation sends no credentials, so a 401 is final.
     pub security: &'static [&'static [Scheme]],
 }
 
@@ -100,6 +100,9 @@ pub enum Body {
     Empty,
     Json(Vec<u8>),
     Multipart(Vec<Part>),
+    /// `application/x-www-form-urlencoded` fields, in order. A list repeats its field.
+    #[allow(dead_code, reason = "an API may send no form-encoded bodies")]
+    Form(Vec<(String, String)>),
 }
 
 /// One call's method, path, query and body, ready to send and to resend.
@@ -370,6 +373,30 @@ impl Request {
         }
     }
 
+    /// Adds a form-encoded field, once per item for a list. Nothing is sent for `None`.
+    #[allow(dead_code, reason = "an API may send no form-encoded bodies")]
+    pub fn urlencoded(&mut self, name: &str, value: &impl FormValue) {
+        let mut fields = match std::mem::replace(&mut self.body, Body::Empty) {
+            Body::Form(fields) => fields,
+            _ => Vec::new(),
+        };
+        let mut parts = Vec::new();
+        value.parts(name, &mut parts);
+        for part in parts {
+            match part {
+                Part::Text { name, value } => fields.push((name, value)),
+                Part::File { .. } => {
+                    self.invalid = Some(format!(
+                        "{name} is a file, which a form-encoded body cannot carry"
+                    ))
+                }
+            }
+        }
+        if !fields.is_empty() {
+            self.body = Body::Form(fields);
+        }
+    }
+
     pub fn url(&self, base: &str) -> String {
         if self.query.is_empty() {
             return format!("{base}{}", self.path);
@@ -454,6 +481,34 @@ mod tests {
     fn a_null_body_is_not_sent() {
         let request = Request::new(&OPERATION).json(&None::<Value>);
         assert!(matches!(request.body, Body::Empty));
+    }
+
+    #[test]
+    fn form_encoded_fields_skip_none_and_repeat_lists() {
+        let mut request = Request::new(&OPERATION);
+        request.urlencoded("title", &Some("a b&c".to_owned()));
+        request.urlencoded("missing", &None::<String>);
+        request.urlencoded("tags", &Some(vec!["x".to_owned(), "y".to_owned()]));
+        request.urlencoded("price", &Some(1.5));
+        let Body::Form(fields) = &request.body else {
+            panic!("expected a form body")
+        };
+        let fields: Vec<(&str, &str)> = fields
+            .iter()
+            .map(|(name, value)| (name.as_str(), value.as_str()))
+            .collect();
+        assert_eq!(
+            fields,
+            [
+                ("title", "a b&c"),
+                ("tags", "x"),
+                ("tags", "y"),
+                ("price", "1.5")
+            ]
+        );
+        assert!(request.invalid.is_none());
+        request.urlencoded("image", &Some(File::new("a.png", b"png".to_vec())));
+        assert!(request.invalid.is_some());
     }
 
     #[test]
