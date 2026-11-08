@@ -246,6 +246,7 @@ dependencies = [
 name = "etsy-seller"
 version = "0.1.0-alpha.1"
 dependencies = [
+ "aws-lc-rs",
  "base64 0.22.1",
  "chrono",
  "flate2",

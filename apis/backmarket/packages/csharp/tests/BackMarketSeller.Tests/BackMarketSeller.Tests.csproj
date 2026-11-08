@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
     <PackageReference Include="xunit.v3" Version="4.0.2" />
   </ItemGroup>
@@ -19,6 +20,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The package leaves out the runtime's message signer, so its tests compile it here. -->
+    <Compile Include="../../src/BackMarketSeller/Runtime/MessageSigner.cs" Link="Runtime/MessageSigner.cs" />
     <ProjectReference Include="../../src/BackMarketSeller/BackMarketSeller.csproj" />
   </ItemGroup>
 

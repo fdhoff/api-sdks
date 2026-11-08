@@ -1,6 +1,7 @@
 from .credentials import AuthRequest, Credentials, Requirement, Scheme, StaticCredentials, redact
 from .errors import ApiConnectionError, ApiError, ApiTimeoutError, DecodeError, ErrorContext
 from .model import ApiModel, checked, to_wire
+from .signing import ED25519, RSA_V1_5_SHA256, MessageSigner, content_digest
 from .transport import (
     AsyncResource,
     AsyncTransport,
@@ -15,6 +16,8 @@ from .transport import (
 )
 
 __all__ = [
+    "ED25519",
+    "RSA_V1_5_SHA256",
     "ApiConnectionError",
     "ApiError",
     "ApiModel",
@@ -26,6 +29,7 @@ __all__ = [
     "DecodeError",
     "ErrorContext",
     "FileInput",
+    "MessageSigner",
     "NextLink",
     "Offset",
     "Operation",
@@ -37,6 +41,7 @@ __all__ = [
     "StaticCredentials",
     "SyncTransport",
     "checked",
+    "content_digest",
     "redact",
     "to_wire",
 ]

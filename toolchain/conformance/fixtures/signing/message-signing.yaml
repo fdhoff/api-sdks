@@ -1,0 +1,65 @@
+# HTTP message signatures (RFC 9421) with a Content-Digest (RFC 9530), as the runtimes' message signer
+# sends them over its default label. An API that signs requests can copy these cases and add its own key header.
+cases:
+  - name: signed-request-carries-a-digest-of-its-body
+    request:
+      operation: create-item
+      body: { name: synthetic, quantity: 2 }
+    mock:
+      responses:
+        - status: 200
+          body: { id: 1 }
+    wire:
+      - method: POST
+        path: /items
+        headers: { authorization: 'Basic {{token}}' }
+        headers_match:
+          signature-input: '^sig1=\("content-digest" "@method" "@path" "@authority"\);created=\d+$'
+          signature: '^sig1=:[A-Za-z0-9+/]+={0,2}:$'
+        content_digest: true
+        body: { name: synthetic, quantity: 2 }
+    expect:
+      result: { id: 1 }
+
+  - name: signed-request-is-signed-again-on-each-attempt
+    request:
+      operation: create-item
+      body: { name: synthetic }
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '0' }
+        - status: 200
+          body: { id: 1 }
+    wire:
+      - method: POST
+        path: /items
+        headers_match:
+          signature-input: '^sig1=\("content-digest" "@method" "@path" "@authority"\);created=\d+$'
+          signature: '^sig1=:[A-Za-z0-9+/]+={0,2}:$'
+        content_digest: true
+      - method: POST
+        path: /items
+        headers_match:
+          signature-input: '^sig1=\("content-digest" "@method" "@path" "@authority"\);created=\d+$'
+          signature: '^sig1=:[A-Za-z0-9+/]+={0,2}:$'
+        content_digest: true
+    expect:
+      result: { id: 1 }
+
+  - name: signed-request-without-a-body-has-no-digest
+    request:
+      operation: list-items
+    mock:
+      responses:
+        - status: 200
+          body: { id: 1 }
+    wire:
+      - method: GET
+        path: /items
+        headers_match:
+          signature-input: '^sig1=\("@method" "@path" "@authority"\);created=\d+$'
+          signature: '^sig1=:[A-Za-z0-9+/]+={0,2}:$'
+        headers_absent: [content-digest]
+    expect:
+      result: { id: 1 }

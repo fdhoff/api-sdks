@@ -92,6 +92,10 @@ function checkWire(wire, requests, failures) {
     checkHeaders(expected, actual, label, failures);
     checkBody(expected.body, actual.body, label, failures);
     checkParts(expected.parts, actual, label, failures);
+    const digest = `sha-256=:${actual.sha256}:`;
+    if (expected.content_digest && actual.headers['content-digest'] !== digest) {
+      failures.push(`${label}: Content-Digest is ${actual.headers['content-digest']}, expected ${digest}`);
+    }
     if (expected.min_delay_ms !== undefined) {
       const delay = actual.at - (requests[index - 1]?.at ?? actual.at);
       if (delay < expected.min_delay_ms) failures.push(`${label}: sent after ${delay}ms`);

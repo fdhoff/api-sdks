@@ -6,7 +6,18 @@ const METHODS = ['get', 'put', 'post', 'delete', 'patch'];
 const CASE_KEYS = ['name', 'client', 'request', 'mock', 'wire', 'expect'];
 const REQUEST_KEYS = ['operation', 'params', 'body', 'multipart', 'paginate'];
 const RESPONSE_KEYS = ['status', 'headers', 'body', 'delay_ms', 'drop', 'trickle_ms', 'gzip', 'cut'];
-const WIRE_KEYS = ['method', 'path', 'query', 'headers', 'headers_match', 'headers_absent', 'body', 'parts', 'min_delay_ms'];
+const WIRE_KEYS = [
+  'method',
+  'path',
+  'query',
+  'headers',
+  'headers_match',
+  'headers_absent',
+  'body',
+  'parts',
+  'content_digest',
+  'min_delay_ms',
+];
 const EXPECT_KEYS = ['result', 'result_keys', 'error', 'logs_required'];
 const OUTCOMES = ['result', 'result_keys', 'error'];
 
@@ -56,6 +67,7 @@ export function validateCase(item, operations) {
     unknown('wire[]', request, WIRE_KEYS);
     if (!request.method || !request.path) errors.push('wire[] needs method and path');
     if (request.body !== undefined && request.parts !== undefined) errors.push('wire[] needs at most one of body or parts');
+    if (![undefined, true].includes(request.content_digest)) errors.push('wire[].content_digest can only be true');
   }
   if (Array.isArray(responses) && Array.isArray(item.wire) && responses.length !== item.wire.length) {
     errors.push(`${responses.length} scripted responses but ${item.wire.length} wire requests`);
