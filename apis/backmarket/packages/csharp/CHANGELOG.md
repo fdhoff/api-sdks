@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* The repository moved to `fdhoff/api-sdks`; the package's repository and documentation links point there.
 * Targets .NET 8 as well as .NET 10.
 * A constructor takes your own `HttpClient`, and `services.AddBackMarketSeller(token, options)` registers the client with `IHttpClientFactory`. Writes are still never resent.
 * Writes reuse pooled connections instead of opening one each. The token and other headers are sent per request, not set on the `HttpClient`.

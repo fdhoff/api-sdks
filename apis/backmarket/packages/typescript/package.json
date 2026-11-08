@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fdhoff/backmarket-seller-sdk.git",
+    "url": "git+https://github.com/fdhoff/api-sdks.git",
     "directory": "apis/backmarket/packages/typescript"
   },
   "type": "module",

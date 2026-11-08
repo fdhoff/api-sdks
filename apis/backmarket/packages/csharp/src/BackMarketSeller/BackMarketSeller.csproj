@@ -10,14 +10,14 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <PackageId>BackMarketSeller</PackageId>
     <Version>0.1.0-alpha.1</Version>
-    <Authors>backmarket-seller-sdk contributors</Authors>
+    <Authors>api-sdks contributors</Authors>
     <Description>Unofficial client for the Back Market Seller API. Not affiliated with Back Market.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
-    <PackageProjectUrl>https://github.com/fdhoff/backmarket-seller-sdk/tree/main/apis/backmarket/packages/csharp</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/fdhoff/api-sdks/tree/main/apis/backmarket/packages/csharp</PackageProjectUrl>
     <PackageTags>seller-api;sdk;unofficial</PackageTags>
-    <RepositoryUrl>https://github.com/fdhoff/backmarket-seller-sdk</RepositoryUrl>
+    <RepositoryUrl>https://github.com/fdhoff/api-sdks</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <!-- Source Link ships with the .NET SDK; these record the commit and let debuggers fetch the source. -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>

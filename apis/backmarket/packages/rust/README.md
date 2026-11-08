@@ -85,7 +85,7 @@ With `http_client`, the client still sends its own headers and applies its timeo
 
 ## Design
 
-See the [architecture document](https://github.com/fdhoff/backmarket-seller-sdk/blob/main/docs/architecture.md) for the runtime contract, testing limits and the decisions behind them.
+See the [architecture document](https://github.com/fdhoff/api-sdks/blob/main/docs/architecture.md) for the runtime contract, testing limits and the decisions behind them.
 
 ## Licence
 

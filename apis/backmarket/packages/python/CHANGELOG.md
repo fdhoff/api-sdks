@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* The repository moved to `fdhoff/api-sdks`; the package's repository and documentation links point there.
 * An empty success body where the spec declares JSON raises `DecodeError` instead of returning `None`. Where the spec declares text, it reads as `""`.
 * Method arguments are checked against their declared types and limits, such as `page_size` up to 50, and raise `ValidationError` before a request is sent. Previously they were sent as given.
 * A response body that does not fit its declared type at all raises `DecodeError` with the body in `raw_body`, instead of returning the decoded JSON. Fields inside an object are still parsed tolerantly.

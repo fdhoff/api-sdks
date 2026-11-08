@@ -2,7 +2,7 @@
 
 package backmarketseller
 
-import "github.com/fdhoff/backmarket-seller-sdk/apis/backmarket/packages/go/internal/runtime"
+import "github.com/fdhoff/api-sdks/apis/backmarket/packages/go/internal/runtime"
 
 // Resources groups every API operation by resource.
 type Resources struct {

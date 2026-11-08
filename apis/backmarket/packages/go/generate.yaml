@@ -11,7 +11,7 @@ properties:
   disallowAdditionalPropertiesIfNotPresent: false
   withGoMod: false
   apiNameSuffix: Resource
-  modulePath: github.com/fdhoff/backmarket-seller-sdk/apis/backmarket/packages/go
+  modulePath: github.com/fdhoff/api-sdks/apis/backmarket/packages/go
 # Every field is a pointer here, so nil already means null or absent.
 drop_nullable: true
 # A field of several types becomes `any`.
