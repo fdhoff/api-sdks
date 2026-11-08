@@ -54,12 +54,17 @@ test('only the spec drift job reads the spec from upstream', async () => {
   assert.deepEqual(offenders, []);
 });
 
-test('the spec cache is keyed by the pinned hash', async () => {
+test('the spec cache is keyed by the pinned hashes', async () => {
   const action = parse(await readFile(join(ROOT, SPEC_ACTION, 'action.yml'), 'utf8'));
-  assert.match(action.runs.steps.find((step) => step.id === 'key').run, /jq -r \.sha256 .*lock\.json/);
+  const cache = 'node toolchain/pipeline/spec-cache.mjs "apis/$API" >> "$GITHUB_OUTPUT"';
+  assert.equal(action.runs.steps.find((step) => step.id === 'key').run, cache);
+  for (const step of action.runs.steps.filter((item) => item.uses?.startsWith('actions/cache/'))) {
+    assert.deepEqual(step.with, { path: '${{ steps.key.outputs.path }}', key: '${{ steps.key.outputs.key }}' });
+  }
   const drift = parse(await readFile(join(WORKFLOWS, 'spec-drift.yml'), 'utf8')).jobs.drift.steps;
+  assert.equal(drift.find((step) => step.id === 'lock').run, cache);
   const save = drift.find((step) => step.uses?.startsWith('actions/cache/save@'));
-  assert.equal(save.with.key, 'upstream-spec-${{ steps.pin.outputs.upstream }}');
+  assert.deepEqual(save.with, { path: '${{ steps.lock.outputs.path }}', key: '${{ steps.pin.outputs.key }}' });
 });
 
 test('one job per workflow saves the spec cache after a miss', async () => {

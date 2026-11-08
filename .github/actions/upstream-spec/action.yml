@@ -1,6 +1,6 @@
 name: Pinned upstream spec
 description: >-
-  Restores the pinned upstream spec from the Actions cache, keyed by the SHA-256 in lock.json.
+  Restores the pinned upstream specs from the Actions cache, keyed by the SHA-256 hashes in lock.json.
   Downloads it only on a miss, and fails if upstream no longer matches the pin.
   Run npm ci first. See docs/architecture.md.
 inputs:
@@ -19,11 +19,11 @@ runs:
       shell: bash
       env:
         API: ${{ inputs.api }}
-      run: echo "key=upstream-spec-$(jq -r .sha256 "apis/$API/spec/upstream/lock.json")" >> "$GITHUB_OUTPUT"
+      run: node toolchain/pipeline/spec-cache.mjs "apis/$API" >> "$GITHUB_OUTPUT"
     - id: cache
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        path: apis/${{ inputs.api }}/spec/upstream/openapi.yaml
+        path: ${{ steps.key.outputs.path }}
         key: ${{ steps.key.outputs.key }}
     - shell: bash
       env:
@@ -40,5 +40,5 @@ runs:
     - if: inputs.save == 'true' && steps.cache.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        path: apis/${{ inputs.api }}/spec/upstream/openapi.yaml
+        path: ${{ steps.key.outputs.path }}
         key: ${{ steps.key.outputs.key }}

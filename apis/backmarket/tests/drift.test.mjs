@@ -89,7 +89,7 @@ test('the spec drift job proposes a pin for an API with no packages', async () =
       BRANCH: 'spec-drift-example',
       LOCK: lock,
       PACKAGES: 'apis/example/packages',
-      SPEC: 'apis/example/spec/upstream/openapi.yaml',
+      UPSTREAM: 'abc',
       RUNNER_TEMP: root,
       OPEN_PR: '',
       HAS_TOKEN: 'true',

@@ -1,10 +1,11 @@
-// Keeps an API's pinned upstream spec in a local, gitignored cache.
-// No flag fetches it from the lock's URL if absent; `--verify` checks the cache offline; `--pin` re-pins.
+// Keeps an API's pinned upstream specs in a local, gitignored cache.
+// No flag fetches each from its lock URL if absent; `--verify` checks the cache offline; `--pin` re-pins.
 import { createHash } from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
-import { apiDirFromArgs, apiPaths } from './paths.mjs';
+import { apiDirFromArgs, apiPaths, lockSources, sourcePaths } from './paths.mjs';
 
 export const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
@@ -19,65 +20,95 @@ export function verifyPin(specBytes, lock, source) {
   }
 }
 
-const readLock = async (paths) => JSON.parse(await readFile(paths.lock, 'utf8'));
+export const readLock = async (apiDir) => JSON.parse(await readFile(apiPaths(apiDir).lock, 'utf8'));
 
-async function readCache(paths) {
+async function readCache(path) {
   try {
-    return await readFile(paths.spec);
+    return await readFile(path);
   } catch (error) {
     if (error.code === 'ENOENT') return null;
     throw error;
   }
 }
 
-async function download(url) {
+// Some servers answer a missing file with 200 and no body, which must not read as a changed spec.
+export async function download(url) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`GET ${url}: HTTP ${response.status}`);
-  return { response, bytes: Buffer.from(await response.arrayBuffer()) };
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (bytes.toString('utf8').trim() === '') throw new Error(`GET ${url}: HTTP ${response.status} with an empty body, so there is no spec at this URL`);
+  return { response, bytes };
 }
 
-export async function ensureSpec(paths) {
-  const lock = await readLock(paths);
-  const cached = await readCache(paths);
+async function ensureSource(specPath, source) {
+  const cached = await readCache(specPath);
   if (cached) {
-    verifyPin(cached, lock, `Cached spec ${paths.spec}`);
+    verifyPin(cached, source, `Cached spec ${specPath}`);
     return cached;
   }
-  const { bytes } = await download(lock.url);
-  verifyPin(bytes, lock, `Spec from ${lock.url}`);
-  await writeFile(paths.spec, bytes);
+  const { bytes } = await download(source.url);
+  verifyPin(bytes, source, `Spec from ${source.url}`);
+  await mkdir(dirname(specPath), { recursive: true });
+  await writeFile(specPath, bytes);
   return bytes;
 }
 
-async function pin(paths) {
-  const { url } = await readLock(paths);
-  const { response, bytes } = await download(url);
-  const lock = {
-    url,
-    sha256: sha256(bytes),
-    infoVersion: parse(bytes.toString('utf8')).info.version,
-    lastModified: response.headers.get('last-modified'),
-    retrievedOn: new Date().toISOString().slice(0, 10),
-  };
-  await writeFile(paths.spec, bytes);
-  await writeFile(paths.lock, `${JSON.stringify(lock, null, 2)}\n`);
-  console.log(`Pinned ${lock.sha256}`);
+export async function ensureSpec(paths) {
+  return ensureSource(paths.spec, JSON.parse(await readFile(paths.lock, 'utf8')));
 }
 
-async function verify(paths) {
-  const lock = await readLock(paths);
-  const cached = await readCache(paths);
-  if (!cached) throw new Error(`No cached spec at ${paths.spec}. Run \`npm run spec:fetch\`.`);
-  verifyPin(cached, lock, `Cached spec ${paths.spec}`);
-  console.log(`Pin verified: ${lock.sha256}`);
+// Every source in the lock, each with its cached bytes and its paths.
+export async function ensureSpecs(apiDir) {
+  const specs = [];
+  for (const source of lockSources(await readLock(apiDir))) {
+    const paths = sourcePaths(apiDir, source);
+    specs.push({ source, paths, bytes: await ensureSource(paths.spec, source) });
+  }
+  return specs;
+}
+
+// Downloads every source before writing anything, so one failure leaves the old pins and caches in place.
+export async function pin(apiDir) {
+  const lock = await readLock(apiDir);
+  const retrievedOn = new Date().toISOString().slice(0, 10);
+  const pinned = [];
+  for (const source of lockSources(lock)) {
+    const { response, bytes } = await download(source.url);
+    const entry = {
+      ...(source.name === null ? {} : { name: source.name }),
+      url: source.url,
+      sha256: sha256(bytes),
+      infoVersion: parse(bytes.toString('utf8')).info.version,
+      lastModified: response.headers.get('last-modified'),
+      retrievedOn,
+    };
+    pinned.push({ entry, bytes, path: sourcePaths(apiDir, source).spec });
+  }
+  for (const { bytes, path } of pinned) {
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, bytes);
+  }
+  const entries = pinned.map(({ entry }) => entry);
+  const updated = 'sources' in lock ? { sources: entries } : entries[0];
+  await writeFile(apiPaths(apiDir).lock, `${JSON.stringify(updated, null, 2)}\n`);
+  for (const { entry } of pinned) console.log(`Pinned ${entry.name ? `${entry.name} ` : ''}${entry.sha256}`);
+}
+
+export async function verify(apiDir) {
+  for (const source of lockSources(await readLock(apiDir))) {
+    const { spec } = sourcePaths(apiDir, source);
+    const cached = await readCache(spec);
+    if (!cached) throw new Error(`No cached spec at ${spec}. Run \`npm run spec:fetch\`.`);
+    verifyPin(cached, source, `Cached spec ${spec}`);
+    console.log(`Pin verified: ${source.name ? `${source.name} ` : ''}${source.sha256}`);
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const paths = apiPaths(apiDirFromArgs(process.argv));
-  if (process.argv.includes('--pin')) await pin(paths);
-  else if (process.argv.includes('--verify')) await verify(paths);
+  const apiDir = apiDirFromArgs(process.argv);
+  if (process.argv.includes('--pin')) await pin(apiDir);
+  else if (process.argv.includes('--verify')) await verify(apiDir);
   else {
-    await ensureSpec(paths);
-    console.log(`Spec ready: ${paths.spec}`);
+    for (const { paths } of await ensureSpecs(apiDir)) console.log(`Spec ready: ${paths.spec}`);
   }
 }

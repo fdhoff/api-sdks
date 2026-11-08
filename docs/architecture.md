@@ -67,6 +67,17 @@ Dashed edges are planned.
 
 The upstream spec is OpenAPI 3.0.3, with 40 operations on 35 paths and 75 schemas. `spec-audit.md` lists its known gaps and where each is handled: overlay, runtime, generator config, or left open because only live access could settle it.
 
+### APIs built from several contracts
+
+Some vendors publish one OpenAPI file per API rather than one for everything. Such an API lists its files under `sources` in `lock.json`, each with a `name` (lower case, digits and `_`) and the same fields a single pin has. A lock with a top-level `url` keeps working as before, and the files below are only used for named sources.
+
+* **Fetch.** `spec:fetch`, `spec:pin` and `spec:verify` handle every source. Each is cached as `spec/upstream/contracts/<name>.yaml`. `spec:pin` downloads all of them before writing anything, so one failure leaves every pin as it was. A response with an empty body is refused as "no spec at this URL", even with HTTP 200, because some hosts answer a missing file that way.
+* **Overlay.** One overlay per contract, at `spec/overlay/<name>.yaml`, so each targets one file with the paths and names upstream uses. A contract with nothing to correct has no overlay.
+* **Build.** Each contract is corrected on its own, then the path its servers share, server variables filled with their defaults, moves into its paths, leaving each server only its origin. Servers in one contract that disagree on that path stop the build. Each result is written to `build/contracts/<name>.yaml`.
+* **Mock and lint.** Prism serves one document, so `build/openapi.yaml` merges the contracts: every component name, security scheme and operation ID gets the contract's name and a dot as a prefix (`orders.Error`), because contracts reuse schema names. A path two contracts both declare stops the build. Spectral lints the merged document, and conformance cases name operations as `<name>.<operationId>`.
+* **Generate.** Each contract is generated from its own build into its own sub-module, so contracts never share a model namespace. `contracts` in `generate.yaml` maps every contract to the settings it overrides, such as `output`, `source`, `operations` and `properties`; the runtime is copied once, for every sub-module to share. Shared names in `packages/names.yaml` sit under each contract's name. Each language's templates are adapted to import that shared runtime with its first package built this way.
+* **Drift.** The cache key covers every source's hash. The drift pull request names each contract that changed, and says in bold which ones lost operations.
+
 ## Boundary between toolchain and API
 
 | Path | Holds |

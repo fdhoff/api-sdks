@@ -1,9 +1,13 @@
 // Summarises which operations and schemas differ between two specs, by name only, without quoting either.
+// It compares every source in an API's lock with its old copy: the cached spec file for a single source, or
+// a directory of `<name>.yaml` for several.
 import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
 import { stripProse } from './generate.mjs';
+import { lockSources, sourcePaths } from './paths.mjs';
 
 const METHODS = ['get', 'put', 'post', 'delete', 'patch', 'head', 'options', 'trace'];
 
@@ -39,8 +43,8 @@ export function diffSpecs(before, after) {
   };
 }
 
-function section(title, result) {
-  const lines = [`### ${title}`, ''];
+function section(title, result, depth) {
+  const lines = [`${'#'.repeat(depth)} ${title}`, ''];
   const groups = [
     ['Added', result.added],
     ['Removed', result.removed],
@@ -54,10 +58,26 @@ function section(title, result) {
   return lines;
 }
 
-export function renderDiff(diff) {
+export function renderDiff(diff, depth = 3) {
   const [before, after] = diff.version;
   const version = before === after ? `\`info.version\` is unchanged at \`${after}\`.` : `\`info.version\` moved from \`${before}\` to \`${after}\`.`;
-  return [version, '', ...section('Operations', diff.operations), ...section('Schemas', diff.schemas)].join('\n');
+  return [version, '', ...section('Operations', diff.operations, depth), ...section('Schemas', diff.schemas, depth)].join('\n');
+}
+
+const NO_COPY = 'No copy of the previously pinned spec was cached, so no comparison was possible.';
+
+// One section per contract that changed, after a summary naming them and any that lost operations, since
+// removing an operation breaks its callers. `before` is null for a contract with no cached old copy.
+export function renderContracts(contracts) {
+  const changed = contracts.filter(({ before, after }) => before === null || !isDeepStrictEqual(before, after));
+  if (changed.length === 0) return 'No contract changed.';
+  const diffs = changed.map((contract) => ({ ...contract, diff: contract.before && diffSpecs(contract.before, contract.after) }));
+  const names = (list) => list.map(({ name }) => `\`${name}\``).join(', ');
+  const lines = [`Changed contracts: ${names(diffs)}.`, ''];
+  const removing = diffs.filter(({ diff }) => diff?.operations.removed.length > 0);
+  if (removing.length > 0) lines.push(`**Operations were removed** from ${names(removing)}. Their callers break; check each one before merging.`, '');
+  for (const { name, diff } of diffs) lines.push(`### Contract \`${name}\``, '', diff ? renderDiff(diff, 4) : NO_COPY, '');
+  return lines.join('\n').trimEnd();
 }
 
 async function readSpec(path) {
@@ -69,10 +89,22 @@ async function readSpec(path) {
   }
 }
 
+async function renderApi(apiDir, pinnedCopy) {
+  const sources = lockSources(JSON.parse(await readFile(join(apiDir, 'spec/upstream/lock.json'), 'utf8')));
+  const after = async (source) => parse(await readFile(sourcePaths(apiDir, source).spec, 'utf8'));
+  if (sources[0].name === null) {
+    const before = await readSpec(pinnedCopy);
+    return before ? renderDiff(diffSpecs(before, await after(sources[0]))) : NO_COPY;
+  }
+  const contracts = [];
+  for (const source of sources) {
+    contracts.push({ name: source.name, before: await readSpec(join(pinnedCopy, `${source.name}.yaml`)), after: await after(source) });
+  }
+  return renderContracts(contracts);
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const [beforePath, afterPath] = process.argv.slice(2);
-  if (!beforePath || !afterPath) throw new Error('Usage: node spec-diff.mjs <before.yaml> <after.yaml>');
-  const before = await readSpec(beforePath);
-  const after = parse(await readFile(afterPath, 'utf8'));
-  console.log(before ? renderDiff(diffSpecs(before, after)) : 'No copy of the previously pinned spec was cached, so no comparison was possible.');
+  const [apiDir, pinnedCopy] = process.argv.slice(2);
+  if (!apiDir || !pinnedCopy) throw new Error('Usage: node spec-diff.mjs <api-dir> <pinned-copy>');
+  console.log(await renderApi(apiDir, pinnedCopy));
 }
