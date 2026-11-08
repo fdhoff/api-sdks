@@ -161,9 +161,11 @@ func NewClient(token, userAgent, locale string, opts ...Option) (*Client, error)
 	}
 	transport := runtime.NewTransport(runtime.Settings{
 		BaseURL: root,
-		Secret:  token,
+		Credentials: runtime.StaticCredentials{
+			Header: http.Header{"Authorization": {"Basic " + token}},
+			Values: []string{token},
+		},
 		Headers: http.Header{
-			"Authorization":   {"Basic " + token},
 			"User-Agent":      {userAgent},
 			"Accept":          {"application/json"},
 			"Accept-Language": {locale},

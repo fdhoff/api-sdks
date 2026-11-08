@@ -18,6 +18,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"careFolderId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetCareFolderList = runtime.Register(runtime.Operation{
 		ID:          "getCareFolderList",
@@ -30,6 +31,7 @@ var (
 		PathParams:  []string{},
 		QueryParams: []string{"last_id", "state", "orderline", "last_modification_date", "last_message_date", "page"},
 		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opPostItemTransfer = runtime.Register(runtime.Operation{
 		ID:          "postItemTransfer",
@@ -39,6 +41,7 @@ var (
 		Name:        "TransferItem",
 		PathParams:  []string{"careFolderId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opPostMessage = runtime.Register(runtime.Operation{
 		ID:          "postMessage",
@@ -49,6 +52,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"careFolderId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opPostNote = runtime.Register(runtime.Operation{
 		ID:          "postNote",
@@ -59,6 +63,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"careFolderId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opPostProblem = runtime.Register(runtime.Operation{
 		ID:          "postProblem",
@@ -68,6 +73,7 @@ var (
 		Name:        "ReportProblem",
 		PathParams:  []string{"careFolderId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opPostRefundCreate = runtime.Register(runtime.Operation{
 		ID:          "postRefundCreate",
@@ -77,6 +83,7 @@ var (
 		Name:        "CreateRefund",
 		PathParams:  []string{},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 )
 

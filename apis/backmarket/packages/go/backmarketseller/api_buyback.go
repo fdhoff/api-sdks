@@ -18,6 +18,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"listingId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetWsBuybackV1Listing = runtime.Register(runtime.Operation{
 		ID:          "get-ws-buyback-v1-listing",
@@ -28,6 +29,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"buybackListingId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetWsBuybackV1Listings = runtime.Register(runtime.Operation{
 		ID:          "get-ws-buyback-v1-listings",
@@ -40,6 +42,7 @@ var (
 		PathParams:  []string{},
 		QueryParams: []string{"productId", "cursor", "pageSize"},
 		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetWsBuybackV1Order = runtime.Register(runtime.Operation{
 		ID:          "get-ws-buyback-v1-order",
@@ -50,6 +53,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"buybackOrderId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetWsBuybackV1Orders = runtime.Register(runtime.Operation{
 		ID:          "get-ws-buyback-v1-orders",
@@ -62,6 +66,7 @@ var (
 		PathParams:  []string{},
 		QueryParams: []string{"status", "productId", "creationDate", "modificationDate", "shippingDate", "receivedDate", "suspendedDate", "paymentDate", "page"},
 		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetWsBuybackV1OrdersMessages = runtime.Register(runtime.Operation{
 		ID:          "get-ws-buyback-v1-orders-messages",
@@ -74,6 +79,7 @@ var (
 		PathParams:  []string{"buybackOrderId"},
 		QueryParams: []string{"page"},
 		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetWsBuybackV1OrdersPendingReply = runtime.Register(runtime.Operation{
 		ID:          "get-ws-buyback-v1-orders-pending-reply",
@@ -86,6 +92,7 @@ var (
 		PathParams:  []string{},
 		QueryParams: []string{"page"},
 		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetWsBuybackV1OrdersSuspendReasons = runtime.Register(runtime.Operation{
 		ID:          "get-ws-buyback-v1-orders-suspend-reasons",
@@ -96,6 +103,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetWsCounterOfferReason = runtime.Register(runtime.Operation{
 		ID:          "get-ws-counter-offer-reason",
@@ -106,6 +114,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"buybackOrderId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opPostWsBuybackV1OrdersMessages = runtime.Register(runtime.Operation{
 		ID:          "post-ws-buyback-v1-orders-messages",
@@ -116,6 +125,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"buybackOrderId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opPutWsBuybackV1Listing = runtime.Register(runtime.Operation{
 		ID:          "put-ws-buyback-v1-listing",
@@ -126,6 +136,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"buybackListingId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opPutWsBuybackV1OrdersSuspend = runtime.Register(runtime.Operation{
 		ID:          "put-ws-buyback-v1-orders-suspend",
@@ -136,6 +147,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"buybackOrderId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opPutWsBuybackV1OrdersValidate = runtime.Register(runtime.Operation{
 		ID:          "put-ws-buyback-v1-orders-validate",
@@ -146,6 +158,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"buybackOrderId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opPutWsRefurbisherCounterOffer = runtime.Register(runtime.Operation{
 		ID:          "put-ws-refurbisher-counter-offer",
@@ -155,6 +168,7 @@ var (
 		Name:        "CounterOffer",
 		PathParams:  []string{"buybackOrderId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 )
 

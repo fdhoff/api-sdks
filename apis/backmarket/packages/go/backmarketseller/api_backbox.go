@@ -20,6 +20,7 @@ var (
 		PathParams:  []string{},
 		QueryParams: []string{"page", "page-size"},
 		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetWsBackboxV1Competitors = runtime.Register(runtime.Operation{
 		ID:          "get-ws-backbox-v1-competitors",
@@ -30,6 +31,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"listingId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 )
 

@@ -20,6 +20,7 @@ var (
 		PathParams:  []string{},
 		QueryParams: []string{"date_creation", "date_modification", "country_code", "state", "page", "page-size"},
 		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetWsSpecificOrder = runtime.Register(runtime.Operation{
 		ID:          "get-ws-specific-order",
@@ -30,6 +31,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"order_id"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opPostWsSpecificOrderInvoice = runtime.Register(runtime.Operation{
 		ID:          "post-ws-specific-order-invoice",
@@ -39,6 +41,7 @@ var (
 		Name:        "UploadInvoice",
 		PathParams:  []string{"order_id"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opUpdateWsSpecificOrder = runtime.Register(runtime.Operation{
 		ID:          "update-ws-specific-order",
@@ -49,6 +52,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"order_id"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opUpdateWsSpecificOrderline = runtime.Register(runtime.Operation{
 		ID:          "update-ws-specific-orderline",
@@ -59,6 +63,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"orderline_id"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 )
 

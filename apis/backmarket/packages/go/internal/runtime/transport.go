@@ -19,6 +19,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -64,6 +65,8 @@ type Operation struct {
 	ReturnsJSON bool
 	// Paging is how Iterator walks pages. Nil means the default [NextLink].
 	Paging Paging
+	// Security lists alternatives: any one requirement authorizes the call.
+	Security []Requirement
 }
 
 func (o *Operation) paging() Paging {
@@ -98,7 +101,7 @@ func Lookup(id string) (*Operation, bool) {
 // Settings configures a Transport.
 type Settings struct {
 	BaseURL        string
-	Secret         string
+	Credentials    Credentials
 	Headers        http.Header
 	ToError        func(ErrorContext) *Error
 	Logger         *slog.Logger
@@ -112,15 +115,18 @@ type Settings struct {
 
 // Transport sends requests, applying the timeout, retry and redaction rules.
 type Transport struct {
-	settings Settings
-	client   *http.Client
+	settings   Settings
+	client     *http.Client
+	refreshing chan struct{}
+	generation atomic.Uint64
 }
 
 // NewTransport builds a Transport. It never follows a redirect: a redirect is reported as a failure,
 // so the token cannot be sent anywhere but the configured server.
 func NewTransport(settings Settings) *Transport {
 	return &Transport{
-		settings: settings,
+		settings:   settings,
+		refreshing: make(chan struct{}, 1),
 		client: &http.Client{
 			Transport: settings.HTTPTransport,
 			CheckRedirect: func(*http.Request, []*http.Request) error {
@@ -136,16 +142,9 @@ type response struct {
 	body   []byte
 }
 
-// redact removes the token as written and as a path or query value escapes it.
+// redact removes every secret as written and as a path or query value escapes it.
 func (t *Transport) redact(value string) string {
-	secret := t.settings.Secret
-	value = strings.ReplaceAll(value, secret, redacted)
-	for _, escaped := range []string{url.PathEscape(secret), url.QueryEscape(secret)} {
-		if escaped != secret {
-			value = strings.ReplaceAll(value, escaped, redacted)
-		}
-	}
-	return value
+	return redactWith(redactions(t.settings.Credentials), value)
 }
 
 // redactedError prints its cause with the token removed, and still unwraps to it.
@@ -223,20 +222,60 @@ func (t *Transport) failure(status int, header http.Header, body []byte) *Error 
 	return t.settings.ToError(ErrorContext{Status: status, Header: header, Text: text, JSON: parsed})
 }
 
-func (t *Transport) attempt(ctx context.Context, built *request) (*response, error) {
+// authorize builds one attempt's request and lets the credentials sign it.
+func (t *Transport) authorize(ctx context.Context, built *request) (*AuthRequest, error) {
+	header := http.Header{}
+	for name, values := range t.settings.Headers {
+		header[name] = slices.Clone(values)
+	}
+	header.Set("Accept-Encoding", "gzip")
+	if built.contentType != "" {
+		header.Set("Content-Type", built.contentType)
+	}
+	auth := &AuthRequest{Method: built.method, URL: built.url(t.settings.BaseURL), Header: header, Body: built.body, Operation: built.operation}
+	if t.settings.Credentials == nil {
+		return auth, nil
+	}
+	if err := t.settings.Credentials.Apply(ctx, auth); err != nil {
+		return nil, t.hide(err)
+	}
+	return auth, nil
+}
+
+// refresh lets calls waiting on a refresh share it, and a call whose credentials were refreshed
+// since it sent them retry without another.
+func (t *Transport) refresh(ctx context.Context, auth *AuthRequest, generation uint64) (bool, error) {
+	refresher, ok := t.settings.Credentials.(Refresher)
+	if !ok {
+		return false, nil
+	}
+	select {
+	case t.refreshing <- struct{}{}:
+	case <-ctx.Done():
+		return false, ctx.Err()
+	}
+	defer func() { <-t.refreshing }()
+	if t.generation.Load() != generation {
+		return true, nil
+	}
+	refreshed, err := refresher.Refresh(ctx, auth)
+	if err != nil {
+		return false, t.hide(err)
+	}
+	if refreshed {
+		t.generation.Add(1)
+	}
+	return refreshed, nil
+}
+
+func (t *Transport) attempt(ctx context.Context, auth *AuthRequest) (*response, error) {
 	attempt, cancel := context.WithTimeout(ctx, t.settings.Timeout)
 	defer cancel()
-	outgoing, err := http.NewRequestWithContext(attempt, built.method, built.url(t.settings.BaseURL), bytes.NewReader(built.body))
+	outgoing, err := http.NewRequestWithContext(attempt, auth.Method, auth.URL, bytes.NewReader(auth.Body))
 	if err != nil {
 		return nil, &Error{Kind: KindConnection, Message: "the request could not be built", Cause: t.hide(err)}
 	}
-	for name, values := range t.settings.Headers {
-		outgoing.Header[name] = values
-	}
-	outgoing.Header.Set("Accept-Encoding", "gzip")
-	if built.contentType != "" {
-		outgoing.Header.Set("Content-Type", built.contentType)
-	}
+	outgoing.Header = auth.Header
 	incoming, err := t.client.Do(outgoing)
 	if err != nil {
 		return nil, t.translate(ctx, attempt, err)
@@ -251,7 +290,7 @@ func (t *Transport) attempt(ctx context.Context, built *request) (*response, err
 	if err != nil && success {
 		return nil, &Error{Kind: KindDecode, Message: "the response body cannot be decompressed", Status: incoming.StatusCode, Cause: t.hide(err)}
 	}
-	t.log(ctx, slog.LevelDebug, "response", slog.String("method", built.method), slog.Int("status", incoming.StatusCode), slog.Int("bytes", len(body)))
+	t.log(ctx, slog.LevelDebug, "response", slog.String("method", auth.Method), slog.Int("status", incoming.StatusCode), slog.Int("bytes", len(body)))
 	if !success {
 		return nil, t.failure(incoming.StatusCode, incoming.Header, body)
 	}
@@ -311,12 +350,30 @@ func sleep(ctx context.Context, delay time.Duration) error {
 }
 
 func (t *Transport) fetch(ctx context.Context, built *request) (*response, error) {
+	refreshed := false
 	for tries := 0; ; tries++ {
 		t.log(ctx, slog.LevelDebug, "request", slog.String("method", built.method), slog.String("url", built.url(t.settings.BaseURL)))
-		answer, err := t.attempt(ctx, built)
+		generation := t.generation.Load()
+		auth, err := t.authorize(ctx, built)
+		if err != nil {
+			return nil, err
+		}
+		answer, err := t.attempt(ctx, auth)
 		var failure *Error
 		if err == nil || !errors.As(err, &failure) {
 			return answer, err
+		}
+		if failure.Status == http.StatusUnauthorized && !refreshed {
+			refreshed = true
+			retry, err := t.refresh(ctx, auth, generation)
+			if err != nil {
+				return nil, err
+			}
+			if retry {
+				t.log(ctx, slog.LevelInfo, "retrying after refreshing credentials")
+				tries--
+				continue
+			}
 		}
 		delay, retry := t.retryDelay(failure, built.method, tries)
 		if !retry {

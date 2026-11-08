@@ -18,6 +18,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 	opGetBmCatalogCategoryBranch = runtime.Register(runtime.Operation{
 		ID:          "get-bm-catalog-category-branch",
@@ -28,6 +29,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"categoryId"},
 		QueryParams: []string{},
+		Security:    []runtime.Requirement{{{Name: "ApiKeyAuth", Scopes: []string{}}}},
 	})
 )
 
