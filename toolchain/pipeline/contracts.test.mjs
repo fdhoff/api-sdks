@@ -257,6 +257,30 @@ test('buildSpec builds each contract on its own, then one merged document for th
   await assert.rejects(buildSpec(dir), /matched nothing: \$\.paths\.missing/);
 });
 
+test('the API overlay corrects every contract first, and each of its actions must match at least one', async (t) => {
+  const dir = await apiDir(t);
+  serve(t, { [URLS.alpha]: ALPHA, [URLS.beta]: BETA });
+  t.mock.method(console, 'log', () => {});
+  const actions = (list) => ({ overlay: '1.0.0', info: { title: 't', version: '1' }, actions: list });
+  const shared = [
+    { target: '$.components.schemas.Error', update: { required: ['code'] } },
+    { target: "$.paths['/orders'].get", update: { 'x-shared': true } },
+  ];
+  await writeFile(join(dir, 'spec/overlay.yaml'), stringify(actions(shared)));
+  await mkdir(join(dir, 'spec/overlay'));
+  await writeFile(join(dir, 'spec/overlay/beta.yaml'), stringify(actions([{ target: '$.components.schemas.Error', update: { required: ['message'] } }])));
+  await buildSpec(dir);
+
+  const alpha = parse(await readFile(contractPaths(dir, 'alpha').build, 'utf8'));
+  const beta = parse(await readFile(contractPaths(dir, 'beta').build, 'utf8'));
+  assert.deepEqual(alpha.components.schemas.Error.required, ['code']);
+  assert.deepEqual(beta.components.schemas.Error.required, ['code', 'message']);
+  assert.equal(beta.paths['/beta/v2/orders'].get['x-shared'], true);
+
+  await writeFile(join(dir, 'spec/overlay.yaml'), stringify(actions([...shared, { target: '$.paths.missing', update: {} }])));
+  await assert.rejects(buildSpec(dir), /matched no contract: \$\.paths\.missing/);
+});
+
 test('specCache keeps the single-spec key and gives several one key over all their pins', () => {
   assert.deepEqual(specCache('apis/one', { url: 'u', sha256: 'abc' }), { key: 'upstream-spec-abc', path: 'apis/one/spec/upstream/openapi.yaml' });
   const lock = twoSourceLock();
