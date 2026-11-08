@@ -211,21 +211,25 @@ Every package description and README says the project is unofficial and not affi
 
 To release, replace `(unreleased)` in the package changelog with the date, merge, and tag that commit on `main`. The build job fails unless the tag matches the package version and changelog and the commit is on `main`.
 
+A release run can be rerun after it published. Each publish job skips a version the registry already has: `skip-existing` for PyPI, `--skip-duplicate` for NuGet, and a registry lookup before `npm publish` and `cargo publish`. `apis/backmarket/tests/workflows.test.mjs` checks this.
+
 ## Spec updates
 
-Upstream serves only its latest spec, so an older pin cannot be fetched again. Once upstream changes, a machine with no cached copy fails closed until the pin moves. CI caches the spec under a key derived from `lock.json`, which delays this but does not prevent it. Released versions are unaffected, because their generated code is committed.
+Upstream serves only its latest spec, so an older pin cannot be fetched again. Once upstream changes, a machine with no cached copy fails closed until the pin moves. Released versions are unaffected, because their generated code is committed.
+
+CI and release jobs get the spec through `.github/actions/upstream-spec`, which restores it from the Actions cache under `upstream-spec-<sha256>`, the hash in `lock.json`, and downloads it only on a miss. Caches saved on `main` are visible to every pull request and tag, and the spec drift job keeps them there, so an upstream change does not break an unrelated pull request or release. Only the spec drift job reads upstream on purpose. The Actions cache is not public, so this keeps the rule that the repository does not redistribute the spec. `apis/backmarket/tests/workflows.test.mjs` fails if any other job fetches the spec itself.
 
 To move the pin by hand, run `npm run spec:pin`, review what changed, and commit `lock.json`. It rewrites the hash, version, `Last-Modified` and date in the lock, and replaces the cached spec. On other machines the old cache then fails verification; delete it and run `npm run spec:fetch`.
 
 `.github/workflows/spec-drift.yml` automates that. It runs daily and on demand:
 
-1. Restore the spec cache, which also keeps it from expiring, and keep a copy of the pinned spec. It never saves the cache, so a new spec cannot land under the old pin's key.
-2. Run `spec:pin` and compare the new SHA-256 with the old one. Stop if they match, or if an open pull request from the `spec-drift` branch already proposes the new hash, so fixes pushed to that branch are kept. A drift pull request closed without merging does not stop the next run.
+1. Restore the pinned spec from the cache, which also keeps it from expiring, and keep a copy of it.
+2. Run `spec:pin` and compare the new SHA-256 with the old one. Save the downloaded spec to the cache under its own hash, unless the pinned spec was already there. That restores an evicted pin while upstream still matches it, and has the next pin cached before its pull request runs. Stop if the hashes match, or if an open pull request from the `spec-drift` branch already proposes the new hash, so fixes pushed to that branch are kept. A drift pull request closed without merging does not stop the next run.
 3. Rebuild the spec and regenerate the clients. If an overlay action stops matching, skip regeneration and say so in the pull request. If regeneration fails, discard its partial output, still open the pull request, say so with a link to the run, and leave the run red.
 4. Commit `lock.json` and the regenerated clients to the `spec-drift` branch, and open or update a single pull request.
 5. In the pull request, list which operations and schemas were added, removed or changed between the old and new upstream specs, by name only, and count those whose only changes are descriptions or examples. `toolchain/pipeline/spec-diff.mjs` writes this. If the cache held no old copy, it says that no comparison was possible.
 
-The pull request goes through ordinary CI, which fetches the spec, verifies it against the new hash, then runs the build, lint and conformance. If upstream changed something the overlay corrected, CI goes red, which is the signal to fix it on that branch. If upstream changes again before merge, the next run resets the branch to the newer spec. The job never merges its own pull request.
+The pull request goes through ordinary CI, which restores the new spec from the cache, verifies it against the new hash, then runs the build, lint and conformance. If upstream changed something the overlay corrected, CI goes red, which is the signal to fix it on that branch. If upstream changes again before merge, the next run resets the branch to the newer spec. The job never merges its own pull request.
 
 A pull request opened with the default workflow token does not trigger `pull_request` workflows, and that token can open one only if the repository allows Actions to create pull requests. The job uses the `SPEC_DRIFT_TOKEN` secret when it is set: a fine-grained token for this repository with contents and pull request write access. Without it, the job falls back to the default token and the pull request says to close and reopen it to start CI. Only the final step, which pushes and calls `gh`, receives that token; checkout does not persist credentials, so dependency installs and generators never see it.
 

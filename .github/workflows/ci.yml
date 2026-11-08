@@ -25,11 +25,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: apis/backmarket/spec/upstream/openapi.yaml
-          key: upstream-spec-${{ hashFiles('apis/backmarket/spec/upstream/lock.json') }}
-      - run: npm run spec:fetch
+      - uses: ./.github/actions/upstream-spec
       - run: npm run spec:build
       - run: npm run spec:lint
       - run: npm test
@@ -60,11 +56,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci --ignore-scripts
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: apis/backmarket/spec/upstream/openapi.yaml
-          key: upstream-spec-${{ hashFiles('apis/backmarket/spec/upstream/lock.json') }}
-      - run: npm run spec:fetch
+      - uses: ./.github/actions/upstream-spec
       - run: npm run spec:build
       - run: python -m pip install -e 'apis/backmarket/packages/python[dev]'
       - name: Generated code matches the spec, templates and runtime
@@ -115,11 +107,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci --ignore-scripts
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: apis/backmarket/spec/upstream/openapi.yaml
-          key: upstream-spec-${{ hashFiles('apis/backmarket/spec/upstream/lock.json') }}
-      - run: npm run spec:fetch
+      - uses: ./.github/actions/upstream-spec
       - run: npm run spec:build
       - run: npm ci --ignore-scripts
         working-directory: apis/backmarket/packages/typescript
@@ -176,11 +164,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci --ignore-scripts
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: apis/backmarket/spec/upstream/openapi.yaml
-          key: upstream-spec-${{ hashFiles('apis/backmarket/spec/upstream/lock.json') }}
-      - run: npm run spec:fetch
+      - uses: ./.github/actions/upstream-spec
       - run: npm run spec:build
       - name: Generated code matches the spec, templates and runtime
         run: |
@@ -218,11 +202,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci --ignore-scripts
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: apis/backmarket/spec/upstream/openapi.yaml
-          key: upstream-spec-${{ hashFiles('apis/backmarket/spec/upstream/lock.json') }}
-      - run: npm run spec:fetch
+      - uses: ./.github/actions/upstream-spec
       - run: npm run spec:build
       - name: Generated code matches the spec, templates and runtime
         run: |
@@ -269,11 +249,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci --ignore-scripts
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: apis/backmarket/spec/upstream/openapi.yaml
-          key: upstream-spec-${{ hashFiles('apis/backmarket/spec/upstream/lock.json') }}
-      - run: npm run spec:fetch
+      - uses: ./.github/actions/upstream-spec
       - run: npm run spec:build
       - name: Generated code matches the spec, templates and runtime
         run: |
