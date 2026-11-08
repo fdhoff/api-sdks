@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
 use std::time::Duration;
@@ -211,7 +212,9 @@ impl ClientBuilder {
         );
         let transport = Transport::new(Settings {
             base_url: self.server()?,
+            hosts: HashMap::new(),
             headers: self.headers()?,
+            header_defaults: HashMap::new(),
             credentials: credentials.clone(),
             to_error,
             timeout: self.timeout,

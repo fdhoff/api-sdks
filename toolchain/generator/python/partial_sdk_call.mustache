@@ -12,4 +12,9 @@
 {{#formParams}}
             {{paramName}}={{paramName}},
 {{/formParams}}
+{{#headerParams}}
+{{#vendorExtensions.x-sdk-header-default}}
+            {{paramName}}={{paramName}},
+{{/vendorExtensions.x-sdk-header-default}}
+{{/headerParams}}
         )

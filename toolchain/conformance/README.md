@@ -28,7 +28,7 @@ cases:
       max_retries: 1
     request:
       operation: list-items            # an operationId in the built spec
-      params: { page: 2 }              # path and query parameters, by wire name
+      params: { page: 2 }              # path, query and header parameters, by wire name
       body: { quantity: 1 }            # optional JSON body
       multipart: { message: hello }    # optional multipart fields, instead of body
       paginate: true                   # optional: iterate every page
@@ -45,6 +45,7 @@ cases:
           body: []
     wire:                              # every request the client must send, in order
       - method: GET
+        host: files                    # optional: the host key the request went to
         path: /items
         query: { page: '2' }           # exact; omitted means no query string
         headers: { authorization: 'Basic {{token}}' }
@@ -68,6 +69,7 @@ cases:
 * `{{http_date+2s}}` in a scripted header expands to an HTTP date that many seconds ahead, when the response is sent. HTTP dates are whole seconds, so the moment it names is up to a second sooner.
 * `content_digest: true` asserts that `Content-Digest` is `sha-256=:<base64>:` of the exact bytes received. `fixtures/signing` has cases for a signed request, which an API that signs can copy.
 * `parts` lists every part of a multipart body: a list sends one part per item, so two files are two `files` parts.
+* A client whose operations are served from several hosts maps each host key `K` to `<base_url>/_host/K`. The harness records `K` as the request's `host`, removes the prefix, and matches or forwards to Prism the operation's own path. A wire item with `host` asserts the key; one without it does not check. `toolchain/conformance/fixtures/cases/hosts/` has synthetic cases to copy.
 * `result_keys: [id]` asserts that those keys exist, for Prism responses whose values come from spec examples. On a list it checks the first element.
 * `error` is a subset match on the driver's error object.
 * `{{token}}` in `mock`, `wire` and `expect` expands to the case's token, and `{{<name>}}` to each other secret.
@@ -90,6 +92,7 @@ Values a case or `defaults.yaml` may set. The runner adds `base_url` and `token`
 | `retry_base_delay_ms` | Backoff base for retried failures |
 | `rate_limit_wait_ms` | Wait after a rate limit with no usable `Retry-After` |
 | `max_retry_wait_ms` | Longest `Retry-After` to wait for |
+| `header_defaults` | Client-level values for header parameters that take one, by header name |
 
 ## Driver protocol
 

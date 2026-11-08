@@ -146,7 +146,7 @@ pub(crate) mod tests {
         security: &[],
     };
 
-    struct Seen {
+    pub(crate) struct Seen {
         method: Method,
         url: String,
         headers: HeaderMap,
@@ -156,10 +156,10 @@ pub(crate) mod tests {
 
     /// A synthetic bearer token that changes on each refresh, beside a fixed key.
     #[derive(Default)]
-    struct Tokens {
+    pub(crate) struct Tokens {
         version: AtomicUsize,
         refreshes: AtomicUsize,
-        seen: Mutex<Vec<Seen>>,
+        pub(crate) seen: Mutex<Vec<Seen>>,
     }
 
     impl Tokens {
@@ -262,8 +262,10 @@ pub(crate) mod tests {
         headers.insert("user-agent", HeaderValue::from_static("test"));
         Transport::new(Settings {
             base_url: url.to_owned(),
+            hosts: std::collections::HashMap::new(),
             credentials,
             headers,
+            header_defaults: std::collections::HashMap::new(),
             to_error: |context| {
                 Error::new(ErrorKind::Api, format!("failed: {}", context.text))
                     .with_status(context.status)

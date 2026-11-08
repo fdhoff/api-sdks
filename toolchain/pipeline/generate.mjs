@@ -75,9 +75,11 @@ function formSchema(spec, operation) {
   return FORMS.map((type) => content[type]?.schema).find(Boolean);
 }
 
-// True when an operation takes query or form parameters, for templates that gather those into one argument.
+// True when an operation takes query, form or default-able header parameters, for templates that gather
+// those into one argument.
 function hasParams(spec, parameters, operation) {
-  return parameters.some((parameter) => dereference(spec, parameter).in === 'query') || formSchema(spec, operation) !== undefined;
+  const resolved = parameters.map((parameter) => dereference(spec, parameter));
+  return resolved.some((parameter) => parameter.in === 'query' || isDefaultHeader(parameter)) || formSchema(spec, operation) !== undefined;
 }
 
 // True when a query or form parameter must be passed, for templates that gather those into one argument.
@@ -139,6 +141,56 @@ export function securityOf(spec, operation) {
   }));
 }
 
+const serverUrl = (server) =>
+  server.url.replace(/\{(\w+)\}/g, (match, name) => server.variables?.[name]?.default ?? match).replace(/\/+$/, '');
+
+// `servers` maps each server URL to a host key. An operation goes to the host of its first server, its
+// path's or the spec's, unless the overlay set `x-sdk-host`. Without `servers`, operations carry no key.
+export function applyHosts(spec, servers) {
+  if (!servers) return spec;
+  const keys = new Map(Object.entries(servers).map(([url, key]) => [url.replace(/\/+$/, ''), key]));
+  for (const item of Object.values(spec.paths)) {
+    for (const operation of METHODS.map((method) => item[method]).filter(Boolean)) {
+      if (operation['x-sdk-host']) continue;
+      const server = (operation.servers ?? item.servers ?? spec.servers ?? [])[0];
+      const key = server && keys.get(serverUrl(server));
+      if (!key) throw new Error(`${operation.operationId}: no host key for server ${server?.url ?? '(none)'}`);
+      operation['x-sdk-host'] = key;
+    }
+  }
+  return spec;
+}
+
+// The runtime sets these, so they are never method arguments.
+const RUNTIME_HEADERS = new Set(['accept', 'accept-encoding', 'content-length', 'content-type']);
+
+// Header parameters named in `defaults` become optional method arguments that fall back to a client-level
+// value. Runtime-owned headers are dropped, and other header parameters are left for templates to ignore.
+// TODO: expose other header parameters as method arguments once an API needs one.
+export function applyHeaders(spec, defaults = []) {
+  const named = new Set(defaults.map((name) => name.toLowerCase()));
+  const owned = [...named].filter((name) => RUNTIME_HEADERS.has(name));
+  if (owned.length > 0) throw new Error(`header_defaults names headers the runtime sets: ${owned.join(', ')}`);
+  const isOwned = (parameter) => {
+    const resolved = dereference(spec, parameter);
+    return resolved?.in === 'header' && RUNTIME_HEADERS.has(resolved.name.toLowerCase());
+  };
+  for (const item of Object.values(spec.paths)) {
+    const holders = [item, ...METHODS.map((method) => item[method]).filter(Boolean)];
+    for (const holder of holders.filter((holder) => holder.parameters)) {
+      holder.parameters = holder.parameters.filter((parameter) => !isOwned(parameter));
+      for (const parameter of holder.parameters.map((parameter) => dereference(spec, parameter))) {
+        if (parameter.in !== 'header' || !named.has(parameter.name.toLowerCase())) continue;
+        parameter.required = false;
+        parameter['x-sdk-header-default'] = true;
+      }
+    }
+  }
+  return spec;
+}
+
+const isDefaultHeader = (parameter) => parameter.in === 'header' && parameter['x-sdk-header-default'] === true;
+
 export function applyOperations(spec, operations, paging = {}) {
   const unused = new Set(Object.keys(operations));
   for (const item of Object.values(spec.paths)) {
@@ -155,6 +207,7 @@ export function applyOperations(spec, operations, paging = {}) {
       operation['x-sdk-params-required'] = paramsRequired(spec, [...shared, ...(operation.parameters ?? [])], operation);
       operation['x-sdk-returns-json'] = returnsJson(spec, operation);
       operation['x-sdk-security'] = securityOf(spec, operation);
+      operation['x-sdk-has-headers'] = [...shared, ...(operation.parameters ?? [])].some((parameter) => isDefaultHeader(dereference(spec, parameter)));
       if (names.iterator) {
         const parameters = [...shared, ...(operation.parameters ?? [])].map((parameter) => dereference(spec, parameter));
         const queryParams = parameters.filter((parameter) => parameter.in === 'query').map((parameter) => parameter.name);
@@ -323,7 +376,9 @@ async function generateContract({ apiDir, language, packageDir, config, built, s
   const output = join(packageDir, config.output);
   const source = config.source ?? config.properties.packageName.replaceAll('.', '/');
 
-  const spec = applyOperations(renameSchemas(relax(stripProse(parse(await readFile(built, 'utf8'))), config), config.schema_names), operations, sdk?.paging);
+  const parsed = stripProse(parse(await readFile(built, 'utf8')));
+  const routed = applyHeaders(applyHosts(renameSchemas(relax(parsed, config), config.schema_names), sdk?.hosts), sdk?.header_defaults);
+  const spec = applyOperations(routed, operations, sdk?.paging);
   const work = await mkdtemp(join(tmpdir(), 'generate-'));
   try {
     const input = join(work, 'openapi.yaml');

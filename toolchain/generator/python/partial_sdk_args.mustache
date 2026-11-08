@@ -15,6 +15,11 @@
 {{#hasFormParams}}
         *,
 {{/hasFormParams}}
+{{^hasFormParams}}
+{{#vendorExtensions.x-sdk-has-headers}}
+        *,
+{{/vendorExtensions.x-sdk-has-headers}}
+{{/hasFormParams}}
 {{/hasQueryParams}}
 {{#allParams}}
 {{#isQueryParam}}
@@ -33,5 +38,10 @@
 {{/isFile}}
 {{/items.isFile}}
 {{/isFormParam}}
+{{#isHeaderParam}}
+{{#vendorExtensions.x-sdk-header-default}}
+        {{paramName}}: {{{vendorExtensions.x-py-typing}}}{{^required}} = None{{/required}},
+{{/vendorExtensions.x-sdk-header-default}}
+{{/isHeaderParam}}
 {{/allParams}}
     )

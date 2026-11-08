@@ -344,8 +344,44 @@ internal sealed class Transport : IDisposable
         }
     }
 
+    private string BaseUrlOf(Operation operation)
+    {
+        if (string.IsNullOrEmpty(operation.Host))
+        {
+            return settings.BaseUrl;
+        }
+        return settings.Hosts.TryGetValue(operation.Host, out var url)
+            ? url
+            : throw new InvalidOperationException($"No base URL for host \"{operation.Host}\" in the client's hosts");
+    }
+
+    /// <summary>The value for each header parameter: the call's own, or else the client's default for that name.</summary>
+    private List<KeyValuePair<string, string>> HeadersOf(Operation operation, object?[] values)
+    {
+        var defaults = new Dictionary<string, string>(settings.HeaderDefaults, StringComparer.OrdinalIgnoreCase);
+        var headers = new List<KeyValuePair<string, string>>();
+        for (var index = 0; index < operation.Params.Length; index++)
+        {
+            var param = operation.Params[index];
+            if (param.Location != ParamLocation.Header)
+            {
+                continue;
+            }
+            if (values[index] is { } value)
+            {
+                headers.Add(KeyValuePair.Create(param.Wire, Json.Text(value)));
+            }
+            else if (defaults.TryGetValue(param.Wire, out var fallback))
+            {
+                headers.Add(KeyValuePair.Create(param.Wire, fallback));
+            }
+        }
+        return headers;
+    }
+
     private (Uri Url, Func<HttpContent?> Content) Build(Operation operation, object?[] values)
     {
+        var baseUrl = BaseUrlOf(operation);
         var path = operation.Path;
         var query = new List<string>();
         var parts = new List<(string Wire, object Value)>();
@@ -373,12 +409,14 @@ internal sealed class Transport : IDisposable
                 case ParamLocation.Urlencoded:
                     fields.AddRange(Items(value).Select(item => KeyValuePair.Create(param.Wire, Json.Text(item))));
                     break;
+                case ParamLocation.Header:
+                    break;
                 default:
                     body = value;
                     break;
             }
         }
-        var url = new Uri($"{settings.BaseUrl}{path}{(query.Count > 0 ? "?" + string.Join('&', query) : string.Empty)}");
+        var url = new Uri($"{baseUrl}{path}{(query.Count > 0 ? "?" + string.Join('&', query) : string.Empty)}");
         if (parts.Count > 0)
         {
             return (url, () => Multipart(parts));
@@ -416,12 +454,13 @@ internal sealed class Transport : IDisposable
     private async Task<Reply> FetchAsync(Operation operation, object?[] values, CancellationToken cancellationToken)
     {
         var (url, content) = Build(operation, values);
+        var extra = HeadersOf(operation, values);
         var refreshed = false;
         for (var tries = 0; ;)
         {
             Log(LogLevel.Debug, $"-> {operation.Method} {url}");
             var seen = Interlocked.Read(ref generation);
-            var auth = await AuthorizeAsync(operation, url, content, cancellationToken).ConfigureAwait(false);
+            var auth = await AuthorizeAsync(operation, url, content, extra, cancellationToken).ConfigureAwait(false);
             try
             {
                 var reply = await AttemptAsync(auth, cancellationToken).ConfigureAwait(false);
@@ -452,11 +491,18 @@ internal sealed class Transport : IDisposable
     }
 
     /// <summary>Encodes one attempt's request and lets the credentials sign the bytes that will be sent.</summary>
-    private async Task<AuthRequest> AuthorizeAsync(Operation operation, Uri url, Func<HttpContent?> content, CancellationToken cancellationToken)
+    private async Task<AuthRequest> AuthorizeAsync(
+        Operation operation, Uri url, Func<HttpContent?> content, List<KeyValuePair<string, string>> extra, CancellationToken cancellationToken)
     {
         using var draft = content();
         var body = draft is null ? [] : await draft.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
         var headers = new Dictionary<string, string>(settings.Headers, StringComparer.OrdinalIgnoreCase) { ["Accept-Encoding"] = "gzip" };
+        foreach (var (name, value) in extra)
+        {
+            // Removed first, so the header goes out under the name the operation declares.
+            headers.Remove(name);
+            headers[name] = value;
+        }
         foreach (var (name, value) in draft?.Headers.NonValidated.ToArray() ?? [])
         {
             if (!name.Equals("Content-Length", StringComparison.OrdinalIgnoreCase))

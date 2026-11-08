@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
 use std::time::Duration;
@@ -236,7 +237,9 @@ impl ClientBuilder {
         let locale = required(&self.locale, "locale is required")?;
         let transport = Transport::new(Settings {
             base_url: self.server()?,
+            hosts: HashMap::new(),
             headers: headers(&user_agent, &locale)?,
+            header_defaults: HashMap::new(),
             credentials: Arc::new(credentials(token)?),
             to_error,
             timeout: self.timeout,

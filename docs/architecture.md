@@ -148,6 +148,25 @@ The key is an unencrypted PKCS #8 PEM, Ed25519 (`ed25519`) or RSA (`rsa-v1_5-sha
 * Do not force a JSON `Content-Type` on multipart operations.
 * Select a server by region and environment rather than a raw URL.
 
+### Hosts and environments
+
+An API may serve operations from several hosts. `hosts` in its `sdk.yaml` maps each server URL to a host key, and the generator gives every operation the key of its first server (its own, its path's or the spec's) as `x-sdk-host`, unless the overlay set one. Without `hosts`, operations carry no key.
+
+* Settings hold `base_url` and a `hosts` map from host key to base URL. An operation with no key goes to `base_url`; one with a key goes to that key's URL.
+* A key missing from `hosts` is a configuration error, raised before credentials are applied or anything is sent. No request ever goes to a host outside the settings, so credentials never do.
+* Iterators reissue each page against the operation's own host.
+* A package may define named environments, each a full host map. The runtime's `select_hosts` (named per language) returns the map for an environment, or validates a caller's own map: it must name exactly the keys the environments use. An unknown environment is an error that lists the known ones.
+
+### Default header parameters
+
+`header_defaults` in `sdk.yaml` names header parameters that take a client-level default, matched without regard to case. The generator marks each with `x-sdk-header-default`, makes it optional, and templates expose it as an optional method argument; other header parameters stay unexposed. Settings hold `header_defaults`, a map from header name to value.
+
+* A value passed to the call is sent. Otherwise the default for that header is sent, matched without regard to case, under the name the operation declares. Otherwise the header is not sent.
+* Only operations that declare the header send it; a default never reaches any other operation.
+* The value replaces any client-wide header of the same name, and credentials see it before every attempt.
+
+Headers the runtime owns, `Content-Type`, `Content-Length`, `Accept` and `Accept-Encoding`, are never method arguments: the generator drops them from every operation, and `header_defaults` may not name them.
+
 ### Timeouts
 
 The timeout is one deadline for each attempt, from sending the request to reading the last byte of the response, and is configurable. A body that keeps trickling must not outlast it. A timeout that exhausts its retries raises a `timeout` error.

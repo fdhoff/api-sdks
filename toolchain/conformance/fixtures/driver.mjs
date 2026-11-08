@@ -3,15 +3,41 @@ import { createInterface } from 'node:readline';
 
 const mode = process.argv[2];
 
+// Synthetic operations for the routed mode: the host each is served from, and the header parameters it declares.
+const OPERATIONS = {
+  'list-items': { path: '/items', host: 'main', headers: ['X-Tenant'] },
+  'list-files': { path: '/files', host: 'files', headers: [] },
+};
+
+// Each declared header takes the call's value, then the client's default in any case, or is not sent.
+function declaredHeaders(operation, client, params) {
+  const defaults = Object.fromEntries(Object.entries(client.header_defaults ?? {}).map(([name, value]) => [name.toLowerCase(), value]));
+  const headers = {};
+  for (const name of operation.headers) {
+    const value = params[name] ?? defaults[name.toLowerCase()];
+    if (value !== undefined) headers[name] = String(value);
+  }
+  return headers;
+}
+
+// Splits a call's params into query parameters and declared headers, and sends every page to the operation's host.
+function routed(client, request) {
+  const operation = OPERATIONS[request.operation];
+  const params = { ...request.params };
+  const headers = declaredHeaders(operation, client, params);
+  for (const name of operation.headers) delete params[name];
+  return { url: `${client.base_url}/_host/${operation.host}${operation.path}`, params, headers };
+}
+
 // Walks offset pages as the runtimes do: advance by the items received, stop at an empty page or the count.
 // A page without a `results` list is a decode error.
-async function offsetPages(client, params = {}) {
+async function offsetPages(client, params = {}, url = `${client.base_url}/items`, headers = {}) {
   const items = [];
   const query = { ...params };
   for (;;) {
     const search = new URLSearchParams(Object.entries(query).map(([name, value]) => [name, String(value)]));
-    const response = await fetch(`${client.base_url}/items${search.size > 0 ? `?${search}` : ''}`, {
-      headers: { authorization: `Basic ${client.token}` },
+    const response = await fetch(`${url}${search.size > 0 ? `?${search}` : ''}`, {
+      headers: { ...headers, authorization: `Basic ${client.token}` },
     });
     const page = await response.json();
     if (!Array.isArray(page?.results)) return { error: { kind: 'decode' } };
@@ -59,6 +85,19 @@ for await (const line of createInterface({ input: process.stdin })) {
   }
   if (mode === 'signed' || mode === 'wrong-digest') {
     console.log(JSON.stringify({ ...(await signedCall(client, request, mode === 'wrong-digest')), logs: [] }));
+    continue;
+  }
+  if (mode === 'routed') {
+    const { url, params, headers } = routed(client, request);
+    if (request.paginate) {
+      console.log(JSON.stringify({ ...(await offsetPages(client, params, url, headers)), logs: [] }));
+      continue;
+    }
+    const search = new URLSearchParams(Object.entries(params).map(([name, value]) => [name, String(value)]));
+    const response = await fetch(`${url}${search.size > 0 ? `?${search}` : ''}`, {
+      headers: { ...headers, authorization: `Basic ${client.token}` },
+    });
+    console.log(JSON.stringify({ result: await response.json(), logs: [] }));
     continue;
   }
   if (mode === 'offset') {

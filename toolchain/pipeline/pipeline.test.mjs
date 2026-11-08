@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyOperations, collapseSingleUnions, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
+import { applyHeaders, applyHosts, applyOperations, collapseSingleUnions, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -169,6 +169,60 @@ test('applyOperations marks operations that take query or form parameters', () =
   assert.equal(has({ parameters: [{ name: 'q', in: 'query' }] }), true);
   assert.equal(has(body('multipart/form-data')), true);
   assert.equal(has({ parameters: [{ name: 'q', in: 'query' }], ...body('application/x-www-form-urlencoded') }), true);
+});
+
+test('applyHosts gives each operation the host key of its first server, unless the overlay set one', () => {
+  const spec = () => ({
+    servers: [{ url: 'https://main.example.test/' }],
+    paths: {
+      '/a': { get: { operationId: 'a' } },
+      '/b': { servers: [{ url: 'https://{host}.example.test', variables: { host: { default: 'files' } } }], get: { operationId: 'b' } },
+      '/c': { get: { operationId: 'c', servers: [{ url: 'https://files.example.test' }, { url: 'https://main.example.test' }] } },
+      '/d': { get: { operationId: 'd', 'x-sdk-host': 'main' } },
+    },
+  });
+  const servers = { 'https://main.example.test': 'main', 'https://files.example.test/': 'files' };
+  const { paths } = applyHosts(spec(), servers);
+  assert.deepEqual(
+    Object.values(paths).map((item) => item.get['x-sdk-host']),
+    ['main', 'files', 'files', 'main'],
+  );
+  assert.equal(applyHosts(spec(), undefined).paths['/a'].get['x-sdk-host'], undefined);
+  assert.throws(() => applyHosts(spec(), { 'https://main.example.test': 'main' }), /b: no host key for server/);
+});
+
+test('applyHeaders flags default-able headers as optional and drops headers the runtime sets', () => {
+  const spec = () => ({
+    paths: {
+      '/x': {
+        parameters: [{ name: 'Content-Type', in: 'header', required: true }],
+        get: {
+          operationId: 'a',
+          parameters: [
+            { $ref: '#/components/parameters/Tenant' },
+            { name: 'accept', in: 'header' },
+            { name: 'X-Other', in: 'header' },
+            { name: 'x-tenant', in: 'query' },
+          ],
+        },
+      },
+    },
+    components: { parameters: { Tenant: { name: 'X-Tenant', in: 'header', required: true } } },
+  });
+  const built = applyHeaders(spec(), ['x-TENANT']);
+  const item = built.paths['/x'];
+  assert.deepEqual(item.parameters, []);
+  assert.deepEqual(item.get.parameters.slice(1), [{ name: 'X-Other', in: 'header' }, { name: 'x-tenant', in: 'query' }]);
+  assert.deepEqual(built.components.parameters.Tenant, { name: 'X-Tenant', in: 'header', required: false, 'x-sdk-header-default': true });
+  assert.equal(applyHeaders(spec()).components.parameters.Tenant['x-sdk-header-default'], undefined);
+  assert.throws(() => applyHeaders(spec(), ['Content-Type']), /runtime sets: content-type/);
+
+  const names = { a: { resource: 'r', method: 'a', summary: 'A.' } };
+  const { get } = applyOperations(built, names).paths['/x'];
+  assert.equal(get['x-sdk-has-headers'], true);
+  assert.equal(get['x-sdk-has-params'], true);
+  assert.equal(get['x-sdk-params-required'], false);
+  assert.equal(applyOperations(applyHeaders(spec()), names).paths['/x'].get['x-sdk-has-headers'], false);
 });
 
 test('applyOperations marks operations whose success response declares a JSON body', () => {

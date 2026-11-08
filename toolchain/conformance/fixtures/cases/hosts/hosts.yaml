@@ -1,0 +1,55 @@
+# Operations served from several hosts. A driver maps each host key to `<base_url>/_host/<key>`, and the
+# harness records the key as `host`. Here `list-items` is on `main` and `list-files` on `files`.
+cases:
+  - name: hosts-operation-goes-to-its-own-host
+    request:
+      operation: list-files
+    mock:
+      responses:
+        - status: 200
+          body: { results: [] }
+    wire:
+      - method: GET
+        host: files
+        path: /files
+        headers: { authorization: 'Basic {{token}}' }
+    expect:
+      result: { results: [] }
+
+  - name: hosts-each-operation-keeps-its-host
+    request:
+      operation: list-items
+    mock:
+      responses:
+        - status: 200
+          body: { results: [] }
+    wire:
+      - method: GET
+        host: main
+        path: /items
+        headers: { authorization: 'Basic {{token}}' }
+    expect:
+      result: { results: [] }
+
+  - name: hosts-every-page-goes-to-the-operation-host
+    request:
+      operation: list-files
+      params: { limit: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 2, results: [{ id: a }] }
+        - status: 200
+          body: { count: 2, results: [{ id: b }] }
+    wire:
+      - method: GET
+        host: files
+        path: /files
+        query: { limit: '1' }
+      - method: GET
+        host: files
+        path: /files
+        query: { limit: '1', offset: '1' }
+    expect:
+      result: [{ id: a }, { id: b }]

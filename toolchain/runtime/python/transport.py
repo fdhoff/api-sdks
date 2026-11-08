@@ -40,7 +40,8 @@ _ACCEPT_ENCODING = {"Accept-Encoding": "gzip"}
 
 @dataclass(frozen=True)
 class Param:
-    """`location` is `path`, `query`, `form` for a multipart part, or `urlencoded` for a form-encoded field."""
+    """`location` is `path`, `query`, `header`, `form` for a multipart part, or `urlencoded` for a form-encoded
+    field."""
 
     wire: str
     name: str
@@ -80,6 +81,7 @@ class Operation(Generic[T]):
     item: Any = None
     paging: NextLink | Offset = NextLink()
     security: tuple[Requirement, ...] = ()
+    host: str = ""
 
 
 @dataclass(frozen=True)
@@ -94,6 +96,42 @@ class Settings:
     retry_base_delay: float = 0.5
     rate_limit_wait: float = 10.0
     max_retry_wait: float = 60.0
+    hosts: Mapping[str, str] = field(default_factory=dict)
+    """The base URL for each host key. An operation without a key goes to `base_url`."""
+    header_defaults: Mapping[str, str] = field(default_factory=dict)
+    """Values for header parameters that a call leaves out, by header name in any case."""
+
+
+def select_hosts(
+    environments: Mapping[str, Mapping[str, str]], environment: str, hosts: Mapping[str, str] | None = None
+) -> dict[str, str]:
+    """The caller's own host map, which must name exactly the keys the environments use, or else the
+    named environment's."""
+    if hosts:
+        keys = {key for urls in environments.values() for key in urls}
+        missing, unknown = sorted(keys - hosts.keys()), sorted(hosts.keys() - keys)
+        if missing:
+            raise ValueError(f"hosts lacks keys: {', '.join(missing)}")
+        if unknown:
+            raise ValueError(f"hosts has unknown keys: {', '.join(unknown)}")
+        return {key: url.rstrip("/") for key, url in hosts.items()}
+    if environment not in environments:
+        raise ValueError(f"Unknown environment {environment!r}; expected one of: {', '.join(sorted(environments))}")
+    return dict(environments[environment])
+
+
+def _base_url(settings: Settings, operation: Operation[Any]) -> str:
+    if not operation.host:
+        return settings.base_url
+    url = settings.hosts.get(operation.host)
+    if url is None:
+        raise ValueError(f"No base URL for host {operation.host!r}")
+    return url
+
+
+def _header_default(settings: Settings, wire: str) -> str | None:
+    lowered = wire.lower()
+    return next((value for name, value in settings.header_defaults.items() if name.lower() == lowered), None)
 
 
 class _Deadline(httpx.SyncByteStream):
@@ -148,11 +186,16 @@ def _build_request(
     query: list[tuple[str, str]] = []
     parts: list[tuple[str, Any]] = []
     fields: dict[str, list[str]] = {}
+    headers: dict[str, str] = {}
     for param in operation.params:
         value = params.get(param.name)
+        if value is None and param.location == "header":
+            value = _header_default(settings, param.wire)
         if value is None:
             continue
-        if param.location == "path":
+        if param.location == "header":
+            headers[param.wire] = _text(value)
+        elif param.location == "path":
             path = path.replace(f"{{{param.wire}}}", quote(_text(value), safe=""))
         elif param.location == "query":
             items = value if isinstance(value, (list, set)) else [value]
@@ -163,7 +206,11 @@ def _build_request(
         else:
             parts.extend(_multipart(param.wire, value))
     search = f"?{urlencode(query)}" if query else ""
-    request: dict[str, Any] = {"method": operation.method, "url": f"{settings.base_url}{path}{search}"}
+    request: dict[str, Any] = {
+        "method": operation.method,
+        "url": f"{_base_url(settings, operation)}{path}{search}",
+        "headers": {**headers, **_ACCEPT_ENCODING},
+    }
     if parts:
         request["files"] = parts
     elif fields:
@@ -400,7 +447,7 @@ class SyncTransport:
         while True:
             _log(settings, logging.DEBUG, f"-> {request['method']} {request['url']}")
             generation = self._generation
-            outgoing = self.http.build_request(**request, headers=_ACCEPT_ENCODING)
+            outgoing = self.http.build_request(**request)
             auth = _auth_request(operation, outgoing, outgoing.read())
             _sync(settings.credentials.apply(auth), "apply")
             try:
@@ -459,7 +506,7 @@ class AsyncTransport:
         while True:
             _log(settings, logging.DEBUG, f"-> {request['method']} {request['url']}")
             generation = self._generation
-            outgoing = self.http.build_request(**request, headers=_ACCEPT_ENCODING)
+            outgoing = self.http.build_request(**request)
             auth = _auth_request(operation, outgoing, await outgoing.aread())
             await _settle(settings.credentials.apply(auth))
             try:
