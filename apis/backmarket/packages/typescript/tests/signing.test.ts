@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, verify, type KeyObject } from 'node:crypto';
+import { once } from 'node:events';
+import { createServer, type IncomingHttpHeaders } from 'node:http';
 import { test } from 'node:test';
 import { inspect } from 'node:util';
 import { ApiError } from 'backmarket-seller';
@@ -318,6 +320,69 @@ test('content-length and host come from the body and URL when absent', async () 
     signer.sign(authRequest('GET', 'https://example.com/items', {}, new Uint8Array())),
     /content-length/,
   );
+});
+
+test('a POST or PUT without a body signs a zero content-length', async () => {
+  const [privateKey, publicKey] = freshKey();
+  const signer = await MessageSigner.create({ privateKey, components: ['content-length'] });
+  for (const method of ['POST', 'PUT']) {
+    const request = authRequest(method, 'https://example.com/items', {}, new Uint8Array());
+    await signer.sign(request);
+    assert.equal(request.headers.has('content-length'), false);
+    verifyBase(publicKey, request, ['"content-length": 0']);
+  }
+  for (const method of ['GET', 'DELETE', 'PATCH']) {
+    await assert.rejects(
+      signer.sign(authRequest(method, 'https://example.com/items', {}, new Uint8Array())),
+      /content-length/,
+    );
+  }
+});
+
+test('a POST or PUT without a body sends the zero content-length it signs', async (t) => {
+  const received: IncomingHttpHeaders[] = [];
+  const server = createServer((request, response) => {
+    received.push(request.headers);
+    response.writeHead(200, { 'content-type': 'application/json' }).end('{}');
+  }).listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(() => {
+    server.close();
+    server.closeAllConnections();
+  });
+  const address = server.address();
+  assert.ok(address !== null && typeof address === 'object');
+  const [privateKey, publicKey] = freshKey();
+  const signer = await MessageSigner.create({ privateKey, components: ['content-length', '@method'] });
+  const transport = new Transport({
+    baseUrl: `http://127.0.0.1:${address.port}`,
+    credentials: new Signed(signer),
+    headers: {},
+    toError: (context) => new ApiError(`status ${context.status}`, { status: context.status }),
+    fetch: globalThis.fetch,
+    timeoutMs: 1000,
+    maxRetries: 0,
+    retryBaseDelayMs: 1,
+    rateLimitWaitMs: 1,
+    maxRetryWaitMs: 1,
+  });
+  for (const method of ['POST', 'PUT']) {
+    await new Calls(transport).run({ ...list, id: 'touch', method, name: 'touch' }, {});
+    const headers = received.at(-1);
+    assert.ok(headers);
+    assert.equal(headers['content-length'], '0');
+    const signed: AuthRequest = {
+      method,
+      url: 'http://127.0.0.1/',
+      headers: new Headers({
+        'signature-input': String(headers['signature-input']),
+        signature: String(headers.signature),
+      }),
+      body: new Uint8Array(),
+      operation: list,
+    };
+    verifyBase(publicKey, signed, ['"content-length": 0', `"@method": ${method}`]);
+  }
 });
 
 test('an empty query is no query', async () => {

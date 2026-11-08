@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime};
 
 use futures_core::Stream;
-use reqwest::header::{ACCEPT_ENCODING, CONTENT_ENCODING, CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue};
+use reqwest::header::{ACCEPT_ENCODING, CONTENT_ENCODING, CONTENT_LENGTH, CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue};
 use reqwest::{Method, StatusCode, multipart, redirect};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
@@ -263,6 +263,9 @@ impl Transport {
         let mut outgoing = self.http.request(auth.method.clone(), &auth.url).headers(auth.headers.clone());
         if !auth.body.is_empty() {
             outgoing = outgoing.body(auth.body.clone());
+        } else if matches!(auth.method, Method::POST | Method::PUT) && !auth.headers.contains_key(CONTENT_LENGTH) {
+            // The signer signs 0 for these methods, so send it rather than rely on hyper to.
+            outgoing = outgoing.header(CONTENT_LENGTH, "0");
         }
         let incoming = outgoing.send().await.map_err(translate)?;
         let status = incoming.status().as_u16();

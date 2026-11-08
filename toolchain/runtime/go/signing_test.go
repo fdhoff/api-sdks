@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -358,6 +359,52 @@ func TestContentLengthAndHostComeFromTheBodyAndURLWhenAbsent(t *testing.T) {
 	err := signer.Sign(&AuthRequest{Method: "GET", URL: "https://example.com/items", Header: http.Header{}})
 	if err == nil || !strings.Contains(err.Error(), "content-length") {
 		t.Errorf("got %v", err)
+	}
+}
+
+func TestAPostOrPutWithoutABodySignsAZeroContentLength(t *testing.T) {
+	signer := mustSigner(t, SignerOptions{PrivateKey: rfcEd25519Key, Components: []string{"content-length"}})
+	for _, method := range []string{"POST", "PUT"} {
+		request := &AuthRequest{Method: method, URL: "https://example.com/items", Header: http.Header{}}
+		target, _ := url.Parse(request.URL)
+		if got, err := componentValue(request, target, "content-length"); err != nil || got != "0" {
+			t.Errorf("%s: content-length %q, %v", method, got, err)
+		}
+		if err := signer.Sign(request); err != nil {
+			t.Errorf("%s: %v", method, err)
+		}
+		if request.Header.Get("Content-Length") != "" {
+			t.Errorf("%s: the signer added a header the transport sends: %v", method, request.Header)
+		}
+	}
+	for _, method := range []string{"GET", "DELETE", "PATCH"} {
+		err := signer.Sign(&AuthRequest{Method: method, URL: "https://example.com/items", Header: http.Header{}})
+		if err == nil || !strings.Contains(err.Error(), "content-length") {
+			t.Errorf("%s: got %v", method, err)
+		}
+	}
+}
+
+func TestAPostOrPutWithoutABodySendsTheZeroContentLengthItSigns(t *testing.T) {
+	public, private, _ := ed25519.GenerateKey(rand.Reader)
+	components := []string{"content-length", "@method"}
+	signer := mustSigner(t, SignerOptions{PrivateKey: pkcs8PEM(t, private), Components: components, Now: fixedClock(1700000000)})
+	for _, method := range []string{"POST", "PUT"} {
+		transport, seen := serveSigned(t, signer, http.StatusOK)
+		operation := &Operation{ID: "touch", Method: method, Path: "/items", Security: []Requirement{{{Name: "key"}}}}
+		if _, err := Call[any](context.Background(), transport, operation, Input{}); err != nil {
+			t.Fatal(err)
+		}
+		request := seen()[0]
+		if got := request.header.Values("Content-Length"); !slices.Equal(got, []string{"0"}) {
+			t.Errorf("%s: the server received Content-Length %q", method, got)
+		}
+		_, params, _ := strings.Cut(request.header.Get("Signature-Input"), "=")
+		base := fmt.Sprintf("\"content-length\": 0\n\"@method\": %s\n\"@signature-params\": %s", method, params)
+		signature, _ := base64.StdEncoding.DecodeString(strings.TrimSuffix(strings.TrimPrefix(request.header.Get("Signature"), "sig1=:"), ":"))
+		if !ed25519.Verify(public, []byte(base), signature) {
+			t.Errorf("%s: the signature does not verify over %q", method, base)
+		}
 	}
 }
 

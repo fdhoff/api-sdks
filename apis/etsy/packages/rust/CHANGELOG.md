@@ -4,6 +4,8 @@ This crate follows semantic versioning and stays on 0.x until outside users conf
 
 ## Unreleased
 
+* A POST or PUT without a body sends `Content-Length: 0`, as the other languages' HTTP libraries do.
+
 ## 0.1.0-alpha.1 (2026-11-08)
 
 The first alpha.
