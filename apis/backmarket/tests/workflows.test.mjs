@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { readdir, readFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -8,12 +10,32 @@ import { parse } from 'yaml';
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const WORKFLOWS = join(ROOT, '.github/workflows');
 const SPEC_ACTION = './.github/actions/upstream-spec';
+const TARGET_ACTION = './.github/actions/release-target';
+const RELEASES = { python: 'pypi', typescript: 'npm', csharp: 'nuget', rust: 'crates-io' };
 
 async function workflows() {
   const names = (await readdir(WORKFLOWS)).filter((name) => name.endsWith('.yml'));
   return Promise.all(
     names.map(async (name) => ({ name, workflow: parse(await readFile(join(WORKFLOWS, name), 'utf8')) })),
   );
+}
+
+// Runs the release target action's script as a release workflow would, and returns its exit status and outputs.
+async function releaseTarget(language, event, tag = '') {
+  const action = parse(await readFile(join(ROOT, TARGET_ACTION, 'action.yml'), 'utf8'));
+  const dir = await mkdtemp(join(tmpdir(), 'release-target-'));
+  try {
+    const output = join(dir, 'output');
+    const { status } = spawnSync('bash', ['-c', action.runs.steps[0].run], {
+      cwd: ROOT,
+      env: { ...process.env, LANGUAGE: language, EVENT: event, TAG: tag, GITHUB_OUTPUT: output },
+      stdio: 'ignore',
+    });
+    const lines = (await readFile(output, 'utf8').catch(() => '')).split('\n').filter(Boolean);
+    return { status, outputs: Object.fromEntries(lines.map((line) => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)])) };
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 }
 
 test('only the spec drift job reads the spec from upstream', async () => {
@@ -97,4 +119,52 @@ test('every publish step can be rerun after it succeeded', async () => {
   const cargo = run('release-rust.yml', /cargo publish/);
   assert.equal(cargo.if, "steps.published.outputs.skip != 'true'");
   assert.ok(publishing['release-rust.yml'].some((step) => step.id === 'published'));
+});
+
+test('each release workflow takes the API from its tag and builds every API on a pull request', async () => {
+  for (const [language, environment] of Object.entries(RELEASES)) {
+    const workflow = parse(await readFile(join(WORKFLOWS, `release-${language}.yml`), 'utf8'));
+    assert.deepEqual(workflow.on.push.tags, [`*/${language}/v*`, `${language}/v*`]);
+    assert.ok(workflow.on.pull_request.paths.includes(`apis/*/packages/${language}/CHANGELOG.md`), language);
+    assert.ok(workflow.on.pull_request.paths.includes('.github/actions/release-target/**'), language);
+    const { target, build, publish } = workflow.jobs;
+    assert.deepEqual(target.steps.at(-1), { id: 'target', uses: TARGET_ACTION, with: { language } });
+    assert.equal(build.strategy.matrix.include, '${{ fromJSON(needs.target.outputs.matrix) }}');
+    assert.equal(publish.environment.name, environment);
+    assert.equal(
+      publish.if,
+      `github.event_name == 'push' && vars.PUBLISH_${language.toUpperCase()} == 'true' && ` +
+        "(needs.target.outputs.api == 'backmarket' || vars[needs.target.outputs.gate] == 'true')",
+    );
+  }
+});
+
+test('release tags from before tags named the API still release Back Market', async () => {
+  assert.deepEqual((await releaseTarget('python', 'push', 'python/v0.1.0a2')).outputs, {
+    api: 'backmarket',
+    package: 'backmarket-seller',
+    version: '0.1.0a2',
+    gate: 'PUBLISH_BACKMARKET_PYTHON',
+    matrix: JSON.stringify([{ api: 'backmarket', package: 'backmarket-seller' }]),
+  });
+  assert.equal((await releaseTarget('csharp', 'push', 'backmarket/csharp/v0.1.0-alpha.2')).outputs.package, 'BackMarketSeller');
+});
+
+test('a release tag must name an API that has the package', async () => {
+  for (const tag of ['nowhere/python/v1.0.0', '../backmarket/python/v1.0.0', 'backmarket/rust/v1.0.0', 'python-v1.0.0']) {
+    assert.notEqual((await releaseTarget('python', 'push', tag)).status, 0, tag);
+  }
+});
+
+test('a pull request dry-runs every API that has the package', async () => {
+  for (const language of Object.keys(RELEASES)) {
+    const apis = [];
+    for (const api of await readdir(join(ROOT, 'apis'))) {
+      if ((await readdir(join(ROOT, 'apis', api, 'packages', language)).catch(() => [])).includes('generate.yaml')) apis.push(api);
+    }
+    const { status, outputs } = await releaseTarget(language, 'pull_request');
+    assert.equal(status, 0);
+    assert.deepEqual(JSON.parse(outputs.matrix).map(({ api }) => api).sort(), apis.sort());
+    assert.equal(outputs.api, undefined);
+  }
 });

@@ -1,0 +1,80 @@
+name: Release target
+description: >-
+  Reads which API and version a release tag names, or on a pull request lists every API with a package in this
+  language for a dry run. Tags are <api>/<language>/v<version>. See docs/architecture.md.
+inputs:
+  language:
+    description: The package directory under apis/<api>/packages/.
+    required: true
+outputs:
+  matrix:
+    description: A JSON list of {api, package} for the build job, one per API to build.
+    value: ${{ steps.target.outputs.matrix }}
+  api:
+    description: The API a release tag names. Empty on a pull request.
+    value: ${{ steps.target.outputs.api }}
+  package:
+    description: The registry name of that API's package. Empty on a pull request.
+    value: ${{ steps.target.outputs.package }}
+  version:
+    description: The version a release tag names. Empty on a pull request.
+    value: ${{ steps.target.outputs.version }}
+  gate:
+    description: The repository variable that turns publishing on for that API, such as PUBLISH_ETSY_PYTHON.
+    value: ${{ steps.target.outputs.gate }}
+runs:
+  using: composite
+  steps:
+    - id: target
+      shell: bash
+      env:
+        LANGUAGE: ${{ inputs.language }}
+        EVENT: ${{ github.event_name }}
+        TAG: ${{ github.ref_name }}
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+        package_name() {
+          local dir="apis/$1/packages/$LANGUAGE"
+          case "$LANGUAGE" in
+            python) sed -n 's/^name = "\(.*\)"$/\1/p' "$dir/pyproject.toml" | head -n 1 ;;
+            typescript) jq -r .name "$dir/package.json" ;;
+            csharp) sed -n 's:.*<PackageId>\(.*\)</PackageId>.*:\1:p' "$dir"/src/*/*.csproj | head -n 1 ;;
+            rust) sed -n 's/^name = "\(.*\)"$/\1/p' "$dir/Cargo.toml" | head -n 1 ;;
+          esac
+        }
+        if [ "$EVENT" = push ]; then
+          case "$TAG" in
+            # Back Market's tags from before tags named the API.
+            "$LANGUAGE"/v*) api=backmarket; version="${TAG#"$LANGUAGE"/v}" ;;
+            */"$LANGUAGE"/v*) api="${TAG%/"$LANGUAGE"/v*}"; version="${TAG#"$api/$LANGUAGE"/v}" ;;
+            *) api= ;;
+          esac
+          if ! [[ "$api" =~ ^[a-z0-9-]+$ ]] || [ ! -f "apis/$api/packages/$LANGUAGE/generate.yaml" ]; then
+            echo "::error title=Unknown release tag::$TAG does not name an API with a $LANGUAGE package. Tags are <api>/$LANGUAGE/v<version>."
+            exit 1
+          fi
+          apis=("$api")
+          package="$(package_name "$api")"
+          gate="$(echo "PUBLISH_${api}_$LANGUAGE" | tr 'a-z-' 'A-Z_')"
+          {
+            echo "api=$api"
+            echo "package=$package"
+            echo "version=$version"
+            echo "gate=$gate"
+          } | tee -a "$GITHUB_OUTPUT"
+        else
+          apis=()
+          for path in apis/*/packages/"$LANGUAGE"/generate.yaml; do
+            path="${path#apis/}"
+            apis+=("${path%%/*}")
+          done
+        fi
+        for api in "${apis[@]}"; do
+          package="$(package_name "$api")"
+          if [ -z "$package" ]; then
+            echo "::error title=No package name::apis/$api/packages/$LANGUAGE does not declare a package name."
+            exit 1
+          fi
+          jq -nc --arg api "$api" --arg package "$package" '{$api, $package}'
+        done | jq -sc . | sed 's/^/matrix=/' | tee -a "$GITHUB_OUTPUT"
