@@ -130,13 +130,22 @@ test('an empty binary response is an empty download, and a missing content type 
 });
 
 test('the deadline keeps running while the download is read', async () => {
-  // As fetch does, an abort errors a body still arriving with the signal's reason.
+  // As fetch does, an abort errors a body still arriving with the signal's reason. The timeout's timer does
+  // not keep Node running, so a timer stands in for the open socket a real fetch holds.
   const slow: Reply = (signal) =>
     new Response(
       new ReadableStream<Uint8Array>({
         start(controller) {
           controller.enqueue(Uint8Array.of(1));
-          signal?.addEventListener('abort', () => controller.error(signal.reason), { once: true });
+          const socket = setTimeout(() => controller.close(), 5000);
+          signal?.addEventListener(
+            'abort',
+            () => {
+              clearTimeout(socket);
+              controller.error(signal.reason);
+            },
+            { once: true },
+          );
         },
       }),
       { status: 200, headers: { 'content-type': 'application/octet-stream' } },
