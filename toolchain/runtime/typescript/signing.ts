@@ -68,8 +68,8 @@ async function importKey(pem: string): Promise<[SignatureAlgorithm, Params, Key]
 /**
  * Signs each attempt's request: a `Content-Digest` of the body when there is one, then `Signature-Input` and
  * `Signature` over the covered components, with a fresh `created` time. `content-digest` is left out of a request
- * with no body. A request without `content-length` or `host` uses the body's length or the URL's authority, which
- * `fetch` sends; any other field the request lacks is an error.
+ * with no body. A request without `content-length` or `host` uses the body's length, `0` for a POST or PUT without
+ * one, or the URL's authority, which `fetch` sends; any other field the request lacks is an error.
  */
 export class MessageSigner {
   readonly algorithm: SignatureAlgorithm;
@@ -134,11 +134,17 @@ export class MessageSigner {
   }
 }
 
+// What `fetch` sends: the body's length, or `0` for a POST or PUT without a body.
+function contentLength(request: AuthRequest): string | null {
+  if (request.body.length > 0) return String(request.body.length);
+  return ['POST', 'PUT'].includes(request.method.toUpperCase()) ? '0' : null;
+}
+
 function value(request: AuthRequest, name: string): string {
   const url = new URL(request.url);
   if (!name.startsWith('@')) {
     let field = request.headers.get(name);
-    if (field === null && name === 'content-length' && request.body.length > 0) field = String(request.body.length);
+    if (field === null && name === 'content-length') field = contentLength(request);
     if (field === null && name === 'host') field = url.host;
     if (field === null) throw new TypeError(`The request has no ${name} field to sign`);
     return field.trim();
