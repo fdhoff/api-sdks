@@ -54,8 +54,8 @@ const UPDATE_WS_SPECIFIC_ORDERLINE: Operation = Operation {
 /// The query parameters of [`OrdersApi::list`]. Set only what you need.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct OrdersListParams {
-    pub date_creation: Option<String>,
-    pub date_modification: Option<String>,
+    pub date_creation: Option<chrono::DateTime<chrono::FixedOffset>>,
+    pub date_modification: Option<chrono::DateTime<chrono::FixedOffset>>,
     pub country_code: Option<models::CountryCode>,
     pub state: Option<models::OrderState>,
     pub page: Option<i64>,
@@ -138,13 +138,13 @@ impl OrdersApi {
     pub async fn update(
         &self,
         order_id: i64,
-        body: Option<&models::UpdateOrder>,
+        body: impl Into<Option<&models::UpdateOrder>>,
     ) -> Result<models::Order, Error> {
         self.transport
             .call(
                 Request::new(&UPDATE_WS_SPECIFIC_ORDER)
                     .path("order_id", &order_id)
-                    .json(&body),
+                    .json(&body.into()),
             )
             .await
     }
@@ -153,13 +153,13 @@ impl OrdersApi {
     pub async fn update_line(
         &self,
         orderline_id: i64,
-        body: Option<&models::OrderLineUpdate>,
+        body: impl Into<Option<&models::OrderLineUpdate>>,
     ) -> Result<models::UpdatedOrderLine, Error> {
         self.transport
             .call(
                 Request::new(&UPDATE_WS_SPECIFIC_ORDERLINE)
                     .path("orderline_id", &orderline_id)
-                    .json(&body),
+                    .json(&body.into()),
             )
             .await
     }

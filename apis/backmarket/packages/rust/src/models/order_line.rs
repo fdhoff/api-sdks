@@ -7,7 +7,7 @@ use crate::models;
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct OrderLine {
     pub id: Option<i64>,
-    pub date_creation: Option<String>,
+    pub date_creation: Option<chrono::DateTime<chrono::FixedOffset>>,
     pub state: Option<models::OrderLineState>,
     pub price: Option<String>,
     pub shipping_price: Option<String>,

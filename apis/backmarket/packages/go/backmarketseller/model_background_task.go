@@ -8,8 +8,8 @@ import (
 	"github.com/fdhoff/backmarket-seller-sdk/apis/backmarket/packages/go/internal/runtime"
 )
 
-// Task is an API object. Extra holds unknown fields and any value that did not fit its field.
-type Task struct {
+// BackgroundTask is an API object. Extra holds unknown fields and any value that did not fit its field.
+type BackgroundTask struct {
 	TaskID          *int64                     `json:"task_id,omitempty"`
 	ActionStatus    *int64                     `json:"action_status,omitempty"`
 	LastActionError *string                    `json:"last_action_error,omitempty"`
@@ -19,7 +19,7 @@ type Task struct {
 }
 
 // UnmarshalJSON decodes tolerantly: a field that does not fit stays unset and its raw value goes to Extra.
-func (m *Task) UnmarshalJSON(data []byte) error { return runtime.DecodeObject(data, m) }
+func (m *BackgroundTask) UnmarshalJSON(data []byte) error { return runtime.DecodeObject(data, m) }
 
 // MarshalJSON encodes the fields that are set, followed by Extra.
-func (m Task) MarshalJSON() ([]byte, error) { return runtime.EncodeObject(m) }
+func (m BackgroundTask) MarshalJSON() ([]byte, error) { return runtime.EncodeObject(m) }

@@ -10,6 +10,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * That `DecodeError` carries the response `status`, and its `raw_body` is the text as received rather than the JSON re-encoded.
 * Methods with no declared response return `None`, as typed, instead of any body the API sent.
 * Breaking: integer enum members are named after their meaning, such as `OrderState.PENDING_SHIPMENT` instead of `NUMBER_3`. This covers `OrderState`, `OrderLineState`, `ListingStateValue`, `ProductCondition` and `ReturnReason`; the wire values are unchanged.
+* Breaking: the `Task` model is `BackgroundTask`, and its module `backmarket_seller.models.task` is `backmarket_seller.models.background_task`, as in every other language.
 
 ## 0.1.0a2 (2026-11-07)
 

@@ -119,7 +119,10 @@ pub async fn collect<T: serde::Serialize>(items: Items<T>) -> Result<Value, Erro
 }
 
 fn client(settings: Settings) -> Client {
-    let mut builder = Client::builder(settings.token, settings.user_agent, settings.locale)
+    let mut builder = Client::builder()
+        .token(settings.token)
+        .user_agent(settings.user_agent)
+        .locale(settings.locale)
         .base_url(settings.base_url);
     if let Some(ms) = settings.timeout_ms {
         builder = builder.timeout(Duration::from_millis(ms));

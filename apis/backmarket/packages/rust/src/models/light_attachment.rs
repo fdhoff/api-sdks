@@ -8,7 +8,7 @@ use crate::models;
 pub struct LightAttachment {
     pub id: Option<i64>,
     pub attachment: Option<String>,
-    pub date_creation: Option<String>,
+    pub date_creation: Option<chrono::DateTime<chrono::FixedOffset>>,
     pub extra: serde_json::Map<String, serde_json::Value>,
 }
 

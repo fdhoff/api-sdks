@@ -52,12 +52,27 @@ fn invalid(message: &str) -> BuildError {
     BuildError(message.to_owned())
 }
 
+fn headers(token: &str, user_agent: &str, locale: &str) -> Result<HeaderMap, BuildError> {
+    let value = |text: &str, name: &str| {
+        HeaderValue::from_str(text)
+            .map_err(|_| BuildError(format!("{name} cannot be sent as a header")))
+    };
+    let mut authorization = value(&format!("Basic {token}"), "the token")?;
+    authorization.set_sensitive(true);
+    let mut headers = HeaderMap::new();
+    headers.insert(AUTHORIZATION, authorization);
+    headers.insert(USER_AGENT, value(user_agent, "user_agent")?);
+    headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
+    headers.insert(ACCEPT_LANGUAGE, value(locale, "locale")?);
+    Ok(headers)
+}
+
 /// Configures a [`Client`]. Start from [`Client::builder`].
 #[derive(Clone)]
 pub struct ClientBuilder {
-    token: String,
-    user_agent: String,
-    locale: String,
+    token: Option<String>,
+    user_agent: Option<String>,
+    locale: Option<String>,
     region: Option<Region>,
     environment: Environment,
     base_url: Option<String>,
@@ -66,6 +81,26 @@ pub struct ClientBuilder {
     retry_base_delay: Duration,
     rate_limit_wait: Duration,
     max_retry_wait: Duration,
+    http_client: Option<reqwest::Client>,
+}
+
+impl Default for ClientBuilder {
+    fn default() -> Self {
+        Self {
+            token: None,
+            user_agent: None,
+            locale: None,
+            region: None,
+            environment: Environment::Production,
+            base_url: None,
+            timeout: Duration::from_secs(30),
+            max_retries: 3,
+            retry_base_delay: Duration::from_millis(500),
+            rate_limit_wait: Duration::from_secs(10),
+            max_retry_wait: Duration::from_secs(60),
+            http_client: None,
+        }
+    }
 }
 
 impl fmt::Debug for ClientBuilder {
@@ -76,11 +111,30 @@ impl fmt::Debug for ClientBuilder {
             .field("region", &self.region)
             .field("environment", &self.environment)
             .field("base_url", &self.base_url)
+            .field("http_client", &self.http_client.is_some())
             .finish_non_exhaustive()
     }
 }
 
 impl ClientBuilder {
+    /// Sets your API token. Required. It is sent verbatim, and the client keeps it only in memory.
+    pub fn token(mut self, token: impl Into<String>) -> Self {
+        self.token = Some(token.into());
+        self
+    }
+
+    /// Sets the `User-Agent`. Required, in the form `BM-{Company}-{Integration};contact@example.com`.
+    pub fn user_agent(mut self, user_agent: impl Into<String>) -> Self {
+        self.user_agent = Some(user_agent.into());
+        self
+    }
+
+    /// Sets the locale sent as `Accept-Language` on every call, for example `fr-fr`. Required.
+    pub fn locale(mut self, locale: impl Into<String>) -> Self {
+        self.locale = Some(locale.into());
+        self
+    }
+
     /// Selects the marketplace region. Set this or [`base_url`](Self::base_url).
     pub fn region(mut self, region: Region) -> Self {
         self.region = Some(region);
@@ -132,6 +186,16 @@ impl ClientBuilder {
         self
     }
 
+    /// Sends requests through your own [`reqwest::Client`], for example to share its connection
+    /// pool or to set a proxy or TLS roots. The client still sends its own headers and applies
+    /// `timeout` and its retries. Redirects follow your client's policy: build it with
+    /// `reqwest::redirect::Policy::none()` to keep your token on the server you selected, as the
+    /// default client does.
+    pub fn http_client(mut self, client: reqwest::Client) -> Self {
+        self.http_client = Some(client);
+        self
+    }
+
     fn server(&self) -> Result<String, BuildError> {
         match (self.region, &self.base_url) {
             (Some(region), None) => Ok(server(region, self.environment).to_owned()),
@@ -147,41 +211,29 @@ impl ClientBuilder {
         }
     }
 
-    fn headers(&self) -> Result<HeaderMap, BuildError> {
-        let value = |text: &str, name: &str| {
-            HeaderValue::from_str(text)
-                .map_err(|_| BuildError(format!("{name} cannot be sent as a header")))
-        };
-        let mut authorization = value(&format!("Basic {}", self.token), "the token")?;
-        authorization.set_sensitive(true);
-        let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION, authorization);
-        headers.insert(USER_AGENT, value(&self.user_agent, "user_agent")?);
-        headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
-        headers.insert(ACCEPT_LANGUAGE, value(&self.locale, "locale")?);
-        Ok(headers)
-    }
-
     /// Builds the client.
     pub fn build(self) -> Result<Client, BuildError> {
-        if self.token.is_empty() {
-            return Err(invalid("the token is required"));
-        }
-        if self.user_agent.is_empty() {
-            return Err(invalid(
-                "user_agent is required; the API may refuse a request without it",
-            ));
-        }
+        let required = |value: &Option<String>, message: &str| match value.as_deref() {
+            Some(text) if !text.is_empty() => Ok(text.to_owned()),
+            _ => Err(invalid(message)),
+        };
+        let token = required(&self.token, "the token is required")?;
+        let user_agent = required(
+            &self.user_agent,
+            "user_agent is required; the API may refuse a request without it",
+        )?;
+        let locale = required(&self.locale, "locale is required")?;
         let transport = Transport::new(Settings {
             base_url: self.server()?,
-            headers: self.headers()?,
-            secret: self.token,
+            headers: headers(&token, &user_agent, &locale)?,
+            secret: token,
             to_error,
             timeout: self.timeout,
             max_retries: self.max_retries,
             retry_base_delay: self.retry_base_delay,
             rate_limit_wait: self.rate_limit_wait,
             max_retry_wait: self.max_retry_wait,
+            http: self.http_client,
         })
         .map_err(|_| invalid("the HTTP client cannot be built"))?;
         Ok(Client {
@@ -198,27 +250,11 @@ pub struct Client {
 }
 
 impl Client {
-    /// Starts configuring a client. Your token is sent verbatim, and the client keeps it only in
-    /// memory. `user_agent` is required, in the form `BM-{Company}-{Integration};contact@example.com`.
-    /// `locale` is sent as `Accept-Language` on every call, for example `fr-fr`.
-    pub fn builder(
-        token: impl Into<String>,
-        user_agent: impl Into<String>,
-        locale: impl Into<String>,
-    ) -> ClientBuilder {
-        ClientBuilder {
-            token: token.into(),
-            user_agent: user_agent.into(),
-            locale: locale.into(),
-            region: None,
-            environment: Environment::Production,
-            base_url: None,
-            timeout: Duration::from_secs(30),
-            max_retries: 3,
-            retry_base_delay: Duration::from_millis(500),
-            rate_limit_wait: Duration::from_secs(10),
-            max_retry_wait: Duration::from_secs(60),
-        }
+    /// Starts configuring a client. Set [`token`](ClientBuilder::token),
+    /// [`user_agent`](ClientBuilder::user_agent), [`locale`](ClientBuilder::locale) and a
+    /// [`region`](ClientBuilder::region), then call [`build`](ClientBuilder::build).
+    pub fn builder() -> ClientBuilder {
+        ClientBuilder::default()
     }
 }
 
@@ -228,41 +264,52 @@ mod tests {
 
     const TOKEN: &str = "synthetic-token";
 
+    fn builder() -> ClientBuilder {
+        Client::builder()
+            .token(TOKEN)
+            .user_agent("BM-Example-Test;test@example.com")
+            .locale("fr-fr")
+    }
+
     #[test]
     fn exactly_one_of_region_and_base_url() {
-        let builder = Client::builder(TOKEN, "BM-Example-Test;test@example.com", "fr-fr");
-        assert!(builder.clone().build().is_err());
+        assert!(builder().build().is_err());
         assert!(
-            builder
-                .clone()
+            builder()
                 .region(Region::Eu)
                 .base_url("http://127.0.0.1")
                 .build()
                 .is_err()
         );
-        assert!(builder.clone().base_url("not a url").build().is_err());
-        assert!(builder.region(Region::Eu).build().is_ok());
+        assert!(builder().base_url("not a url").build().is_err());
+        assert!(builder().region(Region::Eu).build().is_ok());
     }
 
     #[test]
-    fn the_token_and_user_agent_are_required() {
-        assert!(
-            Client::builder("", "ua", "fr-fr")
-                .region(Region::Eu)
-                .build()
-                .is_err()
-        );
-        assert!(
-            Client::builder(TOKEN, "", "fr-fr")
-                .region(Region::Eu)
-                .build()
-                .is_err()
-        );
+    fn the_token_user_agent_and_locale_are_required() {
+        let missing = [
+            Client::builder().user_agent("ua").locale("fr-fr"),
+            Client::builder().token(TOKEN).locale("fr-fr"),
+            Client::builder().token(TOKEN).user_agent("ua"),
+            builder().token(""),
+        ];
+        for builder in missing {
+            assert!(builder.region(Region::Eu).build().is_err());
+        }
+    }
+
+    #[test]
+    fn a_caller_can_supply_the_http_client() {
+        let client = builder()
+            .region(Region::Eu)
+            .http_client(reqwest::Client::new())
+            .build();
+        assert!(client.is_ok());
     }
 
     #[test]
     fn debug_output_never_shows_the_token() {
-        let builder = Client::builder(TOKEN, "ua", "fr-fr").region(Region::Na);
+        let builder = builder().region(Region::Na);
         let client = builder.clone().build().unwrap();
         for text in [format!("{builder:?}"), format!("{client:?}")] {
             assert!(!text.contains(TOKEN), "{text}");

@@ -129,10 +129,10 @@ impl ListingsApi {
     /// Create or update listings from a CSV catalog.
     pub async fn batch_update(
         &self,
-        body: Option<&models::ListingsCatalog>,
+        body: impl Into<Option<&models::ListingsCatalog>>,
     ) -> Result<models::ListingsBatch, Error> {
         self.transport
-            .call(Request::new(&POST_WS_CREATE_OR_UPDATE_LISTINGS).json(&body))
+            .call(Request::new(&POST_WS_CREATE_OR_UPDATE_LISTINGS).json(&body.into()))
             .await
     }
 
@@ -140,13 +140,13 @@ impl ListingsApi {
     pub async fn update(
         &self,
         listing_id: &str,
-        body: Option<&models::ListingUpdate>,
+        body: impl Into<Option<&models::ListingUpdate>>,
     ) -> Result<models::UpdatedListing, Error> {
         self.transport
             .call(
                 Request::new(&UPDATE_WS_SPECIFIC_LISTING)
                     .path("listingId", &listing_id)
-                    .json(&body),
+                    .json(&body.into()),
             )
             .await
     }

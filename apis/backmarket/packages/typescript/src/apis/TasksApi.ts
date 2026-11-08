@@ -1,6 +1,6 @@
 // Generated code. Do not edit by hand; change the templates, the overlay or the runtime instead.
 
-import type { ErrorResponseV1, Task } from '../models/index.js';
+import type { BackgroundTask, ErrorResponseV1 } from '../models/index.js';
 import type * as models from '../models/index.js';
 import { Resource, type FileInput, type Operation, type RequestOptions } from '../runtime/index.js';
 
@@ -18,7 +18,7 @@ export const OPERATIONS: readonly Operation[] = [getWsTask];
 
 export class TasksApi extends Resource {
   /** Get the state of a background task. */
-  get(taskId: number, options?: RequestOptions): Promise<Task> {
+  get(taskId: number, options?: RequestOptions): Promise<BackgroundTask> {
     return this.call(getWsTask, undefined, { taskId }, options);
   }
 }

@@ -5,16 +5,16 @@ from __future__ import annotations
 from pydantic import StrictInt
 
 from backmarket_seller._runtime import AsyncResource, Operation, Param, Resource, checked
-from backmarket_seller.models.task import Task
+from backmarket_seller.models.background_task import BackgroundTask
 
-_get_ws_task: Operation[Task] = Operation(
+_get_ws_task: Operation[BackgroundTask] = Operation(
     id="get-ws-task",
     method="GET",
     path="/ws/tasks/{taskId}",
     resource="tasks",
     name="get",
     params=(Param("taskId", "task_id", "path"),),
-    response=Task,
+    response=BackgroundTask,
     returns_json=True,
 )
 
@@ -26,7 +26,7 @@ class TasksApi(Resource):
     def get(
         self,
         task_id: StrictInt,
-    ) -> Task:
+    ) -> BackgroundTask:
         """Get the state of a background task."""
         return self._call(
             _get_ws_task,
@@ -39,7 +39,7 @@ class AsyncTasksApi(AsyncResource):
     async def get(
         self,
         task_id: StrictInt,
-    ) -> Task:
+    ) -> BackgroundTask:
         """Get the state of a background task."""
         return await self._call(
             _get_ws_task,

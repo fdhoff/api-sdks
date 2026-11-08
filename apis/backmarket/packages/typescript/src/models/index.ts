@@ -42,6 +42,16 @@ export interface BackboxPage {
   results: Array<Backbox>;
 }
 
+export interface BackgroundTask {
+  task_id: number;
+  action_status: BackgroundTaskActionStatusEnum;
+  last_action_error: string | null;
+  result: any | null;
+  statuscode: number;
+}
+
+export type BackgroundTaskActionStatusEnum = 0 | 2 | 3 | 7 | 8 | 9;
+
 export type BuybackAestheticGradeCode =
   | 'FUNCTIONAL_FLAWLESS'
   | 'FUNCTIONAL_GOOD'
@@ -885,16 +895,6 @@ export interface Snapshot {
   snowden?: boolean;
   image?: string;
 }
-
-export interface Task {
-  task_id: number;
-  action_status: TaskActionStatusEnum;
-  last_action_error: string | null;
-  result: any | null;
-  statuscode: number;
-}
-
-export type TaskActionStatusEnum = 0 | 2 | 3 | 7 | 8 | 9;
 
 export interface Tile {
   id?: number;

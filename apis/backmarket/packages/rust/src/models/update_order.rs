@@ -14,7 +14,7 @@ pub struct UpdateOrder {
     pub tracking_number: Option<String>,
     pub tracking_url: Option<String>,
     pub vat_type: Option<models::VatType>,
-    pub date_shipping: Option<String>,
+    pub date_shipping: Option<chrono::DateTime<chrono::FixedOffset>>,
     pub shipper: Option<String>,
     pub return_reason: Option<models::ReturnReason>,
     pub return_message: Option<String>,

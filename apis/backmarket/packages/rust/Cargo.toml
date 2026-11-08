@@ -11,14 +11,22 @@ keywords = ["api", "client", "seller", "marketplace"]
 categories = ["api-bindings", "asynchronous"]
 include = ["/src", "/Cargo.toml", "/README.md", "/CHANGELOG.md", "/LICENSE", "/NOTICE"]
 
+[features]
+default = ["rustls"]
+# TLS through rustls, with the platform's certificate verifier.
+rustls = ["reqwest/rustls"]
+# TLS through the platform's library: OpenSSL on Linux, Security.framework on macOS, SChannel on Windows.
+native-tls = ["reqwest/native-tls"]
+
 [dependencies]
+chrono = { version = "0.4", default-features = false, features = ["serde", "std"] }
 flate2 = "1.1"
 futures-core = "0.3"
 futures-util = { version = "0.3", default-features = false }
 httpdate = "1.0"
 log = "0.4"
 percent-encoding = "2.3"
-reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2", "multipart"] }
+reqwest = { version = "0.13", default-features = false, features = ["http2", "multipart"] }
 serde = "1.0"
 serde_json = "1.0"
 tokio = { version = "1.43", features = ["time"] }

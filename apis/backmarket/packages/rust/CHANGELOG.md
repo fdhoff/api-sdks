@@ -6,6 +6,12 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 * An empty success body where the spec declares JSON is an `ErrorKind::Decode` error instead of a default model.
 * Breaking: integer enum members are named after their meaning, such as `OrderState::PendingShipment` instead of `Variant3`. This covers `OrderState`, `OrderLineState`, `ListingStateValue`, `ProductCondition` and `ReturnReason`; the wire values are unchanged.
+* Breaking: `Client::builder()` takes no arguments. Set `token`, `user_agent` and `locale` with builder methods; `build()` fails if one is missing.
+* Breaking: date-time fields and parameters are `chrono::DateTime<FixedOffset>`, not `String`. A value that is not RFC 3339 stays in `extra`.
+* An optional request body also takes `&body`, so `Some(&body)` is no longer needed.
+* Breaking: `models::Task` is `models::BackgroundTask`, as in every other language.
+* `rustls`, the default, and `native-tls` features choose the TLS library.
+* `ClientBuilder::http_client` takes your own `reqwest::Client`, and the crate re-exports `reqwest` and `chrono`.
 
 ## 0.1.0-alpha.1 (2026-11-07)
 

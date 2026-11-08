@@ -6,7 +6,7 @@ use crate::models;
 /// ReturnLabel is an API object. `extra` holds unknown fields, nulls, and any value that did not fit its field.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReturnLabel {
-    pub date_creation: Option<String>,
+    pub date_creation: Option<chrono::DateTime<chrono::FixedOffset>>,
     pub state: Option<String>,
     pub label: Option<String>,
     pub initiator: Option<String>,

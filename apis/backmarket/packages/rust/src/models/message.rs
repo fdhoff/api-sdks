@@ -8,7 +8,7 @@ use crate::models;
 pub struct Message {
     pub id: Option<i64>,
     pub message: Option<String>,
-    pub date_creation: Option<String>,
+    pub date_creation: Option<chrono::DateTime<chrono::FixedOffset>>,
     pub attachments: Option<Vec<models::LightAttachment>>,
     pub initiator: Option<String>,
     pub kind: Option<String>,

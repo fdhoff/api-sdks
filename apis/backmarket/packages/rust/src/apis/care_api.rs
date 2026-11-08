@@ -221,10 +221,10 @@ impl CareApi {
     /// Create a refund. Never retried on failure.
     pub async fn create_refund(
         &self,
-        body: Option<&models::PostRefundCreateRequest>,
+        body: impl Into<Option<&models::PostRefundCreateRequest>>,
     ) -> Result<String, Error> {
         self.transport
-            .call(Request::new(&POST_REFUND_CREATE).json(&body))
+            .call(Request::new(&POST_REFUND_CREATE).json(&body.into()))
             .await
     }
 }

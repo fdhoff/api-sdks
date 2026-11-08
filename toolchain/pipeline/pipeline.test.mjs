@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyOperations, dropNullable, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, relax, renameSchemas, stripProse, supportingFiles } from './generate.mjs';
+import { applyOperations, dropNullable, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, stripProse, supportingFiles } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -122,6 +122,16 @@ test('renameSchemas moves a schema and every reference to it', () => {
   assert.deepEqual(Object.keys(renamed.components.schemas), ['Renamed', 'B']);
   assert.equal(renamed.components.schemas.B.properties.x.$ref, '#/components/schemas/Renamed');
   assert.throws(() => renameSchemas(spec, { missing: 'Other' }), /unknown schemas: missing/);
+});
+
+test('packageNames adds a package\'s own names to the shared ones but refuses a rename', () => {
+  const shared = { schema_names: { a: 'A' }, inline_schema_names: { x_response: 'X' } };
+  assert.deepEqual(packageNames(shared, { inline_schema_names: { y_response: 'Y' } }), {
+    schema_names: { a: 'A' },
+    inline_schema_names: { x_response: 'X', y_response: 'Y' },
+  });
+  assert.deepEqual(packageNames({}, {}), { schema_names: {}, inline_schema_names: {} });
+  assert.throws(() => packageNames(shared, { inline_schema_names: { x_response: 'Other' } }), /renames shared names: x_response/);
 });
 
 test('applyOperations marks operations whose query or form parameters must be passed', () => {

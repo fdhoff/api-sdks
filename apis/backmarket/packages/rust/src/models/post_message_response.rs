@@ -8,7 +8,7 @@ use crate::models;
 pub struct PostMessageResponse {
     pub attachment: Option<Box<models::Attachment>>,
     pub attachments: Option<Vec<models::Attachment>>,
-    pub date_creation: Option<String>,
+    pub date_creation: Option<chrono::DateTime<chrono::FixedOffset>>,
     pub group: Option<i64>,
     pub id: Option<i64>,
     pub message: Option<String>,

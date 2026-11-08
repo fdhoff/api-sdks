@@ -1,8 +1,10 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use backmarket_seller::models::{Competitor, MarketCode, PostItemTransferCreateRequest};
+use backmarket_seller::models::{
+    Competitor, MarketCode, Order, PostItemTransferCreateRequest, UpdateOrder,
+};
 use backmarket_seller::{Client, ClientBuilder, Error, ErrorKind, OrdersListParams};
 use futures_util::StreamExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -32,12 +34,24 @@ fn rate_limited(retry_after: &str) -> Reply {
     }
 }
 
+type Heads = Arc<Mutex<Vec<String>>>;
+
 /// Serves one reply per connection, picked by the number of requests so far, and counts requests.
 async fn serve(reply: impl Fn(usize) -> Reply + Send + 'static) -> (String, Arc<AtomicUsize>) {
+    let (url, count, _) = record(reply).await;
+    (url, count)
+}
+
+/// Serves like [`serve`], and also keeps each request's head, lowercased.
+async fn record(
+    reply: impl Fn(usize) -> Reply + Send + 'static,
+) -> (String, Arc<AtomicUsize>, Heads) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let url = format!("http://{}", listener.local_addr().unwrap());
     let count = Arc::new(AtomicUsize::new(0));
     let seen = Arc::clone(&count);
+    let heads = Heads::default();
+    let kept = Arc::clone(&heads);
     tokio::spawn(async move {
         loop {
             let Ok((mut stream, _)) = listener.accept().await else {
@@ -51,6 +65,9 @@ async fn serve(reply: impl Fn(usize) -> Reply + Send + 'static) -> (String, Arc<
                     Ok(read) => head.extend_from_slice(&buffer[..read]),
                 }
             }
+            let text = String::from_utf8_lossy(&head).to_lowercase();
+            let end = text.find("\r\n\r\n").unwrap_or(text.len());
+            kept.lock().unwrap().push(text[..end].to_owned());
             let Reply {
                 status,
                 headers,
@@ -69,11 +86,14 @@ async fn serve(reply: impl Fn(usize) -> Reply + Send + 'static) -> (String, Arc<
             let _ = stream.shutdown().await;
         }
     });
-    (url, count)
+    (url, count, heads)
 }
 
 fn builder(base_url: &str) -> ClientBuilder {
-    Client::builder(TOKEN, "BM-Example-Test;test@example.com", "en-us")
+    Client::builder()
+        .token(TOKEN)
+        .user_agent("BM-Example-Test;test@example.com")
+        .locale("en-us")
         .base_url(base_url)
         .retry_base_delay(Duration::ZERO)
 }
@@ -252,4 +272,70 @@ fn an_optional_reference_is_typed() {
         Some("1.00")
     );
     assert_eq!(competitor.market, Some(MarketCode::Fr));
+}
+
+#[tokio::test]
+async fn a_caller_supplied_http_client_still_sends_the_headers() {
+    let (url, _, heads) = record(|_| json(200, r#"{"order_id": 1}"#)).await;
+    let client = builder(&url)
+        .http_client(backmarket_seller::reqwest::Client::new())
+        .build()
+        .unwrap();
+    client.orders().get(1).await.unwrap();
+    let head = heads.lock().unwrap()[0].clone();
+    for header in [
+        format!("authorization: basic {TOKEN}"),
+        "user-agent: bm-example-test;test@example.com".to_owned(),
+        "accept-language: en-us".to_owned(),
+    ] {
+        assert!(head.contains(&header), "{head}");
+    }
+}
+
+#[tokio::test]
+async fn an_optional_body_takes_a_reference_or_none() {
+    let (url, _, heads) = record(|_| json(200, "{}")).await;
+    let client = builder(&url).build().unwrap();
+    let body = UpdateOrder {
+        order_id: Some(1),
+        ..Default::default()
+    };
+    client.orders().update(1, &body).await.unwrap();
+    client.orders().update(1, None).await.unwrap();
+    let heads = heads.lock().unwrap();
+    let length = format!("content-length: {}", r#"{"order_id":1}"#.len());
+    assert!(heads[0].contains(&length), "{}", heads[0]);
+    assert!(
+        !heads[1].contains("content-type: application/json"),
+        "{}",
+        heads[1]
+    );
+}
+
+#[test]
+fn a_date_time_is_typed_and_one_that_does_not_parse_stays_in_extra() {
+    let order: Order = serde_json::from_str(
+        r#"{"date_creation": "2026-01-02T03:04:05+01:00", "date_payment": "2026-01-02"}"#,
+    )
+    .unwrap();
+    let created = order.date_creation.unwrap();
+    assert_eq!(created.to_rfc3339(), "2026-01-02T03:04:05+01:00");
+    assert_eq!(order.date_payment, None);
+    assert_eq!(order.extra["date_payment"], "2026-01-02");
+}
+
+#[tokio::test]
+async fn a_date_time_parameter_is_sent_as_rfc_3339() {
+    let (url, _, heads) = record(|_| json(200, r#"{"results": []}"#)).await;
+    let client = builder(&url).build().unwrap();
+    let params = OrdersListParams {
+        date_creation: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05+01:00").ok(),
+        ..Default::default()
+    };
+    client.orders().list(&params).await.unwrap();
+    let head = heads.lock().unwrap()[0].clone();
+    assert!(
+        head.contains("date_creation=2026-01-02t03%3a04%3a05%2b01%3a00"),
+        "{head}"
+    );
 }

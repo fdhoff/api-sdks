@@ -27,6 +27,6 @@ type TasksResource struct {
 }
 
 // Get gets the state of a background task.
-func (r *TasksResource) Get(ctx context.Context, taskID int64) (*Task, error) {
-	return runtime.Call[*Task](ctx, r.transport, opGetWsTask, runtime.Input{Path: []any{taskID}})
+func (r *TasksResource) Get(ctx context.Context, taskID int64) (*BackgroundTask, error) {
+	return runtime.Call[*BackgroundTask](ctx, r.transport, opGetWsTask, runtime.Input{Path: []any{taskID}})
 }

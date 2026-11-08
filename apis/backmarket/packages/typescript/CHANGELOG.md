@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* Breaking: the `Task` model is `BackgroundTask`, and `TaskActionStatusEnum` is `BackgroundTaskActionStatusEnum`, as in every other language.
 * Every method takes options last, with a `signal` that cancels the request and any wait before a retry.
 * A call whose `signal` is already aborted sends nothing, and a call aborted after a failed attempt rejects with the signal's reason rather than that failure.
 * Each error class has a literal `kind`, and `ClientError` is their union, so comparing `kind` narrows the type.
