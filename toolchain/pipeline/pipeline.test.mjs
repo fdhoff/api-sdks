@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyOperations, dropNullable, dropUnions, fillPackageName, ignoreFile, relax, renameSchemas, stripProse, supportingFiles } from './generate.mjs';
+import { applyOperations, dropNullable, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, relax, renameSchemas, stripProse, supportingFiles } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -160,6 +160,18 @@ test('applyOperations marks operations whose success response declares a JSON bo
   assert.equal(json({ 400: body('application/json'), 204: {} }), false);
   assert.equal(json({ 200: body('application/json') }), true);
   assert.equal(json({ 202: { $ref: '#/components/responses/R' } }, { responses: { R: body('application/json') } }), true);
+  assert.equal(json({ 200: body('application/problem+json') }), true);
+  assert.equal(json({ 200: body('*/*') }), false);
+  assert.equal(json({ 200: body('application/x-ndjson') }), false);
+});
+
+test('isJsonMediaType accepts application/json and +json suffixes only', () => {
+  for (const type of ['application/json', 'Application/JSON', 'application/json; charset=utf-8', 'application/problem+json', 'application/vnd.api+json']) {
+    assert.equal(isJsonMediaType(type), true, type);
+  }
+  for (const type of ['*/*', 'application/*', 'application/x-ndjson', 'application/jsonl', 'text/json-seq', 'text/plain']) {
+    assert.equal(isJsonMediaType(type), false, type);
+  }
 });
 
 test('dropNullable removes nullability but keeps properties that use its name', () => {

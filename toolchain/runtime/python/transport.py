@@ -51,6 +51,7 @@ class Operation(Generic[T]):
     name: str
     params: tuple[Param, ...] = ()
     response: Any = None
+    returns_json: bool = False
     iterator: str | None = None
     item: Any = None
 
@@ -134,6 +135,15 @@ def _build_request(
     return request
 
 
+@dataclass(frozen=True)
+class _Reply:
+    """A decoded success body, with the text it came from for errors."""
+
+    data: Any
+    text: str
+    status: int
+
+
 def _log(settings: Settings, level: int, message: str) -> None:
     settings.logger.log(level, "%s", message.replace(settings.secret, _REDACTED))
 
@@ -145,22 +155,23 @@ def _parse_json(text: str) -> Any:
         return None
 
 
-def _read(settings: Settings, operation: Operation[Any], response: httpx.Response) -> Any:
+def _read(settings: Settings, operation: Operation[Any], response: httpx.Response) -> _Reply:
     text = response.text
     _log(settings, logging.DEBUG, f"<- {operation.method} {response.status_code} ({len(text)} chars)")
     if not response.is_success:
         clean = text.replace(settings.secret, _REDACTED)
         raise settings.to_error(ErrorContext(response.status_code, response.headers, clean, _parse_json(clean)))
+    status = response.status_code
     if text == "":
-        if operation.response not in (None, str):
-            raise DecodeError("The response body is empty", status=response.status_code)
-        return "" if operation.response is str else None
+        if operation.returns_json:
+            raise DecodeError("The response body is empty", status=status)
+        return _Reply("" if operation.response is str else None, text, status)
     if "json" not in response.headers.get("content-type", ""):
-        return text
+        return _Reply(text, text, status)
     try:
-        return json.loads(text)
+        return _Reply(json.loads(text), text, status)
     except ValueError:
-        raise DecodeError("The response body is not valid JSON", status=response.status_code) from None
+        raise DecodeError("The response body is not valid JSON", status=status) from None
 
 
 def _undecodable(response: httpx.Response) -> httpx.Response:
@@ -267,7 +278,7 @@ class SyncTransport:
             # The stream itself, because iter_raw refuses a body that was read already, as a mock transport's is.
             return _decoded(response, b"".join(_Deadline(response.stream, deadline)))
 
-    def fetch(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> Any:
+    def fetch(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> _Reply:
         settings = self.settings
         request = _build_request(settings, operation, body, params)
         tries = 0
@@ -300,7 +311,7 @@ class AsyncTransport:
             stream = cast(httpx.AsyncByteStream, response.stream)
             return _decoded(response, b"".join([chunk async for chunk in stream]))
 
-    async def fetch(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> Any:
+    async def fetch(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> _Reply:
         settings = self.settings
         request = _build_request(settings, operation, body, params)
         tries = 0
@@ -323,14 +334,15 @@ class AsyncTransport:
                 tries += 1
 
 
-def _parse(settings: Settings, response_type: Any, data: Any) -> Any:
+def _parse(settings: Settings, response_type: Any, data: Any, reply: _Reply) -> Any:
     """Inside an object, a field that does not fit keeps its raw value. A body that does not fit at all is an error."""
     try:
         return parse_response(response_type, data)
     except ValidationError:
-        raw = data if data is None or isinstance(data, str) else json.dumps(data)
-        clean = None if raw is None else raw.replace(settings.secret, _REDACTED)
-        raise DecodeError("The response body does not fit its declared type", raw_body=clean) from None
+        clean = reply.text.replace(settings.secret, _REDACTED)
+        raise DecodeError(
+            "The response body does not fit its declared type", status=reply.status, raw_body=clean
+        ) from None
 
 
 def _items(page: Any) -> Sequence[Any]:
@@ -343,17 +355,17 @@ class Resource:
         self._transport = transport
 
     def _call(self, operation: Operation[T], /, *, _body: Any = None, **params: Any) -> T:
-        data = self._transport.fetch(operation, _body, params)
-        result: T = _parse(self._transport.settings, operation.response, data)
+        reply = self._transport.fetch(operation, _body, params)
+        result: T = _parse(self._transport.settings, operation.response, reply.data, reply)
         return result
 
     def _paginate(self, operation: Operation[Any], /, *, _body: Any = None, **params: Any) -> Iterator[Any]:
         current: dict[str, Any] | None = params
         while current is not None:
             page = self._transport.fetch(operation, _body, current)
-            for item in _items(page):
-                yield _parse(self._transport.settings, operation.item, item)
-            current = _next_params(operation, current, page)
+            for item in _items(page.data):
+                yield _parse(self._transport.settings, operation.item, item, page)
+            current = _next_params(operation, current, page.data)
 
 
 class AsyncResource:
@@ -361,14 +373,14 @@ class AsyncResource:
         self._transport = transport
 
     async def _call(self, operation: Operation[T], /, *, _body: Any = None, **params: Any) -> T:
-        data = await self._transport.fetch(operation, _body, params)
-        result: T = _parse(self._transport.settings, operation.response, data)
+        reply = await self._transport.fetch(operation, _body, params)
+        result: T = _parse(self._transport.settings, operation.response, reply.data, reply)
         return result
 
     async def _paginate(self, operation: Operation[Any], /, *, _body: Any = None, **params: Any) -> AsyncIterator[Any]:
         current: dict[str, Any] | None = params
         while current is not None:
             page = await self._transport.fetch(operation, _body, current)
-            for item in _items(page):
-                yield _parse(self._transport.settings, operation.item, item)
-            current = _next_params(operation, current, page)
+            for item in _items(page.data):
+                yield _parse(self._transport.settings, operation.item, item, page)
+            current = _next_params(operation, current, page.data)

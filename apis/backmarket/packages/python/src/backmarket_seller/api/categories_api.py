@@ -17,6 +17,7 @@ _get_bm_catalog_category: Operation[List[CategoryTree]] = Operation(
     name="list",
     params=(),
     response=List[CategoryTree],
+    returns_json=True,
 )
 _get_bm_catalog_category_branch: Operation[CategoryTree] = Operation(
     id="get-bm-catalog-category-branch",
@@ -26,6 +27,7 @@ _get_bm_catalog_category_branch: Operation[CategoryTree] = Operation(
     name="get",
     params=(Param("categoryId", "category_id", "path"),),
     response=CategoryTree,
+    returns_json=True,
 )
 
 OPERATIONS = (

@@ -13,7 +13,7 @@ internal enum ParamLocation
 
 internal sealed record Param(string Wire, string Name, ParamLocation Location);
 
-internal sealed record Operation(string Id, string Method, string Path, string Resource, string Name, string? Iterator, Param[] Params);
+internal sealed record Operation(string Id, string Method, string Path, string Resource, string Name, string? Iterator, Param[] Params, bool ReturnsJson = false);
 
 /// <summary>A failed response, with the credential already removed from <see cref="Text"/> and <see cref="Json"/>.</summary>
 internal sealed record ErrorContext(int Status, IReadOnlyDictionary<string, string> Headers, string Text, JsonElement? Json)

@@ -97,6 +97,7 @@ const postRefundCreate: Operation = {
   name: 'createRefund',
   params: [],
   hasBody: true,
+  returnsText: true,
 };
 
 export const OPERATIONS: readonly Operation[] = [

@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
+import { returnsJson } from '../../../toolchain/pipeline/generate.mjs';
 import { apiPaths } from '../../../toolchain/pipeline/paths.mjs';
 
 const METHODS = ['get', 'put', 'post', 'delete', 'patch'];
@@ -9,13 +10,11 @@ const SPEC = apiPaths(fileURLToPath(new URL('..', import.meta.url))).build;
 const DEFAULTS = { timeout_ms: 30_000, max_retries: 3, retry_base_delay_ms: 500, rate_limit_wait_ms: 10_000, max_retry_wait_ms: 60_000 };
 
 const spec = parse(await readFile(SPEC, 'utf8'));
-const declaresJson = ({ responses = {} }) =>
-  Object.entries(responses).some(([status, { content = {} }]) => status.startsWith('2') && Object.keys(content).some((type) => type.includes('json')));
 const operations = new Map(
   Object.entries(spec.paths).flatMap(([path, item]) =>
     METHODS.filter((method) => item[method]).map((method) => [
       item[method].operationId,
-      { method: method.toUpperCase(), path, returnsJson: declaresJson(item[method]) },
+      { method: method.toUpperCase(), path, returnsJson: returnsJson(spec, item[method]) },
     ]),
   ),
 );

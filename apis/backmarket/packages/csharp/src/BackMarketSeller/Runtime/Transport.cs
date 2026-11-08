@@ -100,6 +100,7 @@ internal sealed class Transport : IDisposable
     public async Task<T> CallAsync<T>(Operation operation, object?[] values, CancellationToken cancellationToken)
     {
         var reply = await FetchAsync(operation, values, cancellationToken).ConfigureAwait(false);
+        RejectEmpty(operation, reply);
         if (typeof(T) == typeof(string))
         {
             return (T)(object)(reply.Json is { ValueKind: JsonValueKind.String } text ? text.GetString()! : reply.Text);
@@ -115,8 +116,16 @@ internal sealed class Transport : IDisposable
         throw new ApiDecodeException($"The response is not JSON, so it cannot be a {typeof(T).Name}") { Status = reply.Status, RawBody = reply.Clean };
     }
 
-    public Task SendAsync(Operation operation, object?[] values, CancellationToken cancellationToken) =>
-        FetchAsync(operation, values, cancellationToken);
+    public async Task SendAsync(Operation operation, object?[] values, CancellationToken cancellationToken) =>
+        RejectEmpty(operation, await FetchAsync(operation, values, cancellationToken).ConfigureAwait(false));
+
+    private static void RejectEmpty(Operation operation, Reply reply)
+    {
+        if (operation.ReturnsJson && reply.Text.Length == 0)
+        {
+            throw new ApiDecodeException("The response body is empty") { Status = reply.Status, RawBody = reply.Clean };
+        }
+    }
 
     public async IAsyncEnumerable<T> PaginateAsync<T>(
         Operation operation, object?[] values, [EnumeratorCancellation] CancellationToken cancellationToken = default)

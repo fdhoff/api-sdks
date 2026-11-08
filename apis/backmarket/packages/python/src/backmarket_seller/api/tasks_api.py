@@ -15,6 +15,7 @@ _get_ws_task: Operation[Task] = Operation(
     name="get",
     params=(Param("taskId", "task_id", "path"),),
     response=Task,
+    returns_json=True,
 )
 
 OPERATIONS = (_get_ws_task,)

@@ -5,6 +5,7 @@ This module follows semantic versioning and stays on 0.x until outside users con
 ## Unreleased
 
 * `APIError.Error()` includes the cause, such as the DNS or TLS failure behind "the connection failed", with the token removed. `errors.Is` and `errors.As` still reach the cause.
+* The token is also removed where it appears path- or query-escaped, as in the URL of a timeout or connection error, and from the cause of a decode error.
 * An empty success body where the spec declares JSON returns an error matching `ErrDecode` instead of an empty model.
 * Breaking: integer enum members are named after their meaning, such as `OrderStatePendingShipment` instead of `OrderState3`. This covers `OrderState`, `OrderLineState`, `ListingStateValue`, `ProductCondition` and `ReturnReason`; the wire values are unchanged.
 

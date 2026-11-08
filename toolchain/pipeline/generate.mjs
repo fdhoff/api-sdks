@@ -68,11 +68,17 @@ function paramsRequired(spec, parameters, operation) {
   return query.some((parameter) => parameter.in === 'query' && parameter.required) || requiredProperties(spec, form).length > 0;
 }
 
+// application/json or a +json suffix such as application/problem+json. A wildcard or a stream such as
+// application/x-ndjson is not one JSON document.
+export function isJsonMediaType(type) {
+  const essence = type.split(';')[0].trim().toLowerCase();
+  return essence === 'application/json' || /^[a-z0-9.+-]+\/[a-z0-9.+-]+\+json$/.test(essence);
+}
+
 // True when a success response declares a JSON body, so an empty one cannot be a result.
-function returnsJson(spec, operation) {
+export function returnsJson(spec, operation) {
   return Object.entries(operation.responses ?? {}).some(
-    ([status, response]) =>
-      status.startsWith('2') && Object.keys(dereference(spec, response)?.content ?? {}).some((type) => type.includes('json')),
+    ([status, response]) => status.startsWith('2') && Object.keys(dereference(spec, response)?.content ?? {}).some(isJsonMediaType),
   );
 }
 

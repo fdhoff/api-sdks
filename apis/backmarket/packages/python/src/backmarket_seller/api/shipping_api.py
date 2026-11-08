@@ -31,6 +31,7 @@ _get_deliveries: Operation[DeliveryPage] = Operation(
         Param("hub_scanned", "hub_scanned", "query"),
     ),
     response=DeliveryPage,
+    returns_json=True,
     iterator="iter_deliveries",
     item=_models.Delivery,
 )
@@ -42,6 +43,7 @@ _get_delivery: Operation[Delivery] = Operation(
     name="get_delivery",
     params=(Param("id", "id", "path"),),
     response=Delivery,
+    returns_json=True,
 )
 _get_return: Operation[ReturnShipment] = Operation(
     id="GetReturn",
@@ -51,6 +53,7 @@ _get_return: Operation[ReturnShipment] = Operation(
     name="get_return",
     params=(Param("id", "id", "path"),),
     response=ReturnShipment,
+    returns_json=True,
 )
 _get_returns: Operation[ReturnPage] = Operation(
     id="GetReturns",
@@ -69,6 +72,7 @@ _get_returns: Operation[ReturnPage] = Operation(
         Param("hub_scanned", "hub_scanned", "query"),
     ),
     response=ReturnPage,
+    returns_json=True,
     iterator="iter_returns",
     item=_models.ReturnShipment,
 )

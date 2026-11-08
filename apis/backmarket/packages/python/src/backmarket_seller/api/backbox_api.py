@@ -24,6 +24,7 @@ _get_backbox_data: Operation[BackboxPage] = Operation(
         Param("page-size", "page_size", "query"),
     ),
     response=BackboxPage,
+    returns_json=True,
     iterator="iter",
     item=_models.Backbox,
 )
@@ -35,6 +36,7 @@ _get_ws_backbox_v1_competitors: Operation[List[Competitor]] = Operation(
     name="list_competitors",
     params=(Param("listingId", "listing_id", "path"),),
     response=List[Competitor],
+    returns_json=True,
 )
 
 OPERATIONS = (

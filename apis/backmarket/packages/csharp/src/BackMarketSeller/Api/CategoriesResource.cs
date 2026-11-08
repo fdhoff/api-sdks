@@ -11,11 +11,11 @@ public sealed class CategoriesResource
 {
     internal static readonly Operation GetBmCatalogCategoryOperation = new(
         "get-bm-catalog-category", "GET", "/ws/category/tree", "Categories", "ListAsync", null,
-        []);
+        [], ReturnsJson: true);
 
     internal static readonly Operation GetBmCatalogCategoryBranchOperation = new(
         "get-bm-catalog-category-branch", "GET", "/ws/category/tree/{categoryId}", "Categories", "GetAsync", null,
-        [new("categoryId", "categoryId", ParamLocation.Path),]);
+        [new("categoryId", "categoryId", ParamLocation.Path),], ReturnsJson: true);
 
     internal static readonly Operation[] Operations = [GetBmCatalogCategoryOperation, GetBmCatalogCategoryBranchOperation,];
 
