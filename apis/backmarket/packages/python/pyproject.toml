@@ -25,6 +25,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "build==1.3.0",
+    # For type checks and tests of the runtime's message signer.
+    "cryptography==50.0.2",
     "mypy==2.4.1",
     "pytest==9.0.2",
     "ruff==0.17.3",
