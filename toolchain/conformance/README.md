@@ -52,6 +52,7 @@ cases:
         headers_absent: [accept-language]
         body: { quantity: 1 }          # JSON-equal to the request body
         parts: { files: [a, b] }       # multipart parts by name, each name's values in order; instead of body
+        content_digest: true           # optional: Content-Digest is the SHA-256 of the exact body bytes
         min_delay_ms: 900              # time since the previous request
       - method: GET
         path: /items
@@ -65,6 +66,7 @@ cases:
 * `- drop: true` in `responses` reads the request, records it, then closes the connection with no response. It stands alone, with no `status` or other key.
 * `gzip: true` compresses the body and sets `Content-Encoding: gzip`, but only when the request's `Accept-Encoding` allows gzip, as a server would. `cut` applies to the bytes sent, compressed or not, and `Content-Length` matches them.
 * `{{http_date+2s}}` in a scripted header expands to an HTTP date that many seconds ahead, when the response is sent. HTTP dates are whole seconds, so the moment it names is up to a second sooner.
+* `content_digest: true` asserts that `Content-Digest` is `sha-256=:<base64>:` of the exact bytes received. `fixtures/signing` has cases for a signed request, which an API that signs can copy.
 * `parts` lists every part of a multipart body: a list sends one part per item, so two files are two `files` parts.
 * `result_keys: [id]` asserts that those keys exist, for Prism responses whose values come from spec examples. On a list it checks the first element.
 * `error` is a subset match on the driver's error object.

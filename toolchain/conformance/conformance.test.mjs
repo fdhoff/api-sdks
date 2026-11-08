@@ -10,7 +10,8 @@ import { runCases, startDriver } from './run.mjs';
 
 const FIXTURE = fileURLToPath(new URL('./fixtures/driver.mjs', import.meta.url));
 const FIXTURE_CASES = fileURLToPath(new URL('./fixtures/cases', import.meta.url));
-const operations = new Set(['list-items']);
+const SIGNING_CASES = fileURLToPath(new URL('./fixtures/signing', import.meta.url));
+const operations = new Set(['list-items', 'create-item']);
 
 const baseCase = () => ({
   name: 'lists-items',
@@ -115,6 +116,27 @@ test('checkCase enforces header patterns, absent headers, bodies and delays', ()
   assert.match(failures, /sent after 50ms/);
 });
 
+test('validateCase accepts only true for content_digest', () => {
+  const item = baseCase();
+  item.wire[0].content_digest = false;
+  assert.deepEqual(validateCase(item, operations), ['wire[].content_digest can only be true']);
+});
+
+test('checkCase compares Content-Digest with the body bytes', () => {
+  const item = baseCase();
+  item.wire = [
+    { method: 'POST', path: '/items', content_digest: true },
+    { method: 'POST', path: '/items', content_digest: true },
+  ];
+  const sha256 = 'RK/0qy18MlBSVnWgjwz6lZEWjP/lF5HF9bvEF8FabDg=';
+  const requests = [
+    sent({ method: 'POST', sha256, headers: { 'content-digest': `sha-256=:${sha256}:` } }),
+    sent({ method: 'POST', sha256, headers: {} }),
+  ];
+  const failures = checkCase(item, requests, { result: { id: 1 } }, { token: 't0ken' });
+  assert.deepEqual(failures, [`wire[1]: Content-Digest is undefined, expected sha-256=:${sha256}:`]);
+});
+
 test('checkCase compares multipart parts by name, including repeated parts', () => {
   const item = baseCase();
   item.wire = [{ method: 'POST', path: '/items', parts: { note: ['hi'], files: ['a', 'b'] } }];
@@ -205,6 +227,7 @@ test('harness records requests and plays responses in order', async () => {
   assert.equal(recorded.path, '/items');
   assert.deepEqual(recorded.query, { page: '2' });
   assert.equal(recorded.body, 'hello');
+  assert.equal(recorded.sha256, 'LPJNul+wow4m6DsqxbninhsWHlwfp0JecwQzYpOLmCQ=');
 });
 
 test('harness sends string bodies verbatim and delays responses', async () => {
@@ -327,6 +350,24 @@ test('offset paging cases hold for a driver that walks offsets', async () => {
 
 test('offset paging cases fail a driver that reads only the first page', async () => {
   const cases = await loadCases(FIXTURE_CASES, operations);
+  const failed = await runWith('good', cases);
+  assert.ok(failed.length > 0);
+});
+
+test('signing cases hold for a driver that signs each attempt', async () => {
+  const cases = await loadCases(SIGNING_CASES, operations);
+  assert.ok(cases.length > 0);
+  assert.deepEqual(await runWith('signed', cases), []);
+});
+
+test('signing cases fail a driver whose digest is not of the bytes sent', async () => {
+  const cases = await loadCases(SIGNING_CASES, operations);
+  const failed = await runWith('wrong-digest', cases);
+  assert.ok(failed.some(({ failures }) => failures.some((failure) => /Content-Digest is/.test(failure))));
+});
+
+test('signing cases fail a driver that does not sign', async () => {
+  const cases = await loadCases(SIGNING_CASES, operations);
   const failed = await runWith('good', cases);
   assert.ok(failed.length > 0);
 });

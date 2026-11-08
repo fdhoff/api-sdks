@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { gzipSync } from 'node:zlib';
@@ -80,6 +81,7 @@ export async function startHarness(prismUrl) {
       query: Object.fromEntries(url.searchParams),
       headers: request.headers,
       body: body.toString(),
+      sha256: createHash('sha256').update(body).digest('base64'),
       at: performance.now(),
     });
     if (script) {
