@@ -22,7 +22,8 @@
     "generate:go": "node toolchain/pipeline/generate.mjs apis/backmarket go",
     "conformance:go": "go -C apis/backmarket/packages/go build -o bin/driver ./conformance/driver && node toolchain/conformance/run.mjs apis/backmarket --driver apis/backmarket/packages/go/bin/driver",
     "generate:csharp": "node toolchain/pipeline/generate.mjs apis/backmarket csharp",
-    "conformance:csharp": "dotnet build apis/backmarket/packages/csharp/conformance/Driver -c Release -o apis/backmarket/packages/csharp/conformance/bin && node toolchain/conformance/run.mjs apis/backmarket --driver \"dotnet apis/backmarket/packages/csharp/conformance/bin/BackMarketSeller.Conformance.dll\"",
+    "conformance:csharp": "dotnet build apis/backmarket/packages/csharp/conformance/Driver -c Release -f net10.0 -o apis/backmarket/packages/csharp/conformance/bin/net10.0 && node toolchain/conformance/run.mjs apis/backmarket --driver \"dotnet apis/backmarket/packages/csharp/conformance/bin/net10.0/BackMarketSeller.Conformance.dll\"",
+    "conformance:csharp:net8": "dotnet build apis/backmarket/packages/csharp/conformance/Driver -c Release -f net8.0 -o apis/backmarket/packages/csharp/conformance/bin/net8.0 && node toolchain/conformance/run.mjs apis/backmarket --driver \"dotnet apis/backmarket/packages/csharp/conformance/bin/net8.0/BackMarketSeller.Conformance.dll\"",
     "generate:rust": "node toolchain/pipeline/generate.mjs apis/backmarket rust",
     "conformance:rust": "cargo build --locked --manifest-path apis/backmarket/packages/rust/Cargo.toml --example conformance-driver && node toolchain/conformance/run.mjs apis/backmarket --driver apis/backmarket/packages/rust/target/debug/examples/conformance-driver",
     "test": "node --test \"toolchain/**/*.test.mjs\" \"apis/**/*.test.mjs\""

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net10.0;net8.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -14,19 +14,32 @@
     <Description>Unofficial client for the Back Market Seller API. Not affiliated with Back Market.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageProjectUrl>https://github.com/fdhoff/backmarket-seller-sdk/tree/main/apis/backmarket/packages/csharp</PackageProjectUrl>
     <PackageTags>seller-api;sdk;unofficial</PackageTags>
     <RepositoryUrl>https://github.com/fdhoff/backmarket-seller-sdk</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <!-- Source Link ships with the .NET SDK; these record the commit and let debuggers fetch the source. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="../../README.md;../../LICENSE;../../NOTICE" Pack="true" PackagePath="/" />
+    <None Include="../../README.md;../../LICENSE;../../NOTICE;../../icon.png" Pack="true" PackagePath="/" />
     <InternalsVisibleTo Include="BackMarketSeller.Tests" />
     <InternalsVisibleTo Include="BackMarketSeller.Conformance" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.14" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="System.Text.Json" Version="10.0.14" />
   </ItemGroup>
 
 </Project>

@@ -82,7 +82,7 @@ The [Go README](apis/backmarket/packages/go/README.md) covers installing, errors
 
 ### C#
 
-Requires .NET 10 or later.
+Requires .NET 8 or later.
 
 ```sh
 dotnet add package BackMarketSeller --prerelease
@@ -174,7 +174,8 @@ npm run conformance:typescript:cjs
 npm run generate:go             # regenerate the Go client; needs Java 21 and Go 1.24 or later
 npm run conformance:go          # build the driver and run the cases against the Go client
 npm run generate:csharp         # regenerate the C# client; needs Java 21 and .NET 10
-npm run conformance:csharp      # build the driver and run the cases against the C# client
+npm run conformance:csharp      # build the driver and run the cases against the C# client on .NET 10
+npm run conformance:csharp:net8
 npm run generate:rust           # regenerate the Rust client; needs Java 21 and rustfmt
 npm run conformance:rust        # build the Rust driver and run the cases against it
 ```

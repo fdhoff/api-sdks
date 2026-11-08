@@ -196,7 +196,9 @@ jobs:
           cache: npm
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: |
+            8.0.x
+            10.0.x
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
@@ -215,6 +217,7 @@ jobs:
           dotnet build BackMarketSeller.slnx -c Release
           dotnet test --solution BackMarketSeller.slnx -c Release --no-build
       - run: npm run conformance:csharp
+      - run: npm run conformance:csharp:net8
       - name: Package ships the licence and notice
         working-directory: apis/backmarket/packages/csharp
         run: |
@@ -222,6 +225,11 @@ jobs:
           unzip -l dist/*.nupkg | grep -E ' LICENSE$'
           unzip -l dist/*.nupkg | grep -E ' NOTICE$'
           unzip -p dist/*.nupkg BackMarketSeller.nuspec | grep -F '<license type="expression">Apache-2.0</license>'
+          unzip -l dist/*.nupkg | grep -E ' icon.png$'
+          unzip -l dist/*.nupkg | grep -E ' lib/net8.0/BackMarketSeller.dll$'
+          unzip -l dist/*.nupkg | grep -E ' lib/net10.0/BackMarketSeller.dll$'
+          unzip -p dist/*.nupkg BackMarketSeller.nuspec | grep -F "commit=\"$GITHUB_SHA\""
+          unzip -l dist/*.snupkg | grep -E ' lib/net8.0/BackMarketSeller.pdb$'
 
   rust:
     runs-on: ubuntu-24.04

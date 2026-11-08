@@ -2,6 +2,13 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
+## 0.1.0-alpha.2 (unreleased)
+
+* Targets .NET 8 as well as .NET 10.
+* A constructor takes your own `HttpClient`, and `services.AddBackMarketSeller(token, options)` registers the client with `IHttpClientFactory`. Writes are still never resent.
+* Writes reuse pooled connections instead of opening one each. The token and other headers are sent per request, not set on the `HttpClient`.
+* The package has a project URL, Source Link, a symbols package and an icon.
+
 ## 0.1.0-alpha.1 (2026-11-07)
 
 * Async client for all 40 operations, generated from the public spec, targeting .NET 10.
