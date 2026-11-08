@@ -233,8 +233,9 @@ def test_an_empty_success_body_is_a_decode_error(headers: dict[str, str]) -> Non
         async_order(handler)
 
 
-def test_an_empty_body_is_fine_where_none_is_declared() -> None:
-    client = client_for(lambda request: httpx.Response(201))
+@pytest.mark.parametrize("headers", [{"content-type": "text/plain"}, {}])
+def test_an_empty_body_is_fine_where_none_is_declared(headers: dict[str, str]) -> None:
+    client = client_for(lambda request: httpx.Response(201, headers=headers))
     client.care.transfer_item(1, {})
     assert client.care.create_refund({}) == ""
 
