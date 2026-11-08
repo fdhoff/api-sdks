@@ -1,0 +1,144 @@
+cases:
+  - name: pagination-offset-advances-by-the-items-received-until-the-count
+    request:
+      operation: findAllListingsActive
+      params: { limit: 2 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 3, results: [{ listing_id: 1 }, { listing_id: 2 }] }
+        - status: 200
+          body: { count: 3, results: [{ listing_id: 3 }] }
+    wire:
+      - method: GET
+        path: /v3/application/listings/active
+        query: { limit: '2' }
+      - method: GET
+        path: /v3/application/listings/active
+        query: { limit: '2', offset: '2' }
+    expect:
+      result: [{ listing_id: 1 }, { listing_id: 2 }, { listing_id: 3 }]
+
+  - name: pagination-offset-starts-at-the-callers-offset-and-stops-at-an-empty-page
+    request:
+      operation: findAllListingsActive
+      params: { limit: 25, offset: 5 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 100, results: [{ listing_id: 6 }] }
+        - status: 200
+          body: { count: 100, results: [] }
+    wire:
+      - method: GET
+        path: /v3/application/listings/active
+        query: { limit: '25', offset: '5' }
+      - method: GET
+        path: /v3/application/listings/active
+        query: { limit: '25', offset: '6' }
+    expect:
+      result: [{ listing_id: 6 }]
+
+  - name: pagination-offset-empty-first-page
+    request:
+      operation: findAllListingsActive
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 0, results: [] }
+    wire:
+      - method: GET
+        path: /v3/application/listings/active
+    expect:
+      result: []
+
+  - name: pagination-offset-keeps-other-parameters-on-every-page
+    request:
+      operation: findAllListingsActive
+      params: { keywords: synthetic, limit: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 2, results: [{ listing_id: 1 }] }
+        - status: 200
+          body: { count: 2, results: [{ listing_id: 2 }] }
+    wire:
+      - method: GET
+        path: /v3/application/listings/active
+        query: { keywords: synthetic, limit: '1' }
+      - method: GET
+        path: /v3/application/listings/active
+        query: { keywords: synthetic, limit: '1', offset: '1' }
+    expect:
+      result: [{ listing_id: 1 }, { listing_id: 2 }]
+
+  - name: pagination-offset-sends-both-headers-on-every-page
+    request:
+      operation: getShopReceipts
+      params: { shop_id: 1, limit: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 2, results: [{ receipt_id: 1 }] }
+        - status: 200
+          body: { count: 2, results: [{ receipt_id: 2 }] }
+    wire:
+      - method: GET
+        path: /v3/application/shops/1/receipts
+        query: { limit: '1' }
+        headers:
+          x-api-key: '{{api_key}}:{{shared_secret}}'
+          authorization: 'Bearer {{token}}'
+      - method: GET
+        path: /v3/application/shops/1/receipts
+        query: { limit: '1', offset: '1' }
+        headers:
+          x-api-key: '{{api_key}}:{{shared_secret}}'
+          authorization: 'Bearer {{token}}'
+    expect:
+      result: [{ receipt_id: 1 }, { receipt_id: 2 }]
+
+  - name: pagination-offset-retries-a-rate-limited-page
+    request:
+      operation: findAllListingsActive
+      params: { limit: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 2, results: [{ listing_id: 1 }] }
+        - status: 429
+          headers: { retry-after: '1', x-limit-per-second: '10', x-remaining-this-second: '0' }
+          body: { error: Synthetic rate limit }
+        - status: 200
+          body: { count: 2, results: [{ listing_id: 2 }] }
+    wire:
+      - method: GET
+        path: /v3/application/listings/active
+        query: { limit: '1' }
+      - method: GET
+        path: /v3/application/listings/active
+        query: { limit: '1', offset: '1' }
+      - method: GET
+        path: /v3/application/listings/active
+        query: { limit: '1', offset: '1' }
+        min_delay_ms: 900
+    expect:
+      result: [{ listing_id: 1 }, { listing_id: 2 }]
+
+  - name: pagination-offset-from-the-spec
+    request:
+      operation: findAllListingsActive
+      paginate: true
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /v3/application/listings/active
+    expect:
+      result_keys: [listing_id]

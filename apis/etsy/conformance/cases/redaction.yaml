@@ -1,0 +1,93 @@
+cases:
+  - name: redaction-keeps-every-secret-out-of-logs
+    request:
+      operation: getMe
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /v3/application/users/me
+        headers:
+          x-api-key: '{{api_key}}:{{shared_secret}}'
+          authorization: 'Bearer {{token}}'
+    expect:
+      result_keys: [user_id]
+      logs_required: true
+
+  - name: redaction-keeps-the-api-key-out-of-logs-on-key-only-operations
+    request:
+      operation: ping
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /v3/application/openapi-ping
+        headers:
+          x-api-key: '{{api_key}}:{{shared_secret}}'
+    expect:
+      result_keys: [application_id]
+      logs_required: true
+
+  - name: redaction-removes-secrets-echoed-in-a-text-error-body
+    request:
+      operation: getMe
+    mock:
+      responses:
+        - status: 400
+          headers: { content-type: text/plain }
+          body: 'Rejected x-api-key {{api_key}}:{{shared_secret}} with Bearer {{token}}'
+    wire:
+      - method: GET
+        path: /v3/application/users/me
+    expect:
+      error: { kind: bad_request, status: 400 }
+      logs_required: true
+
+  - name: redaction-removes-secrets-echoed-in-a-json-error
+    request:
+      operation: getMe
+    mock:
+      responses:
+        - status: 403
+          body: { error: 'Key {{api_key}} with secret {{shared_secret}} may not use {{token}}' }
+    wire:
+      - method: GET
+        path: /v3/application/users/me
+    expect:
+      error: { kind: permission, status: 403 }
+      logs_required: true
+
+  - name: redaction-covers-retried-requests
+    client:
+      max_retries: 1
+    request:
+      operation: getMe
+    mock:
+      responses:
+        - status: 500
+        - status: 503
+    wire:
+      - method: GET
+        path: /v3/application/users/me
+      - method: GET
+        path: /v3/application/users/me
+    expect:
+      error: { kind: server, status: 503 }
+      logs_required: true
+
+  - name: redaction-covers-timeouts
+    client:
+      timeout_ms: 100
+      max_retries: 0
+    request:
+      operation: getMe
+    mock:
+      responses:
+        - status: 200
+          delay_ms: 2000
+    wire:
+      - method: GET
+        path: /v3/application/users/me
+    expect:
+      error: { kind: timeout }
+      logs_required: true

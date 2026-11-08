@@ -145,6 +145,7 @@ One gap to watch for: where the spec declares a JSON success body, every SDK tre
 | `apis/backmarket/packages/` | Per-language package config and generated clients |
 | `apis/backmarket/conformance/` | Language-neutral test cases and the reference driver |
 | `apis/backmarket/docs/spec-audit.md` | Known gaps in the spec and where each is handled |
+| `apis/etsy/` | The same for Etsy's Open API v3: spec pin, overlay, conformance cases and spec audit. No package yet |
 
 `toolchain/` must not name this API or contain its endpoints or schemas; a test enforces that. This boundary keeps later extraction cheap and is not a framework.
 
@@ -194,6 +195,6 @@ All tests run against the mock. The project uses no live credentials.
 
 Apache-2.0: see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). The licence covers only this project's own code.
 
-The upstream OpenAPI spec is not in this repository. It is fetched at build time, belongs to Back Market, and is not covered by this licence. The licence grants no right to the Back Market name.
+The upstream OpenAPI specs are not in this repository. They are fetched at build time, belong to Back Market and Etsy, and are not covered by this licence. The licence grants no right to the Back Market or Etsy names.
 
-This project is unofficial and is not affiliated with Back Market.
+This project is unofficial and is not affiliated with Back Market or Etsy.
