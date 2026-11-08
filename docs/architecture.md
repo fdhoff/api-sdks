@@ -166,6 +166,8 @@ An API may serve operations from several hosts. `hosts` in its `sdk.yaml` maps e
 
 Headers the runtime owns, `Content-Type`, `Content-Length`, `Accept` and `Accept-Encoding`, are never method arguments: the generator drops them from every operation, and `header_defaults` may not name them.
 
+No API uses `hosts` or `header_defaults` yet, so CI's `templates` job generates a synthetic spec in `toolchain/pipeline/fixtures/multihost/` in every language and type-checks the result. It has two hosts with one operation each, and a default header on one operation that has no other parameter. Its generated code is not committed.
+
 ### Timeouts
 
 The timeout is one deadline for each attempt, from sending the request to reading the last byte of the response, and is configurable. A body that keeps trickling must not outlast it. A timeout that exhausts its retries raises a `timeout` error.

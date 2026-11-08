@@ -1,0 +1,13 @@
+generator: typescript-fetch
+output: src
+source: .
+generated: [apis, models]
+resources: resources.ts
+runtime: runtime
+format: [npx, --no-install, prettier, --write, --log-level=warn]
+properties:
+  dateLibrary: string
+  disallowAdditionalPropertiesIfNotPresent: false
+  importFileExtension: .js
+  modelPropertyNaming: original
+  withoutRuntimeChecks: true

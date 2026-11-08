@@ -1,0 +1,65 @@
+openapi: 3.0.3
+info:
+  title: Synthetic multi-host API
+  version: 1.0.0
+servers:
+  - url: https://api.example.test/v1
+security:
+  - api_key: []
+paths:
+  /widgets/{widget_id}:
+    get:
+      operationId: getWidget
+      parameters:
+        - name: widget_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: verbose
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Widget' }
+  /uploads:
+    get:
+      operationId: listUploads
+      parameters:
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Uploads' }
+components:
+  securitySchemes:
+    api_key:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+  schemas:
+    Widget:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string }
+        name: { type: string }
+    Upload:
+      type: object
+      properties:
+        id: { type: string }
+        size: { type: integer }
+    Uploads:
+      type: object
+      properties:
+        count: { type: integer }
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/Upload' }
