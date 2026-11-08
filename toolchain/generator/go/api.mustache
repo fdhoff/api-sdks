@@ -25,6 +25,12 @@ var (
 {{/vendorExtensions.x-sdk-returns-json}}
 		PathParams:  []string{ {{#pathParams}}"{{baseName}}",{{/pathParams}} },
 		QueryParams: []string{ {{#queryParams}}"{{baseName}}",{{/queryParams}} },
+{{#vendorExtensions.x-sdk-has-headers}}
+		HeaderParams: []string{ {{#headerParams}}{{#vendorExtensions.x-sdk-header-default}}"{{baseName}}",{{/vendorExtensions.x-sdk-header-default}}{{/headerParams}} },
+{{/vendorExtensions.x-sdk-has-headers}}
+{{#vendorExtensions.x-sdk-host}}
+		Host:        "{{.}}",
+{{/vendorExtensions.x-sdk-host}}
 {{#vendorExtensions.x-sdk-paging.next_link}}
 		Paging:      runtime.NextLink{Items: "{{items}}", Link: "{{link}}", Params: []string{ {{#params}}"{{.}}",{{/params}} }},
 {{/vendorExtensions.x-sdk-paging.next_link}}
@@ -41,6 +47,12 @@ type {{classname}} struct {
 	transport *runtime.Transport
 }
 {{#operation}}
+{{#vendorExtensions.x-sdk-has-headers}}
+
+// {{baseName}}{{vendorExtensions.x-sdk-method}}Params holds the parameters of [{{classname}}.{{vendorExtensions.x-sdk-method}}]. Set only what you need; a header left nil takes the client's default.
+type {{baseName}}{{vendorExtensions.x-sdk-method}}Params struct {
+{{/vendorExtensions.x-sdk-has-headers}}
+{{^vendorExtensions.x-sdk-has-headers}}
 {{#hasQueryParams}}
 
 // {{baseName}}{{vendorExtensions.x-sdk-method}}Params holds the query parameters{{#hasFormParams}} and form fields{{/hasFormParams}} of [{{classname}}.{{vendorExtensions.x-sdk-method}}]. Set only what you need.
@@ -53,12 +65,22 @@ type {{baseName}}{{vendorExtensions.x-sdk-method}}Params struct {
 type {{baseName}}{{vendorExtensions.x-sdk-method}}Params struct {
 {{/hasFormParams}}
 {{/hasQueryParams}}
+{{/vendorExtensions.x-sdk-has-headers}}
 {{#queryParams}}
 	{{nameInPascalCase}} {{^isArray}}*{{/isArray}}{{{dataType}}} `query:"{{baseName}}"`
 {{/queryParams}}
 {{#formParams}}
 	{{nameInPascalCase}} {{^isArray}}{{^isFile}}*{{/isFile}}{{/isArray}}{{{dataType}}} `{{#isMultipart}}form{{/isMultipart}}{{^isMultipart}}urlencoded{{/isMultipart}}:"{{baseName}}"`
 {{/formParams}}
+{{#headerParams}}
+{{#vendorExtensions.x-sdk-header-default}}
+	{{nameInPascalCase}} *{{{dataType}}} `header:"{{baseName}}"`
+{{/vendorExtensions.x-sdk-header-default}}
+{{/headerParams}}
+{{#vendorExtensions.x-sdk-has-headers}}
+}
+{{/vendorExtensions.x-sdk-has-headers}}
+{{^vendorExtensions.x-sdk-has-headers}}
 {{#hasQueryParams}}
 }
 {{/hasQueryParams}}
@@ -67,6 +89,7 @@ type {{baseName}}{{vendorExtensions.x-sdk-method}}Params struct {
 }
 {{/hasFormParams}}
 {{/hasQueryParams}}
+{{/vendorExtensions.x-sdk-has-headers}}
 
 // {{{vendorExtensions.x-sdk-summary}}}
 func (r *{{classname}}) {{vendorExtensions.x-sdk-method}}({{>partial_sdk_args}}) {{#returnType}}({{>partial_sdk_return}}, error){{/returnType}}{{^returnType}}error{{/returnType}} {

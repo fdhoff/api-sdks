@@ -6,11 +6,12 @@ export type FileContent = Blob | Uint8Array;
 /** A file to upload: its content, or its name and content. */
 export type FileInput = FileContent | { filename: string; content: FileContent };
 
-/** `form` is a multipart part, and `urlencoded` a field of a form-encoded body. */
+/** `form` is a multipart part, `urlencoded` a field of a form-encoded body, and `header` a header that
+ * falls back to the client's default for it. */
 export interface Param {
   wire: string;
   name: string;
-  location: 'path' | 'query' | 'form' | 'urlencoded';
+  location: 'path' | 'query' | 'form' | 'urlencoded' | 'header';
 }
 
 /** Pages that link to the next one. Only `params` are read from the link: it is never fetched. */
@@ -38,6 +39,8 @@ export interface Operation {
   path: string;
   resource: string;
   name: string;
+  /** The key of the host that serves it, in `Settings.hosts`. Without one, it goes to `baseUrl`. */
+  host?: string;
   params: readonly Param[];
   hasBody?: boolean;
   returnsJson?: boolean;
@@ -62,6 +65,10 @@ export interface Logger {
 
 export interface Settings {
   baseUrl: string;
+  /** The base URL of each host key that operations name. */
+  hosts?: Readonly<Record<string, string>>;
+  /** Values for header parameters that an operation declares and the call leaves unset, by header name. */
+  headerDefaults?: Readonly<Record<string, string>>;
   credentials: Credentials;
   headers: Record<string, string>;
   toError: (context: ErrorContext) => ApiError;
@@ -108,14 +115,58 @@ function appendPart(form: FormData, wire: string, value: unknown): void {
   } else form.append(wire, formText(value));
 }
 
+const sameName = (record: Readonly<Record<string, string>>, name: string): string[] =>
+  Object.keys(record).filter((key) => key.toLowerCase() === name.toLowerCase());
+
+/** The base URL for an operation. A host key with no URL is a configuration error, so nothing is sent. */
+function baseUrlFor(settings: Settings, operation: Operation): string {
+  if (!operation.host) return settings.baseUrl;
+  const hosts = settings.hosts ?? {};
+  if (!Object.hasOwn(hosts, operation.host)) throw new Error(`No base URL for host "${operation.host}"`);
+  return hosts[operation.host]!;
+}
+
+/** The host map for a named environment, or the caller's own, which must name exactly the keys the
+ * environments use. */
+export function selectHosts(
+  environments: Readonly<Record<string, Readonly<Record<string, string>>>>,
+  environment: string,
+  hosts?: Readonly<Record<string, string>>,
+): Record<string, string> {
+  if (hosts !== undefined && Object.keys(hosts).length > 0) {
+    const keys = new Set(Object.values(environments).flatMap((map) => Object.keys(map)));
+    const missing = [...keys].filter((key) => !Object.hasOwn(hosts, key)).sort();
+    const unknown = Object.keys(hosts)
+      .filter((key) => !keys.has(key))
+      .sort();
+    if (missing.length > 0) throw new Error(`hosts lacks: ${missing.join(', ')}`);
+    if (unknown.length > 0) throw new Error(`hosts has unknown keys: ${unknown.join(', ')}`);
+    return Object.fromEntries(Object.entries(hosts).map(([key, url]) => [key, url.replace(/\/+$/, '')]));
+  }
+  if (!Object.hasOwn(environments, environment)) {
+    const known = Object.keys(environments).sort().join(', ');
+    throw new Error(`Unknown environment "${environment}"; expected one of: ${known}`);
+  }
+  return { ...environments[environment] };
+}
+
 function buildRequest(settings: Settings, operation: Operation, body: unknown, params: Params): Built {
+  const baseUrl = baseUrlFor(settings, operation);
   let path = operation.path;
+  const declared: [string, string][] = [];
   const query = new URLSearchParams();
   const form = new FormData();
   const fields = new URLSearchParams();
   let hasParts = false;
   for (const { wire, name, location } of operation.params) {
     const value = params[name];
+    if (location === 'header') {
+      const defaults = settings.headerDefaults ?? {};
+      const fallback = sameName(defaults, wire)[0];
+      const sent = value ?? (fallback === undefined ? undefined : defaults[fallback]);
+      if (sent !== undefined && sent !== null) declared.push([wire, String(sent)]);
+      continue;
+    }
     if (value === undefined || value === null) {
       if (location === 'path') throw new TypeError(`${name} is required`);
       continue;
@@ -134,6 +185,10 @@ function buildRequest(settings: Settings, operation: Operation, body: unknown, p
   const search = query.size > 0 ? `?${query}` : '';
   // fetch accepts a gzip body cut short, so ask for none.
   const headers: Record<string, string> = { 'Accept-Encoding': 'identity', ...settings.headers };
+  for (const [wire, value] of declared) {
+    for (const key of sameName(headers, wire)) delete headers[key];
+    headers[wire] = value;
+  }
   let encoded: Built['body'];
   if (hasParts) {
     encoded = form;
@@ -143,7 +198,7 @@ function buildRequest(settings: Settings, operation: Operation, body: unknown, p
     encoded = JSON.stringify(body);
     headers['Content-Type'] = 'application/json';
   }
-  return { url: `${settings.baseUrl}${path}${search}`, headers, body: encoded };
+  return { url: `${baseUrl}${path}${search}`, headers, body: encoded };
 }
 
 /** The exact bytes to send, so that credentials can sign them. A multipart form is encoded once, with one

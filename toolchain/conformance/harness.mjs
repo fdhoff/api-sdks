@@ -50,10 +50,19 @@ function send(response, { status, headers = {}, body, delay_ms: delay = 0, trick
   timer.unref();
 }
 
-async function forward(prismUrl, prism, request, body, response) {
+// A client with several hosts maps host key K to `<harness>/_host/K`. The prefix is recorded as the host
+// and removed, so cases and Prism see the operation's own path.
+const HOSTED = /^\/_host\/([^/]+)(\/.*)?$/;
+
+export function unhost(pathname) {
+  const hosted = HOSTED.exec(pathname);
+  return hosted ? { host: decodeURIComponent(hosted[1]), path: hosted[2] ?? '/' } : { path: pathname };
+}
+
+async function forward(prismUrl, prism, request, url, body, response) {
   const headers = Object.fromEntries(Object.entries(request.headers).filter(([name]) => !HOP_BY_HOP.includes(name)));
   if (prism.code !== undefined) headers.prefer = `code=${prism.code}`;
-  const answer = await fetch(new URL(request.url, prismUrl), {
+  const answer = await fetch(new URL(`${url.pathname}${url.search}`, prismUrl), {
     method: request.method,
     headers,
     body: body.length > 0 ? body : undefined,
@@ -75,9 +84,12 @@ export async function startHarness(prismUrl) {
     for await (const chunk of request) chunks.push(chunk);
     const body = Buffer.concat(chunks);
     const url = new URL(request.url, 'http://harness');
+    const { host, path } = unhost(url.pathname);
+    url.pathname = path;
     requests.push({
       method: request.method,
-      path: url.pathname,
+      ...(host === undefined ? {} : { host }),
+      path,
       query: Object.fromEntries(url.searchParams),
       headers: request.headers,
       body: body.toString(),
@@ -91,7 +103,7 @@ export async function startHarness(prismUrl) {
       return;
     }
     try {
-      await forward(prismUrl, mock.prism, request, body, response);
+      await forward(prismUrl, mock.prism, request, url, body, response);
     } catch (error) {
       send(response, { status: 500, body: `prism forward failed: ${error.message}` });
     }

@@ -13,6 +13,7 @@ from .transport import (
     Resource,
     Settings,
     SyncTransport,
+    select_hosts,
 )
 
 __all__ = [
@@ -43,5 +44,6 @@ __all__ = [
     "checked",
     "content_digest",
     "redact",
+    "select_hosts",
     "to_wire",
 ]

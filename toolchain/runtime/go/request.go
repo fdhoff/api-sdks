@@ -20,7 +20,7 @@ type File struct {
 }
 
 // Input is one call's arguments: path values in order, a pointer to a struct of fields tagged
-// `query`, `form` for a multipart part or `urlencoded` for a form-encoded field, and a JSON body.
+// `query`, `header`, `form` for a multipart part or `urlencoded` for a form-encoded field, and a JSON body.
 type Input struct {
 	Path   []any
 	Params any
@@ -28,10 +28,12 @@ type Input struct {
 }
 
 type request struct {
-	operation   *Operation
-	method      string
-	path        string
-	query       url.Values
+	operation *Operation
+	method    string
+	path      string
+	query     url.Values
+	// headers holds the header arguments passed to the call, by wire name.
+	headers     url.Values
 	body        []byte
 	contentType string
 }
@@ -159,6 +161,12 @@ func (r *request) addParams(params any) error {
 			}
 			continue
 		}
+		if wire := tag.Get("header"); wire != "" {
+			if err := addValues(r.headers, wire, field); err != nil {
+				return err
+			}
+			continue
+		}
 		if wire := tag.Get("urlencoded"); wire != "" {
 			if err := addValues(fields, wire, field); err != nil {
 				return err
@@ -195,7 +203,7 @@ func newRequest(operation *Operation, input Input) (*request, error) {
 		value := url.PathEscape(text(reflect.ValueOf(input.Path[index])))
 		path = strings.ReplaceAll(path, "{"+name+"}", value)
 	}
-	built := &request{operation: operation, method: operation.Method, path: path, query: url.Values{}}
+	built := &request{operation: operation, method: operation.Method, path: path, query: url.Values{}, headers: url.Values{}}
 	if err := built.addParams(input.Params); err != nil {
 		return nil, fmt.Errorf("the request cannot be encoded: %w", err)
 	}

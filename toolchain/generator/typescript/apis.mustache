@@ -19,6 +19,9 @@ const {{nickname}}: Operation = {
   path: '{{{path}}}',
   resource: '{{vendorExtensions.x-sdk-resource}}',
   name: '{{vendorExtensions.x-sdk-method}}',
+{{#vendorExtensions.x-sdk-host}}
+  host: '{{vendorExtensions.x-sdk-host}}',
+{{/vendorExtensions.x-sdk-host}}
   params: [
 {{#pathParams}}
     { wire: '{{baseName}}', name: '{{paramName}}', location: 'path' },
@@ -29,6 +32,11 @@ const {{nickname}}: Operation = {
 {{#formParams}}
     { wire: '{{baseName}}', name: '{{paramName}}', location: '{{#isMultipart}}form{{/isMultipart}}{{^isMultipart}}urlencoded{{/isMultipart}}' },
 {{/formParams}}
+{{#headerParams}}
+{{#vendorExtensions.x-sdk-header-default}}
+    { wire: '{{baseName}}', name: '{{paramName}}', location: 'header' },
+{{/vendorExtensions.x-sdk-header-default}}
+{{/headerParams}}
   ],
 {{#bodyParam}}
   hasBody: true,

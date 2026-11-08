@@ -5,13 +5,13 @@ import { get } from 'node:http';
 import { gunzipSync } from 'node:zlib';
 import { loadCases, validateCase } from './cases.mjs';
 import { checkCase, fill, matches } from './check.mjs';
-import { startHarness } from './harness.mjs';
+import { startHarness, unhost } from './harness.mjs';
 import { runCases, startDriver } from './run.mjs';
 
 const FIXTURE = fileURLToPath(new URL('./fixtures/driver.mjs', import.meta.url));
-const FIXTURE_CASES = fileURLToPath(new URL('./fixtures/cases', import.meta.url));
 const SIGNING_CASES = fileURLToPath(new URL('./fixtures/signing', import.meta.url));
-const operations = new Set(['list-items', 'create-item']);
+const fixtureCases = (style) => fileURLToPath(new URL(`./fixtures/cases/${style}`, import.meta.url));
+const operations = new Set(['list-items', 'create-item', 'list-files']);
 
 const baseCase = () => ({
   name: 'lists-items',
@@ -93,6 +93,14 @@ test('checkCase reports a wire mismatch', () => {
   for (const [requests, pattern] of cases) {
     assert.match(checkCase(item, requests, { result: { id: 1 } }, { token: 't0ken' }).join('\n'), pattern);
   }
+});
+
+test('checkCase compares the host only where the wire names one', () => {
+  const item = { ...baseCase(), wire: [{ ...baseCase().wire[0], host: 'files' }] };
+  assert.deepEqual(checkCase(item, [sent({ host: 'files' })], { result: { id: 1 }, logs: [] }, { token: 't0ken' }), []);
+  assert.match(checkCase(item, [sent({ host: 'main' })], { result: { id: 1 }, logs: [] }, { token: 't0ken' }).join(), /host is main/);
+  assert.match(checkCase(item, [sent()], { result: { id: 1 }, logs: [] }, { token: 't0ken' }).join(), /host is undefined/);
+  assert.deepEqual(checkCase(baseCase(), [sent({ host: 'files' })], { result: { id: 1 }, logs: [] }, { token: 't0ken' }), []);
 });
 
 test('checkCase enforces header patterns, absent headers, bodies and delays', () => {
@@ -312,6 +320,21 @@ test('harness replays a new script from a clean record', async () => {
   assert.deepEqual(harness.requests().map((request) => request.path), ['/two']);
 });
 
+test('unhost reads the host key out of a path and leaves other paths alone', () => {
+  assert.deepEqual(unhost('/_host/files/items/1'), { host: 'files', path: '/items/1' });
+  assert.deepEqual(unhost('/_host/files'), { host: 'files', path: '/' });
+  assert.deepEqual(unhost('/items/_host/files'), { path: '/items/_host/files' });
+});
+
+test('harness records the host key and strips it from the path', async () => {
+  harness.play({ responses: [{ status: 200 }, { status: 200 }] });
+  await fetch(`${harness.url}/_host/files/items?limit=1`);
+  await fetch(`${harness.url}/items`);
+  const [hosted, plain] = harness.requests();
+  assert.deepEqual([hosted.host, hosted.path, hosted.query], ['files', '/items', { limit: '1' }]);
+  assert.equal('host' in plain, false);
+});
+
 test('harness forwards unscripted requests and reports a dead mock', async () => {
   harness.play({ prism: {} });
   const response = await fetch(`${harness.url}/items`);
@@ -343,13 +366,13 @@ test('runCases fails a driver that logs the token', async () => {
 });
 
 test('offset paging cases hold for a driver that walks offsets', async () => {
-  const cases = await loadCases(FIXTURE_CASES, operations);
+  const cases = await loadCases(fixtureCases('offset'), operations);
   assert.ok(cases.length > 0);
   assert.deepEqual(await runWith('offset', cases), []);
 });
 
 test('offset paging cases fail a driver that reads only the first page', async () => {
-  const cases = await loadCases(FIXTURE_CASES, operations);
+  const cases = await loadCases(fixtureCases('offset'), operations);
   const failed = await runWith('good', cases);
   assert.ok(failed.length > 0);
 });
@@ -365,3 +388,17 @@ test('signing cases fail a driver whose digest is not of the bytes sent', async 
   const failed = await runWith('wrong-digest', cases);
   assert.ok(failed.some(({ failures }) => failures.some((failure) => /Content-Digest is/.test(failure))));
 });
+
+for (const style of ['hosts', 'headers']) {
+  test(`${style} cases hold for a driver that routes by host and sends declared headers`, async () => {
+    const cases = await loadCases(fixtureCases(style), operations);
+    assert.ok(cases.length > 0);
+    assert.deepEqual(await runWith('routed', cases), []);
+  });
+
+  test(`${style} cases fail a driver that sends everything to the base URL with no headers`, async () => {
+    const cases = await loadCases(fixtureCases(style), operations);
+    const failed = await runWith('good', cases);
+    assert.ok(failed.length > 0);
+  });
+}

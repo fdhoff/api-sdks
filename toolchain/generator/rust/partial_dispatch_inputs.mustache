@@ -12,5 +12,10 @@
 {{#formParams}}
                 {{{paramName}}}: {{#isFile}}files{{/isFile}}{{^isFile}}param{{/isFile}}({{#isMultipart}}&case.multipart{{/isMultipart}}{{^isMultipart}}&form_fields(case){{/isMultipart}}, "{{baseName}}"),
 {{/formParams}}
+{{#headerParams}}
+{{#vendorExtensions.x-sdk-header-default}}
+                {{{paramName}}}: param(&case.params, "{{baseName}}"),
+{{/vendorExtensions.x-sdk-header-default}}
+{{/headerParams}}
             };
 {{/vendorExtensions.x-sdk-has-params}}

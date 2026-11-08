@@ -31,7 +31,7 @@ const {{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}: Operat
 {{#operation}}
 {{#vendorExtensions.x-sdk-has-params}}
 
-/// The {{#hasQueryParams}}query parameters{{#hasFormParams}} and {{/hasFormParams}}{{/hasQueryParams}}{{#hasFormParams}}form fields{{/hasFormParams}} of [`{{classname}}::{{vendorExtensions.x-sdk-method}}`]. Set only what you need.
+/// The {{#hasQueryParams}}query parameters{{#hasFormParams}} and {{/hasFormParams}}{{/hasQueryParams}}{{#hasFormParams}}form fields{{/hasFormParams}}{{#vendorExtensions.x-sdk-has-headers}}{{#hasQueryParams}} and {{/hasQueryParams}}{{^hasQueryParams}}{{#hasFormParams}} and {{/hasFormParams}}{{/hasQueryParams}}headers{{/vendorExtensions.x-sdk-has-headers}} of [`{{classname}}::{{vendorExtensions.x-sdk-method}}`]. Set only what you need.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct {{>partial_params_name}} {
 {{#queryParams}}
@@ -40,6 +40,12 @@ pub struct {{>partial_params_name}} {
 {{#formParams}}
     pub {{{paramName}}}: Option<{{>partial_value_type}}>,
 {{/formParams}}
+{{#headerParams}}
+{{#vendorExtensions.x-sdk-header-default}}
+    /// The `{{baseName}}` header. `None` sends the client's default, if it has one.
+    pub {{{paramName}}}: Option<{{>partial_value_type}}>,
+{{/vendorExtensions.x-sdk-header-default}}
+{{/headerParams}}
 }
 
 impl Params for {{>partial_params_name}} {
@@ -50,6 +56,11 @@ impl Params for {{>partial_params_name}} {
 {{#formParams}}
         request.{{#isMultipart}}form{{/isMultipart}}{{^isMultipart}}urlencoded{{/isMultipart}}("{{baseName}}", &self.{{{paramName}}});
 {{/formParams}}
+{{#headerParams}}
+{{#vendorExtensions.x-sdk-header-default}}
+        request.header("{{baseName}}", &self.{{{paramName}}});
+{{/vendorExtensions.x-sdk-header-default}}
+{{/headerParams}}
     }
 }
 {{/vendorExtensions.x-sdk-has-params}}
