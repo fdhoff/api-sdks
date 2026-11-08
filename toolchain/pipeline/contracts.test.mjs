@@ -155,6 +155,16 @@ test('inlineServerPath moves the server path into every path and keeps each serv
   assert.throws(() => inlineServerPath({ servers: [{ url: `${HOST}{basePath}` }], paths: {} }), /no default for \{basePath\}/);
   const spanning = { servers: [{ url: 'https://{host}', variables: { host: { default: 'api.example.test/v1' } } }], paths: {} };
   assert.throws(() => inlineServerPath(spanning), /\{host\} spanning its host and path/);
+  const templated = inlineServerPath({
+    servers: [{ url: '{scheme}://api.example.test/v1', variables: { scheme: { default: 'https' } } }],
+    paths: { '/x': {} },
+  });
+  assert.deepEqual(
+    [templated.servers, Object.keys(templated.paths)],
+    [[{ url: '{scheme}://api.example.test', variables: { scheme: { default: 'https' } } }], ['/v1/x']],
+  );
+  const whole = inlineServerPath({ servers: [{ url: '{origin}/v1', variables: { origin: { default: 'https://api.example.test' } } }], paths: { '/x': {} } });
+  assert.deepEqual(Object.keys(whole.paths), ['/v1/x']);
   const relative = inlineServerPath({ servers: [{ url: '/v{major}', variables: { major: { default: '2' } } }], paths: { '/x': {} } });
   assert.deepEqual([relative.servers, Object.keys(relative.paths)], [[{ url: '/' }], ['/v2/x']]);
 });

@@ -31,13 +31,16 @@ function splitServer(server) {
     if (fallback === undefined) throw new Error(`Server ${server.url} has no default for {${name}}`);
     return String(fallback);
   };
-  const scheme = /^[a-z][a-z0-9+.-]*:\/\//i.exec(server.url)?.[0].length ?? 0;
+  const pieces = server.url.split(/(\{[^}]+\})/).filter(Boolean).map((piece) => {
+    const name = /^\{(.+)\}$/.exec(piece)?.[1];
+    return { piece, name, text: name ? value(name) : piece };
+  });
+  const filled = pieces.map(({ text }) => text).join('');
+  const scheme = /^[a-z][a-z0-9+.-]*:\/\//i.exec(filled)?.[0].length ?? 0;
   let origin = '';
   let path = '';
   let length = 0;
-  for (const piece of server.url.split(/(\{[^}]+\})/).filter(Boolean)) {
-    const name = /^\{(.+)\}$/.exec(piece)?.[1];
-    const text = name ? value(name) : piece;
+  for (const { piece, name, text } of pieces) {
     const slash = text.indexOf('/', Math.max(0, scheme - length));
     if (path) path += text;
     else if (slash < 0) origin += piece;
