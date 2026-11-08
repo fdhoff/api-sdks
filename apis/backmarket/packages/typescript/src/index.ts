@@ -16,5 +16,6 @@ export {
   UnprocessableError,
   WafBlockedError,
 } from './errors.js';
-export type { FileContent, FileInput, Logger } from './runtime/index.js';
+export type { ClientError, ErrorKind } from './errors.js';
+export type { FileContent, FileInput, Logger, RequestOptions } from './runtime/index.js';
 export type * from './models/index.js';

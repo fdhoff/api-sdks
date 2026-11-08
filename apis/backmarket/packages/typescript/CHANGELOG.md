@@ -2,6 +2,11 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
+## Unreleased
+
+* Every method takes options last, with a `signal` that cancels the request and any wait before a retry.
+* Each error class has a literal `kind`, and `ClientError` is their union, so comparing `kind` narrows the type.
+
 ## 0.1.0-alpha.2 (2026-11-07)
 
 * No code changes. Published through npm trusted publishing, with provenance.

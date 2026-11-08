@@ -10,7 +10,7 @@ import type {
   UpdatedListing,
 } from '../models/index.js';
 import type * as models from '../models/index.js';
-import { Resource, type FileInput, type Operation } from '../runtime/index.js';
+import { Resource, type FileInput, type Operation, type RequestOptions } from '../runtime/index.js';
 
 const getWsListListing: Operation = {
   id: 'get-ws-list-listing',
@@ -88,8 +88,9 @@ export class ListingsApi extends Resource {
       page?: number;
       pageSize?: number;
     } = {},
+    options?: RequestOptions,
   ): Promise<ListingPage> {
-    return this.call(getWsListListing, undefined, { ...params });
+    return this.call(getWsListListing, undefined, { ...params }, options);
   }
 
   /** Iterate every item across all pages. */
@@ -101,27 +102,31 @@ export class ListingsApi extends Resource {
       page?: number;
       pageSize?: number;
     } = {},
+    options?: RequestOptions,
   ): AsyncGenerator<models.ListingPublic, void, undefined> {
-    return this.paginate(getWsListListing, undefined, { ...params });
+    return this.paginate(getWsListListing, undefined, { ...params }, options);
   }
 
   /** Find one listing by SKU or identifier. */
-  find(params: { sku?: string; listingId?: number; id?: string } = {}): Promise<ListingDetail> {
-    return this.call(getWsListingDetail, undefined, { ...params });
+  find(
+    params: { sku?: string; listingId?: number; id?: string } = {},
+    options?: RequestOptions,
+  ): Promise<ListingDetail> {
+    return this.call(getWsListingDetail, undefined, { ...params }, options);
   }
 
   /** Get one listing. */
-  get(listingId: string): Promise<ListingDetail> {
-    return this.call(getWsSpecificListing, undefined, { listingId });
+  get(listingId: string, options?: RequestOptions): Promise<ListingDetail> {
+    return this.call(getWsSpecificListing, undefined, { listingId }, options);
   }
 
   /** Create or update listings from a CSV catalog. */
-  batchUpdate(body?: ListingsCatalog): Promise<ListingsBatch> {
-    return this.call(postWsCreateOrUpdateListings, body, {});
+  batchUpdate(body?: ListingsCatalog, options?: RequestOptions): Promise<ListingsBatch> {
+    return this.call(postWsCreateOrUpdateListings, body, {}, options);
   }
 
   /** Update one listing. */
-  update(listingId: string, body?: ListingUpdate): Promise<UpdatedListing> {
-    return this.call(updateWsSpecificListing, body, { listingId });
+  update(listingId: string, body?: ListingUpdate, options?: RequestOptions): Promise<UpdatedListing> {
+    return this.call(updateWsSpecificListing, body, { listingId }, options);
   }
 }

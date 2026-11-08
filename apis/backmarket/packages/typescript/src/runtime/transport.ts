@@ -22,6 +22,12 @@ export interface Operation {
   iterator?: string;
 }
 
+/** Options for one call. */
+export interface RequestOptions {
+  /** Cancels the call, including a wait before a retry. The call rejects with the signal's reason. */
+  signal?: AbortSignal;
+}
+
 /** Receives what the client logs. `console` fits. */
 export interface Logger {
   debug(message: string): void;
@@ -123,6 +129,21 @@ function translate(error: unknown): ApiError {
   return new ApiConnectionError(`The connection failed: ${causeCode(error) || name}`);
 }
 
+function sleep(ms: number, signal: AbortSignal | undefined): Promise<void> {
+  return new Promise((resolve, reject) => {
+    signal?.throwIfAborted();
+    const abort = () => {
+      clearTimeout(timer);
+      reject(signal?.reason);
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', abort);
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', abort, { once: true });
+  });
+}
+
 function retryAfterMs(value: string | undefined): number | undefined {
   if (value === undefined) return undefined;
   const text = value.trim();
@@ -184,17 +205,20 @@ export class Transport {
     this.#settings.logger?.[level](message.replaceAll(this.#settings.secret, REDACTED));
   }
 
-  async #attempt(method: string, { url, init }: Built): Promise<unknown> {
+  async #attempt(method: string, { url, init }: Built, signal: AbortSignal | undefined): Promise<unknown> {
     const settings = this.#settings;
     const { fetch } = settings;
     this.#log('debug', `-> ${method} ${url}`);
     let response: Response;
     try {
-      response = await fetch(url, { ...init, signal: AbortSignal.timeout(settings.timeoutMs) });
+      const timeout = AbortSignal.timeout(settings.timeoutMs);
+      response = await fetch(url, { ...init, signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
     } catch (error) {
+      signal?.throwIfAborted();
       throw translate(error);
     }
     const text = await response.text().catch((error: unknown) => {
+      signal?.throwIfAborted();
       if (!/^(Z_|ERR__ERROR)/.test(causeCode(error))) throw translate(error);
       if (!response.ok) return '';
       throw new DecodeError('The response body could not be decompressed', { status: response.status });
@@ -216,23 +240,22 @@ export class Transport {
     return json;
   }
 
-  async fetch(operation: Operation, body: unknown, params: Params): Promise<unknown> {
+  async fetch(operation: Operation, body: unknown, params: Params, { signal }: RequestOptions = {}): Promise<unknown> {
     const built = buildRequest(this.#settings, operation, body, params);
     for (let tries = 0; ; tries += 1) {
       try {
-        return await this.#attempt(operation.method, built);
+        return await this.#attempt(operation.method, built, signal);
       } catch (error) {
-        if (!(error instanceof ApiError)) throw error;
+        if (!(error instanceof ApiError) || signal?.aborted) throw error;
         const delay = retryDelay(this.#settings, error, operation.method, tries);
         if (delay === undefined) throw error;
         this.#log('info', `retrying after ${delay}ms: ${error.kind}`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await sleep(delay, signal);
       }
     }
   }
 }
 
-// TODO: let a call take an AbortSignal, for callers that need to cancel a retry wait.
 export class Resource {
   readonly #transport: Transport;
 
@@ -240,18 +263,19 @@ export class Resource {
     this.#transport = transport;
   }
 
-  protected async call<T>(operation: Operation, body: unknown, params: Params): Promise<T> {
-    return (await this.#transport.fetch(operation, body, params)) as T;
+  protected async call<T>(operation: Operation, body: unknown, params: Params, options?: RequestOptions): Promise<T> {
+    return (await this.#transport.fetch(operation, body, params, options)) as T;
   }
 
   protected async *paginate<T>(
     operation: Operation,
     body: unknown,
     params: Params,
+    options?: RequestOptions,
   ): AsyncGenerator<T, void, undefined> {
     let current: Params | undefined = params;
     while (current !== undefined) {
-      const page: unknown = await this.#transport.fetch(operation, body, current);
+      const page: unknown = await this.#transport.fetch(operation, body, current, options);
       yield* items(page) as T[];
       current = nextParams(operation, current, page);
     }

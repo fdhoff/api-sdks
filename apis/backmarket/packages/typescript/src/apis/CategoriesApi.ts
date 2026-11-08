@@ -2,7 +2,7 @@
 
 import type { CategoryTree, ErrorResponseV1, ErrorResponseV2 } from '../models/index.js';
 import type * as models from '../models/index.js';
-import { Resource, type FileInput, type Operation } from '../runtime/index.js';
+import { Resource, type FileInput, type Operation, type RequestOptions } from '../runtime/index.js';
 
 const getBmCatalogCategory: Operation = {
   id: 'get-bm-catalog-category',
@@ -26,12 +26,12 @@ export const OPERATIONS: readonly Operation[] = [getBmCatalogCategory, getBmCata
 
 export class CategoriesApi extends Resource {
   /** List the category tree. */
-  list(): Promise<Array<CategoryTree>> {
-    return this.call(getBmCatalogCategory, undefined, {});
+  list(options?: RequestOptions): Promise<Array<CategoryTree>> {
+    return this.call(getBmCatalogCategory, undefined, {}, options);
   }
 
   /** Get one branch of the category tree. */
-  get(categoryId: number): Promise<CategoryTree> {
-    return this.call(getBmCatalogCategoryBranch, undefined, { categoryId });
+  get(categoryId: number, options?: RequestOptions): Promise<CategoryTree> {
+    return this.call(getBmCatalogCategoryBranch, undefined, { categoryId }, options);
   }
 }

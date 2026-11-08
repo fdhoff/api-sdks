@@ -2,7 +2,7 @@
 
 import type { BackboxPage, Competitor, ErrorResponseV3 } from '../models/index.js';
 import type * as models from '../models/index.js';
-import { Resource, type FileInput, type Operation } from '../runtime/index.js';
+import { Resource, type FileInput, type Operation, type RequestOptions } from '../runtime/index.js';
 
 const getBackboxData: Operation = {
   id: 'GetBackboxData',
@@ -30,17 +30,20 @@ export const OPERATIONS: readonly Operation[] = [getBackboxData, getWsBackboxV1C
 
 export class BackboxApi extends Resource {
   /** List one page of Backbox data. */
-  list(params: { page?: number; pageSize?: number } = {}): Promise<BackboxPage> {
-    return this.call(getBackboxData, undefined, { ...params });
+  list(params: { page?: number; pageSize?: number } = {}, options?: RequestOptions): Promise<BackboxPage> {
+    return this.call(getBackboxData, undefined, { ...params }, options);
   }
 
   /** Iterate every item across all pages. */
-  iter(params: { page?: number; pageSize?: number } = {}): AsyncGenerator<models.Backbox, void, undefined> {
-    return this.paginate(getBackboxData, undefined, { ...params });
+  iter(
+    params: { page?: number; pageSize?: number } = {},
+    options?: RequestOptions,
+  ): AsyncGenerator<models.Backbox, void, undefined> {
+    return this.paginate(getBackboxData, undefined, { ...params }, options);
   }
 
   /** List competitors for a listing. */
-  listCompetitors(listingId: string): Promise<Array<Competitor>> {
-    return this.call(getWsBackboxV1Competitors, undefined, { listingId });
+  listCompetitors(listingId: string, options?: RequestOptions): Promise<Array<Competitor>> {
+    return this.call(getWsBackboxV1Competitors, undefined, { listingId }, options);
   }
 }

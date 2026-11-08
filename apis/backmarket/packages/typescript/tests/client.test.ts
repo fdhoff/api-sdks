@@ -13,8 +13,10 @@ import {
   PermissionDeniedError,
   RateLimitedError,
   WafBlockedError,
+  type ClientError,
   type ClientOptions,
   type Environment,
+  type ErrorKind,
   type Order,
   type OrderPage,
   type Region,
@@ -42,6 +44,7 @@ function clientFor(handler: Handler, options: Partial<ClientOptions> = {}) {
     fetch: async (input, init = {}) => {
       const url = new URL(String(input));
       sent.push({ url, init });
+      init.signal?.throwIfAborted();
       return handler(url, init);
     },
     ...options,
@@ -393,6 +396,77 @@ test('the timeout covers a body that keeps trickling', async (t) => {
   });
   const client = new BackMarketClient({ token: TOKEN, baseUrl, ...required, timeoutMs: 100, maxRetries: 0 });
   await assert.rejects(() => client.orders.get(1), ApiTimeoutError);
+});
+
+test('a signal aborts a request in flight with its reason', async (t) => {
+  const baseUrl = await serve(t, () => {});
+  const client = new BackMarketClient({ token: TOKEN, baseUrl, ...required });
+  const controller = new AbortController();
+  const reason = new Error('stopped');
+  setTimeout(() => controller.abort(reason), 20);
+  await assert.rejects(
+    () => client.orders.get(1, { signal: controller.signal }),
+    (error) => error === reason,
+  );
+});
+
+test('a signal cancels the wait before a retry', { timeout: 5000 }, async () => {
+  const controller = new AbortController();
+  const { client, sent } = clientFor(() => new Response(null, { status: 429 }), {
+    rateLimitWaitMs: 60_000,
+    logger: { debug: () => {}, info: () => void setTimeout(() => controller.abort(), 0) },
+  });
+  await assert.rejects(() => client.orders.get(1, { signal: controller.signal }), { name: 'AbortError' });
+  assert.equal(sent.length, 1);
+});
+
+test('an aborted signal is not retried', async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const { client, sent } = clientFor(() => json({}));
+  await assert.rejects(() => client.orders.get(1, { signal: controller.signal }), { name: 'AbortError' });
+  assert.equal(sent.length, 1);
+});
+
+test('iter passes the signal to every page', async () => {
+  const pages = [json({ next: `${BASE}/ws/orders?page=2`, results: [{ order_id: 1 }] }), json({ results: [] })];
+  const { client, sent } = clientFor(() => pages.shift() as Response);
+  const controller = new AbortController();
+  const walk = async () => {
+    for await (const _order of client.orders.iter({}, { signal: controller.signal })) controller.abort();
+  };
+  await assert.rejects(walk, { name: 'AbortError' });
+  assert.equal(sent.length, 2);
+});
+
+test('the timeout still applies alongside a signal', async (t) => {
+  const baseUrl = await serve(t, () => {});
+  const client = new BackMarketClient({ token: TOKEN, baseUrl, ...required, timeoutMs: 50, maxRetries: 0 });
+  const { signal } = new AbortController();
+  await assert.rejects(() => client.orders.get(1, { signal }), ApiTimeoutError);
+});
+
+test('comparing kind narrows a ClientError to its class', () => {
+  const detail = (error: ClientError): string => {
+    switch (error.kind) {
+      case 'not_found': {
+        const narrowed: NotFoundError = error;
+        return narrowed.name;
+      }
+      case 'rate_limited': {
+        const narrowed: RateLimitedError = error;
+        return narrowed.retryAfter ?? '';
+      }
+      default:
+        return error.kind;
+    }
+  };
+  assert.equal(detail(new NotFoundError('HTTP 404')), 'NotFoundError');
+  assert.equal(detail(new RateLimitedError('HTTP 429', { retryAfter: '2' })), '2');
+  assert.equal(detail(new DecodeError('bad')), 'decode');
+  // @ts-expect-error not a kind
+  const unknown: ErrorKind = 'missing';
+  assert.equal(typeof unknown, 'string');
 });
 
 test('the types reject what the API does not take', () => {

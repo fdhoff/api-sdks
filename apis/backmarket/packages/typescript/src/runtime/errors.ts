@@ -31,17 +31,17 @@ export class ApiError extends Error {
 
 /** No response arrived in time, after retries. */
 export class ApiTimeoutError extends ApiError {
-  override readonly kind: string = 'timeout';
+  override readonly kind = 'timeout';
 }
 
 /** The connection failed or dropped before a full response, after retries. */
 export class ApiConnectionError extends ApiError {
-  override readonly kind: string = 'connection';
+  override readonly kind = 'connection';
 }
 
 /** A success response could not be read as the API declares it. */
 export class DecodeError extends ApiError {
-  override readonly kind: string = 'decode';
+  override readonly kind = 'decode';
 }
 
 /** A failed response, with the credential already removed from `text` and `json`. */

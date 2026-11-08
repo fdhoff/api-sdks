@@ -10,7 +10,7 @@ import type {
   PostRefundCreateRequest,
 } from '../models/index.js';
 import type * as models from '../models/index.js';
-import { Resource, type FileInput, type Operation } from '../runtime/index.js';
+import { Resource, type FileInput, type Operation, type RequestOptions } from '../runtime/index.js';
 
 const getCareFolderDetails: Operation = {
   id: 'getCareFolderDetails',
@@ -107,8 +107,8 @@ export const OPERATIONS: readonly Operation[] = [
 
 export class CareApi extends Resource {
   /** Get one care folder. */
-  getFolder(careFolderId: number): Promise<GetCareFolderDetailsResponse> {
-    return this.call(getCareFolderDetails, undefined, { careFolderId });
+  getFolder(careFolderId: number, options?: RequestOptions): Promise<GetCareFolderDetailsResponse> {
+    return this.call(getCareFolderDetails, undefined, { careFolderId }, options);
   }
 
   /** List one page of care folders. */
@@ -121,8 +121,9 @@ export class CareApi extends Resource {
       lastMessageDate?: string;
       page?: number;
     } = {},
+    options?: RequestOptions,
   ): Promise<GetCareFolderListResponse> {
-    return this.call(getCareFolderList, undefined, { ...params });
+    return this.call(getCareFolderList, undefined, { ...params }, options);
   }
 
   /** Iterate every item across all pages. */
@@ -135,38 +136,41 @@ export class CareApi extends Resource {
       lastMessageDate?: string;
       page?: number;
     } = {},
+    options?: RequestOptions,
   ): AsyncGenerator<models.CareFolder, void, undefined> {
-    return this.paginate(getCareFolderList, undefined, { ...params });
+    return this.paginate(getCareFolderList, undefined, { ...params }, options);
   }
 
   /** Transfer an item on a care folder. */
-  transferItem(careFolderId: number, body: PostItemTransferCreateRequest): Promise<void> {
-    return this.call(postItemTransfer, body, { careFolderId });
+  transferItem(careFolderId: number, body: PostItemTransferCreateRequest, options?: RequestOptions): Promise<void> {
+    return this.call(postItemTransfer, body, { careFolderId }, options);
   }
 
   /** Send a message on a care folder. */
   sendMessage(
     careFolderId: number,
     params: { attachment?: FileInput[]; message: string },
+    options?: RequestOptions,
   ): Promise<PostMessageResponse> {
-    return this.call(postMessage, undefined, { careFolderId, ...params });
+    return this.call(postMessage, undefined, { careFolderId, ...params }, options);
   }
 
   /** Add a note to a care folder. */
-  addNote(careFolderId: number, body: PostNoteRequest): Promise<PostNoteResponse> {
-    return this.call(postNote, body, { careFolderId });
+  addNote(careFolderId: number, body: PostNoteRequest, options?: RequestOptions): Promise<PostNoteResponse> {
+    return this.call(postNote, body, { careFolderId }, options);
   }
 
   /** Report a problem on a care folder. */
   reportProblem(
     careFolderId: number,
     params: { problemType?: string; message?: string; attachment?: FileInput[] } = {},
+    options?: RequestOptions,
   ): Promise<void> {
-    return this.call(postProblem, undefined, { careFolderId, ...params });
+    return this.call(postProblem, undefined, { careFolderId, ...params }, options);
   }
 
   /** Create a refund. Never retried on failure. */
-  createRefund(body?: PostRefundCreateRequest): Promise<string> {
-    return this.call(postRefundCreate, body, {});
+  createRefund(body?: PostRefundCreateRequest, options?: RequestOptions): Promise<string> {
+    return this.call(postRefundCreate, body, {}, options);
   }
 }
