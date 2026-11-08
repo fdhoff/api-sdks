@@ -12,6 +12,7 @@ import (
 	"math"
 	"mime"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -279,6 +280,24 @@ func TestTheTokenIsRemovedFromErrorsAndLogs(t *testing.T) {
 	}
 	if logs.Len() == 0 || strings.Contains(logs.String(), token) {
 		t.Errorf("logs are %q", logs.String())
+	}
+}
+
+func TestAConnectionFailureShowsItsCauseWithoutTheToken(t *testing.T) {
+	closed := httptest.NewServer(http.NotFoundHandler())
+	closed.Close()
+	client := server(t, http.NotFound, bm.WithBaseURL(closed.URL), bm.WithMaxRetries(0))
+	_, err := client.Buyback.GetOrder(context.Background(), token)
+	var dial *net.OpError
+	if !errors.Is(err, bm.ErrConnection) || !errors.As(err, &dial) {
+		t.Fatalf("error is %v", err)
+	}
+	message := err.Error()
+	if !strings.HasPrefix(message, "the connection failed: ") || !strings.Contains(message, dial.Error()) {
+		t.Errorf("error shows %q", message)
+	}
+	if strings.Contains(message, token) {
+		t.Errorf("error shows the token: %q", message)
 	}
 }
 

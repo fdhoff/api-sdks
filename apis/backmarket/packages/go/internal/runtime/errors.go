@@ -29,7 +29,12 @@ type Error struct {
 	Cause      error
 }
 
-func (e *Error) Error() string { return e.Message }
+func (e *Error) Error() string {
+	if e.Cause == nil {
+		return e.Message
+	}
+	return e.Message + ": " + e.Cause.Error()
+}
 
 func (e *Error) Unwrap() error { return e.Cause }
 
