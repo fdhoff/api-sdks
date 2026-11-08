@@ -25,7 +25,7 @@ _{{operationIdSnakeCase}}: Operation[{{{returnType}}}{{^returnType}}None{{/retur
         Param("{{baseName}}", "{{paramName}}", "query"),
 {{/queryParams}}
 {{#formParams}}
-        Param("{{baseName}}", "{{paramName}}", "form"),
+        Param("{{baseName}}", "{{paramName}}", "{{#isMultipart}}form{{/isMultipart}}{{^isMultipart}}urlencoded{{/isMultipart}}"),
 {{/formParams}}
     ),
     response={{{returnType}}}{{^returnType}}None{{/returnType}},

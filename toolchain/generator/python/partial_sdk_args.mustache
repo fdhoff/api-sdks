@@ -25,7 +25,12 @@
         {{paramName}}: {{^required}}Optional[{{/required}}List[FileInput]{{^required}}] = None{{/required}},
 {{/items.isFile}}
 {{^items.isFile}}
+{{#isFile}}
+        {{paramName}}: {{^required}}Optional[{{/required}}FileInput{{^required}}] = None{{/required}},
+{{/isFile}}
+{{^isFile}}
         {{paramName}}: {{{vendorExtensions.x-py-typing}}}{{^required}} = None{{/required}},
+{{/isFile}}
 {{/items.isFile}}
 {{/isFormParam}}
 {{/allParams}}

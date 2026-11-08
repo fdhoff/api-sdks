@@ -1,0 +1,134 @@
+# Public names for every operation, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that walks every page and yields `items`, with the paging set in ../../sdk.yaml.
+ping: { resource: application, method: ping, summary: Check that the API key works. }
+tokenScopes: { resource: application, method: get_token_scopes, summary: List the scopes an access token grants. }
+
+getBuyerTaxonomyNodes: { resource: buyer_taxonomy, method: list_nodes, summary: List the buyer taxonomy tree. }
+getPropertiesByBuyerTaxonomyId: { resource: buyer_taxonomy, method: list_properties, summary: List the properties of one buyer taxonomy node. }
+getSellerTaxonomyNodes: { resource: seller_taxonomy, method: list_nodes, summary: List the seller taxonomy tree. }
+getPropertiesByTaxonomyId: { resource: seller_taxonomy, method: list_properties, summary: List the properties of one seller taxonomy node. }
+
+findAllListingsActive: { resource: listings, method: list_active, iterator: iter_active, items: ShopListing, summary: Search one page of active listings across all shops. }
+findAllActiveListingsByShop: { resource: listings, method: list_active_by_shop, iterator: iter_active_by_shop, items: ShopListing, summary: List one page of a shop's active listings. }
+getListingsByShop: { resource: listings, method: list_by_shop, iterator: iter_by_shop, items: ShopListingWithAssociations, summary: List one page of a shop's listings in any state. }
+getFeaturedListingsByShop: { resource: listings, method: list_featured, iterator: iter_featured, items: ShopListing, summary: List one page of a shop's featured listings. }
+getListingsByShopReceipt: { resource: listings, method: list_by_receipt, iterator: iter_by_receipt, items: ShopListing, summary: List one page of the listings on a receipt. }
+getListingsByShopReturnPolicy: { resource: listings, method: list_by_return_policy, summary: List the listings that use a return policy. }
+getListingsByShopSectionId: { resource: listings, method: list_by_sections, iterator: iter_by_sections, items: ShopListing, summary: List one page of the listings in shop sections. }
+getListingsByListingIds: { resource: listings, method: list_by_ids, summary: Get several listings by ID. }
+getListing: { resource: listings, method: get, summary: Get one listing. }
+createDraftListing: { resource: listings, method: create_draft, summary: Create a draft listing. }
+updateListing: { resource: listings, method: update, summary: Update a listing. }
+deleteListing: { resource: listings, method: delete, summary: Delete a listing. }
+getListingsShippingByListingIds: { resource: listings, method: list_shipping_by_ids, summary: Get the shipping details of several listings by ID. }
+
+getAllListingFiles: { resource: listing_files, method: list, summary: List a digital listing's files. }
+getListingFile: { resource: listing_files, method: get, summary: Get one file of a digital listing. }
+uploadListingFile: { resource: listing_files, method: upload, summary: "Upload a file to a digital listing, or attach an existing one." }
+deleteListingFile: { resource: listing_files, method: delete, summary: Delete a file from a digital listing. }
+
+getListingImages: { resource: listing_images, method: list, summary: List a listing's images. }
+getListingImage: { resource: listing_images, method: get, summary: Get one image of a listing. }
+uploadListingImage: { resource: listing_images, method: upload, summary: "Upload an image to a listing, or attach an existing one." }
+deleteListingImage: { resource: listing_images, method: delete, summary: Delete an image from a listing. }
+
+getListingInventory: { resource: listing_inventory, method: get, summary: Get a listing's inventory. }
+updateListingInventory: { resource: listing_inventory, method: update, summary: Replace a listing's inventory. }
+getListingsInventoryByListingIds: { resource: listing_inventory, method: list_by_ids, summary: Get the inventory of several listings by ID. }
+getListingProduct: { resource: listing_inventory, method: get_product, summary: Get one product of a listing's inventory. }
+
+getListingPersonalization: { resource: listing_personalization, method: get, summary: Get a listing's personalization questions. }
+updateListingPersonalization: { resource: listing_personalization, method: update, summary: Set a listing's personalization questions. }
+deleteListingPersonalization: { resource: listing_personalization, method: delete, summary: Remove a listing's personalization questions. }
+
+getListingProperties: { resource: listing_properties, method: list, summary: List a listing's property values. }
+getListingProperty: { resource: listing_properties, method: get, summary: Get one property value of a listing. }
+updateListingProperty: { resource: listing_properties, method: update, summary: Set one property value of a listing. }
+deleteListingProperty: { resource: listing_properties, method: delete, summary: Remove one property value from a listing. }
+
+getListingTranslation: { resource: listing_translations, method: get, summary: Get a listing's translation into one language. }
+createListingTranslation: { resource: listing_translations, method: create, summary: Add a listing's translation into one language. }
+updateListingTranslation: { resource: listing_translations, method: update, summary: Update a listing's translation into one language. }
+
+getListingVariationImages: { resource: listing_variation_images, method: list, summary: List the images mapped to a listing's variations. }
+updateVariationImages: { resource: listing_variation_images, method: update, summary: Replace the images mapped to a listing's variations. }
+
+getListingVideos: { resource: listing_videos, method: list, summary: List a listing's videos. }
+getListingVideo: { resource: listing_videos, method: get, summary: Get one video of a listing. }
+uploadListingVideo: { resource: listing_videos, method: upload, summary: "Upload a video to a listing, or attach an existing one." }
+deleteListingVideo: { resource: listing_videos, method: delete, summary: Delete a video from a listing. }
+
+getShopPaymentAccountLedgerEntries: { resource: ledger_entries, method: list, iterator: iter, items: PaymentAccountLedgerEntry, summary: List one page of a shop's payment account ledger entries. }
+getShopPaymentAccountLedgerEntry: { resource: ledger_entries, method: get, summary: Get one payment account ledger entry. }
+
+getPayments: { resource: payments, method: list, summary: Get several payments by ID. }
+getPaymentAccountLedgerEntryPayments: { resource: payments, method: list_by_ledger_entries, summary: Get the payments behind several ledger entries. }
+getShopPaymentByReceiptId: { resource: payments, method: list_by_receipt, summary: List the payments for a receipt. }
+
+getShopReceipts: { resource: receipts, method: list, iterator: iter, items: ShopReceipt, summary: List one page of a shop's receipts. }
+getShopReceipt: { resource: receipts, method: get, summary: Get one receipt. }
+updateShopReceipt: { resource: receipts, method: update, summary: Update a receipt's shipped or paid state. }
+createReceiptShipment: { resource: receipts, method: create_shipment, summary: Add tracking to a receipt and mark it shipped. }
+
+getShopReceiptTransactionsByShop: { resource: transactions, method: list, iterator: iter, items: ShopReceiptTransaction, summary: List one page of a shop's transactions. }
+getShopReceiptTransactionsByListing: { resource: transactions, method: list_by_listing, iterator: iter_by_listing, items: ShopReceiptTransaction, summary: List one page of a listing's transactions. }
+getShopReceiptTransactionsByReceipt: { resource: transactions, method: list_by_receipt, summary: List the transactions on a receipt. }
+getShopReceiptTransaction: { resource: transactions, method: get, summary: Get one transaction. }
+
+getReviewsByListing: { resource: reviews, method: list_by_listing, iterator: iter_by_listing, items: ListingReview, summary: List one page of a listing's reviews. }
+getReviewsByShop: { resource: reviews, method: list_by_shop, iterator: iter_by_shop, items: TransactionReview, summary: List one page of a shop's reviews. }
+
+getShop: { resource: shops, method: get, summary: Get one shop. }
+updateShop: { resource: shops, method: update, summary: Update a shop. }
+getShopByOwnerUserId: { resource: shops, method: get_by_owner, summary: Get the shop a user owns. }
+findShops: { resource: shops, method: find, iterator: iter_find, items: Shop, summary: Search one page of shops by name. }
+
+getShopEconomicOperators: { resource: economic_operators, method: list, summary: List a shop's economic operators. }
+getShopEconomicOperator: { resource: economic_operators, method: get, summary: Get one economic operator. }
+createShopEconomicOperator: { resource: economic_operators, method: create, summary: Add an economic operator to a shop. }
+updateShopEconomicOperator: { resource: economic_operators, method: update, summary: Update an economic operator. }
+
+getHolidayPreferences: { resource: holiday_preferences, method: list, summary: List a shop's holiday preferences. }
+updateHolidayPreferences: { resource: holiday_preferences, method: update, summary: Update a shop's preference for one holiday. }
+
+getShopProductionPartners: { resource: production_partners, method: list, summary: List a shop's production partners. }
+
+getShopReadinessStateDefinitions: { resource: processing_profiles, method: list, iterator: iter, items: ShopProcessingProfile, summary: List one page of a shop's processing profiles. }
+getShopReadinessStateDefinition: { resource: processing_profiles, method: get, summary: Get one processing profile. }
+createShopReadinessStateDefinition: { resource: processing_profiles, method: create, summary: Create a processing profile. }
+updateShopReadinessStateDefinition: { resource: processing_profiles, method: update, summary: Update a processing profile. }
+deleteShopReadinessStateDefinition: { resource: processing_profiles, method: delete, summary: Delete a processing profile. }
+
+getShopReturnPolicies: { resource: return_policies, method: list, summary: List a shop's return policies. }
+getShopReturnPolicy: { resource: return_policies, method: get, summary: Get one return policy. }
+createShopReturnPolicy: { resource: return_policies, method: create, summary: Create a return policy. }
+updateShopReturnPolicy: { resource: return_policies, method: update, summary: Update a return policy. }
+deleteShopReturnPolicy: { resource: return_policies, method: delete, summary: Delete a return policy. }
+consolidateShopReturnPolicies: { resource: return_policies, method: consolidate, summary: Move every listing from one return policy to another and delete the first. }
+
+getShopSections: { resource: shop_sections, method: list, summary: List a shop's sections. }
+getShopSection: { resource: shop_sections, method: get, summary: Get one shop section. }
+createShopSection: { resource: shop_sections, method: create, summary: Create a shop section. }
+updateShopSection: { resource: shop_sections, method: update, summary: Rename a shop section. }
+deleteShopSection: { resource: shop_sections, method: delete, summary: Delete a shop section. }
+
+getShippingCarriers: { resource: shipping_profiles, method: list_carriers, summary: List the shipping carriers and mail classes for an origin country. }
+getShopShippingProfiles: { resource: shipping_profiles, method: list, summary: List a shop's shipping profiles. }
+getShopShippingProfile: { resource: shipping_profiles, method: get, summary: Get one shipping profile. }
+createShopShippingProfile: { resource: shipping_profiles, method: create, summary: Create a shipping profile. }
+updateShopShippingProfile: { resource: shipping_profiles, method: update, summary: Update a shipping profile. }
+deleteShopShippingProfile: { resource: shipping_profiles, method: delete, summary: Delete a shipping profile. }
+getShopShippingProfileDestinationsByShippingProfile: { resource: shipping_profiles, method: list_destinations, iterator: iter_destinations, items: ShopShippingProfileDestination, summary: List one page of a shipping profile's destinations. }
+createShopShippingProfileDestination: { resource: shipping_profiles, method: create_destination, summary: Add a destination to a shipping profile. }
+updateShopShippingProfileDestination: { resource: shipping_profiles, method: update_destination, summary: Update a shipping profile destination. }
+deleteShopShippingProfileDestination: { resource: shipping_profiles, method: delete_destination, summary: Delete a shipping profile destination. }
+getShopShippingProfileUpgrades: { resource: shipping_profiles, method: list_upgrades, summary: List a shipping profile's upgrades. }
+createShopShippingProfileUpgrade: { resource: shipping_profiles, method: create_upgrade, summary: Add an upgrade to a shipping profile. }
+updateShopShippingProfileUpgrade: { resource: shipping_profiles, method: update_upgrade, summary: Update a shipping profile upgrade. }
+deleteShopShippingProfileUpgrade: { resource: shipping_profiles, method: delete_upgrade, summary: Delete a shipping profile upgrade. }
+
+getUser: { resource: users, method: get, summary: Get one user. }
+getMe: { resource: users, method: get_me, summary: Get the user and shop IDs the access token belongs to. }
+
+getUserAddresses: { resource: user_addresses, method: list, iterator: iter, items: UserAddress, summary: List one page of the user's addresses. }
+getUserAddress: { resource: user_addresses, method: get, summary: Get one of the user's addresses. }

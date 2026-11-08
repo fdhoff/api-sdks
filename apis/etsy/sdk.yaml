@@ -1,0 +1,4 @@
+# Settings every language's package shares.
+# `paging` is how iterator methods walk pages, unless an operation in operations.yaml sets its own.
+# `offset` advances the `offset` query parameter by the number of `results` received, until `count`.
+paging: { style: offset, items: results, total: count, offset: offset }
