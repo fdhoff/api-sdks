@@ -7,7 +7,7 @@ from typing import Any, AsyncIterator, Iterator, List, Mapping, Optional, Union
 from pydantic import StrictInt, StrictStr
 
 from backmarket_seller import models as _models
-from backmarket_seller._runtime import AsyncResource, FileInput, NextLink, Operation, Param, Resource, checked
+from backmarket_seller._runtime import AsyncResource, FileInput, NextLink, Operation, Param, Resource, Scheme, checked
 from backmarket_seller.models.get_care_folder_details_response import GetCareFolderDetailsResponse
 from backmarket_seller.models.get_care_folder_list_response import GetCareFolderListResponse
 from backmarket_seller.models.post_item_transfer_create_request import PostItemTransferCreateRequest
@@ -25,6 +25,7 @@ _get_care_folder_details: Operation[GetCareFolderDetailsResponse] = Operation(
     params=(Param("careFolderId", "care_folder_id", "path"),),
     response=GetCareFolderDetailsResponse,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_care_folder_list: Operation[GetCareFolderListResponse] = Operation(
     id="getCareFolderList",
@@ -52,6 +53,7 @@ _get_care_folder_list: Operation[GetCareFolderListResponse] = Operation(
             "cursor",
         ),
     ),
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _post_item_transfer: Operation[None] = Operation(
     id="postItemTransfer",
@@ -61,6 +63,7 @@ _post_item_transfer: Operation[None] = Operation(
     name="transfer_item",
     params=(Param("careFolderId", "care_folder_id", "path"),),
     response=None,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _post_message: Operation[PostMessageResponse] = Operation(
     id="postMessage",
@@ -75,6 +78,7 @@ _post_message: Operation[PostMessageResponse] = Operation(
     ),
     response=PostMessageResponse,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _post_note: Operation[PostNoteResponse] = Operation(
     id="postNote",
@@ -85,6 +89,7 @@ _post_note: Operation[PostNoteResponse] = Operation(
     params=(Param("careFolderId", "care_folder_id", "path"),),
     response=PostNoteResponse,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _post_problem: Operation[None] = Operation(
     id="postProblem",
@@ -99,6 +104,7 @@ _post_problem: Operation[None] = Operation(
         Param("attachment", "attachment", "form"),
     ),
     response=None,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _post_refund_create: Operation[str] = Operation(
     id="postRefundCreate",
@@ -108,6 +114,7 @@ _post_refund_create: Operation[str] = Operation(
     name="create_refund",
     params=(),
     response=str,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 
 OPERATIONS = (

@@ -8,7 +8,7 @@ from typing import AsyncIterator, Iterator, Optional
 from pydantic import StrictBool, StrictInt
 
 from backmarket_seller import models as _models
-from backmarket_seller._runtime import AsyncResource, NextLink, Operation, Param, Resource, checked
+from backmarket_seller._runtime import AsyncResource, NextLink, Operation, Param, Resource, Scheme, checked
 from backmarket_seller.models.delivery import Delivery
 from backmarket_seller.models.delivery_page import DeliveryPage
 from backmarket_seller.models.return_page import ReturnPage
@@ -42,6 +42,7 @@ _get_deliveries: Operation[DeliveryPage] = Operation(
             "cursor",
         ),
     ),
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_delivery: Operation[Delivery] = Operation(
     id="GetDelivery",
@@ -52,6 +53,7 @@ _get_delivery: Operation[Delivery] = Operation(
     params=(Param("id", "id", "path"),),
     response=Delivery,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_return: Operation[ReturnShipment] = Operation(
     id="GetReturn",
@@ -62,6 +64,7 @@ _get_return: Operation[ReturnShipment] = Operation(
     params=(Param("id", "id", "path"),),
     response=ReturnShipment,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_returns: Operation[ReturnPage] = Operation(
     id="GetReturns",
@@ -91,6 +94,7 @@ _get_returns: Operation[ReturnPage] = Operation(
             "cursor",
         ),
     ),
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 
 OPERATIONS = (

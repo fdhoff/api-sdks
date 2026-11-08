@@ -9,7 +9,7 @@ from pydantic import Field, StrictInt
 from typing_extensions import Annotated
 
 from backmarket_seller import models as _models
-from backmarket_seller._runtime import AsyncResource, FileInput, NextLink, Operation, Param, Resource, checked
+from backmarket_seller._runtime import AsyncResource, FileInput, NextLink, Operation, Param, Resource, Scheme, checked
 from backmarket_seller.models.country_code import CountryCode
 from backmarket_seller.models.order import Order
 from backmarket_seller.models.order_line_update import OrderLineUpdate
@@ -44,6 +44,7 @@ _get_ws_list_order: Operation[OrderPage] = Operation(
             "cursor",
         ),
     ),
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_ws_specific_order: Operation[Order] = Operation(
     id="get-ws-specific-order",
@@ -54,6 +55,7 @@ _get_ws_specific_order: Operation[Order] = Operation(
     params=(Param("order_id", "order_id", "path"),),
     response=Order,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _post_ws_specific_order_invoice: Operation[None] = Operation(
     id="post-ws-specific-order-invoice",
@@ -66,6 +68,7 @@ _post_ws_specific_order_invoice: Operation[None] = Operation(
         Param("invoice", "invoice", "form"),
     ),
     response=None,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _update_ws_specific_order: Operation[Order] = Operation(
     id="update-ws-specific-order",
@@ -76,6 +79,7 @@ _update_ws_specific_order: Operation[Order] = Operation(
     params=(Param("order_id", "order_id", "path"),),
     response=Order,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _update_ws_specific_orderline: Operation[UpdatedOrderLine] = Operation(
     id="update-ws-specific-orderline",
@@ -86,6 +90,7 @@ _update_ws_specific_orderline: Operation[UpdatedOrderLine] = Operation(
     params=(Param("orderline_id", "orderline_id", "path"),),
     response=UpdatedOrderLine,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 
 OPERATIONS = (

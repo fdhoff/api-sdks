@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from pydantic import StrictInt
 
-from backmarket_seller._runtime import AsyncResource, Operation, Param, Resource, checked
+from backmarket_seller._runtime import (
+    AsyncResource,
+    Operation,
+    Param,
+    Resource,
+    Scheme,
+    checked,
+)
 from backmarket_seller.models.background_task import BackgroundTask
 
 _get_ws_task: Operation[BackgroundTask] = Operation(
@@ -16,6 +23,7 @@ _get_ws_task: Operation[BackgroundTask] = Operation(
     params=(Param("taskId", "task_id", "path"),),
     response=BackgroundTask,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 
 OPERATIONS = (_get_ws_task,)

@@ -9,7 +9,7 @@ from pydantic import Field, StrictInt, StrictStr
 from typing_extensions import Annotated
 
 from backmarket_seller import models as _models
-from backmarket_seller._runtime import AsyncResource, NextLink, Operation, Param, Resource, checked
+from backmarket_seller._runtime import AsyncResource, NextLink, Operation, Param, Resource, Scheme, checked
 from backmarket_seller.models.listing_detail import ListingDetail
 from backmarket_seller.models.listing_page import ListingPage
 from backmarket_seller.models.listing_update import ListingUpdate
@@ -42,6 +42,7 @@ _get_ws_list_listing: Operation[ListingPage] = Operation(
             "cursor",
         ),
     ),
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_ws_listing_detail: Operation[ListingDetail] = Operation(
     id="get-ws-listing-detail",
@@ -56,6 +57,7 @@ _get_ws_listing_detail: Operation[ListingDetail] = Operation(
     ),
     response=ListingDetail,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_ws_specific_listing: Operation[ListingDetail] = Operation(
     id="get-ws-specific-listing",
@@ -66,6 +68,7 @@ _get_ws_specific_listing: Operation[ListingDetail] = Operation(
     params=(Param("listingId", "listing_id", "path"),),
     response=ListingDetail,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _post_ws_create_or_update_listings: Operation[ListingsBatch] = Operation(
     id="post-ws-create-or-update-listings",
@@ -76,6 +79,7 @@ _post_ws_create_or_update_listings: Operation[ListingsBatch] = Operation(
     params=(),
     response=ListingsBatch,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _update_ws_specific_listing: Operation[UpdatedListing] = Operation(
     id="update-ws-specific-listing",
@@ -86,6 +90,7 @@ _update_ws_specific_listing: Operation[UpdatedListing] = Operation(
     params=(Param("listingId", "listing_id", "path"),),
     response=UpdatedListing,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 
 OPERATIONS = (

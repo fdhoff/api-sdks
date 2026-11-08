@@ -9,7 +9,7 @@ from pydantic import Field, StrictInt, StrictStr
 from typing_extensions import Annotated
 
 from backmarket_seller import models as _models
-from backmarket_seller._runtime import AsyncResource, FileInput, NextLink, Operation, Param, Resource, checked
+from backmarket_seller._runtime import AsyncResource, FileInput, NextLink, Operation, Param, Resource, Scheme, checked
 from backmarket_seller.models.buyback_competitor import BuybackCompetitor
 from backmarket_seller.models.buyback_counter_offer_reasons_inner import BuybackCounterOfferReasonsInner
 from backmarket_seller.models.buyback_listing import BuybackListing
@@ -33,6 +33,7 @@ _get_ws_buyback_v1_competitors: Operation[List[BuybackCompetitor]] = Operation(
     params=(Param("listingId", "listing_id", "path"),),
     response=List[BuybackCompetitor],
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_ws_buyback_v1_listing: Operation[BuybackListing] = Operation(
     id="get-ws-buyback-v1-listing",
@@ -43,6 +44,7 @@ _get_ws_buyback_v1_listing: Operation[BuybackListing] = Operation(
     params=(Param("buybackListingId", "buyback_listing_id", "path"),),
     response=BuybackListing,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_ws_buyback_v1_listings: Operation[BuybackPaginatedListingResponse] = Operation(
     id="get-ws-buyback-v1-listings",
@@ -67,6 +69,7 @@ _get_ws_buyback_v1_listings: Operation[BuybackPaginatedListingResponse] = Operat
             "cursor",
         ),
     ),
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_ws_buyback_v1_order: Operation[BuybackOrder] = Operation(
     id="get-ws-buyback-v1-order",
@@ -77,6 +80,7 @@ _get_ws_buyback_v1_order: Operation[BuybackOrder] = Operation(
     params=(Param("buybackOrderId", "buyback_order_id", "path"),),
     response=BuybackOrder,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_ws_buyback_v1_orders: Operation[BuybackOrderPage] = Operation(
     id="get-ws-buyback-v1-orders",
@@ -107,6 +111,7 @@ _get_ws_buyback_v1_orders: Operation[BuybackOrderPage] = Operation(
             "cursor",
         ),
     ),
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_ws_buyback_v1_orders_messages: Operation[BuybackMessagePage] = Operation(
     id="get-ws-buyback-v1-orders-messages",
@@ -130,6 +135,7 @@ _get_ws_buyback_v1_orders_messages: Operation[BuybackMessagePage] = Operation(
             "cursor",
         ),
     ),
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_ws_buyback_v1_orders_pending_reply: Operation[BuybackOrderPage] = Operation(
     id="get-ws-buyback-v1-orders-pending-reply",
@@ -150,6 +156,7 @@ _get_ws_buyback_v1_orders_pending_reply: Operation[BuybackOrderPage] = Operation
             "cursor",
         ),
     ),
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_ws_buyback_v1_orders_suspend_reasons: Operation[List[BuybackReason]] = Operation(
     id="get-ws-buyback-v1-orders-suspend-reasons",
@@ -160,6 +167,7 @@ _get_ws_buyback_v1_orders_suspend_reasons: Operation[List[BuybackReason]] = Oper
     params=(),
     response=List[BuybackReason],
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _get_ws_counter_offer_reason: Operation[List[BuybackCounterOfferReasonsInner]] = Operation(
     id="get-ws-counter-offer-reason",
@@ -170,6 +178,7 @@ _get_ws_counter_offer_reason: Operation[List[BuybackCounterOfferReasonsInner]] =
     params=(Param("buybackOrderId", "buyback_order_id", "path"),),
     response=List[BuybackCounterOfferReasonsInner],
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _post_ws_buyback_v1_orders_messages: Operation[BuybackMessage] = Operation(
     id="post-ws-buyback-v1-orders-messages",
@@ -180,6 +189,7 @@ _post_ws_buyback_v1_orders_messages: Operation[BuybackMessage] = Operation(
     params=(Param("buybackOrderId", "buyback_order_id", "path"),),
     response=BuybackMessage,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _put_ws_buyback_v1_listing: Operation[object] = Operation(
     id="put-ws-buyback-v1-listing",
@@ -190,6 +200,7 @@ _put_ws_buyback_v1_listing: Operation[object] = Operation(
     params=(Param("buybackListingId", "buyback_listing_id", "path"),),
     response=object,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _put_ws_buyback_v1_orders_suspend: Operation[BuybackOrder] = Operation(
     id="put-ws-buyback-v1-orders-suspend",
@@ -200,6 +211,7 @@ _put_ws_buyback_v1_orders_suspend: Operation[BuybackOrder] = Operation(
     params=(Param("buybackOrderId", "buyback_order_id", "path"),),
     response=BuybackOrder,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _put_ws_buyback_v1_orders_validate: Operation[BuybackOrder] = Operation(
     id="put-ws-buyback-v1-orders-validate",
@@ -210,6 +222,7 @@ _put_ws_buyback_v1_orders_validate: Operation[BuybackOrder] = Operation(
     params=(Param("buybackOrderId", "buyback_order_id", "path"),),
     response=BuybackOrder,
     returns_json=True,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 _put_ws_refurbisher_counter_offer: Operation[None] = Operation(
     id="put-ws-refurbisher-counter-offer",
@@ -225,6 +238,7 @@ _put_ws_refurbisher_counter_offer: Operation[None] = Operation(
         Param("files", "files", "form"),
     ),
     response=None,
+    security=((Scheme("ApiKeyAuth", ()),),),
 )
 
 OPERATIONS = (
