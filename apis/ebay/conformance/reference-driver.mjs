@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
-import { returnsJson } from '../../../toolchain/pipeline/generate.mjs';
+import { applyHosts, returnsJson } from '../../../toolchain/pipeline/generate.mjs';
 import { apiPaths } from '../../../toolchain/pipeline/paths.mjs';
 
 const METHODS = ['get', 'put', 'post', 'delete', 'patch'];
@@ -11,8 +11,8 @@ const API_DIR = fileURLToPath(new URL('..', import.meta.url));
 const DEFAULTS = { timeout_ms: 30_000, max_retries: 3, retry_base_delay_ms: 500, rate_limit_wait_ms: 10_000, max_retry_wait_ms: 60_000 };
 const SECRETS = ['token', 'app_token', 'user_token'];
 
-const spec = parse(await readFile(apiPaths(API_DIR).build, 'utf8'));
 const sdk = parse(await readFile(new URL('../sdk.yaml', import.meta.url), 'utf8'));
+const spec = applyHosts(parse(await readFile(apiPaths(API_DIR).build, 'utf8')), sdk.hosts);
 const deref = (value) => (value?.$ref ? deref(value.$ref.split('/').slice(1).reduce((node, key) => node[key], spec)) : value);
 
 // An operation takes an application token when any scope it lists is one the client credentials grant gives.
@@ -36,6 +36,7 @@ const operations = new Map(
         {
           method: method.toUpperCase(),
           path,
+          host: operation['x-sdk-host'],
           returnsJson: returnsJson(spec, operation),
           appToken: takesAppToken(operation),
           headers: new Map(parameters.filter((parameter) => parameter.in === 'header').map(({ name }) => [name.toLowerCase(), name])),
@@ -120,9 +121,18 @@ async function encodeBody(bodyType, { body, multipart }) {
   return { bytes: Buffer.from(JSON.stringify(body)), type: 'application/json' };
 }
 
+// Each host key goes to `<base_url>/_host/<key>`. With an environment, the key is the hostname that
+// environment gives it, so a case can check the host map as well as the routing.
+function hostBase(client, host) {
+  if (client.environment === undefined) return `${client.base_url}/_host/${host}`;
+  const url = sdk.environments[client.environment]?.[host];
+  if (!url) throw new Error(`Environment ${client.environment} has no ${host} host`);
+  return `${client.base_url}/_host/${new URL(url).host}`;
+}
+
 async function buildRequest(client, request) {
   const operation = operations.get(request.operation);
-  const { method, path, returnsJson, appToken, bodyType } = operation;
+  const { method, path, host, returnsJson, appToken, bodyType } = operation;
   const query = new URLSearchParams();
   const headers = {
     Authorization: `Bearer ${appToken ? client.app_token : client.user_token}`,
@@ -149,7 +159,7 @@ async function buildRequest(client, request) {
     headers['Content-Type'] = body.type;
   }
   const search = query.size > 0 ? `?${query}` : '';
-  return { url: `${client.base_url}${filled}${search}`, method, headers, body, returnsJson };
+  return { url: `${hostBase(client, host)}${filled}${search}`, method, headers, body, returnsJson };
 }
 
 // RFC 9421 over eBay's components, with an RFC 9530 digest of the body when there is one.

@@ -5,9 +5,9 @@
 paging: { style: next_link, link: next, params: [offset, limit, continuation_token] }
 
 # The list each iterated operation's pages hold, by `<contract>.<operationId>`. A package's operations.yaml
-# names the same `items` for each. Feedback's two paged operations nest their position under `pagination`
-# and have no `next` link, so they have no iterator.
-# TODO: iterate commerce_feedback.getFeedback and getItemsAwaitingFeedback once a paging style reads `pagination`.
+# names the same `items` for each. Feedback's getFeedback and getItemsAwaitingFeedback are not iterated:
+# their `next` link sits under `pagination`, and `next_link` reads a page's top-level field. Callers page them
+# with `offset` and `limit`.
 # TODO: have generate.mjs read these, so operations.yaml need not repeat them.
 iterators:
   sell_account_v1.getSubscription: subscriptions
