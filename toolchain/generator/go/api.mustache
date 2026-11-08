@@ -23,6 +23,12 @@ var (
 {{#vendorExtensions.x-sdk-returns-json}}
 		ReturnsJSON: true,
 {{/vendorExtensions.x-sdk-returns-json}}
+{{#vendorExtensions.x-sdk-binary-response}}
+		BinaryResponse: true,
+{{/vendorExtensions.x-sdk-binary-response}}
+{{#vendorExtensions.x-sdk-raw-body}}
+		RawBody:     "{{.}}",
+{{/vendorExtensions.x-sdk-raw-body}}
 		PathParams:  []string{ {{#pathParams}}"{{baseName}}",{{/pathParams}} },
 		QueryParams: []string{ {{#queryParams}}"{{baseName}}",{{/queryParams}} },
 {{#vendorExtensions.x-sdk-has-headers}}
@@ -91,6 +97,14 @@ type {{baseName}}{{vendorExtensions.x-sdk-method}}Params struct {
 {{/hasQueryParams}}
 {{/vendorExtensions.x-sdk-has-headers}}
 
+{{! A package with binary operations aliases runtime.Download as Download, and io.Reader as RawBody. }}
+{{#vendorExtensions.x-sdk-binary-response}}
+// {{{vendorExtensions.x-sdk-summary}}} The caller must close the download's Body.
+func (r *{{classname}}) {{vendorExtensions.x-sdk-method}}({{>partial_sdk_args}}) (*Download, error) {
+	return runtime.CallDownload(ctx, r.transport, op{{operationId}}, {{>partial_sdk_input}})
+}
+{{/vendorExtensions.x-sdk-binary-response}}
+{{^vendorExtensions.x-sdk-binary-response}}
 // {{{vendorExtensions.x-sdk-summary}}}
 func (r *{{classname}}) {{vendorExtensions.x-sdk-method}}({{>partial_sdk_args}}) {{#returnType}}({{>partial_sdk_return}}, error){{/returnType}}{{^returnType}}error{{/returnType}} {
 {{#returnType}}
@@ -101,6 +115,7 @@ func (r *{{classname}}) {{vendorExtensions.x-sdk-method}}({{>partial_sdk_args}})
 	return err
 {{/returnType}}
 }
+{{/vendorExtensions.x-sdk-binary-response}}
 {{#vendorExtensions.x-sdk-iterator}}
 
 // {{.}} iterates every item across all pages. It stops after yielding an error.
