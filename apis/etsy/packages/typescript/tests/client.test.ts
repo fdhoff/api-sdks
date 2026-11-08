@@ -17,6 +17,7 @@ import {
   type ClientOptions,
   type Token,
 } from 'etsy-seller';
+import { EtsyCredentials } from '../dist/esm/oauth.js';
 import { OPERATIONS } from '../dist/esm/resources.js';
 
 const BASE = 'http://mock.invalid';
@@ -280,6 +281,36 @@ test('concurrent 401s share one refresh', async () => {
   );
   await Promise.all([1, 2, 3, 4].map(() => client.users.getMe()));
   assert.equal(sent.filter(({ url }) => url.pathname === TOKEN_PATH).length, 1);
+});
+
+test('an explicit refresh and a 401 share one token request', async () => {
+  const { client, sent, tokens } = clientFor(
+    async (url, init) => {
+      if (url.pathname === TOKEN_PATH) await new Promise((resolve) => setTimeout(resolve, 10));
+      return accepting(NEW.access_token)(url, init);
+    },
+    { accessToken: ACCESS, refreshToken: REFRESH },
+  );
+  const [token, me] = await Promise.all([client.oauth.refresh(), client.users.getMe()]);
+  assert.equal(token.accessToken, NEW.access_token);
+  assert.deepEqual(me, { user_id: 12345678, shop_id: 1 });
+  const requests = sent.filter(({ url }) => url.pathname === TOKEN_PATH);
+  assert.deepEqual(
+    requests.map(({ body }) => new URLSearchParams(body).get('refresh_token')),
+    [REFRESH],
+  );
+  assert.equal(tokens.length, 1);
+});
+
+test('credentials keep only recent values for redaction', () => {
+  const credentials = new EtsyCredentials({ apiKey: KEY, sharedSecret: SHARED, accessToken: ACCESS });
+  const values = Array.from({ length: 100 }, (_, index) => `synthetic-old-${index}`);
+  credentials.remember(...values);
+  const secrets = credentials.secrets();
+  assert.ok(secrets.length < 20);
+  assert.ok(secrets.includes(KEY) && secrets.includes(SHARED) && secrets.includes('synthetic-old-99'));
+  assert.equal(secrets.includes(ACCESS), false);
+  assert.equal('refresher' in credentials, false);
 });
 
 test('logs and errors never hold a secret', async () => {

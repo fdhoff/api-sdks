@@ -3,6 +3,7 @@ import { DecodeError, type AuthRequest, type Credentials, type Operation, type T
 
 export const AUTHORIZATION_URL = 'https://www.etsy.com/oauth/connect';
 const VERIFIER = /^[A-Za-z0-9\-._~]{43,128}$/;
+const REMEMBERED = 16;
 const TOKEN_FIELDS = ['grant_type', 'client_id', 'redirect_uri', 'code', 'code_verifier', 'refresh_token'];
 
 const TOKEN: Operation = {
@@ -122,15 +123,19 @@ export class EtsyCredentials implements Credentials {
   readonly #seen: string[];
   #accessToken: string | undefined;
   #refreshToken: string | undefined;
-  refresher: (() => Promise<Token>) | undefined;
+  readonly #refresher: (() => Promise<Token>) | undefined;
 
-  constructor({ apiKey, sharedSecret, accessToken, refreshToken, onToken }: CredentialOptions) {
+  constructor(
+    { apiKey, sharedSecret, accessToken, refreshToken, onToken }: CredentialOptions,
+    refresher?: () => Promise<Token>,
+  ) {
     if (!apiKey || !sharedSecret) throw new TypeError('apiKey and sharedSecret are required');
     this.apiKey = apiKey;
     this.#sharedSecret = sharedSecret;
     this.#accessToken = accessToken || undefined;
     this.#refreshToken = refreshToken || undefined;
     this.#onToken = onToken;
+    this.#refresher = refresher;
     this.#seen = [accessToken, refreshToken].filter((value): value is string => Boolean(value));
   }
 
@@ -147,9 +152,11 @@ export class EtsyCredentials implements Credentials {
     return [this.apiKey, this.#sharedSecret, ...this.#seen];
   }
 
-  /** Keep values out of logs and errors from now on, such as a code about to be exchanged. */
+  /** Keep values out of logs and errors from now on, such as a code about to be exchanged. Only the most recent
+   * values are kept, so a long-lived client does not grow. */
   remember(...values: string[]): void {
     this.#seen.push(...values.filter(Boolean));
+    this.#seen.splice(0, Math.max(0, this.#seen.length - REMEMBERED));
   }
 
   async store(token: Token): Promise<Token> {
@@ -161,8 +168,8 @@ export class EtsyCredentials implements Credentials {
   }
 
   async refresh({ operation }: AuthRequest): Promise<boolean> {
-    if (this.refresher === undefined || !this.#refreshToken || !needs(operation, 'oauth2')) return false;
-    await this.refresher();
+    if (this.#refresher === undefined || !this.#refreshToken || !needs(operation, 'oauth2')) return false;
+    await this.#refresher();
     return true;
   }
 }
@@ -172,6 +179,7 @@ export class EtsyCredentials implements Credentials {
 export class OAuth {
   readonly #credentials: EtsyCredentials;
   readonly #transport: Transport;
+  #refreshing: Promise<Token> | undefined;
 
   constructor(credentials: EtsyCredentials, transport: Transport) {
     this.#credentials = credentials;
@@ -202,12 +210,18 @@ export class OAuth {
     });
   }
 
-  /** Replace the access token now. The client also does this itself after a 401. */
+  /** Replace the access token now. The client also does this itself after a 401. A refresh asked for while
+   * another is under way shares it, since each refresh token works only once. */
   refresh(): Promise<Token> {
+    this.#refreshing ??= this.#refresh().finally(() => {
+      this.#refreshing = undefined;
+    });
+    return this.#refreshing;
+  }
+
+  async #refresh(): Promise<Token> {
     const refreshToken = this.#credentials.refreshToken;
-    if (!refreshToken) {
-      return Promise.reject(new TypeError('There is no refresh token: pass refreshToken, or exchange a code first'));
-    }
+    if (!refreshToken) throw new TypeError('There is no refresh token: pass refreshToken, or exchange a code first');
     return this.#request({
       grant_type: 'refresh_token',
       client_id: this.#credentials.apiKey,

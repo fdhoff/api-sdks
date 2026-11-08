@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import hashlib
 import inspect
 import re
 import secrets
 import threading
+from collections import deque
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
@@ -17,6 +19,7 @@ from ._runtime import AsyncTransport, AuthRequest, Credentials, DecodeError, Ope
 
 AUTHORIZATION_URL = "https://www.etsy.com/oauth/connect"
 _VERIFIER = re.compile(r"[A-Za-z0-9\-._~]{43,128}")
+_REMEMBERED = 16
 
 _TOKEN: Operation[Any] = Operation(
     id="oauthToken",
@@ -125,9 +128,10 @@ class EtsyCredentials(Credentials):
         self._shared_secret = shared_secret
         self._access_token = access_token
         self._refresh_token = refresh_token
+        self._token: Token | None = None
         self._on_token = on_token
         self._lock = threading.Lock()
-        self._seen = [secret for secret in (access_token, refresh_token) if secret]
+        self._seen: deque[str] = deque((secret for secret in (access_token, refresh_token) if secret), _REMEMBERED)
         self.refresher: Callable[[], Token | Awaitable[Token]] | None = None
 
     def __repr__(self) -> str:
@@ -136,6 +140,11 @@ class EtsyCredentials(Credentials):
     @property
     def refresh_token(self) -> str | None:
         return self._refresh_token
+
+    @property
+    def token(self) -> Token | None:
+        """The last token stored, if any."""
+        return self._token
 
     def apply(self, request: AuthRequest) -> None:
         if _needs(request.operation, "api_key"):
@@ -149,7 +158,8 @@ class EtsyCredentials(Credentials):
             return [self.api_key, self._shared_secret, *self._seen]
 
     def remember(self, *values: str) -> None:
-        """Keep values out of logs and errors from now on, such as a code about to be exchanged."""
+        """Keep values out of logs and errors from now on, such as a code about to be exchanged. Only the
+        most recent values are kept, so a long-lived client does not grow."""
         with self._lock:
             self._seen.extend(value for value in values if value)
 
@@ -157,6 +167,7 @@ class EtsyCredentials(Credentials):
         self.remember(token.access_token, token.refresh_token)
         self._access_token = token.access_token
         self._refresh_token = token.refresh_token
+        self._token = token
         if self._on_token is not None:
             self._on_token(token)
         return token
@@ -190,6 +201,12 @@ def _refresh_params(credentials: EtsyCredentials) -> dict[str, str]:
     return {"grant_type": "refresh_token", "client_id": credentials.api_key, "refresh_token": refresh_token}
 
 
+def _replaced(credentials: EtsyCredentials, refresh_token: str | None) -> Token | None:
+    """The token another refresh stored while this one waited, since each refresh token works only once."""
+    token = credentials.token
+    return token if token is not None and credentials.refresh_token != refresh_token else None
+
+
 class OAuth:
     """OAuth 2 for a synchronous client. A token it obtains is used for the client's later calls, and is
     passed to the client's `on_token` callback for you to store."""
@@ -197,6 +214,7 @@ class OAuth:
     def __init__(self, credentials: EtsyCredentials, transport: SyncTransport) -> None:
         self._credentials = credentials
         self._transport = transport
+        self._refreshing = threading.Lock()
 
     def authorization_url(
         self, redirect_uri: str, scopes: Sequence[str], *, state: str | None = None
@@ -211,8 +229,12 @@ class OAuth:
         return self._request(params)
 
     def refresh(self) -> Token:
-        """Replace the access token now. The client also does this itself after a 401."""
-        return self._request(_refresh_params(self._credentials))
+        """Replace the access token now. The client also does this itself after a 401. A refresh asked for
+        while another is under way waits for it and returns its token."""
+        refresh_token = self._credentials.refresh_token
+        with self._refreshing:
+            replaced = _replaced(self._credentials, refresh_token)
+            return replaced or self._request(_refresh_params(self._credentials))
 
     def _request(self, params: Mapping[str, str]) -> Token:
         reply = self._transport.fetch(_TOKEN, None, params)
@@ -225,6 +247,7 @@ class AsyncOAuth:
     def __init__(self, credentials: EtsyCredentials, transport: AsyncTransport) -> None:
         self._credentials = credentials
         self._transport = transport
+        self._refreshing = asyncio.Lock()
 
     def authorization_url(
         self, redirect_uri: str, scopes: Sequence[str], *, state: str | None = None
@@ -239,8 +262,12 @@ class AsyncOAuth:
         return await self._request(params)
 
     async def refresh(self) -> Token:
-        """Replace the access token now. The client also does this itself after a 401."""
-        return await self._request(_refresh_params(self._credentials))
+        """Replace the access token now. The client also does this itself after a 401. A refresh asked for
+        while another is under way waits for it and returns its token."""
+        refresh_token = self._credentials.refresh_token
+        async with self._refreshing:
+            replaced = _replaced(self._credentials, refresh_token)
+            return replaced or await self._request(_refresh_params(self._credentials))
 
     async def _request(self, params: Mapping[str, str]) -> Token:
         reply = await self._transport.fetch(_TOKEN, None, params)

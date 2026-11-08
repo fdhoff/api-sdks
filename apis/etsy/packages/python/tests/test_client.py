@@ -4,6 +4,8 @@ import asyncio
 import base64
 import hashlib
 import logging
+import threading
+import time
 from collections.abc import Callable
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
@@ -24,6 +26,7 @@ from etsy_seller import (
 )
 from etsy_seller._resources import OPERATIONS
 from etsy_seller.models import ShopListing
+from etsy_seller.oauth import EtsyCredentials
 
 KEY = "synthetic-keystring"
 SECRET = "synthetic-shared-secret"
@@ -355,6 +358,62 @@ def test_async_concurrent_401s_share_one_refresh() -> None:
     assert asyncio.run(run()) == [1, 1, 1]
     assert handler.paths().count(TOKEN_PATH) == 1
     assert len(stored) == 1
+
+
+def test_an_explicit_refresh_and_a_401_share_one_token_request() -> None:
+    requests: list[httpx.Request] = []
+    token_started = threading.Event()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path == TOKEN_PATH:
+            token_started.set()
+            time.sleep(0.2)
+        elif request.headers.get("authorization") == f"Bearer {ACCESS}":
+            token_started.wait(5)
+        return Expiring()(request)
+
+    client = client_for(handler, access_token=ACCESS, refresh_token=REFRESH)
+    explicit = threading.Thread(target=client.oauth.refresh)
+    explicit.start()
+    assert client.users.get_me().shop_id == 1
+    explicit.join()
+    assert [form(request)["refresh_token"] for request in requests if request.url.path == TOKEN_PATH] == [[REFRESH]]
+
+
+def test_async_explicit_refresh_and_a_401_share_one_token_request() -> None:
+    handler = Expiring()
+
+    async def slow(request: httpx.Request) -> httpx.Response:
+        if request.url.path == TOKEN_PATH:
+            await asyncio.sleep(0.01)
+        return handler(request)
+
+    async def run() -> tuple[Token, int | None]:
+        async with AsyncEtsyClient(
+            KEY,
+            SECRET,
+            base_url="http://mock.invalid",
+            http_transport=httpx.MockTransport(slow),
+            access_token=ACCESS,
+            refresh_token=REFRESH,
+        ) as client:
+            token, me = await asyncio.gather(client.oauth.refresh(), client.users.get_me())
+            return token, me.shop_id
+
+    token, shop_id = asyncio.run(run())
+    assert token.access_token == NEW_ACCESS
+    assert shop_id == 1
+    assert handler.paths().count(TOKEN_PATH) == 1
+
+
+def test_credentials_keep_only_recent_values_for_redaction() -> None:
+    credentials = EtsyCredentials(KEY, SECRET, ACCESS, None, None)
+    credentials.remember(*(f"synthetic-old-{index}" for index in range(100)))
+    secrets = list(credentials.secrets())
+    assert len(secrets) < 20
+    assert {KEY, SECRET, "synthetic-old-99"} <= set(secrets)
+    assert ACCESS not in secrets
 
 
 def test_async_exchange_code_and_form_bodies() -> None:
