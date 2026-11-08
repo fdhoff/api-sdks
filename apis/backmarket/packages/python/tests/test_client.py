@@ -432,3 +432,18 @@ def test_async_client_iterates_pages() -> None:
     orders = asyncio.run(run())
     assert [order.order_id for order in orders] == [1, 2]
     assert queries == ["", "page=2"]
+
+
+def test_only_gzip_is_accepted_in_sync_and_async() -> None:
+    seen: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.headers.get("accept-encoding"))
+        return httpx.Response(200, json={"order_id": 1})
+
+    client = client_for(handler)
+    client.orders.get(1)
+    client._transport.http.headers["Accept-Encoding"] = "gzip, deflate, br, zstd"
+    client.orders.get(1)
+    async_order(handler)
+    assert seen == ["gzip", "gzip", "gzip"]

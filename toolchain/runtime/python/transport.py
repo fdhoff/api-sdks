@@ -30,6 +30,8 @@ FileInput = bytes | tuple[str, bytes]
 
 _REDACTED = "***"
 _PAGE_MARKERS = ("page", "cursor")
+# Only gzip is decoded, and httpx would otherwise also ask for deflate, br and zstd.
+_ACCEPT_ENCODING = {"Accept-Encoding": "gzip"}
 
 
 @dataclass(frozen=True)
@@ -258,7 +260,7 @@ class SyncTransport:
     # trickle are not caught. Closing that gap needs a worker thread or a custom network backend.
     def _attempt(self, request: dict[str, Any]) -> httpx.Response:
         deadline = time.monotonic() + self.settings.timeout
-        with self.http.stream(**request) as response:
+        with self.http.stream(**request, headers=_ACCEPT_ENCODING) as response:
             # The stream itself, because iter_raw refuses a body that was read already, as a mock transport's is.
             return _decoded(response, b"".join(_Deadline(response.stream, deadline)))
 
@@ -291,7 +293,7 @@ class AsyncTransport:
         )
 
     async def _attempt(self, request: dict[str, Any]) -> httpx.Response:
-        async with self.http.stream(**request) as response:
+        async with self.http.stream(**request, headers=_ACCEPT_ENCODING) as response:
             stream = cast(httpx.AsyncByteStream, response.stream)
             return _decoded(response, b"".join([chunk async for chunk in stream]))
 
