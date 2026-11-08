@@ -32,7 +32,7 @@ public sealed class CredentialsTests
         Assert.Equal(2, credentials.Seen.Count);
         var first = credentials.Seen.First();
         Assert.Equal("GET", first.Method);
-        Assert.Equal("https://mock.invalid/items/a%20b", first.Url.ToString());
+        Assert.Equal("https://mock.invalid/items/a%20b", first.Url.AbsoluteUri);
         Assert.True(first.Body.IsEmpty);
         Assert.Equal("test", first.Headers["user-agent"]);
         Assert.Same(GetItem, first.Operation);
