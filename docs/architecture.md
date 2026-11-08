@@ -76,6 +76,8 @@ The upstream spec is OpenAPI 3.0.3, with 40 operations on 35 paths and 75 schema
 
 `toolchain/` must not name this API or contain its endpoints or schemas. `apis/backmarket/tests/boundary.test.mjs` enforces that. API-specific values the toolchain needs arrive as configuration or case data: the conformance error kinds, for example, are defined by the cases, not by the runner.
 
+The npm scripts take the API directory from the `API` environment variable, defaulting to `backmarket`: `API=<api> npm run spec:build`. CI finds each directory under `apis/` with a `spec/upstream/lock.json` and runs the spec job for it, then runs each language job for every API that has a `packages/<language>/generate.yaml`.
+
 The boundary only keeps a later extraction cheap. It does not justify building anything this SDK does not need.
 
 ## Generated and hand-written code
@@ -217,23 +219,23 @@ A release run can be rerun after it published. Each publish job skips a version 
 
 Upstream serves only its latest spec, so an older pin cannot be fetched again. Once upstream changes, a machine with no cached copy fails closed until the pin moves. Released versions are unaffected, because their generated code is committed.
 
-CI and release jobs get the spec through `.github/actions/upstream-spec`, which restores it from the Actions cache under `upstream-spec-<sha256>`, the hash in `lock.json`, and downloads it only on a miss. Caches saved on `main` are visible to every pull request and tag, and the spec drift job keeps them there, so an upstream change does not break an unrelated pull request or release. Only the spec drift job reads upstream on purpose. A pull request from a fork can restore those caches too, but the spec is never committed, uploaded as an artifact or attached to a release, so the repository does not redistribute it. `apis/backmarket/tests/workflows.test.mjs` fails if any other job fetches the spec itself.
+CI and release jobs get the spec through `.github/actions/upstream-spec`, which restores it from the Actions cache under `upstream-spec-<sha256>`, the hash in that API's `lock.json`, at that API's path, and downloads it only on a miss. Caches saved on `main` are visible to every pull request and tag, and the spec drift job keeps them there, so an upstream change does not break an unrelated pull request or release. Only the spec drift job reads upstream on purpose. A pull request from a fork can restore those caches too, but the spec is never committed, uploaded as an artifact or attached to a release, so the repository does not redistribute it. `apis/backmarket/tests/workflows.test.mjs` fails if any other job fetches the spec itself.
 
 To move the pin by hand, run `npm run spec:pin`, review what changed, and commit `lock.json`. It rewrites the hash, version, `Last-Modified` and date in the lock, and replaces the cached spec. On other machines the old cache then fails verification; delete it and run `npm run spec:fetch`.
 
-`.github/workflows/spec-drift.yml` automates that. It runs daily and on demand:
+`.github/workflows/spec-drift.yml` automates that. It runs daily and on demand, once for each API under `apis/` that has a `spec/upstream/lock.json`:
 
 1. Restore the pinned spec from the cache, which also keeps it from expiring, and keep a copy of it.
-2. Run `spec:pin` and compare the new SHA-256 with the old one. Save the downloaded spec to the cache under its own hash, unless the pinned spec was already there. That restores an evicted pin while upstream still matches it, and has the next pin cached before its pull request runs. Stop if the hashes match, or if an open pull request from the `spec-drift` branch already proposes the new hash, so fixes pushed to that branch are kept. A drift pull request closed without merging does not stop the next run.
+2. Run `spec:pin` and compare the new SHA-256 with the old one. Save the downloaded spec to the cache under its own hash, unless the pinned spec was already there. That restores an evicted pin while upstream still matches it, and has the next pin cached before its pull request runs. Stop if the hashes match, or if an open pull request from that API's `spec-drift-<api>` branch already proposes the new hash, so fixes pushed to that branch are kept. A drift pull request closed without merging does not stop the next run.
 3. Rebuild the spec and regenerate the clients. If an overlay action stops matching, skip regeneration and say so in the pull request. If regeneration fails, discard its partial output, still open the pull request, say so with a link to the run, and leave the run red.
-4. Commit `lock.json` and the regenerated clients to the `spec-drift` branch, and open or update a single pull request.
+4. Commit `lock.json` and the regenerated clients to the `spec-drift-<api>` branch, and open or update a single pull request for that API.
 5. In the pull request, list which operations and schemas were added, removed or changed between the old and new upstream specs, by name only, and count those whose only changes are descriptions or examples. `toolchain/pipeline/spec-diff.mjs` writes this. If the cache held no old copy, it says that no comparison was possible.
 
 The pull request goes through ordinary CI, which restores the new spec from the cache, verifies it against the new hash, then runs the build, lint and conformance. If upstream changed something the overlay corrected, CI goes red, which is the signal to fix it on that branch. If upstream changes again before merge, the next run resets the branch to the newer spec. The job never merges its own pull request.
 
 A pull request opened with the default workflow token does not trigger `pull_request` workflows, and that token can open one only if the repository allows Actions to create pull requests. The job uses the `SPEC_DRIFT_TOKEN` secret when it is set: a fine-grained token for this repository with contents and pull request write access. Without it, the job falls back to the default token and the pull request says to close and reopen it to start CI. Only the final step, which pushes and calls `gh`, receives that token; checkout does not persist credentials, so dependency installs and generators never see it.
 
-`apis/backmarket/tests/drift.test.mjs` fails if a package with a `generate.yaml` is missing from the job's regeneration step, if the write token reaches any other step, or if a failed regeneration would skip the pull request.
+`apis/backmarket/tests/drift.test.mjs` fails if a package with a `generate.yaml` has no `generate:<language>` script for the job's regeneration step to run, if the write token reaches any other step, or if a failed regeneration would skip the pull request.
 
 ## Credentials
 

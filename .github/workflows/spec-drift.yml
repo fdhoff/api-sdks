@@ -14,16 +14,37 @@ concurrency:
   group: spec-drift
   cancel-in-progress: false
 
-env:
-  BRANCH: spec-drift
-  SPEC: apis/backmarket/spec/upstream/openapi.yaml
-  LOCK: apis/backmarket/spec/upstream/lock.json
-
 jobs:
+  apis:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      spec: ${{ steps.find.outputs.spec }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: find
+        shell: bash
+        run: |
+          shopt -s nullglob
+          names() { for path in "$@"; do path="${path#apis/}"; echo "${path%%/*}"; done | jq -Rnc '[inputs]'; }
+          echo "spec=$(names apis/*/spec/upstream/lock.json)" | tee -a "$GITHUB_OUTPUT"
+
   drift:
+    needs: apis
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        api: ${{ fromJSON(needs.apis.outputs.spec) }}
     env:
+      API: ${{ matrix.api }}
+      BRANCH: spec-drift-${{ matrix.api }}
+      SPEC: apis/${{ matrix.api }}/spec/upstream/openapi.yaml
+      LOCK: apis/${{ matrix.api }}/spec/upstream/lock.json
+      PACKAGES: apis/${{ matrix.api }}/packages
       SCARF_ANALYTICS: "false"
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
       DOTNET_NOLOGO: "1"
@@ -54,7 +75,7 @@ jobs:
           cache: npm
           cache-dependency-path: |
             package-lock.json
-            apis/backmarket/packages/typescript/package-lock.json
+            apis/*/packages/typescript/package-lock.json
       - run: npm ci --ignore-scripts
       - name: Compare upstream with the pin
         id: pin
@@ -113,13 +134,12 @@ jobs:
       - name: Regenerate clients
         if: steps.build.outcome == 'success'
         run: |
-          python -m pip install -e 'apis/backmarket/packages/python[dev]'
-          (cd apis/backmarket/packages/typescript && npm ci --ignore-scripts)
-          npm run generate:python
-          npm run generate:typescript
-          npm run generate:go
-          npm run generate:csharp
-          npm run generate:rust
+          if [ -d "$PACKAGES/python" ]; then python -m pip install -e "$PACKAGES/python[dev]"; fi
+          if [ -d "$PACKAGES/typescript" ]; then (cd "$PACKAGES/typescript" && npm ci --ignore-scripts); fi
+          for config in "$PACKAGES"/*/generate.yaml; do
+            language=$(basename "$(dirname "$config")")
+            npm run "generate:$language"
+          done
       - name: Open or update the pull request
         if: ${{ !cancelled() && steps.pin.outputs.changed }}
         env:
@@ -136,7 +156,7 @@ jobs:
             echo "The upstream spec changed. This moves the pin to \`$upstream\` and regenerates the clients."
             echo
             if [ "$BUILD" != success ]; then
-              echo "**The overlay no longer applies, so the clients were not regenerated.** Fix \`apis/backmarket/spec/overlay.yaml\` on this branch, then regenerate. Details are in the [drift run]($RUN_URL)."
+              echo "**The overlay no longer applies, so the clients were not regenerated.** Fix \`apis/$API/spec/overlay.yaml\` on this branch, then regenerate. Details are in the [drift run]($RUN_URL)."
               echo
             elif [ "$JOB" != success ]; then
               echo "**Regenerating the clients failed, so this pull request moves only the pin.** Fix the generator or templates on this branch, then regenerate. Details are in the [drift run]($RUN_URL)."
@@ -150,21 +170,21 @@ jobs:
             echo
             node toolchain/pipeline/spec-diff.mjs "$RUNNER_TEMP/pinned.yaml" "$SPEC"
             echo
-            echo "Check every changed operation and schema against \`apis/backmarket/docs/spec-audit.md\`, and add a changelog entry to each package whose public API changed."
+            echo "Check every changed operation and schema against \`apis/$API/docs/spec-audit.md\`, and add a changelog entry to each package whose public API changed."
           } > "$RUNNER_TEMP/body.md"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if [ "$JOB" != success ]; then
-            git checkout HEAD -- apis/backmarket/packages
-            git clean -fdq apis/backmarket/packages
+            git checkout HEAD -- "$PACKAGES"
+            git clean -fdq "$PACKAGES"
           fi
           git checkout -B "$BRANCH"
-          git add "$LOCK" apis/backmarket/packages
-          git commit --quiet -m "Update upstream spec pin to ${upstream:0:12}"
+          git add "$LOCK" "$PACKAGES"
+          git commit --quiet -m "Update $API upstream spec pin to ${upstream:0:12}"
           gh auth setup-git
           git push --force origin "$BRANCH"
           if [ -n "$OPEN_PR" ]; then
             gh pr edit "$OPEN_PR" --body-file "$RUNNER_TEMP/body.md"
           else
-            gh pr create --head "$BRANCH" --base main --title "Update upstream spec pin" --body-file "$RUNNER_TEMP/body.md"
+            gh pr create --head "$BRANCH" --base main --title "Update $API upstream spec pin" --body-file "$RUNNER_TEMP/body.md"
           fi

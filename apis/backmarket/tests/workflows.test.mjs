@@ -58,6 +58,22 @@ test('one job per workflow saves the spec cache after a miss', async () => {
   });
 });
 
+test('CI runs each language job for every API that has the package', async () => {
+  const { jobs } = parse(await readFile(join(WORKFLOWS, 'ci.yml'), 'utf8'));
+  const packages = join(ROOT, 'apis/backmarket/packages');
+  const languages = [];
+  for (const language of await readdir(packages)) {
+    if ((await readdir(join(packages, language))).includes('generate.yaml')) languages.push(language);
+  }
+  assert.ok(languages.length > 0);
+  assert.equal(jobs.spec.strategy.matrix.api, '${{ fromJSON(needs.apis.outputs.spec) }}');
+  for (const language of languages) {
+    assert.equal(jobs.apis.outputs[language], `\${{ steps.find.outputs.${language} }}`);
+    assert.equal(jobs[language].strategy.matrix.api, `\${{ fromJSON(needs.apis.outputs.${language}) }}`);
+    assert.equal(jobs[language].if, `needs.apis.outputs.${language} != '[]'`);
+  }
+});
+
 test('crates.io publishes with trusted publishing only', async () => {
   const text = await readFile(join(WORKFLOWS, 'release-rust.yml'), 'utf8');
   assert.doesNotMatch(text, /secrets\.CARGO_REGISTRY_TOKEN/);

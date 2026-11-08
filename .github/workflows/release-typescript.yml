@@ -15,6 +15,11 @@ on:
 permissions:
   contents: read
 
+# TODO: Release another API's package with a copy of this workflow that sets API to its directory under apis/ and
+# uses its own tag prefix, paths and registry environment. Publishing it waits for the owner's approval.
+env:
+  API: backmarket
+
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -54,6 +59,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - uses: ./.github/actions/upstream-spec
         with:
+          api: ${{ env.API }}
           save: true
       - run: npm run spec:build
       - run: npm ci --ignore-scripts

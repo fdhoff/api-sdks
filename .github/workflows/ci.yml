@@ -13,11 +13,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Lists each API with a pinned spec, and each API that has a package per language. The jobs below run once per entry.
+  apis:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      spec: ${{ steps.find.outputs.spec }}
+      python: ${{ steps.find.outputs.python }}
+      typescript: ${{ steps.find.outputs.typescript }}
+      go: ${{ steps.find.outputs.go }}
+      csharp: ${{ steps.find.outputs.csharp }}
+      rust: ${{ steps.find.outputs.rust }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: find
+        shell: bash
+        run: |
+          shopt -s nullglob
+          names() { for path in "$@"; do path="${path#apis/}"; echo "${path%%/*}"; done | jq -Rnc '[inputs]'; }
+          echo "spec=$(names apis/*/spec/upstream/lock.json)" | tee -a "$GITHUB_OUTPUT"
+          for language in python typescript go csharp rust; do
+            echo "$language=$(names apis/*/packages/"$language"/generate.yaml)" | tee -a "$GITHUB_OUTPUT"
+          done
+
   spec:
+    needs: apis
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        api: ${{ fromJSON(needs.apis.outputs.spec) }}
     env:
       SCARF_ANALYTICS: "false"
+      API: ${{ matrix.api }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -27,20 +56,26 @@ jobs:
       - run: npm ci --ignore-scripts
       - uses: ./.github/actions/upstream-spec
         with:
+          api: ${{ matrix.api }}
           save: true
       - run: npm run spec:build
       - run: npm run spec:lint
       - run: npm test
 
   python:
+    needs: apis
+    if: needs.apis.outputs.python != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
+        api: ${{ fromJSON(needs.apis.outputs.python) }}
         python-version: ["3.10", "3.14"]
     env:
       SCARF_ANALYTICS: "false"
+      API: ${{ matrix.api }}
+      PACKAGE: apis/${{ matrix.api }}/packages/python
     defaults:
       run:
         shell: bash
@@ -59,14 +94,16 @@ jobs:
           java-version: 21
       - run: npm ci --ignore-scripts
       - uses: ./.github/actions/upstream-spec
+        with:
+          api: ${{ matrix.api }}
       - run: npm run spec:build
-      - run: python -m pip install -e 'apis/backmarket/packages/python[dev]'
+      - run: python -m pip install -e "$PACKAGE[dev]"
       - name: Generated code matches the spec, templates and runtime
         run: |
           npm run generate:python
-          git add -N apis/backmarket/packages/python
-          git diff --exit-code apis/backmarket/packages/python
-      - working-directory: apis/backmarket/packages/python
+          git add -N "$PACKAGE"
+          git diff --exit-code "$PACKAGE"
+      - working-directory: ${{ env.PACKAGE }}
         run: |
           python -m ruff check .
           python -m ruff format --check .
@@ -75,7 +112,7 @@ jobs:
       - run: npm run conformance:python
       - run: npm run conformance:python:async
       - name: Package ships the licence and notice
-        working-directory: apis/backmarket/packages/python
+        working-directory: ${{ env.PACKAGE }}
         run: |
           python -m build
           unzip -l dist/*.whl | grep -E 'licenses/LICENSE$'
@@ -84,14 +121,19 @@ jobs:
           tar tzf dist/*.tar.gz | grep -E '/NOTICE$'
 
   typescript:
+    needs: apis
+    if: needs.apis.outputs.typescript != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
+        api: ${{ fromJSON(needs.apis.outputs.typescript) }}
         node-version: [22, 26]
     env:
       SCARF_ANALYTICS: "false"
+      API: ${{ matrix.api }}
+      PACKAGE: apis/${{ matrix.api }}/packages/typescript
     defaults:
       run:
         shell: bash
@@ -103,22 +145,24 @@ jobs:
           cache: npm
           cache-dependency-path: |
             package-lock.json
-            apis/backmarket/packages/typescript/package-lock.json
+            apis/${{ matrix.api }}/packages/typescript/package-lock.json
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
           java-version: 21
       - run: npm ci --ignore-scripts
       - uses: ./.github/actions/upstream-spec
+        with:
+          api: ${{ matrix.api }}
       - run: npm run spec:build
       - run: npm ci --ignore-scripts
-        working-directory: apis/backmarket/packages/typescript
+        working-directory: ${{ env.PACKAGE }}
       - name: Generated code matches the spec, templates and runtime
         run: |
           npm run generate:typescript
-          git add -N apis/backmarket/packages/typescript
-          git diff --exit-code apis/backmarket/packages/typescript
-      - working-directory: apis/backmarket/packages/typescript
+          git add -N "$PACKAGE"
+          git diff --exit-code "$PACKAGE"
+      - working-directory: ${{ env.PACKAGE }}
         run: |
           npm run format
           npm run build
@@ -127,27 +171,36 @@ jobs:
       - run: npm run conformance:typescript
       - run: npm run conformance:typescript:cjs
       - name: Packed tarball ships the licence and notice, and loads both ways
-        working-directory: apis/backmarket/packages/typescript
+        working-directory: ${{ env.PACKAGE }}
         run: |
+          export NAME=$(node -p "require('./package.json').name")
           npm pack
-          tar tzf backmarket-seller-*.tgz | grep -E '^package/LICENSE$'
-          tar tzf backmarket-seller-*.tgz | grep -E '^package/NOTICE$'
+          tar tzf "$NAME"-*.tgz | grep -E '^package/LICENSE$'
+          tar tzf "$NAME"-*.tgz | grep -E '^package/NOTICE$'
           mkdir smoke
           cd smoke
           npm init --yes
-          npm install --ignore-scripts ../backmarket-seller-*.tgz
-          node --input-type=module -e "import { BackMarketClient } from 'backmarket-seller'; console.log(typeof BackMarketClient)" | grep function
-          node --input-type=commonjs -e "console.log(typeof require('backmarket-seller').BackMarketClient)" | grep function
+          npm install --ignore-scripts ../"$NAME"-*.tgz
+          clients='Object.keys(m).filter((key) => key.endsWith("Client") && typeof m[key] === "function").join()'
+          esm=$(node --input-type=module -e "const m = await import(process.env.NAME); console.log($clients)")
+          cjs=$(node --input-type=commonjs -e "const m = require(process.env.NAME); console.log($clients)")
+          echo "ESM: $esm; CommonJS: $cjs"
+          test -n "$esm" && test "$esm" = "$cjs"
 
   go:
+    needs: apis
+    if: needs.apis.outputs.go != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
+        api: ${{ fromJSON(needs.apis.outputs.go) }}
         go-version: ["1.24", "1.27"]
     env:
       SCARF_ANALYTICS: "false"
+      API: ${{ matrix.api }}
+      PACKAGE: apis/${{ matrix.api }}/packages/go
     defaults:
       run:
         shell: bash
@@ -167,13 +220,15 @@ jobs:
           java-version: 21
       - run: npm ci --ignore-scripts
       - uses: ./.github/actions/upstream-spec
+        with:
+          api: ${{ matrix.api }}
       - run: npm run spec:build
       - name: Generated code matches the spec, templates and runtime
         run: |
           npm run generate:go
-          git add -N apis/backmarket/packages/go
-          git diff --exit-code apis/backmarket/packages/go
-      - working-directory: apis/backmarket/packages/go
+          git add -N "$PACKAGE"
+          git diff --exit-code "$PACKAGE"
+      - working-directory: ${{ env.PACKAGE }}
         run: |
           test -z "$(gofmt -l .)"
           go vet ./...
@@ -181,10 +236,18 @@ jobs:
       - run: npm run conformance:go
 
   csharp:
+    needs: apis
+    if: needs.apis.outputs.csharp != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        api: ${{ fromJSON(needs.apis.outputs.csharp) }}
     env:
       SCARF_ANALYTICS: "false"
+      API: ${{ matrix.api }}
+      PACKAGE: apis/${{ matrix.api }}/packages/csharp
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
       DOTNET_NOLOGO: "1"
     defaults:
@@ -207,41 +270,49 @@ jobs:
           java-version: 21
       - run: npm ci --ignore-scripts
       - uses: ./.github/actions/upstream-spec
+        with:
+          api: ${{ matrix.api }}
       - run: npm run spec:build
       - name: Generated code matches the spec, templates and runtime
         run: |
           npm run generate:csharp
-          git add -N apis/backmarket/packages/csharp
-          git diff --exit-code apis/backmarket/packages/csharp
-      - working-directory: apis/backmarket/packages/csharp
+          git add -N "$PACKAGE"
+          git diff --exit-code "$PACKAGE"
+      - working-directory: ${{ env.PACKAGE }}
         run: |
-          dotnet format BackMarketSeller.slnx --verify-no-changes
-          dotnet build BackMarketSeller.slnx -c Release
-          dotnet test --solution BackMarketSeller.slnx -c Release --no-build
+          dotnet format *.slnx --verify-no-changes
+          dotnet build *.slnx -c Release
+          dotnet test --solution *.slnx -c Release --no-build
       - run: npm run conformance:csharp
       - run: npm run conformance:csharp:net8
       - name: Package ships the licence and notice
-        working-directory: apis/backmarket/packages/csharp
+        working-directory: ${{ env.PACKAGE }}
         run: |
-          dotnet pack src/BackMarketSeller -c Release -o dist
+          NAME=$(basename src/*/*.csproj .csproj)
+          dotnet pack "src/$NAME" -c Release -o dist
           unzip -l dist/*.nupkg | grep -E ' LICENSE$'
           unzip -l dist/*.nupkg | grep -E ' NOTICE$'
-          unzip -p dist/*.nupkg BackMarketSeller.nuspec | grep -F '<license type="expression">Apache-2.0</license>'
+          unzip -p dist/*.nupkg "$NAME.nuspec" | grep -F '<license type="expression">Apache-2.0</license>'
           unzip -l dist/*.nupkg | grep -E ' icon.png$'
-          unzip -l dist/*.nupkg | grep -E ' lib/net8.0/BackMarketSeller.dll$'
-          unzip -l dist/*.nupkg | grep -E ' lib/net10.0/BackMarketSeller.dll$'
-          unzip -p dist/*.nupkg BackMarketSeller.nuspec | grep -F "commit=\"$GITHUB_SHA\""
-          unzip -l dist/*.snupkg | grep -E ' lib/net8.0/BackMarketSeller.pdb$'
+          unzip -l dist/*.nupkg | grep -E " lib/net8.0/$NAME.dll$"
+          unzip -l dist/*.nupkg | grep -E " lib/net10.0/$NAME.dll$"
+          unzip -p dist/*.nupkg "$NAME.nuspec" | grep -F "commit=\"$GITHUB_SHA\""
+          unzip -l dist/*.snupkg | grep -E " lib/net8.0/$NAME.pdb$"
 
   rust:
+    needs: apis
+    if: needs.apis.outputs.rust != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
+        api: ${{ fromJSON(needs.apis.outputs.rust) }}
         rust-version: ["1.85", "1.99"]
     env:
       SCARF_ANALYTICS: "false"
+      API: ${{ matrix.api }}
+      PACKAGE: apis/${{ matrix.api }}/packages/rust
       CARGO_TERM_COLOR: never
       RUSTUP_TOOLCHAIN: ${{ matrix.rust-version }}
     defaults:
@@ -260,20 +331,22 @@ jobs:
           java-version: 21
       - run: npm ci --ignore-scripts
       - uses: ./.github/actions/upstream-spec
+        with:
+          api: ${{ matrix.api }}
       - run: npm run spec:build
       - name: Generated code matches the spec, templates and runtime
         run: |
           npm run generate:rust
-          git add -N apis/backmarket/packages/rust
-          git diff --exit-code apis/backmarket/packages/rust
-      - working-directory: apis/backmarket/packages/rust
+          git add -N "$PACKAGE"
+          git diff --exit-code "$PACKAGE"
+      - working-directory: ${{ env.PACKAGE }}
         run: |
           cargo fmt --check
           cargo clippy --all-targets --locked -- -D warnings
           cargo test --locked
       - run: npm run conformance:rust
       - name: Package ships the licence and notice
-        working-directory: apis/backmarket/packages/rust
+        working-directory: ${{ env.PACKAGE }}
         run: |
           cargo package --list --locked --allow-dirty | grep -x LICENSE
           cargo package --list --locked --allow-dirty | grep -x NOTICE
