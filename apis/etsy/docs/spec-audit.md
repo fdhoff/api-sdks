@@ -37,4 +37,5 @@ Runtime:
 ## Open
 
 * Whether Etsy accepts repeated fields for form arrays, as the spec implies, needs live confirmation.
+* How to clear a list field, such as `tags`, in an update. The 3.0 default sends nothing for an empty list, and the spec does not say what Etsy expects instead, so every SDK sends nothing and the field is left unchanged.
 * Which statuses besides 429 carry the rate-limit headers.
