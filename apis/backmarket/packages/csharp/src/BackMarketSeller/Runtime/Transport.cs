@@ -42,6 +42,8 @@ internal sealed class Transport : IDisposable
     private readonly Settings settings;
     private readonly HttpClient http;
     private readonly bool ownsClient;
+    private readonly SemaphoreSlim refreshing = new(1, 1);
+    private long generation;
 
     /// <remarks>Reads and writes share one pool of connections. <see cref="AttemptAsync"/> shapes each write so the handler never resends it.</remarks>
     public Transport(Settings settings, HttpClient http, bool ownsClient)
@@ -57,6 +59,7 @@ internal sealed class Transport : IDisposable
 
     public void Dispose()
     {
+        refreshing.Dispose();
         if (ownsClient)
         {
             http.Dispose();
@@ -337,7 +340,7 @@ internal sealed class Transport : IDisposable
     {
         if (settings.Logger.IsEnabled(level))
         {
-            settings.Logger.Log(level, "{Message}", message.Replace(settings.Secret, Redacted, StringComparison.Ordinal));
+            settings.Logger.Log(level, "{Message}", Redact(message));
         }
     }
 
@@ -405,16 +408,28 @@ internal sealed class Transport : IDisposable
     private async Task<Reply> FetchAsync(Operation operation, object?[] values, CancellationToken cancellationToken)
     {
         var (url, content) = Build(operation, values);
-        for (var tries = 0; ; tries++)
+        var refreshed = false;
+        for (var tries = 0; ;)
         {
             Log(LogLevel.Debug, $"-> {operation.Method} {url}");
+            var seen = Interlocked.Read(ref generation);
+            var auth = await AuthorizeAsync(operation, url, content, cancellationToken).ConfigureAwait(false);
             try
             {
-                var reply = await AttemptAsync(operation.Method, url, content, cancellationToken).ConfigureAwait(false);
+                var reply = await AttemptAsync(auth, cancellationToken).ConfigureAwait(false);
                 return Read(operation.Method, reply);
             }
             catch (ApiException error)
             {
+                if (error.Status == 401 && !refreshed)
+                {
+                    refreshed = true;
+                    if (await RefreshAsync(auth, seen, cancellationToken).ConfigureAwait(false))
+                    {
+                        Log(LogLevel.Information, "retrying after refreshing credentials");
+                        continue;
+                    }
+                }
                 var delay = RetryDelay(error, operation.Method, tries);
                 if (delay is null)
                 {
@@ -422,27 +437,73 @@ internal sealed class Transport : IDisposable
                 }
                 Log(LogLevel.Information, $"retrying after {delay.Value.TotalSeconds}s: {error.Kind}");
                 await Task.Delay(delay.Value, cancellationToken).ConfigureAwait(false);
+                tries++;
             }
         }
     }
 
+    /// <summary>Encodes one attempt's request and lets the credentials sign the bytes that will be sent.</summary>
+    private async Task<AuthRequest> AuthorizeAsync(Operation operation, Uri url, Func<HttpContent?> content, CancellationToken cancellationToken)
+    {
+        using var draft = content();
+        var body = draft is null ? [] : await draft.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+        var headers = new Dictionary<string, string>(settings.Headers, StringComparer.OrdinalIgnoreCase) { ["Accept-Encoding"] = "gzip" };
+        foreach (var (name, value) in draft?.Headers.NonValidated.ToArray() ?? [])
+        {
+            if (!name.Equals("Content-Length", StringComparison.OrdinalIgnoreCase))
+            {
+                headers[name] = value.ToString();
+            }
+        }
+        var auth = new AuthRequest { Method = operation.Method, Url = url, Headers = headers, Body = body, Operation = operation };
+        await settings.Credentials.ApplyAsync(auth, cancellationToken).ConfigureAwait(false);
+        return auth;
+    }
+
+    /// <summary>Calls waiting on a refresh share it, and a call whose credentials were refreshed since it sent them retries without another.</summary>
+    private async Task<bool> RefreshAsync(AuthRequest auth, long seen, CancellationToken cancellationToken)
+    {
+        await refreshing.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (Interlocked.Read(ref generation) != seen)
+            {
+                return true;
+            }
+            var refreshed = await settings.Credentials.RefreshAsync(auth, cancellationToken).ConfigureAwait(false);
+            if (refreshed)
+            {
+                Interlocked.Increment(ref generation);
+            }
+            return refreshed;
+        }
+        finally
+        {
+            refreshing.Release();
+        }
+    }
+
     /// <summary>One attempt, from sending the request to reading the last byte, under one deadline.</summary>
-    private async Task<RawReply> AttemptAsync(string method, Uri url, Func<HttpContent?> content, CancellationToken cancellationToken)
+    private async Task<RawReply> AttemptAsync(AuthRequest auth, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(settings.Timeout);
-        using var request = new HttpRequestMessage(new HttpMethod(method), url) { Content = content() };
-        foreach (var (name, value) in settings.Headers)
-        {
-            request.Headers.TryAddWithoutValidation(name, value);
-        }
-        request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip");
-        if (method != "GET")
+        var method = auth.Method;
+        using var request = new HttpRequestMessage(new HttpMethod(method), auth.Url);
+        if (auth.Body.Length > 0 || method != "GET")
         {
             // The HTTP/1.1 handler resends a request when a reused connection closes before any response, but only
             // one with no content or with Expect: 100-continue. A write has neither, so it can reuse connections.
-            request.Content ??= new ByteArrayContent([]);
+            request.Content = new ByteArrayContent(auth.Body.ToArray());
             request.Headers.ExpectContinue = false;
+        }
+        foreach (var (name, value) in auth.Headers)
+        {
+            if (!request.Headers.TryAddWithoutValidation(name, value))
+            {
+                request.Content ??= new ByteArrayContent([]);
+                request.Content.Headers.TryAddWithoutValidation(name, value);
+            }
         }
         try
         {
@@ -534,7 +595,15 @@ internal sealed class Transport : IDisposable
         return ~crc;
     }
 
-    private string Redact(string text) => text.Replace(settings.Secret, Redacted, StringComparison.Ordinal);
+    /// <summary>Longest first, so a secret that contains another is removed whole.</summary>
+    private string Redact(string text)
+    {
+        foreach (var secret in settings.Credentials.Secrets().Where(secret => secret.Length > 0).Distinct().OrderByDescending(secret => secret.Length))
+        {
+            text = text.Replace(secret, Redacted, StringComparison.Ordinal);
+        }
+        return text;
+    }
 
     private sealed record RawReply(int Status, Dictionary<string, string> Headers, byte[] Body);
 

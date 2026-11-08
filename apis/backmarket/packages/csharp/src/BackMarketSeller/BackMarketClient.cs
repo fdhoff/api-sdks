@@ -138,10 +138,9 @@ public sealed class BackMarketClient : ClientResources, IDisposable
         return new Settings
         {
             BaseUrl = url.TrimEnd('/'),
-            Secret = token,
+            Credentials = new StaticCredentials(new Dictionary<string, string> { ["Authorization"] = $"Basic {token}" }, [token]),
             Headers = new Dictionary<string, string>
             {
-                ["Authorization"] = $"Basic {token}",
                 ["User-Agent"] = options.UserAgent,
                 ["Accept"] = "application/json",
                 ["Accept-Language"] = options.Locale,

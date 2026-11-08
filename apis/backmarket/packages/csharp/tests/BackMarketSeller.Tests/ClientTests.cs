@@ -162,7 +162,7 @@ public sealed class ClientTests
         var settings = new Settings
         {
             BaseUrl = "https://mock.invalid",
-            Secret = Token,
+            Credentials = new StaticCredentials(new Dictionary<string, string>(), [Token]),
             Headers = new Dictionary<string, string>(),
             ToError = context => new ApiException($"status {context.Status}"),
             Logger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance,
