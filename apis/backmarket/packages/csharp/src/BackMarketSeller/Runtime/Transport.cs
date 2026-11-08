@@ -17,7 +17,6 @@ namespace BackMarketSeller.Runtime;
 internal sealed class Transport : IDisposable
 {
     private const string Redacted = "***";
-    private static readonly string[] PageMarkers = ["page", "cursor"];
     private static readonly string[] Months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
     /// <summary>RFC 5322, RFC 850 and asctime dates, as leniently as Python's <c>email.utils</c>.</summary>
@@ -130,6 +129,7 @@ internal sealed class Transport : IDisposable
     public async IAsyncEnumerable<T> PaginateAsync<T>(
         Operation operation, object?[] values, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        var paging = operation.Paging ?? NextLinkPaging.Default;
         object?[]? current = values;
         while (current is not null)
         {
@@ -138,24 +138,35 @@ internal sealed class Transport : IDisposable
             {
                 throw new ApiDecodeException("A page is not a JSON object") { Status = reply.Status, RawBody = reply.Clean };
             }
-            if (page.TryGetProperty("results", out var results) && results.ValueKind == JsonValueKind.Array)
+            var received = 0;
+            if (page.TryGetProperty(paging.Items, out var results) && results.ValueKind == JsonValueKind.Array)
             {
                 foreach (var item in results.EnumerateArray())
                 {
+                    received++;
                     yield return Json.Read<T>(item, reply.Status, reply.Clean);
                 }
             }
-            current = NextValues(operation, current, page);
+            current = NextValues(operation, current, page, received);
         }
     }
 
+    /// <summary>The values of the page after this one, or null after the last.</summary>
+    internal static object?[]? NextValues(Operation operation, object?[] values, JsonElement page, int received) =>
+        operation.Paging switch
+        {
+            OffsetPaging offset => NextOffset(operation, offset, values, page, received),
+            NextLinkPaging link => NextLink(operation, link, values, page),
+            _ => NextLink(operation, NextLinkPaging.Default, values, page),
+        };
+
     /// <summary>
-    /// Reads the position out of <c>next</c> and applies it to our own request. <c>next</c> is never fetched:
+    /// Reads the position out of the link and applies it to our own request. The link is never fetched:
     /// it could send the credential to another host.
     /// </summary>
-    internal static object?[]? NextValues(Operation operation, object?[] values, JsonElement page)
+    private static object?[]? NextLink(Operation operation, NextLinkPaging paging, object?[] values, JsonElement page)
     {
-        if (!page.TryGetProperty("next", out var next) || next.ValueKind is JsonValueKind.Null or JsonValueKind.False)
+        if (!page.TryGetProperty(paging.Link, out var next) || next.ValueKind is JsonValueKind.Null or JsonValueKind.False)
         {
             return null;
         }
@@ -166,14 +177,14 @@ internal sealed class Transport : IDisposable
         }
         if (!Uri.TryCreate(link, UriKind.RelativeOrAbsolute, out _))
         {
-            throw new ApiDecodeException("The `next` link is not a valid URL");
+            throw new ApiDecodeException($"The `{paging.Link}` link is not a valid URL");
         }
         var position = QueryOf(link);
         var updated = (object?[])values.Clone();
         for (var index = 0; index < operation.Params.Length; index++)
         {
             var param = operation.Params[index];
-            if (param.Location == ParamLocation.Query && PageMarkers.Contains(param.Wire) && position.TryGetValue(param.Wire, out var value))
+            if (param.Location == ParamLocation.Query && paging.Params.Contains(param.Wire) && position.TryGetValue(param.Wire, out var value))
             {
                 updated[index] = value;
             }
@@ -184,8 +195,25 @@ internal sealed class Transport : IDisposable
             .All(item => TextOrNull(updated[item.index]) == TextOrNull(values[item.index]));
         if (same)
         {
-            throw new ApiDecodeException("The `next` link does not advance the iteration");
+            throw new ApiDecodeException($"The `{paging.Link}` link does not advance the iteration");
         }
+        return updated;
+    }
+
+    private static object?[]? NextOffset(Operation operation, OffsetPaging paging, object?[] values, JsonElement page, int received)
+    {
+        if (received == 0)
+        {
+            return null;
+        }
+        var index = Array.FindIndex(operation.Params, param => param.Location == ParamLocation.Query && param.Wire == paging.Offset);
+        var position = (values[index] is null ? 0L : Convert.ToInt64(values[index], CultureInfo.InvariantCulture)) + received;
+        if (page.TryGetProperty(paging.Total, out var total) && total.ValueKind == JsonValueKind.Number && position >= total.GetDouble())
+        {
+            return null;
+        }
+        var updated = (object?[])values.Clone();
+        updated[index] = position;
         return updated;
     }
 

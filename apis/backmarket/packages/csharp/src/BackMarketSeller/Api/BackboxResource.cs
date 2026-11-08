@@ -11,7 +11,7 @@ public sealed class BackboxResource
 {
     internal static readonly Operation GetBackboxDataOperation = new(
         "GetBackboxData", "GET", "/ws/listings_bi", "Backbox", "ListAsync", "ListAllAsync",
-        [new("page", "page", ParamLocation.Query), new("page-size", "pageSize", ParamLocation.Query),], ReturnsJson: true);
+        [new("page", "page", ParamLocation.Query), new("page-size", "pageSize", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
 
     internal static readonly Operation GetWsBackboxV1CompetitorsOperation = new(
         "get-ws-backbox-v1-competitors", "GET", "/ws/backbox/v1/competitors/{listingId}", "Backbox", "ListCompetitorsAsync", null,

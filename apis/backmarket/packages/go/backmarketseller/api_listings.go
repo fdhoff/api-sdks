@@ -19,6 +19,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"publication_state", "min_quantity", "max_quantity", "page", "page-size"},
+		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
 	})
 	opGetWsListingDetail = runtime.Register(runtime.Operation{
 		ID:          "get-ws-listing-detail",

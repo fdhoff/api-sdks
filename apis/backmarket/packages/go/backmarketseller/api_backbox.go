@@ -19,6 +19,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"page", "page-size"},
+		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
 	})
 	opGetWsBackboxV1Competitors = runtime.Register(runtime.Operation{
 		ID:          "get-ws-backbox-v1-competitors",

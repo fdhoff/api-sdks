@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::Error;
 #[allow(unused_imports)]
-use crate::runtime::{Items, Operation, Params, Request, Transport};
+use crate::runtime::{Items, Operation, Paging, Params, Request, Transport};
 #[allow(unused_imports)]
 use crate::{File, models};
 
@@ -14,6 +14,7 @@ const GET_WS_TASK: Operation = Operation {
     path: "/ws/tasks/{taskId}",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 
 /// The `tasks` operations, from [`Client::tasks`](crate::Client::tasks).

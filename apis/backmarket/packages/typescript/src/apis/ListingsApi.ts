@@ -27,6 +27,7 @@ const getWsListListing: Operation = {
   ],
   returnsJson: true,
   iterator: 'iter',
+  paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
 };
 
 const getWsListingDetail: Operation = {

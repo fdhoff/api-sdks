@@ -7,7 +7,7 @@ from typing import Any, AsyncIterator, Iterator, List, Mapping, Optional, Union
 {{import}}
 {{/imports}}
 from {{packageName}} import models as _models
-from {{packageName}}._runtime import AsyncResource, FileInput, Operation, Param, Resource, checked
+from {{packageName}}._runtime import AsyncResource, FileInput, NextLink, Offset, Operation, Param, Resource, checked
 
 {{#operations}}
 {{#operation}}
@@ -35,6 +35,12 @@ _{{operationIdSnakeCase}}: Operation[{{{returnType}}}{{^returnType}}None{{/retur
 {{#vendorExtensions.x-sdk-iterator}}
     iterator="{{vendorExtensions.x-sdk-iterator}}",
     item=_models.{{vendorExtensions.x-sdk-items}},
+{{#vendorExtensions.x-sdk-paging.next_link}}
+    paging=NextLink(items="{{items}}", link="{{link}}", params=({{#params}}"{{.}}", {{/params}})),
+{{/vendorExtensions.x-sdk-paging.next_link}}
+{{#vendorExtensions.x-sdk-paging.offset}}
+    paging=Offset(items="{{items}}", total="{{total}}", offset="{{offset}}"),
+{{/vendorExtensions.x-sdk-paging.offset}}
 {{/vendorExtensions.x-sdk-iterator}}
 )
 {{/operation}}

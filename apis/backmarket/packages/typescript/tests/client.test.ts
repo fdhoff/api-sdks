@@ -22,6 +22,7 @@ import {
   type Region,
 } from 'backmarket-seller';
 import { OPERATIONS } from '../dist/esm/resources.js';
+import { Resource, Transport, type Operation } from '../dist/esm/runtime/index.js';
 
 const TOKEN = 'synthetic-token';
 const BASE = 'http://mock.invalid';
@@ -57,6 +58,48 @@ async function collect<T>(items: AsyncIterable<T>): Promise<T[]> {
   for await (const item of items) all.push(item);
   return all;
 }
+
+class Pages extends Resource {
+  all(operation: Operation, params: Record<string, unknown> = {}): Promise<unknown[]> {
+    return collect(this.paginate(operation, undefined, params));
+  }
+}
+
+function pagesFor(handler: (url: URL) => Response) {
+  const queries: string[] = [];
+  const transport = new Transport({
+    baseUrl: BASE,
+    secret: TOKEN,
+    headers: {},
+    toError: (context) => new ApiError(`status ${context.status}`, { status: context.status }),
+    fetch: async (input) => {
+      const url = new URL(String(input));
+      queries.push(url.search);
+      return handler(url);
+    },
+    timeoutMs: 1000,
+    maxRetries: 0,
+    retryBaseDelayMs: 1,
+    rateLimitWaitMs: 1,
+    maxRetryWaitMs: 1,
+  });
+  return { pages: new Pages(transport), queries };
+}
+
+const offsetList: Operation = {
+  id: 'list-items',
+  method: 'GET',
+  path: '/items',
+  resource: 'items',
+  name: 'list',
+  params: [
+    { wire: 'limit', name: 'limit', location: 'query' },
+    { wire: 'start', name: 'start', location: 'query' },
+  ],
+  returnsJson: true,
+  iterator: 'iter',
+  paging: { style: 'offset', items: 'data', total: 'total', offset: 'start' },
+};
 
 async function serve(t: TestContext, listener: RequestListener): Promise<string> {
   const server = createServer(listener).listen(0, '127.0.0.1');
@@ -523,4 +566,44 @@ test('the types reject what the API does not take', () => {
     void new BackMarketClient({ ...required, token: TOKEN, region: 'mars' });
   };
   assert.equal(typeof unused, 'function');
+});
+
+test('offset paging advances by the items received until the total', async () => {
+  const { pages, queries } = pagesFor((url) => {
+    const start = Number(url.searchParams.get('start') ?? 0);
+    const data = [start, start + 1].filter((n) => n < 5).map((n) => ({ n }));
+    return json({ total: 5, data });
+  });
+  assert.deepEqual(
+    await pages.all(offsetList, { limit: 2 }),
+    [0, 1, 2, 3, 4].map((n) => ({ n })),
+  );
+  assert.deepEqual(queries, ['?limit=2', '?limit=2&start=2', '?limit=2&start=4']);
+});
+
+test("offset paging starts at the caller's offset and stops at an empty page", async () => {
+  const bodies = [{ data: [{ n: 3 }] }, { data: [] }];
+  const { pages, queries } = pagesFor(() => json(bodies.shift()));
+  assert.deepEqual(await pages.all(offsetList, { start: 3 }), [{ n: 3 }]);
+  assert.deepEqual(queries, ['?start=3', '?start=4']);
+});
+
+test('offset paging rejects a page that is not an object', async () => {
+  const { pages } = pagesFor(() => json([]));
+  await assert.rejects(pages.all(offsetList), DecodeError);
+});
+
+test('next-link paging reads the configured fields', async () => {
+  const operation: Operation = {
+    ...offsetList,
+    params: [{ wire: 'token', name: 'token', location: 'query' }],
+    paging: { style: 'next_link', items: 'data', link: 'more', params: ['token'] },
+  };
+  const bodies = [
+    { more: '/items?token=b', data: [{ n: 1 }] },
+    { more: null, data: [{ n: 2 }] },
+  ];
+  const { pages, queries } = pagesFor(() => json(bodies.shift()));
+  assert.deepEqual(await pages.all(operation), [{ n: 1 }, { n: 2 }]);
+  assert.deepEqual(queries, ['', '?token=b']);
 });

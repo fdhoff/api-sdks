@@ -19,6 +19,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"page", "order_id", "start_date", "end_date", "pickup_start_date", "pickup_end_date", "order_state", "hub_scanned"},
+		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
 	})
 	opGetDelivery = runtime.Register(runtime.Operation{
 		ID:          "GetDelivery",
@@ -50,6 +51,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"page", "order_id", "start_date", "end_date", "pickup_start_date", "pickup_end_date", "order_state", "hub_scanned"},
+		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
 	})
 )
 

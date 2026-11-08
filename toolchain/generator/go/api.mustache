@@ -25,6 +25,12 @@ var (
 {{/vendorExtensions.x-sdk-returns-json}}
 		PathParams:  []string{ {{#pathParams}}"{{baseName}}",{{/pathParams}} },
 		QueryParams: []string{ {{#queryParams}}"{{baseName}}",{{/queryParams}} },
+{{#vendorExtensions.x-sdk-paging.next_link}}
+		Paging:      runtime.NextLink{Items: "{{items}}", Link: "{{link}}", Params: []string{ {{#params}}"{{.}}",{{/params}} }},
+{{/vendorExtensions.x-sdk-paging.next_link}}
+{{#vendorExtensions.x-sdk-paging.offset}}
+		Paging:      runtime.Offset{Items: "{{items}}", Total: "{{total}}", Offset: "{{offset}}"},
+{{/vendorExtensions.x-sdk-paging.offset}}
 	})
 {{/operation}}
 )

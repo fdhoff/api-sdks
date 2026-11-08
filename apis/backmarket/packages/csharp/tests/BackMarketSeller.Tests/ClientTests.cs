@@ -105,6 +105,67 @@ public sealed class ClientTests
         Assert.Equal("https://mock.invalid/ws/orders?page=2&page-size=5", handler.Requests[1].Url);
     }
 
+    private static readonly Operation OffsetList = new(
+        "list-items", "GET", "/items", "Items", "ListAsync", "ListAllAsync",
+        [new("limit", "limit", ParamLocation.Query), new("start", "start", ParamLocation.Query)],
+        ReturnsJson: true,
+        Paging: new OffsetPaging("data", "total", "start"));
+
+    private static object?[]? Next(Operation operation, object?[] values, string page, int received) =>
+        Transport.NextValues(operation, values, JsonDocument.Parse(page).RootElement, received);
+
+    [Fact]
+    public void OffsetPagingAdvancesByTheItemsReceivedUntilTheTotal()
+    {
+        Assert.Equal([2L, 2L], Next(OffsetList, [2L, null], """{"total": 5}""", 2));
+        Assert.Equal([2L, 6L], Next(OffsetList, [2L, 4L], """{"total": 7}""", 2));
+        Assert.Null(Next(OffsetList, [2L, 4L], """{"total": 5}""", 1));
+    }
+
+    [Fact]
+    public void OffsetPagingStartsAtTheCallersOffsetAndStopsAtAnEmptyPage()
+    {
+        Assert.Equal([null, 4L], Next(OffsetList, [null, 3L], """{"total": null}""", 1));
+        Assert.Null(Next(OffsetList, [null, 4L], "{}", 0));
+    }
+
+    [Fact]
+    public async Task OffsetPagingReadsItemsFromTheConfiguredField()
+    {
+        var handler = new ScriptedHandler(
+            Json(HttpStatusCode.OK, """{"total": 3, "data": [{"n": 0}, {"n": 1}], "results": [{"n": 9}]}"""),
+            Json(HttpStatusCode.OK, """{"total": 3, "data": [{"n": 2}]}"""));
+        var settings = new Settings
+        {
+            BaseUrl = "https://mock.invalid",
+            Secret = Token,
+            Headers = new Dictionary<string, string>(),
+            ToError = context => new ApiException($"status {context.Status}"),
+            Logger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance,
+        };
+        using var transport = new Transport(settings, new HttpClient(handler), ownsClient: true);
+
+        var items = await transport.PaginateAsync<JsonElement>(OffsetList, [2L, null], TestContext.Current.CancellationToken)
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal([0, 1, 2], items.Select(item => item.GetProperty("n").GetInt32()));
+        Assert.Equal("https://mock.invalid/items?limit=2", handler.Requests[0].Url);
+        Assert.Equal("https://mock.invalid/items?limit=2&start=2", handler.Requests[1].Url);
+    }
+
+    [Fact]
+    public void NextLinkPagingReadsTheConfiguredFields()
+    {
+        var operation = OffsetList with
+        {
+            Params = [new("token", "token", ParamLocation.Query)],
+            Paging = new NextLinkPaging("data", "more", ["token"]),
+        };
+
+        Assert.Equal(["b"], Next(operation, [null], """{"more": "/items?token=b", "next": "/items?token=c"}""", 1));
+        Assert.Null(Next(operation, ["b"], """{"more": null, "next": "/items?token=c"}""", 1));
+    }
+
     [Fact]
     public async Task ANextLinkThatDoesNotAdvanceIsADecodeError()
     {

@@ -11,7 +11,7 @@ public sealed class OrdersResource
 {
     internal static readonly Operation GetWsListOrderOperation = new(
         "get-ws-list-order", "GET", "/ws/orders", "Orders", "ListAsync", "ListAllAsync",
-        [new("date_creation", "dateCreation", ParamLocation.Query), new("date_modification", "dateModification", ParamLocation.Query), new("country_code", "countryCode", ParamLocation.Query), new("state", "state", ParamLocation.Query), new("page", "page", ParamLocation.Query), new("page-size", "pageSize", ParamLocation.Query),], ReturnsJson: true);
+        [new("date_creation", "dateCreation", ParamLocation.Query), new("date_modification", "dateModification", ParamLocation.Query), new("country_code", "countryCode", ParamLocation.Query), new("state", "state", ParamLocation.Query), new("page", "page", ParamLocation.Query), new("page-size", "pageSize", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
 
     internal static readonly Operation GetWsSpecificOrderOperation = new(
         "get-ws-specific-order", "GET", "/ws/orders/{order_id}", "Orders", "GetAsync", null,

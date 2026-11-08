@@ -11,5 +11,5 @@ mod transport;
 pub use error::{Error, ErrorContext};
 pub(crate) use model::{Fields, FormValue, open_enum, text_part, tolerant_model};
 pub use request::File;
-pub(crate) use request::{Operation, Params, Part, Request};
+pub(crate) use request::{Operation, Paging, Params, Part, Request};
 pub use transport::{Items, Settings, Transport};

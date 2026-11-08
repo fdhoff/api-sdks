@@ -8,7 +8,7 @@ from typing import AsyncIterator, Iterator, Optional
 from pydantic import StrictBool, StrictInt
 
 from backmarket_seller import models as _models
-from backmarket_seller._runtime import AsyncResource, Operation, Param, Resource, checked
+from backmarket_seller._runtime import AsyncResource, NextLink, Operation, Param, Resource, checked
 from backmarket_seller.models.delivery import Delivery
 from backmarket_seller.models.delivery_page import DeliveryPage
 from backmarket_seller.models.return_page import ReturnPage
@@ -34,6 +34,14 @@ _get_deliveries: Operation[DeliveryPage] = Operation(
     returns_json=True,
     iterator="iter_deliveries",
     item=_models.Delivery,
+    paging=NextLink(
+        items="results",
+        link="next",
+        params=(
+            "page",
+            "cursor",
+        ),
+    ),
 )
 _get_delivery: Operation[Delivery] = Operation(
     id="GetDelivery",
@@ -75,6 +83,14 @@ _get_returns: Operation[ReturnPage] = Operation(
     returns_json=True,
     iterator="iter_returns",
     item=_models.ReturnShipment,
+    paging=NextLink(
+        items="results",
+        link="next",
+        params=(
+            "page",
+            "cursor",
+        ),
+    ),
 )
 
 OPERATIONS = (

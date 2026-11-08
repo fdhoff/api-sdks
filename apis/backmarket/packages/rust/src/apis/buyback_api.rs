@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::Error;
 #[allow(unused_imports)]
-use crate::runtime::{Items, Operation, Params, Request, Transport};
+use crate::runtime::{Items, Operation, Paging, Params, Request, Transport};
 #[allow(unused_imports)]
 use crate::{File, models};
 
@@ -14,6 +14,7 @@ const GET_WS_BUYBACK_V1_COMPETITORS: Operation = Operation {
     path: "/ws/buyback/v1/competitors/{listingId}",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const GET_WS_BUYBACK_V1_LISTING: Operation = Operation {
     id: "get-ws-buyback-v1-listing",
@@ -21,6 +22,7 @@ const GET_WS_BUYBACK_V1_LISTING: Operation = Operation {
     path: "/ws/buyback/v1/listings/{buybackListingId}",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const GET_WS_BUYBACK_V1_LISTINGS: Operation = Operation {
     id: "get-ws-buyback-v1-listings",
@@ -28,6 +30,11 @@ const GET_WS_BUYBACK_V1_LISTINGS: Operation = Operation {
     path: "/ws/buyback/v1/listings",
     query_params: &["productId", "cursor", "pageSize"],
     returns_json: true,
+    paging: Some(Paging::NextLink {
+        items: "results",
+        link: "next",
+        params: &["page", "cursor"],
+    }),
 };
 const GET_WS_BUYBACK_V1_ORDER: Operation = Operation {
     id: "get-ws-buyback-v1-order",
@@ -35,6 +42,7 @@ const GET_WS_BUYBACK_V1_ORDER: Operation = Operation {
     path: "/ws/buyback/v1/orders/{buybackOrderId}",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const GET_WS_BUYBACK_V1_ORDERS: Operation = Operation {
     id: "get-ws-buyback-v1-orders",
@@ -52,6 +60,11 @@ const GET_WS_BUYBACK_V1_ORDERS: Operation = Operation {
         "page",
     ],
     returns_json: true,
+    paging: Some(Paging::NextLink {
+        items: "results",
+        link: "next",
+        params: &["page", "cursor"],
+    }),
 };
 const GET_WS_BUYBACK_V1_ORDERS_MESSAGES: Operation = Operation {
     id: "get-ws-buyback-v1-orders-messages",
@@ -59,6 +72,11 @@ const GET_WS_BUYBACK_V1_ORDERS_MESSAGES: Operation = Operation {
     path: "/ws/buyback/v1/orders/{buybackOrderId}/messages",
     query_params: &["page"],
     returns_json: true,
+    paging: Some(Paging::NextLink {
+        items: "results",
+        link: "next",
+        params: &["page", "cursor"],
+    }),
 };
 const GET_WS_BUYBACK_V1_ORDERS_PENDING_REPLY: Operation = Operation {
     id: "get-ws-buyback-v1-orders-pending-reply",
@@ -66,6 +84,11 @@ const GET_WS_BUYBACK_V1_ORDERS_PENDING_REPLY: Operation = Operation {
     path: "/ws/buyback/v1/orders/pending-reply",
     query_params: &["page"],
     returns_json: true,
+    paging: Some(Paging::NextLink {
+        items: "results",
+        link: "next",
+        params: &["page", "cursor"],
+    }),
 };
 const GET_WS_BUYBACK_V1_ORDERS_SUSPEND_REASONS: Operation = Operation {
     id: "get-ws-buyback-v1-orders-suspend-reasons",
@@ -73,6 +96,7 @@ const GET_WS_BUYBACK_V1_ORDERS_SUSPEND_REASONS: Operation = Operation {
     path: "/ws/buyback/v1/orders/suspend-reasons",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const GET_WS_COUNTER_OFFER_REASON: Operation = Operation {
     id: "get-ws-counter-offer-reason",
@@ -80,6 +104,7 @@ const GET_WS_COUNTER_OFFER_REASON: Operation = Operation {
     path: "/ws/buyback/v1/orders/{buybackOrderId}/counter-offers/reasons",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const POST_WS_BUYBACK_V1_ORDERS_MESSAGES: Operation = Operation {
     id: "post-ws-buyback-v1-orders-messages",
@@ -87,6 +112,7 @@ const POST_WS_BUYBACK_V1_ORDERS_MESSAGES: Operation = Operation {
     path: "/ws/buyback/v1/orders/{buybackOrderId}/messages",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const PUT_WS_BUYBACK_V1_LISTING: Operation = Operation {
     id: "put-ws-buyback-v1-listing",
@@ -94,6 +120,7 @@ const PUT_WS_BUYBACK_V1_LISTING: Operation = Operation {
     path: "/ws/buyback/v1/listings/{buybackListingId}",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const PUT_WS_BUYBACK_V1_ORDERS_SUSPEND: Operation = Operation {
     id: "put-ws-buyback-v1-orders-suspend",
@@ -101,6 +128,7 @@ const PUT_WS_BUYBACK_V1_ORDERS_SUSPEND: Operation = Operation {
     path: "/ws/buyback/v1/orders/{buybackOrderId}/suspend",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const PUT_WS_BUYBACK_V1_ORDERS_VALIDATE: Operation = Operation {
     id: "put-ws-buyback-v1-orders-validate",
@@ -108,6 +136,7 @@ const PUT_WS_BUYBACK_V1_ORDERS_VALIDATE: Operation = Operation {
     path: "/ws/buyback/v1/orders/{buybackOrderId}/validate",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const PUT_WS_REFURBISHER_COUNTER_OFFER: Operation = Operation {
     id: "put-ws-refurbisher-counter-offer",
@@ -115,6 +144,7 @@ const PUT_WS_REFURBISHER_COUNTER_OFFER: Operation = Operation {
     path: "/ws/buyback/v2/orders/{buybackOrderId}/counter-offers",
     query_params: &[],
     returns_json: false,
+    paging: None,
 };
 
 /// The query parameters of [`BuybackApi::list_listings`]. Set only what you need.

@@ -9,7 +9,7 @@ from pydantic import Field, StrictInt, StrictStr
 from typing_extensions import Annotated
 
 from backmarket_seller import models as _models
-from backmarket_seller._runtime import AsyncResource, FileInput, Operation, Param, Resource, checked
+from backmarket_seller._runtime import AsyncResource, FileInput, NextLink, Operation, Param, Resource, checked
 from backmarket_seller.models.buyback_competitor import BuybackCompetitor
 from backmarket_seller.models.buyback_counter_offer_reasons_inner import BuybackCounterOfferReasonsInner
 from backmarket_seller.models.buyback_listing import BuybackListing
@@ -59,6 +59,14 @@ _get_ws_buyback_v1_listings: Operation[BuybackPaginatedListingResponse] = Operat
     returns_json=True,
     iterator="iter_listings",
     item=_models.BuybackListing,
+    paging=NextLink(
+        items="results",
+        link="next",
+        params=(
+            "page",
+            "cursor",
+        ),
+    ),
 )
 _get_ws_buyback_v1_order: Operation[BuybackOrder] = Operation(
     id="get-ws-buyback-v1-order",
@@ -91,6 +99,14 @@ _get_ws_buyback_v1_orders: Operation[BuybackOrderPage] = Operation(
     returns_json=True,
     iterator="iter_orders",
     item=_models.BuybackOrder,
+    paging=NextLink(
+        items="results",
+        link="next",
+        params=(
+            "page",
+            "cursor",
+        ),
+    ),
 )
 _get_ws_buyback_v1_orders_messages: Operation[BuybackMessagePage] = Operation(
     id="get-ws-buyback-v1-orders-messages",
@@ -106,6 +122,14 @@ _get_ws_buyback_v1_orders_messages: Operation[BuybackMessagePage] = Operation(
     returns_json=True,
     iterator="iter_messages",
     item=_models.BuybackMessage,
+    paging=NextLink(
+        items="results",
+        link="next",
+        params=(
+            "page",
+            "cursor",
+        ),
+    ),
 )
 _get_ws_buyback_v1_orders_pending_reply: Operation[BuybackOrderPage] = Operation(
     id="get-ws-buyback-v1-orders-pending-reply",
@@ -118,6 +142,14 @@ _get_ws_buyback_v1_orders_pending_reply: Operation[BuybackOrderPage] = Operation
     returns_json=True,
     iterator="iter_pending_orders",
     item=_models.BuybackOrder,
+    paging=NextLink(
+        items="results",
+        link="next",
+        params=(
+            "page",
+            "cursor",
+        ),
+    ),
 )
 _get_ws_buyback_v1_orders_suspend_reasons: Operation[List[BuybackReason]] = Operation(
     id="get-ws-buyback-v1-orders-suspend-reasons",

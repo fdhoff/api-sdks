@@ -11,6 +11,25 @@ export interface Param {
   location: 'path' | 'query' | 'form';
 }
 
+/** Pages that link to the next one. Only `params` are read from the link: it is never fetched. */
+export interface NextLink {
+  style: 'next_link';
+  items: string;
+  link: string;
+  params: readonly string[];
+}
+
+/** Pages addressed by an offset, which advances by the number of items received. Iteration ends at an
+ * empty page or once the offset reaches the page's `total`. */
+export interface Offset {
+  style: 'offset';
+  items: string;
+  total: string;
+  offset: string;
+}
+
+export type Paging = NextLink | Offset;
+
 export interface Operation {
   id: string;
   method: string;
@@ -22,6 +41,7 @@ export interface Operation {
   returnsJson?: boolean;
   returnsText?: boolean;
   iterator?: string;
+  paging?: Paging;
 }
 
 /** Options for one call. */
@@ -58,7 +78,7 @@ interface Built {
 }
 
 const REDACTED = '***';
-const PAGE_MARKERS = ['page', 'cursor'];
+const NEXT_LINK: NextLink = { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] };
 const HTTP_DATE = /^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/;
 const MAX_TIMER_MS = 2 ** 31 - 1;
 
@@ -168,32 +188,61 @@ function retryDelay(settings: Settings, error: ApiError, method: string, tries: 
   return method === 'GET' && failed ? settings.retryBaseDelayMs * 2 ** tries : undefined;
 }
 
-/** Read the position out of `next` and apply it to our own request. `next` is never fetched:
+/** Read the position out of the link and apply it to our own request. The link is never fetched:
  * it could send the credential to another host. */
-function nextParams(operation: Operation, params: Params, page: unknown): Params | undefined {
-  if (!isObject(page)) throw new DecodeError('A page is not a JSON object');
-  const link = page['next'];
+function nextLink(
+  operation: Operation,
+  paging: NextLink,
+  params: Params,
+  page: Record<string, unknown>,
+): Params | undefined {
+  const link = page[paging.link];
   if (!link) return undefined;
   let position: URLSearchParams;
   try {
     position = new URL(String(link), 'http://next.invalid').searchParams;
   } catch {
-    throw new DecodeError('The `next` link is not a valid URL');
+    throw new DecodeError(`The \`${paging.link}\` link is not a valid URL`);
   }
   const names = operation.params.filter(({ location }) => location === 'query');
   const updated = { ...params };
   for (const { wire, name } of names) {
     const value = position.get(wire);
-    if (PAGE_MARKERS.includes(wire) && value) updated[name] = value;
+    if (paging.params.includes(wire) && value) updated[name] = value;
   }
   if (names.every(({ name }) => String(updated[name]) === String(params[name]))) {
-    throw new DecodeError('The `next` link does not advance the iteration');
+    throw new DecodeError(`The \`${paging.link}\` link does not advance the iteration`);
   }
   return updated;
 }
 
-function items(page: unknown): unknown[] {
-  const results = isObject(page) ? page['results'] : undefined;
+function nextOffset(
+  operation: Operation,
+  paging: Offset,
+  params: Params,
+  page: Record<string, unknown>,
+  received: number,
+): Params | undefined {
+  if (received === 0) return undefined;
+  const param = operation.params.find(({ wire, location }) => location === 'query' && wire === paging.offset);
+  if (param === undefined) throw new DecodeError(`The operation has no \`${paging.offset}\` parameter`);
+  const position = Number(params[param.name] ?? 0) + received;
+  const total = page[paging.total];
+  if (typeof total === 'number' && position >= total) return undefined;
+  return { ...params, [param.name]: position };
+}
+
+/** The parameters of the page after this one, or undefined after the last. */
+function nextParams(operation: Operation, params: Params, page: unknown, received: number): Params | undefined {
+  if (!isObject(page)) throw new DecodeError('A page is not a JSON object');
+  const paging = operation.paging ?? NEXT_LINK;
+  return paging.style === 'offset'
+    ? nextOffset(operation, paging, params, page, received)
+    : nextLink(operation, paging, params, page);
+}
+
+function items(operation: Operation, page: unknown): unknown[] {
+  const results = isObject(page) ? page[(operation.paging ?? NEXT_LINK).items] : undefined;
   return Array.isArray(results) ? results : [];
 }
 
@@ -288,8 +337,9 @@ export class Resource {
     let current: Params | undefined = params;
     while (current !== undefined) {
       const page: unknown = await this.#transport.fetch(operation, body, current, options);
-      yield* items(page) as T[];
-      current = nextParams(operation, current, page);
+      const received = items(operation, page) as T[];
+      yield* received;
+      current = nextParams(operation, current, page, received.length);
     }
   }
 }

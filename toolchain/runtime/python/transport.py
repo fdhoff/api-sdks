@@ -30,7 +30,6 @@ FileInput = bytes | tuple[str, bytes]
 """A file to upload: its content, or its name and content."""
 
 _REDACTED = "***"
-_PAGE_MARKERS = ("page", "cursor")
 # Only gzip is decoded, and httpx would otherwise also ask for deflate, br and zstd.
 _ACCEPT_ENCODING = {"Accept-Encoding": "gzip"}
 
@@ -40,6 +39,25 @@ class Param:
     wire: str
     name: str
     location: str
+
+
+@dataclass(frozen=True)
+class NextLink:
+    """Pages that link to the next one. Only the `params` in the link are read: it is never fetched."""
+
+    items: str = "results"
+    link: str = "next"
+    params: tuple[str, ...] = ("page", "cursor")
+
+
+@dataclass(frozen=True)
+class Offset:
+    """Pages addressed by an offset, which advances by the number of items received. Iteration ends at an
+    empty page or once the offset reaches the page's `total`."""
+
+    items: str = "results"
+    total: str = "count"
+    offset: str = "offset"
 
 
 @dataclass(frozen=True)
@@ -54,6 +72,7 @@ class Operation(Generic[T]):
     returns_json: bool = False
     iterator: str | None = None
     item: Any = None
+    paging: NextLink | Offset = NextLink()
 
 
 @dataclass(frozen=True)
@@ -242,26 +261,53 @@ def _retry_delay(settings: Settings, error: ApiError, method: str, tries: int) -
     return None
 
 
-def _next_params(operation: Operation[Any], params: dict[str, Any], page: Any) -> dict[str, Any] | None:
-    """Read the position out of `next` and apply it to our own request. `next` is never fetched:
+def _query_names(operation: Operation[Any]) -> dict[str, str]:
+    return {param.wire: param.name for param in operation.params if param.location == "query"}
+
+
+def _next_link(
+    operation: Operation[Any], paging: NextLink, params: dict[str, Any], page: Mapping[str, Any]
+) -> dict[str, Any] | None:
+    """Read the position out of the link and apply it to our own request. The link is never fetched:
     it could send the credential to another host."""
-    if not isinstance(page, Mapping):
-        raise DecodeError("A page is not a JSON object")
-    link = page.get("next")
+    link = page.get(paging.link)
     if not link:
         return None
     try:
         position = parse_qs(urlsplit(str(link)).query)
     except ValueError:
-        raise DecodeError("The `next` link is not a valid URL") from None
-    names = {param.wire: param.name for param in operation.params if param.location == "query"}
+        raise DecodeError(f"The `{paging.link}` link is not a valid URL") from None
+    names = _query_names(operation)
     updated = dict(params)
-    for wire in _PAGE_MARKERS:
+    for wire in paging.params:
         if wire in position and wire in names:
             updated[names[wire]] = position[wire][0]
     if all(str(updated.get(name)) == str(params.get(name)) for name in names.values()):
-        raise DecodeError("The `next` link does not advance the iteration")
+        raise DecodeError(f"The `{paging.link}` link does not advance the iteration")
     return updated
+
+
+def _next_offset(
+    operation: Operation[Any], paging: Offset, params: dict[str, Any], page: Mapping[str, Any], received: int
+) -> dict[str, Any] | None:
+    if received == 0:
+        return None
+    name = _query_names(operation)[paging.offset]
+    position = int(params.get(name) or 0) + received
+    total = page.get(paging.total)
+    if isinstance(total, int) and not isinstance(total, bool) and position >= total:
+        return None
+    return {**params, name: position}
+
+
+def _next_params(operation: Operation[Any], params: dict[str, Any], page: Any, received: int) -> dict[str, Any] | None:
+    """The parameters of the page after this one, or None after the last."""
+    if not isinstance(page, Mapping):
+        raise DecodeError("A page is not a JSON object")
+    paging = operation.paging
+    if isinstance(paging, Offset):
+        return _next_offset(operation, paging, params, page, received)
+    return _next_link(operation, paging, params, page)
 
 
 class SyncTransport:
@@ -345,8 +391,8 @@ def _parse(settings: Settings, response_type: Any, data: Any, reply: _Reply) -> 
         ) from None
 
 
-def _items(page: Any) -> Sequence[Any]:
-    results = page.get("results") if isinstance(page, Mapping) else None
+def _items(operation: Operation[Any], page: Any) -> Sequence[Any]:
+    results = page.get(operation.paging.items) if isinstance(page, Mapping) else None
     return results if isinstance(results, list) else []
 
 
@@ -363,9 +409,10 @@ class Resource:
         current: dict[str, Any] | None = params
         while current is not None:
             page = self._transport.fetch(operation, _body, current)
-            for item in _items(page.data):
+            items = _items(operation, page.data)
+            for item in items:
                 yield _parse(self._transport.settings, operation.item, item, page)
-            current = _next_params(operation, current, page.data)
+            current = _next_params(operation, current, page.data, len(items))
 
 
 class AsyncResource:
@@ -381,6 +428,7 @@ class AsyncResource:
         current: dict[str, Any] | None = params
         while current is not None:
             page = await self._transport.fetch(operation, _body, current)
-            for item in _items(page.data):
+            items = _items(operation, page.data)
+            for item in items:
                 yield _parse(self._transport.settings, operation.item, item, page)
-            current = _next_params(operation, current, page.data)
+            current = _next_params(operation, current, page.data, len(items))
