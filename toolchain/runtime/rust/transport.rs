@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::io::Read;
 use std::pin::Pin;
@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime};
 
 use futures_core::Stream;
-use reqwest::header::{ACCEPT_ENCODING, CONTENT_ENCODING, CONTENT_TYPE, HeaderMap, HeaderValue};
+use reqwest::header::{ACCEPT_ENCODING, CONTENT_ENCODING, CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue};
 use reqwest::{Method, StatusCode, multipart, redirect};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
@@ -25,9 +25,15 @@ pub type Items<T> = Pin<Box<dyn Stream<Item = Result<T, Error>> + Send>>;
 
 /// Configures a [`Transport`].
 pub struct Settings {
+    /// Where an operation with no host key is sent.
     pub base_url: String,
+    /// The base URL for each host key. A request is never sent to a host that is not here.
+    pub hosts: HashMap<String, String>,
     pub credentials: Arc<dyn Credentials>,
     pub headers: HeaderMap,
+    /// A value for each default-able header, sent by the operations that declare it when the call
+    /// gives none. Names match without regard to case.
+    pub header_defaults: HashMap<String, String>,
     pub to_error: fn(ErrorContext) -> Error,
     pub timeout: Duration,
     pub max_retries: u32,
@@ -149,6 +155,21 @@ impl Transport {
         Ok(Self { settings, http, refreshing: tokio::sync::Mutex::new(()), generation: AtomicU64::new(0) })
     }
 
+    /// The base URL for a request's host key, or an error before anything is sent.
+    fn base_url(&self, request: &Request) -> Result<&str, Error> {
+        let Some(key) = request.host else { return Ok(&self.settings.base_url) };
+        self.settings
+            .hosts
+            .get(key)
+            .map(String::as_str)
+            .ok_or_else(|| Error::new(ErrorKind::Api, format!("no base URL is configured for host {key}")))
+    }
+
+    fn header_default(&self, name: &str) -> Option<&str> {
+        let defaults = &self.settings.header_defaults;
+        defaults.iter().find(|(key, _)| key.eq_ignore_ascii_case(name)).map(|(_, value)| value.as_str())
+    }
+
     fn redact(&self, text: &str) -> String {
         redact_with(&redactions(self.settings.credentials.as_ref()), text)
     }
@@ -162,7 +183,15 @@ impl Transport {
                 .map_err(|error| Error::new(ErrorKind::Api, "the content type is not valid").with_source(error))?;
             headers.insert(CONTENT_TYPE, value);
         }
-        let url = request.url(&self.settings.base_url);
+        for (name, value) in &request.headers {
+            let Some(value) = value.as_deref().or_else(|| self.header_default(name)) else { continue };
+            let name = HeaderName::from_bytes(name.as_bytes())
+                .map_err(|error| Error::new(ErrorKind::Api, format!("the header name {name} is not valid")).with_source(error))?;
+            let value = HeaderValue::from_str(value)
+                .map_err(|error| Error::new(ErrorKind::Api, format!("the {name} header value is not valid")).with_source(error))?;
+            headers.insert(name, value);
+        }
+        let url = request.url(self.base_url(request)?);
         let mut auth = AuthRequest { method, url, headers, body, operation: request.operation };
         let credentials = self.settings.credentials.as_ref();
         credentials.apply(&mut auth).await.map_err(|error| error.map_message(|text| self.redact(text)))?;
@@ -493,8 +522,10 @@ mod tests {
     fn settings(headers: HeaderMap) -> Settings {
         Settings {
             base_url: "http://127.0.0.1:1".to_owned(),
+            hosts: HashMap::new(),
             credentials: Arc::new(StaticCredentials::new(HeaderMap::new(), Vec::new())),
             headers,
+            header_defaults: HashMap::new(),
             to_error: |context| Error::new(ErrorKind::Api, format!("status {}", context.status)),
             timeout: Duration::from_secs(1),
             max_retries: 0,

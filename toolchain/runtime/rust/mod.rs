@@ -6,6 +6,7 @@
 
 mod credentials;
 mod error;
+mod hosts;
 mod model;
 mod request;
 #[cfg(any(test, feature = "signing"))]
@@ -18,6 +19,8 @@ pub(crate) use credentials::Scheme;
 #[allow(unused_imports, reason = "an API with credentials of its own uses none")]
 pub(crate) use credentials::StaticCredentials;
 pub use error::{Error, ErrorContext};
+#[allow(unused_imports, reason = "an API with one host defines no environments")]
+pub(crate) use hosts::{Environments, select_hosts};
 #[allow(unused_imports, reason = "an API may declare no enumerations")]
 pub(crate) use model::open_enum;
 pub(crate) use model::{Fields, FormValue, text_part, tolerant_model};

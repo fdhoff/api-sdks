@@ -114,6 +114,10 @@ pub struct Request {
     pub body: Body,
     /// A body that could not be encoded, reported when the request is sent.
     pub invalid: Option<String>,
+    /// The operation's host key. `None` sends the request to the settings' `base_url`.
+    pub host: Option<&'static str>,
+    /// Each default-able header the operation declares, with the caller's value if it gave one.
+    pub headers: Vec<(String, Option<String>)>,
 }
 
 /// The wire form of a scalar. `None` means the value is not sent.
@@ -310,7 +314,26 @@ impl Request {
             query: Vec::new(),
             body: Body::Empty,
             invalid: None,
+            host: None,
+            headers: Vec::new(),
         }
+    }
+
+    /// Sends the request to this host key's base URL.
+    #[allow(dead_code, reason = "an API may serve every operation from one host")]
+    pub fn host(mut self, key: &'static str) -> Self {
+        self.host = Some(key);
+        self
+    }
+
+    /// Declares a header that falls back to the client's default for it. Nothing is sent for `None`
+    /// unless the client has a default.
+    #[allow(dead_code, reason = "an API may name no default-able headers")]
+    pub fn header(&mut self, name: &str, value: &impl Serialize) {
+        let value = text(&param_value(value));
+        self.headers
+            .retain(|(key, _)| !key.eq_ignore_ascii_case(name));
+        self.headers.push((name.to_owned(), value));
     }
 
     pub fn path(mut self, name: &str, value: &impl Serialize) -> Self {
