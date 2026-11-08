@@ -313,7 +313,7 @@ internal sealed class Transport : IDisposable
     private static string? TextOrNull(object? value) => value is null ? null : Json.Text(value);
 
     private static IEnumerable<object> Items(object value) =>
-        value is IEnumerable items and not string and not byte[]? items.Cast<object>() : [value];
+        value is IEnumerable items and not string and not byte[]? items.OfType<object>() : [value];
 
     private static string Quote(string text) => $"\"{text.Replace("\"", "\\\"")}\"";
 

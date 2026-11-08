@@ -13,6 +13,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * An `HttpClient` whose `DefaultRequestHeaders.ExpectContinue` is `true` is refused with `ArgumentException`. It overrode the client's own setting, so a failed write could be resent.
 * Docs: a plain `new HttpClient()` follows redirects, and a resilience handler added to every client, as in .NET Aspire's service defaults, retries writes unless configured not to.
 * Breaking: integer enum members are named after their meaning, such as `OrderState.PendingShipment` instead of `Value3`. This covers `OrderState`, `OrderLineState`, `ListingStateValue`, `ProductCondition` and `ReturnReason`; the wire values are unchanged.
+* A null item in a list parameter is skipped instead of throwing.
 
 ## 0.1.0-alpha.1 (2026-11-07)
 

@@ -63,7 +63,7 @@ await foreach (var receipt in client.Receipts.ListAllAsync(me.ShopId!.Value, was
 }
 ```
 
-An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, passes it to `OnToken`, and retries the call. Concurrent calls share one refresh.
+An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, passes it to `OnToken`, and retries the call. Concurrent calls, and an explicit `OAuth.RefreshAsync`, share one refresh. If the refresh fails, the call throws the refresh's error, such as a `BadRequestException` for `invalid_grant`, not the 401.
 
 Your credentials are read from nowhere and stored nowhere: you pass them in, and the client sends them only to the server you selected.
 
@@ -123,7 +123,7 @@ To send through an `HttpClient` of your own, such as one from `IHttpClientFactor
 * **Retries:** 429 on every method, honouring `Retry-After` up to `MaxRetryWait`, otherwise after `RateLimitWait`. A longer `Retry-After`, such as at the daily limit, throws `RateLimitedException` at once, with the header in `RetryAfter`. 5xx, timeouts and connection failures on GET only, with exponential backoff, because a repeated `POST` could create a listing twice.
 * **Errors** derive from `ApiException`. Error responses throw an `HttpException` subclass with `Kind`, `Status`, `Detail` (the body's `error` text) and `RawBody`, with every credential removed.
 * **Logging** holds methods, URLs and statuses, never your credentials or response bodies.
-* **Requests:** form bodies are method arguments, sent form-encoded; a list sends its field once per item. JSON bodies are a generated model.
+* **Requests:** form bodies are method arguments, sent form-encoded; a list sends its field once per item, skipping null items. An empty list sends nothing, so an update leaves that field as it was. JSON bodies are a generated model.
 * **Responses** are read tolerantly, because the spec has not been confirmed against the live API. Every property is nullable. A value that does not fit its property, and any field this version does not know, is kept in the model's `Extra` instead of failing the call. An empty successful body where the spec declares JSON throws `ApiDecodeException`.
 * **Free-form and union values** are `object`, holding a `JsonElement`.
 * **Uploads** take `UploadFile(fileName, bytes)`.
