@@ -159,7 +159,7 @@ func NewClient(token, userAgent, locale string, opts ...Option) (*Client, error)
 	if err != nil {
 		return nil, err
 	}
-	transport := runtime.NewTransport(runtime.Settings{
+	transport, err := runtime.NewTransport(runtime.Settings{
 		BaseURL: root,
 		Credentials: runtime.StaticCredentials{
 			Header: http.Header{"Authorization": {"Basic " + token}},
@@ -179,5 +179,8 @@ func NewClient(token, userAgent, locale string, opts ...Option) (*Client, error)
 		RateLimitWait:  config.rateLimitWait,
 		MaxRetryWait:   config.maxRetryWait,
 	})
+	if err != nil {
+		return nil, err
+	}
 	return &Client{newResources(transport)}, nil
 }

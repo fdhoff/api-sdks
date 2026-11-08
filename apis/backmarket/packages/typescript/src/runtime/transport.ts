@@ -126,8 +126,25 @@ function baseUrlFor(settings: Settings, operation: Operation): string {
   return hosts[operation.host]!;
 }
 
+/** `defaults` keyed by lowercase name. Two names that differ only by case are an error. */
+function byLowercase(defaults: Readonly<Record<string, string>>): Map<string, string> {
+  const byName = new Map<string, string>();
+  const clashes = new Set<string>();
+  for (const [name, value] of Object.entries(defaults)) {
+    for (const other of sameName(defaults, name)) if (other !== name) clashes.add(name);
+    byName.set(name.toLowerCase(), value);
+  }
+  if (clashes.size > 0) {
+    throw new Error(`headerDefaults has names that differ only by case: ${[...clashes].sort().join(', ')}`);
+  }
+  return byName;
+}
+
+const trimmed = (hosts: Readonly<Record<string, string>>): Record<string, string> =>
+  Object.fromEntries(Object.entries(hosts).map(([key, url]) => [key, url.replace(/\/+$/, '')]));
+
 /** The host map for a named environment, or the caller's own, which must name exactly the keys the
- * environments use. */
+ * environments use. Trailing slashes are removed from every URL. */
 export function selectHosts(
   environments: Readonly<Record<string, Readonly<Record<string, string>>>>,
   environment: string,
@@ -139,18 +156,24 @@ export function selectHosts(
     const unknown = Object.keys(hosts)
       .filter((key) => !keys.has(key))
       .sort();
-    if (missing.length > 0) throw new Error(`hosts lacks: ${missing.join(', ')}`);
+    if (missing.length > 0) throw new Error(`hosts lacks keys: ${missing.join(', ')}`);
     if (unknown.length > 0) throw new Error(`hosts has unknown keys: ${unknown.join(', ')}`);
-    return Object.fromEntries(Object.entries(hosts).map(([key, url]) => [key, url.replace(/\/+$/, '')]));
+    return trimmed(hosts);
   }
   if (!Object.hasOwn(environments, environment)) {
     const known = Object.keys(environments).sort().join(', ');
     throw new Error(`Unknown environment "${environment}"; expected one of: ${known}`);
   }
-  return { ...environments[environment] };
+  return trimmed(environments[environment]!);
 }
 
-function buildRequest(settings: Settings, operation: Operation, body: unknown, params: Params): Built {
+function buildRequest(
+  settings: Settings,
+  defaults: ReadonlyMap<string, string>,
+  operation: Operation,
+  body: unknown,
+  params: Params,
+): Built {
   const baseUrl = baseUrlFor(settings, operation);
   let path = operation.path;
   const declared: [string, string][] = [];
@@ -161,9 +184,7 @@ function buildRequest(settings: Settings, operation: Operation, body: unknown, p
   for (const { wire, name, location } of operation.params) {
     const value = params[name];
     if (location === 'header') {
-      const defaults = settings.headerDefaults ?? {};
-      const fallback = sameName(defaults, wire)[0];
-      const sent = value ?? (fallback === undefined ? undefined : defaults[fallback]);
+      const sent = value ?? defaults.get(wire.toLowerCase());
       if (sent !== undefined && sent !== null) declared.push([wire, String(sent)]);
       continue;
     }
@@ -333,11 +354,13 @@ function items(operation: Operation, page: unknown): unknown[] {
 
 export class Transport {
   readonly #settings: Settings;
+  readonly #headerDefaults: ReadonlyMap<string, string>;
   #generation = 0;
   #refreshing: Promise<boolean> | undefined;
 
   constructor(settings: Settings) {
     this.#settings = settings;
+    this.#headerDefaults = byLowercase(settings.headerDefaults ?? {});
   }
 
   #log(level: keyof Logger, message: string): void {
@@ -408,7 +431,7 @@ export class Transport {
   async fetch(operation: Operation, body: unknown, params: Params, { signal }: RequestOptions = {}): Promise<unknown> {
     signal?.throwIfAborted();
     const settings = this.#settings;
-    const built = buildRequest(settings, operation, body, params);
+    const built = buildRequest(settings, this.#headerDefaults, operation, body, params);
     const encoded = await encode(built.body);
     let refreshed = false;
     for (let tries = 0; ;) {

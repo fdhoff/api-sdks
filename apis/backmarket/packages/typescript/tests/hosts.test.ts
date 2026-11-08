@@ -121,12 +121,12 @@ test('a host key with no URL fails before credentials are applied or anything is
 
 const ENVIRONMENTS = {
   production: { main: 'https://main.example.test', files: 'https://files.example.test' },
-  sandbox: { main: 'https://main.sandbox.example.test', files: 'https://files.sandbox.example.test' },
+  sandbox: { main: 'https://main.sandbox.example.test/', files: 'https://files.sandbox.example.test' },
 };
 
 test('selectHosts picks a named environment', () => {
   const hosts = selectHosts(ENVIRONMENTS, 'sandbox');
-  assert.deepEqual(hosts, ENVIRONMENTS.sandbox);
+  assert.deepEqual(hosts, { main: 'https://main.sandbox.example.test', files: 'https://files.sandbox.example.test' });
   assert.notEqual(hosts, ENVIRONMENTS.sandbox);
   assert.throws(() => selectHosts(ENVIRONMENTS, 'staging'), {
     message: 'Unknown environment "staging"; expected one of: production, sandbox',
@@ -140,7 +140,7 @@ test('selectHosts takes a custom map that names exactly the environment keys', (
     files: 'http://127.0.0.1:4010',
   });
   assert.deepEqual(selectHosts(ENVIRONMENTS, 'production', {}), ENVIRONMENTS.production);
-  assert.throws(() => selectHosts(ENVIRONMENTS, 'production', { main: MAIN }), { message: 'hosts lacks: files' });
+  assert.throws(() => selectHosts(ENVIRONMENTS, 'production', { main: MAIN }), { message: 'hosts lacks keys: files' });
   assert.throws(() => selectHosts(ENVIRONMENTS, 'production', { main: MAIN, files: FILES, media: MAIN }), {
     message: 'hosts has unknown keys: media',
   });
@@ -158,6 +158,12 @@ test('a declared header takes the client default, and a value passed to the call
     ['acme', 'other'],
   );
   assert.equal(credentials.seen[0]?.headers.get('x-tenant'), 'acme');
+});
+
+test('header defaults that differ only by case are rejected when the transport is built', () => {
+  assert.throws(() => callsWith({ headerDefaults: { 'x-tenant': 'acme', 'X-Tenant': 'other', 'X-Other': 'unused' } }), {
+    message: 'headerDefaults has names that differ only by case: X-Tenant, x-tenant',
+  });
 });
 
 test('a header default never reaches an operation that does not declare the header', async () => {

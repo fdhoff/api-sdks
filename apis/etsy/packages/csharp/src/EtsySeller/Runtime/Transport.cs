@@ -40,15 +40,18 @@ internal sealed class Transport : IDisposable
     private static readonly HttpRequestOptionsKey<bool> Connected = new("Connected");
 
     private readonly Settings settings;
+    private readonly Dictionary<string, string> headerDefaults;
     private readonly HttpClient http;
     private readonly bool ownsClient;
     private readonly SemaphoreSlim refreshing = new(1, 1);
     private long generation;
 
     /// <remarks>Reads and writes share one pool of connections. <see cref="AttemptAsync"/> shapes each write so the handler never resends it.</remarks>
+    /// <exception cref="ArgumentException">Two header defaults have names that differ only by case.</exception>
     public Transport(Settings settings, HttpClient http, bool ownsClient)
     {
         this.settings = settings;
+        headerDefaults = ByName(settings.HeaderDefaults);
         this.http = http;
         this.ownsClient = ownsClient;
     }
@@ -355,10 +358,25 @@ internal sealed class Transport : IDisposable
             : throw new InvalidOperationException($"No base URL for host \"{operation.Host}\" in the client's hosts");
     }
 
+    private static Dictionary<string, string> ByName(IReadOnlyDictionary<string, string> defaults)
+    {
+        var clashes = defaults.Keys
+            .GroupBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .SelectMany(group => group)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        if (clashes.Length > 0)
+        {
+            throw new ArgumentException(
+                $"HeaderDefaults has names that differ only by case: {string.Join(", ", clashes)}", nameof(settings));
+        }
+        return new Dictionary<string, string>(defaults, StringComparer.OrdinalIgnoreCase);
+    }
+
     /// <summary>The value for each header parameter: the call's own, or else the client's default for that name.</summary>
     private List<KeyValuePair<string, string>> HeadersOf(Operation operation, object?[] values)
     {
-        var defaults = new Dictionary<string, string>(settings.HeaderDefaults, StringComparer.OrdinalIgnoreCase);
         var headers = new List<KeyValuePair<string, string>>();
         for (var index = 0; index < operation.Params.Length; index++)
         {
@@ -371,7 +389,7 @@ internal sealed class Transport : IDisposable
             {
                 headers.Add(KeyValuePair.Create(param.Wire, Json.Text(value)));
             }
-            else if (defaults.TryGetValue(param.Wire, out var fallback))
+            else if (headerDefaults.TryGetValue(param.Wire, out var fallback))
             {
                 headers.Add(KeyValuePair.Create(param.Wire, fallback));
             }

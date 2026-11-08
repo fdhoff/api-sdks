@@ -152,16 +152,16 @@ TODO: an opt-in in `generate.yaml` so the generator copies the signer only into 
 
 ### Hosts and environments
 
-An API may serve operations from several hosts. `hosts` in its `sdk.yaml` maps each server URL to a host key, and the generator gives every operation the key of its first server (its own, its path's or the spec's) as `x-sdk-host`, unless the overlay set one. Without `hosts`, operations carry no key.
+An API may serve operations from several hosts. `hosts` in its `sdk.yaml` maps each server URL to a host key, and the generator gives every operation the key of its first server (its own, its path's or the spec's) as `x-sdk-host`, unless the overlay set one. An overlay's `x-sdk-host` must be one of the keys. Without `hosts`, operations carry no key.
 
 * Settings hold `base_url` and a `hosts` map from host key to base URL. An operation with no key goes to `base_url`; one with a key goes to that key's URL.
 * A key missing from `hosts` is a configuration error, raised before credentials are applied or anything is sent. No request ever goes to a host outside the settings, so credentials never do.
 * Iterators reissue each page against the operation's own host.
-* A package may define named environments, each a full host map. The runtime's `select_hosts` (named per language) returns the map for an environment, or validates a caller's own map: it must name exactly the keys the environments use. An unknown environment is an error that lists the known ones.
+* A package may define named environments, each a full host map. The runtime's `select_hosts` (named per language) returns the map for an environment, or validates a caller's own map: it must name exactly the keys the environments use. Either way, trailing slashes are removed from every URL. An unknown environment is an error that lists the known ones.
 
 ### Default header parameters
 
-`header_defaults` in `sdk.yaml` names header parameters that take a client-level default, matched without regard to case. The generator marks each with `x-sdk-header-default`, makes it optional, and templates expose it as an optional method argument; other header parameters stay unexposed. Settings hold `header_defaults`, a map from header name to value.
+`header_defaults` in `sdk.yaml` names header parameters that take a client-level default, matched without regard to case. The generator marks each with `x-sdk-header-default`, makes it optional, and templates expose it as an optional method argument; other header parameters stay unexposed. Settings hold `header_defaults`, a map from header name to value. A name in `sdk.yaml` that matches no header parameter fails generation, and two names in the settings that differ only by case fail when the client is built.
 
 * A value passed to the call is sent. Otherwise the default for that header is sent, matched without regard to case, under the name the operation declares. Otherwise the header is not sent.
 * Only operations that declare the header send it; a default never reaches any other operation.

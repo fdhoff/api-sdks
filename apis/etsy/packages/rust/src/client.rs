@@ -224,7 +224,7 @@ impl ClientBuilder {
             max_retry_wait: self.max_retry_wait,
             http: self.http_client,
         })
-        .map_err(|_| invalid("the HTTP client cannot be built"))?;
+        .map_err(|error| invalid(&error.to_string()))?;
         let transport = Arc::new(transport);
         credentials.attach(&transport);
         Ok(Client {
