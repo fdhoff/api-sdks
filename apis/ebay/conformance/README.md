@@ -61,7 +61,7 @@ Paged operations answer `next` until their last page. The iterator copies `offse
 * Every case goes to one base URL. TODO: add host routing and sandbox cases once the harness records each request's host key.
 * No case downloads a binary body: the case format has no way to state bytes. TODO: add Feed file, evidence and document downloads once runtimes return binary bodies.
 * The raw video upload has no case, for the same reason.
-* Signature cases check the headers' form and the digest's shape, not the signature itself. TODO: assert the digest exactly once the harness checks it.
+* Signature cases check the headers' form and the exact digest, not the signature itself, since the key is the driver's own.
 * Feedback's two paged operations have no iterator, so no paging case.
 
 These cases are checked against the mock only. Nothing here has been confirmed against the live API.

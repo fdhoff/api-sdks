@@ -2,7 +2,6 @@
 # the public key JWE from the Key Management API and a `Content-Digest` (RFC 9530) when there is a body.
 # A client with a signature key signs every call; eBay ignores signatures where it does not need them.
 # Drivers sign with an Ed25519 key they generate, so no private key is stored here.
-# TODO: assert `content_digest: true` once the conformance harness checks digests.
 cases:
   - name: signing-refund-is-signed-over-its-digest
     client: { signature_key: conformance-synthetic-public-key-jwe }
@@ -19,9 +18,9 @@ cases:
         path: /sell/fulfillment/v1/order/01-00000-00001/issue_refund
         headers: { x-ebay-signature-key: conformance-synthetic-public-key-jwe }
         headers_match:
-          content-digest: '^sha-256=:[A-Za-z0-9+/]{43}=:$'
           signature-input: '^sig1=\("content-digest" "x-ebay-signature-key" "@method" "@path" "@authority"\);created=\d+$'
           signature: '^sig1=:[A-Za-z0-9+/]+={0,2}:$'
+        content_digest: true
         body: { reasonForRefund: BUYER_CANCEL, comment: synthetic }
     expect:
       result: { refundId: r1 }
@@ -60,14 +59,32 @@ cases:
         path: /sell/fulfillment/v1/order/01-00000-00001/issue_refund
         headers_match:
           signature-input: '^sig1=\("content-digest" "x-ebay-signature-key" "@method" "@path" "@authority"\);created=\d+$'
-          content-digest: '^sha-256=:'
+        content_digest: true
       - method: POST
         path: /sell/fulfillment/v1/order/01-00000-00001/issue_refund
         headers_match:
           signature-input: '^sig1=\("content-digest" "x-ebay-signature-key" "@method" "@path" "@authority"\);created=\d+$'
-          content-digest: '^sha-256=:'
+        content_digest: true
     expect:
       result: { refundId: r1 }
+
+  - name: signing-multipart-upload-digests-the-bytes-sent
+    client: { signature_key: conformance-synthetic-public-key-jwe }
+    request:
+      operation: sell_fulfillment.uploadEvidenceFile
+      params: { payment_dispute_id: D-1 }
+      multipart: { file: synthetic-evidence }
+    mock:
+      prism: {}
+    wire:
+      - method: POST
+        path: /sell/fulfillment/v1/payment_dispute/D-1/upload_evidence_file
+        headers_match:
+          signature-input: '^sig1=\("content-digest" "x-ebay-signature-key" "@method" "@path" "@authority"\);created=\d+$'
+        content_digest: true
+        parts: { file: [synthetic-evidence] }
+    expect:
+      result_keys: [fileId]
 
   - name: signing-client-without-a-key-does-not-sign
     request:
