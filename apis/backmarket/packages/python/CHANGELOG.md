@@ -2,8 +2,9 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
-## Unreleased
+## 0.1.0a2 (2026-11-08)
 
+* Requests now send `Accept-Encoding: gzip`, the only compression the client decodes. httpx otherwise asked for deflate, and br or zstd when their packages were installed, and every such response failed with `DecodeError`.
 * The repository moved to `fdhoff/api-sdks`; the package's repository and documentation links point there.
 * An empty success body where the spec declares JSON raises `DecodeError` instead of returning `None`. Where the spec declares text, it reads as `""`.
 * Method arguments are checked against their declared types and limits, such as `page_size` up to 50, and raise `ValidationError` before a request is sent. Previously they were sent as given.
@@ -13,10 +14,6 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * Breaking: integer enum members are named after their meaning, such as `OrderState.PENDING_SHIPMENT` instead of `NUMBER_3`. This covers `OrderState`, `OrderLineState`, `ListingStateValue`, `ProductCondition` and `ReturnReason`; the wire values are unchanged.
 * Breaking: the `Task` model is `BackgroundTask`, and its module `backmarket_seller.models.task` is `backmarket_seller.models.background_task`, as in every other language.
 * `AuthRequest.headers` is case-insensitive, as in the other languages. A credential provider that set a header the client already sends, such as `User-Agent`, in a different case sent it twice, and reading `headers["Content-Type"]` failed.
-
-## 0.1.0a2 (2026-11-07)
-
-* Requests now send `Accept-Encoding: gzip`, the only compression the client decodes. httpx otherwise asked for deflate, and br or zstd when their packages were installed, and every such response failed with `DecodeError`.
 
 ## 0.1.0a1 (2026-11-07)
 
