@@ -166,7 +166,7 @@ Each request then carries `x-ebay-signature-key`, `Signature-Input`, `Signature`
 ## Limits
 
 * Operations that send or return a raw file are not generated yet: video uploads and document downloads in Media, task input and result files in Feed, dispute evidence files in Fulfillment and report downloads in Marketing. They will follow.
-* The Feedback API's pages have no iterator yet.
+* The Feedback API's list operations have no iterator. Page them with `offset` and `limit`.
 
 ## Design
 

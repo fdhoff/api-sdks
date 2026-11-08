@@ -10,12 +10,14 @@ import logging
 import sys
 from collections.abc import AsyncIterator
 from typing import Any
+from urllib.parse import urlsplit
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from ebay_sell import ApiError, AsyncEbayClient, EbayClient, HttpError, SigningKey
 from ebay_sell._runtime import Operation, to_wire
+from ebay_sell.client import ENVIRONMENTS
 
 # Each contract's name in the cases, and the client attribute that holds it.
 CONTRACTS = {
@@ -63,13 +65,23 @@ class Capture(logging.Handler):
         self.lines.append(record.getMessage())
 
 
-def client_options(settings: dict[str, Any]) -> dict[str, Any]:
+def hosts(settings: dict[str, Any]) -> dict[str, str]:
+    """Each host key's harness prefix: the key itself, or with an environment the hostname it maps the key to."""
     base_url = settings["base_url"]
+    if "environment" in settings:
+        urls = ENVIRONMENTS[settings["environment"]]
+        return {key: f"{base_url}/_host/{urlsplit(url).hostname}" for key, url in urls.items()}
+    return {key: f"{base_url}/_host/{key}" for key in ENVIRONMENTS["production"]}
+
+
+def client_options(settings: dict[str, Any]) -> dict[str, Any]:
     options: dict[str, Any] = {
         "app_token": settings["app_token"],
         "user_token": settings["user_token"],
-        "hosts": {"api": base_url, "apiz": base_url, "apim": base_url},
+        "hosts": hosts(settings),
     }
+    if "environment" in settings:
+        options["environment"] = settings["environment"]
     defaults = settings.get("header_defaults", {})
     options["marketplace_id"] = defaults.get("X-EBAY-C-MARKETPLACE-ID")
     options["content_language"] = defaults.get("Content-Language")
