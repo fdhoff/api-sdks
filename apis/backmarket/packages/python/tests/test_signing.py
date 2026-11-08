@@ -62,6 +62,11 @@ u5PFyN6uEFYRg+YQwpjBMkXk8Eb39128ctARB40Lx8caDhRdTyaEedIG3cQDXSpA
 l9EOzXkzfx4bZxjAHU9mkMdJwOcMDQ==
 -----END PRIVATE KEY-----
 """
+# An EC key on secp112r1, which `cryptography` loads with UnsupportedAlgorithm rather than ValueError.
+UNSUPPORTED_CURVE_KEY = """-----BEGIN PRIVATE KEY-----
+MCwCAQAwEAYHKoZIzj0CAQYFK4EEAAYEFTATAgEBBA4BAQEBAQEBAQEBAQEBAQ==
+-----END PRIVATE KEY-----
+"""
 RFC_BODY = b'{"hello": "world"}'
 COVERED = ["content-digest", "@method", "@path", "@authority"]
 
@@ -238,6 +243,7 @@ def test_rejects_unsupported_keys_and_components() -> None:
         (ED25519_KEY, ["@status"]),
         (ED25519_KEY, ["Content-Type"]),
         (ED25519_KEY, ['"@query-param";name="Pet"']),
+        (UNSUPPORTED_CURVE_KEY, COVERED),
     ]:
         with pytest.raises(ValueError):
             MessageSigner(key, components)
@@ -251,3 +257,42 @@ def test_the_private_key_is_a_secret() -> None:
     body = "MC4CAQAwBQYDK2VwBCIEIJ+DYvh6SEqVTm50DFtMDoQikTmiCqirVv9mWG9qfSnF"
     assert body not in repr(signer)
     assert redact(Signed(signer), f"key {ED25519_KEY.strip()} and {body}") == "key *** and ***"
+
+
+def test_lifetime_is_whole_seconds_of_at_least_one() -> None:
+    for lifetime in [0, -1, 0.5, 1.5, True]:
+        with pytest.raises(ValueError, match="lifetime"):
+            MessageSigner(ED25519_KEY, COVERED, lifetime=lifetime)  # type: ignore[arg-type]
+    signer = MessageSigner(ED25519_KEY, ["@method"], lifetime=1, clock=lambda: 1700000000.9)
+    request = auth_request("GET", "https://example.com/", {}, b"")
+    signer.sign(request)
+    assert request.headers["signature-input"] == 'sig1=("@method");created=1700000000;expires=1700000001'
+
+
+def test_content_length_and_host_come_from_the_body_and_url_when_absent() -> None:
+    signer = MessageSigner(ED25519_KEY, ["content-length", "host"], clock=lambda: 1700000000)
+    request = auth_request("POST", "https://Example.com:443/items", {}, b"synthetic")
+    signer.sign(request)
+    assert "content-length" not in request.headers
+    assert "host" not in request.headers
+    assert MessageSigner._value(request, "content-length") == "9"
+    assert MessageSigner._value(request, "host") == "example.com"
+    request = auth_request("POST", "https://example.com/items", {"Content-Length": "18", "Host": "proxy.example"}, b"")
+    assert MessageSigner._value(request, "content-length") == "18"
+    assert MessageSigner._value(request, "host") == "proxy.example"
+    with pytest.raises(ValueError, match="content-length"):
+        signer.sign(auth_request("GET", "https://example.com/items", {}, b""))
+
+
+def test_an_empty_query_is_no_query() -> None:
+    request = auth_request("GET", "https://example.com/p?", {}, b"")
+    assert MessageSigner._value(request, "@request-target") == "/p"
+    assert MessageSigner._value(request, "@query") == "?"
+
+
+def test_each_line_of_the_key_body_is_a_secret() -> None:
+    signer = MessageSigner(RSA_KEY, COVERED)
+    lines = RSA_KEY.strip().splitlines()[1:-1]
+    rewrapped = "\r\n".join(lines)
+    assert all(line in signer.secrets() for line in lines)
+    assert redact(Signed(signer), rewrapped) == "\r\n".join("***" for _ in lines)
