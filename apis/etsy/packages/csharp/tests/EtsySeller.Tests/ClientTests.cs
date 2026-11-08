@@ -296,6 +296,36 @@ public sealed class ClientTests
     }
 
     [Fact]
+    public async Task A401SentBeforeAnExplicitRefreshRetriesWithoutAnother()
+    {
+        var refreshed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new Router(async request =>
+        {
+            if (request.Path == TokenPath)
+            {
+                return Tokens();
+            }
+            if (request.Headers.GetValueOrDefault("Authorization") == $"Bearer {Access}")
+            {
+                await refreshed.Task;
+            }
+            return Accepts(request, NewAccess);
+        });
+        using var client = Client(handler, new() { AccessToken = Access, RefreshToken = Refresh });
+
+        var call = client.Users.GetMeAsync(Cancel);
+        while (handler.Sent.IsEmpty)
+        {
+            await Task.Delay(1, Cancel);
+        }
+        await client.OAuth.RefreshAsync(Cancel);
+        refreshed.SetResult();
+
+        Assert.Equal(1, (await call).ShopId);
+        Assert.Equal([MePath, TokenPath, MePath], handler.Sent.Select(sent => sent.Path));
+    }
+
+    [Fact]
     public async Task ACancelledRefreshStillStoresTheRotatedToken()
     {
         var tokens = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
