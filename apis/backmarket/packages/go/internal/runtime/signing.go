@@ -32,6 +32,10 @@ var (
 	defaultPorts      = map[string]string{"http": ":80", "https": ":443"}
 )
 
+// minSecretLine is the shortest line of a key's base64 body to redact. A shorter last line is too
+// common a string.
+const minSecretLine = 16
+
 // SignerOptions configures a [MessageSigner]. Components are lowercase field names and the derived
 // components @method, @target-uri, @authority, @scheme, @request-target, @path and @query.
 type SignerOptions struct {
@@ -41,14 +45,16 @@ type SignerOptions struct {
 	Label      string // "sig1" when empty.
 	KeyID      string // Sent as keyid when set.
 	IncludeAlg bool
-	Lifetime   time.Duration // Adds expires when set.
+	Lifetime   time.Duration // Adds expires when set. Whole seconds.
 	Now        func() time.Time
 }
 
 // MessageSigner signs each attempt's request with an HTTP message signature (RFC 9421): a
 // Content-Digest (RFC 9530) of the body when there is one, then Signature-Input and Signature over
 // the covered components, with a fresh created time. content-digest is left out of a request with
-// no body, and any other field the request lacks is an error. Call Sign from Credentials.Apply.
+// no body. A request without content-length or host uses the body's length or the URL's authority,
+// which net/http sends; any other field the request lacks is an error. Call Sign from
+// Credentials.Apply.
 type MessageSigner struct {
 	algorithm  string
 	sign       func([]byte) ([]byte, error)
@@ -74,6 +80,9 @@ func NewMessageSigner(options SignerOptions) (*MessageSigner, error) {
 	if !signatureLabel.MatchString(label) {
 		return nil, errors.New("the signature label must be a lowercase key")
 	}
+	if options.Lifetime < 0 || options.Lifetime%time.Second != 0 {
+		return nil, errors.New("the signature lifetime must be a whole number of seconds, at least 1")
+	}
 	algorithm, sign, err := loadSigningKey(options.PrivateKey)
 	if err != nil {
 		return nil, err
@@ -97,7 +106,7 @@ func NewMessageSigner(options SignerOptions) (*MessageSigner, error) {
 	return &MessageSigner{
 		algorithm:  algorithm,
 		sign:       sign,
-		secrets:    []string{trimmed, pemBody(trimmed)},
+		secrets:    keySecrets(trimmed),
 		components: append([]string(nil), options.Components...),
 		label:      label,
 		extra:      extra,
@@ -127,16 +136,21 @@ func loadSigningKey(text string) (string, func([]byte) ([]byte, error), error) {
 	return "", nil, errors.New("the signing key must be Ed25519 or RSA")
 }
 
-func pemBody(text string) string {
-	lines := strings.Split(text, "\n")
+func keySecrets(trimmed string) []string {
+	lines := strings.Split(trimmed, "\n")
 	if len(lines) < 2 {
-		return text
+		return []string{trimmed}
 	}
+	secrets := []string{trimmed}
 	var body strings.Builder
 	for _, line := range lines[1 : len(lines)-1] {
-		body.WriteString(strings.TrimSpace(line))
+		line = strings.TrimSpace(line)
+		body.WriteString(line)
+		if len(line) >= minSecretLine {
+			secrets = append(secrets, line)
+		}
 	}
-	return body.String()
+	return slices.Compact(append(secrets, body.String()))
 }
 
 func quoteParameter(value string) (string, error) {
@@ -157,14 +171,16 @@ func ContentDigest(body []byte) string {
 // Algorithm is the signature algorithm the key needs.
 func (s *MessageSigner) Algorithm() string { return s.algorithm }
 
-// Secrets returns the private key as given and as its PEM body, to redact.
+// Secrets returns the private key as given, as its PEM body and as each line of that body, to
+// redact.
 func (s *MessageSigner) Secrets() []string { return s.secrets }
 
-// String keeps the key out of formatted output.
-func (s *MessageSigner) String() string { return "MessageSigner(" + s.algorithm + ", ***)" }
+// String keeps the key out of formatted output. It has a value receiver so that a dereferenced
+// signer is covered too.
+func (s MessageSigner) String() string { return "MessageSigner(" + s.algorithm + ", ***)" }
 
 // GoString keeps the key out of %#v.
-func (s *MessageSigner) GoString() string { return s.String() }
+func (s MessageSigner) GoString() string { return s.String() }
 
 // Sign adds the digest and signature headers to the request.
 func (s *MessageSigner) Sign(request *AuthRequest) error {
@@ -203,8 +219,16 @@ func (s *MessageSigner) Sign(request *AuthRequest) error {
 }
 
 func componentValue(request *AuthRequest, target *url.URL, name string) (string, error) {
+	scheme := strings.ToLower(target.Scheme)
+	authority := strings.TrimSuffix(strings.ToLower(target.Host), defaultPorts[scheme])
 	if !strings.HasPrefix(name, "@") {
 		values := slices.Clone(request.Header.Values(name))
+		if len(values) == 0 && name == "content-length" && len(request.Body) > 0 {
+			values = []string{strconv.Itoa(len(request.Body))}
+		}
+		if len(values) == 0 && name == "host" {
+			values = []string{authority}
+		}
 		if len(values) == 0 {
 			return "", fmt.Errorf("the request has no %s field to sign", name)
 		}
@@ -213,7 +237,6 @@ func componentValue(request *AuthRequest, target *url.URL, name string) (string,
 		}
 		return strings.Join(values, ", "), nil
 	}
-	scheme := strings.ToLower(target.Scheme)
 	path := target.EscapedPath()
 	if path == "" {
 		path = "/"
@@ -225,7 +248,7 @@ func componentValue(request *AuthRequest, target *url.URL, name string) (string,
 	case "@target-uri":
 		return request.URL, nil
 	case "@authority":
-		return strings.TrimSuffix(strings.ToLower(target.Host), defaultPorts[scheme]), nil
+		return authority, nil
 	case "@scheme":
 		return scheme, nil
 	case "@request-target":

@@ -291,13 +291,92 @@ func TestRejectsUnsupportedKeysAndComponents(t *testing.T) {
 func TestThePrivateKeyIsASecret(t *testing.T) {
 	signer := mustSigner(t, SignerOptions{PrivateKey: rfcEd25519Key, Components: signedComponents})
 	body := "MC4CAQAwBQYDK2VwBCIEIJ+DYvh6SEqVTm50DFtMDoQikTmiCqirVv9mWG9qfSnF"
-	for _, shown := range []string{fmt.Sprint(signer), fmt.Sprintf("%v %+v %#v", signer, signer, signer)} {
+	for _, shown := range []string{
+		fmt.Sprint(signer),
+		fmt.Sprintf("%v %+v %#v", signer, signer, signer),
+		fmt.Sprintf("%v %+v %#v %s", *signer, *signer, *signer, *signer),
+	} {
 		if strings.Contains(shown, body) {
 			t.Errorf("formatting shows the key: %s", shown)
 		}
 	}
 	text := "key " + strings.TrimSpace(rfcEd25519Key) + " and " + body
 	if got := redactWith(redactions(signed{signer}), text); got != "key *** and ***" {
+		t.Errorf("redacted %q", got)
+	}
+}
+
+func TestLifetimeIsWholeSecondsOfAtLeastOne(t *testing.T) {
+	for _, lifetime := range []time.Duration{-time.Second, time.Millisecond, 1500 * time.Millisecond} {
+		if _, err := NewMessageSigner(SignerOptions{PrivateKey: rfcEd25519Key, Components: signedComponents, Lifetime: lifetime}); err == nil {
+			t.Errorf("accepted a lifetime of %v", lifetime)
+		}
+	}
+	signer := mustSigner(t, SignerOptions{
+		PrivateKey: rfcEd25519Key,
+		Components: []string{"@method"},
+		Lifetime:   time.Second,
+		Now:        func() time.Time { return time.Unix(1700000000, 900_000_000) },
+	})
+	request := &AuthRequest{Method: "GET", URL: "https://example.com/", Header: http.Header{}}
+	if err := signer.Sign(request); err != nil {
+		t.Fatal(err)
+	}
+	if got := request.Header.Get("Signature-Input"); got != `sig1=("@method");created=1700000000;expires=1700000001` {
+		t.Errorf("Signature-Input %s", got)
+	}
+}
+
+func TestContentLengthAndHostComeFromTheBodyAndURLWhenAbsent(t *testing.T) {
+	value := func(request *AuthRequest, name string) string {
+		t.Helper()
+		target, _ := url.Parse(request.URL)
+		got, err := componentValue(request, target, name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return got
+	}
+	request := &AuthRequest{Method: "POST", URL: "https://Example.com:443/items", Header: http.Header{}, Body: []byte("synthetic")}
+	if got := value(request, "content-length"); got != "9" {
+		t.Errorf("content-length %s", got)
+	}
+	if got := value(request, "host"); got != "example.com" {
+		t.Errorf("host %s", got)
+	}
+	given := &AuthRequest{Method: "POST", URL: "https://example.com/items", Header: http.Header{"Content-Length": {"18"}, "Host": {"proxy.example"}}}
+	if got := value(given, "content-length") + " " + value(given, "host"); got != "18 proxy.example" {
+		t.Errorf("content-length and host %s", got)
+	}
+	signer := mustSigner(t, SignerOptions{PrivateKey: rfcEd25519Key, Components: []string{"content-length", "host"}})
+	if err := signer.Sign(request); err != nil {
+		t.Fatal(err)
+	}
+	if request.Header.Get("Content-Length") != "" || request.Header.Get("Host") != "" {
+		t.Errorf("the signer added a header the transport sends: %v", request.Header)
+	}
+	err := signer.Sign(&AuthRequest{Method: "GET", URL: "https://example.com/items", Header: http.Header{}})
+	if err == nil || !strings.Contains(err.Error(), "content-length") {
+		t.Errorf("got %v", err)
+	}
+}
+
+func TestAnEmptyQueryIsNoQuery(t *testing.T) {
+	request := &AuthRequest{Method: "GET", URL: "https://example.com/p?", Header: http.Header{}}
+	target, _ := url.Parse(request.URL)
+	for name, want := range map[string]string{"@request-target": "/p", "@query": "?"} {
+		if got, _ := componentValue(request, target, name); got != want {
+			t.Errorf("%s is %q, want %q", name, got, want)
+		}
+	}
+}
+
+func TestEachLineOfTheKeyBodyIsASecret(t *testing.T) {
+	signer := mustSigner(t, SignerOptions{PrivateKey: rfcRSAKey, Components: signedComponents})
+	lines := strings.Split(strings.TrimSpace(rfcRSAKey), "\n")
+	lines = lines[1 : len(lines)-1]
+	stars := strings.Repeat("***\r\n", len(lines))
+	if got := redactWith(redactions(signed{signer}), strings.Join(lines, "\r\n")); got != stars[:len(stars)-2] {
 		t.Errorf("redacted %q", got)
 	}
 }
