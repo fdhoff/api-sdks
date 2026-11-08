@@ -300,3 +300,140 @@ cases:
         path: /ws/backbox/v1/competitors/00000000-0000-4000-8000-000000000001
     expect:
       result_keys: [is_winning, price]
+
+  - name: buyback-orders-suspend-reasons
+    request:
+      operation: get-ws-buyback-v1-orders-suspend-reasons
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/orders/suspend-reasons
+    expect:
+      result_keys: [identifier, message]
+
+  - name: buyback-orders-suspend
+    request:
+      operation: put-ws-buyback-v1-orders-suspend
+      params: { buybackOrderId: EXAMPLE-1 }
+      body: { reasons: [parcel_damaged] }
+    mock:
+      prism: {}
+    wire:
+      - method: PUT
+        path: /ws/buyback/v1/orders/EXAMPLE-1/suspend
+        body: { reasons: [parcel_damaged] }
+    expect:
+      result_keys: [orderPublicId]
+
+  - name: buyback-orders-messages-list
+    request:
+      operation: get-ws-buyback-v1-orders-messages
+      params: { buybackOrderId: EXAMPLE-1, page: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/orders/EXAMPLE-1/messages
+        query: { page: '1' }
+    expect:
+      result_keys: [results]
+
+  - name: buyback-counter-offer-reasons
+    request:
+      operation: get-ws-counter-offer-reason
+      params: { buybackOrderId: EXAMPLE-1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/orders/EXAMPLE-1/counter-offers/reasons
+    expect:
+      result_keys: [id, label, reasons]
+
+  - name: buyback-counter-offer-is-multipart
+    request:
+      operation: put-ws-refurbisher-counter-offer
+      params: { buybackOrderId: EXAMPLE-1 }
+      multipart:
+        price: 10
+        reasons: [broken_screen]
+        files: [synthetic file content]
+    mock:
+      responses:
+        - status: 204
+    wire:
+      - method: PUT
+        path: /ws/buyback/v2/orders/EXAMPLE-1/counter-offers
+        headers_match:
+          content-type: ^multipart/form-data; boundary=
+    expect:
+      result: null
+
+  - name: buyback-competitors
+    request:
+      operation: get-ws-buyback-v1-competitors
+      params: { listingId: 00000000-0000-4000-8000-000000000001 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/buyback/v1/competitors/00000000-0000-4000-8000-000000000001
+    expect:
+      result_keys: [is_winning, listing_id]
+
+  - name: orders-invoice-upload-is-multipart
+    request:
+      operation: post-ws-specific-order-invoice
+      params: { order_id: 1 }
+      multipart:
+        invoice: [synthetic invoice content]
+    mock:
+      responses:
+        - status: 200
+    wire:
+      - method: POST
+        path: /ws/orders/1/invoice
+        headers_match:
+          content-type: ^multipart/form-data; boundary=
+    expect:
+      result: null
+
+  - name: shipping-returns-list
+    request:
+      operation: GetReturns
+      params: { page: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/shipping/v1/returns
+        query: { page: '1' }
+    expect:
+      result_keys: [count, results]
+
+  - name: shipping-deliveries-get
+    request:
+      operation: GetDelivery
+      params: { id: 1 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /ws/shipping/v1/deliveries/1
+    expect:
+      result_keys: [order, trackingNumber]
+
+  - name: care-folders-item-transfer
+    request:
+      operation: postItemTransfer
+      params: { careFolderId: 1 }
+      body: { shipperName: Example Carrier, trackingNumber: SYNTHETIC-1 }
+    mock:
+      prism: {}
+    wire:
+      - method: POST
+        path: /ws/sav/1/item-transfer
+        body: { shipperName: Example Carrier, trackingNumber: SYNTHETIC-1 }
+    expect:
+      result: null

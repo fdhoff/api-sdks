@@ -148,3 +148,33 @@ cases:
         path: /ws/orders
     expect:
       error: { kind: decode }
+
+  - name: pagination-next-link-that-does-not-advance
+    request:
+      operation: get-ws-list-order
+      params: { page: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 2, next: 'https://foreign.invalid/ws/orders?page=1', previous: null, results: [{ order_id: 1 }] }
+    wire:
+      - method: GET
+        path: /ws/orders
+        query: { page: '1' }
+    expect:
+      error: { kind: decode }
+
+  - name: pagination-next-link-with-no-position
+    request:
+      operation: get-ws-list-order
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 2, next: 'https://foreign.invalid/ws/orders', previous: null, results: [{ order_id: 1 }] }
+    wire:
+      - method: GET
+        path: /ws/orders
+    expect:
+      error: { kind: decode }
