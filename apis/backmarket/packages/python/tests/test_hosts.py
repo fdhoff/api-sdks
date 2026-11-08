@@ -26,7 +26,7 @@ from backmarket_seller.errors import to_error
 HOSTS = {"main": "http://main.invalid", "files": "http://files.invalid/v1"}
 ENVIRONMENTS = {
     "production": HOSTS,
-    "sandbox": {"main": "http://main.sandbox.invalid", "files": "http://files.sandbox.invalid"},
+    "sandbox": {"main": "http://main.sandbox.invalid/", "files": "http://files.sandbox.invalid"},
 }
 
 LIST_ITEMS: Operation[Any] = Operation(
@@ -122,7 +122,10 @@ def test_an_unknown_host_key_fails_before_credentials_or_sending() -> None:
 
 
 def test_select_hosts_picks_an_environment_or_checks_the_callers_map() -> None:
-    assert select_hosts(ENVIRONMENTS, "sandbox") == ENVIRONMENTS["sandbox"]
+    assert select_hosts(ENVIRONMENTS, "sandbox") == {
+        "main": "http://main.sandbox.invalid",
+        "files": "http://files.sandbox.invalid",
+    }
     custom = {"main": "http://localhost:4010/", "files": "http://localhost:4010"}
     assert select_hosts(ENVIRONMENTS, "production", custom) == {
         "main": "http://localhost:4010",
@@ -144,6 +147,11 @@ def test_a_header_default_is_sent_only_where_declared_and_a_call_overrides_it() 
     client._call(LIST_FILES)
     assert [request.headers.get_list("x-tenant") for request in sent] == [["acme"], ["other"], ["client-wide"]]
     assert credentials.seen[0].headers["X-Tenant"] == "acme"
+
+
+def test_header_defaults_that_differ_only_by_case_are_rejected_at_construction() -> None:
+    with pytest.raises(ValueError, match="differ only by case: X-Tenant, x-tenant"):
+        resource(ok, header_defaults={"x-tenant": "acme", "X-Tenant": "other", "X-Other": "unused"})
 
 
 def test_a_header_with_no_default_and_no_argument_is_not_sent() -> None:

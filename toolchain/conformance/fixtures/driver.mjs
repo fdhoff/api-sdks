@@ -21,12 +21,14 @@ function declaredHeaders(operation, client, params) {
 }
 
 // Splits a call's params into query parameters and declared headers, and sends every page to the operation's host.
+// The `unhosted` mode sends to the base URL instead, and `undefaulted` ignores the client's header defaults.
 function routed(client, request) {
   const operation = OPERATIONS[request.operation];
   const params = { ...request.params };
-  const headers = declaredHeaders(operation, client, params);
+  const headers = declaredHeaders(operation, mode === 'undefaulted' ? {} : client, params);
   for (const name of operation.headers) delete params[name];
-  return { url: `${client.base_url}/_host/${operation.host}${operation.path}`, params, headers };
+  const host = mode === 'unhosted' ? '' : `/_host/${operation.host}`;
+  return { url: `${client.base_url}${host}${operation.path}`, params, headers };
 }
 
 // Walks offset pages as the runtimes do: advance by the items received, stop at an empty page or the count.
@@ -91,7 +93,7 @@ for await (const line of createInterface({ input: process.stdin })) {
     console.log(JSON.stringify({ ...(await signedCall(client, request)), logs: [] }));
     continue;
   }
-  if (mode === 'routed') {
+  if (mode === 'routed' || mode === 'unhosted' || mode === 'undefaulted') {
     const { url, params, headers } = routed(client, request);
     if (request.paginate) {
       console.log(JSON.stringify({ ...(await offsetPages(client, params, url, headers)), logs: [] }));

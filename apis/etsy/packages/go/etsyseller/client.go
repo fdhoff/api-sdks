@@ -131,7 +131,7 @@ func NewClient(apiKey, sharedSecret string, opts ...Option) (*Client, error) {
 	if config.userAgent != "" {
 		headers.Set("User-Agent", config.userAgent)
 	}
-	transport := runtime.NewTransport(runtime.Settings{
+	transport, err := runtime.NewTransport(runtime.Settings{
 		BaseURL:        root,
 		Credentials:    credentials,
 		Headers:        headers,
@@ -144,6 +144,9 @@ func NewClient(apiKey, sharedSecret string, opts ...Option) (*Client, error) {
 		RateLimitWait:  config.rateLimitWait,
 		MaxRetryWait:   config.maxRetryWait,
 	})
+	if err != nil {
+		return nil, err
+	}
 	oauth := &OAuth{credentials: credentials, transport: transport, busy: make(chan struct{}, 1)}
 	credentials.oauth = oauth
 	return &Client{Resources: newResources(transport), OAuth: oauth}, nil

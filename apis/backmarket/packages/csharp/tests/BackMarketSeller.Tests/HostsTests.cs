@@ -116,7 +116,7 @@ public sealed class HostsTests
     public void SelectHostsRejectsACallersMapWithMissingOrUnknownKeys()
     {
         var missing = Assert.Throws<ArgumentException>(() => HostMap.Select(Environments, "production", new Dictionary<string, string> { ["main"] = "http://a" }));
-        Assert.Contains("lack: files", missing.Message, StringComparison.Ordinal);
+        Assert.Contains("lack keys: files", missing.Message, StringComparison.Ordinal);
 
         var extra = new Dictionary<string, string> { ["main"] = "http://a", ["files"] = "http://b", ["zeta"] = "http://c", ["alpha"] = "http://d" };
         var unknown = Assert.Throws<ArgumentException>(() => HostMap.Select(Environments, "production", extra));
@@ -155,6 +155,16 @@ public sealed class HostsTests
         await rig.Transport.CallAsync<JsonElement>(ListFiles, [null], TestContext.Current.CancellationToken);
 
         Assert.False(Assert.Single(rig.Handler.Sent).Headers.ContainsKey("X-Tenant"));
+    }
+
+    [Fact]
+    public void HeaderDefaultsThatDifferOnlyByCaseAreRejectedAtConstruction()
+    {
+        var defaults = new Dictionary<string, string> { ["x-tenant"] = "acme", ["X-Tenant"] = "other", ["X-Other"] = "unused" };
+
+        var error = Assert.Throws<ArgumentException>(() => Rig.Create(headerDefaults: defaults));
+
+        Assert.StartsWith("HeaderDefaults has names that differ only by case: X-Tenant, x-tenant", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

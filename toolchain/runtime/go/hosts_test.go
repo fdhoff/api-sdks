@@ -53,7 +53,7 @@ func hosted(t *testing.T, defaults map[string]string, credentials Credentials, h
 		return server
 	}
 	main, files := serve("main"), serve("files")
-	transport := NewTransport(Settings{
+	transport := mustTransport(t, Settings{
 		BaseURL:        main.URL,
 		Hosts:          map[string]string{"main": main.URL, "files": files.URL},
 		HeaderDefaults: defaults,
@@ -118,12 +118,13 @@ func TestAnUnknownHostKeyFailsBeforeAnythingIsAppliedOrSent(t *testing.T) {
 
 var environments = map[string]map[string]string{
 	"production": {"main": "https://main.example.test", "files": "https://files.example.test"},
-	"sandbox":    {"main": "https://main.sandbox.example.test", "files": "https://files.sandbox.example.test"},
+	"sandbox":    {"main": "https://main.sandbox.example.test/", "files": "https://files.sandbox.example.test"},
 }
 
 func TestSelectHostsPicksTheNamedEnvironment(t *testing.T) {
 	hosts, err := SelectHosts(environments, "sandbox", nil)
-	if err != nil || !reflect.DeepEqual(hosts, environments["sandbox"]) {
+	want := map[string]string{"main": "https://main.sandbox.example.test", "files": "https://files.sandbox.example.test"}
+	if err != nil || !reflect.DeepEqual(hosts, want) {
 		t.Fatalf("hosts %v, error %v", hosts, err)
 	}
 	hosts["main"] = "changed"
@@ -149,7 +150,7 @@ func TestSelectHostsTakesTheCallersOwnMap(t *testing.T) {
 
 func TestSelectHostsRejectsACallersMapWithMissingOrUnknownKeys(t *testing.T) {
 	_, err := SelectHosts(environments, "production", map[string]string{"main": "http://127.0.0.1:1"})
-	if err == nil || !strings.Contains(err.Error(), "lacks: files") {
+	if err == nil || !strings.Contains(err.Error(), "lacks keys: files") {
 		t.Errorf("missing: %v", err)
 	}
 	_, err = SelectHosts(environments, "production", map[string]string{"main": "a", "files": "b", "zeta": "c", "extra": "d"})
@@ -195,6 +196,13 @@ func TestAHeaderDefaultReplacesAClientWideHeaderOfTheSameName(t *testing.T) {
 func TestAHeaderDefaultNeverReachesAnOperationThatDoesNotDeclareIt(t *testing.T) {
 	if got := tenantSent(t, map[string]string{"X-Tenant": "acme"}, nil, listFiles, nil); len(got) != 0 {
 		t.Errorf("sent %v", got)
+	}
+}
+
+func TestHeaderDefaultsThatDifferOnlyByCaseAreRejectedAtConstruction(t *testing.T) {
+	_, err := NewTransport(Settings{HeaderDefaults: map[string]string{"x-tenant": "acme", "X-Tenant": "other", "X-Other": "unused"}})
+	if err == nil || err.Error() != "HeaderDefaults has names that differ only by case: X-Tenant, x-tenant" {
+		t.Errorf("error %v", err)
 	}
 }
 

@@ -149,9 +149,15 @@ const serverUrl = (server) =>
 export function applyHosts(spec, servers) {
   if (!servers) return spec;
   const keys = new Map(Object.entries(servers).map(([url, key]) => [url.replace(/\/+$/, ''), key]));
+  const known = new Set(keys.values());
   for (const item of Object.values(spec.paths)) {
     for (const operation of METHODS.map((method) => item[method]).filter(Boolean)) {
-      if (operation['x-sdk-host']) continue;
+      const chosen = operation['x-sdk-host'];
+      if (chosen && !known.has(chosen)) {
+        const expected = [...known].sort().join(', ');
+        throw new Error(`${operation.operationId}: x-sdk-host ${chosen} is not a host key; expected one of: ${expected}`);
+      }
+      if (chosen) continue;
       const server = (operation.servers ?? item.servers ?? spec.servers ?? [])[0];
       const key = server && keys.get(serverUrl(server));
       if (!key) throw new Error(`${operation.operationId}: no host key for server ${server?.url ?? '(none)'}`);
@@ -175,17 +181,20 @@ export function applyHeaders(spec, defaults = []) {
     const resolved = dereference(spec, parameter);
     return resolved?.in === 'header' && RUNTIME_HEADERS.has(resolved.name.toLowerCase());
   };
+  const unused = new Set(named);
   for (const item of Object.values(spec.paths)) {
     const holders = [item, ...METHODS.map((method) => item[method]).filter(Boolean)];
     for (const holder of holders.filter((holder) => holder.parameters)) {
       holder.parameters = holder.parameters.filter((parameter) => !isOwned(parameter));
       for (const parameter of holder.parameters.map((parameter) => dereference(spec, parameter))) {
         if (parameter.in !== 'header' || !named.has(parameter.name.toLowerCase())) continue;
+        unused.delete(parameter.name.toLowerCase());
         parameter.required = false;
         parameter['x-sdk-header-default'] = true;
       }
     }
   }
+  if (unused.size > 0) throw new Error(`header_defaults names no header parameter: ${[...unused].join(', ')}`);
   return spec;
 }
 

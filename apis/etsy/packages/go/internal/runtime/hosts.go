@@ -9,6 +9,7 @@ import (
 
 // SelectHosts returns the host map to send requests with: hosts when it is not empty, or else the
 // named environment's. A caller's own hosts must name exactly the host keys the environments use.
+// Trailing slashes are removed from every URL.
 func SelectHosts(environments map[string]map[string]string, environment string, hosts map[string]string) (map[string]string, error) {
 	if len(hosts) == 0 {
 		chosen, found := environments[environment]
@@ -16,7 +17,7 @@ func SelectHosts(environments map[string]map[string]string, environment string, 
 			names := slices.Sorted(maps.Keys(environments))
 			return nil, fmt.Errorf("unknown environment %q; expected one of: %s", environment, strings.Join(names, ", "))
 		}
-		return maps.Clone(chosen), nil
+		return trimmed(chosen), nil
 	}
 	keys := map[string]bool{}
 	for _, environmentHosts := range environments {
@@ -37,15 +38,19 @@ func SelectHosts(environments map[string]map[string]string, environment string, 
 	}
 	if len(missing) > 0 {
 		slices.Sort(missing)
-		return nil, fmt.Errorf("hosts lacks: %s", strings.Join(missing, ", "))
+		return nil, fmt.Errorf("hosts lacks keys: %s", strings.Join(missing, ", "))
 	}
 	if len(unknown) > 0 {
 		slices.Sort(unknown)
 		return nil, fmt.Errorf("hosts has unknown keys: %s", strings.Join(unknown, ", "))
 	}
+	return trimmed(hosts), nil
+}
+
+func trimmed(hosts map[string]string) map[string]string {
 	selected := make(map[string]string, len(hosts))
 	for key, base := range hosts {
 		selected[key] = strings.TrimRight(base, "/")
 	}
-	return selected, nil
+	return selected
 }

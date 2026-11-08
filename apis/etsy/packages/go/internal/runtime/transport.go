@@ -124,17 +124,25 @@ type Settings struct {
 
 // Transport sends requests, applying the timeout, retry and redaction rules.
 type Transport struct {
-	settings   Settings
+	settings Settings
+	// defaults holds Settings.HeaderDefaults by lowercase name.
+	defaults   map[string]string
 	client     *http.Client
 	refreshing chan struct{}
 	generation atomic.Uint64
 }
 
 // NewTransport builds a Transport. It never follows a redirect: a redirect is reported as a failure,
-// so the token cannot be sent anywhere but the configured server.
-func NewTransport(settings Settings) *Transport {
+// so the token cannot be sent anywhere but the configured server. Header defaults whose names differ
+// only by case are an error.
+func NewTransport(settings Settings) (*Transport, error) {
+	defaults, err := byLowercase(settings.HeaderDefaults)
+	if err != nil {
+		return nil, err
+	}
 	return &Transport{
 		settings:   settings,
+		defaults:   defaults,
 		refreshing: make(chan struct{}, 1),
 		client: &http.Client{
 			Transport: settings.HTTPTransport,
@@ -142,7 +150,27 @@ func NewTransport(settings Settings) *Transport {
 				return http.ErrUseLastResponse
 			},
 		},
+	}, nil
+}
+
+// byLowercase returns defaults keyed by lowercase name.
+func byLowercase(defaults map[string]string) (map[string]string, error) {
+	byName := make(map[string]string, len(defaults))
+	var clashes []string
+	for name, value := range defaults {
+		byName[strings.ToLower(name)] = value
+		for other := range defaults {
+			if other != name && strings.EqualFold(other, name) {
+				clashes = append(clashes, name)
+				break
+			}
+		}
 	}
+	if len(clashes) > 0 {
+		slices.Sort(clashes)
+		return nil, fmt.Errorf("HeaderDefaults has names that differ only by case: %s", strings.Join(clashes, ", "))
+	}
+	return byName, nil
 }
 
 type response struct {
@@ -244,15 +272,6 @@ func (t *Transport) baseURL(operation *Operation) (string, error) {
 	return base, nil
 }
 
-func (t *Transport) headerDefault(name string) (string, bool) {
-	for key, value := range t.settings.HeaderDefaults {
-		if strings.EqualFold(key, name) {
-			return value, true
-		}
-	}
-	return "", false
-}
-
 // addHeaderParams sets each header argument the call passed, or else the client's default for it.
 func (t *Transport) addHeaderParams(header http.Header, built *request) {
 	for _, name := range built.operation.HeaderParams {
@@ -261,7 +280,7 @@ func (t *Transport) addHeaderParams(header http.Header, built *request) {
 			for _, value := range values {
 				header.Add(name, value)
 			}
-		} else if value, found := t.headerDefault(name); found {
+		} else if value, found := t.defaults[strings.ToLower(name)]; found {
 			header.Set(name, value)
 		}
 	}

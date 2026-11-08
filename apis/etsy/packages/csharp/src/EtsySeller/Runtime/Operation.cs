@@ -93,7 +93,7 @@ internal static class HostMap
             var missing = keys.Where(key => !hosts.ContainsKey(key)).Order(StringComparer.Ordinal).ToArray();
             if (missing.Length > 0)
             {
-                throw new ArgumentException($"The hosts lack: {string.Join(", ", missing)}", nameof(hosts));
+                throw new ArgumentException($"The hosts lack keys: {string.Join(", ", missing)}", nameof(hosts));
             }
             var unknown = hosts.Keys.Where(key => !keys.Contains(key)).Order(StringComparer.Ordinal).ToArray();
             if (unknown.Length > 0)
