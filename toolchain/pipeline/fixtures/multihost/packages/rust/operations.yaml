@@ -1,0 +1,2 @@
+getWidget: { resource: widgets, method: get, summary: Get one widget. }
+listUploads: { resource: uploads, method: list, summary: List uploads. }

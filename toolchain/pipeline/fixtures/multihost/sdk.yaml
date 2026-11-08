@@ -1,0 +1,5 @@
+# Synthetic API for the pipeline's compile check. It names no real API.
+hosts:
+  https://api.example.test/v1: main
+  https://uploads.example.test/v1: uploads
+header_defaults: [X-Tenant-Id]

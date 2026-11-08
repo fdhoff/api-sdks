@@ -1,0 +1,22 @@
+generator: go
+output: multihost
+source: .
+generated_prefixes: [model_, api_]
+resources: resources.go
+runtime: ../internal/runtime
+format: [gofmt, -s, -r, 'interface{} -> any', -w]
+properties:
+  packageName: multihost
+  disallowAdditionalPropertiesIfNotPresent: false
+  withGoMod: false
+  apiNameSuffix: Resource
+  modulePath: github.com/fdhoff/api-sdks/toolchain/pipeline/fixtures/multihost/packages/go
+drop_nullable: true
+drop_unions: true
+type_mappings:
+  integer: int64
+  number: float64
+name_mappings:
+  id: ID
+parameter_name_mappings:
+  widget_id: widgetID

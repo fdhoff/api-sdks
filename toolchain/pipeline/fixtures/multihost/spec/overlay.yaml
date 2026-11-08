@@ -1,0 +1,10 @@
+# The build requires an overlay with at least one action. This one gives the uploads path its own server.
+overlay: 1.0.0
+info:
+  title: Corrections to the synthetic multi-host spec
+  version: 0.1.0
+actions:
+  - target: $.paths['/uploads']
+    update:
+      servers:
+        - url: https://uploads.example.test/v1

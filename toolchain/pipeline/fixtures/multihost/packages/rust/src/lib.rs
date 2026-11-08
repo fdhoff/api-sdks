@@ -1,0 +1,24 @@
+//! Synthetic client for the pipeline's compile check.
+
+use std::sync::Arc;
+
+mod apis;
+pub mod models;
+mod resources;
+mod runtime;
+
+pub use apis::*;
+pub use runtime::{Error, File, Items};
+
+/// The kinds the runtime raises.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ErrorKind {
+    Api,
+    Timeout,
+    Connection,
+    Decode,
+}
+
+pub struct Client {
+    transport: Arc<runtime::Transport>,
+}

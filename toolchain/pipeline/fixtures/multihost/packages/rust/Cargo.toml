@@ -1,0 +1,37 @@
+[package]
+name = "multihost"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+
+[features]
+default = ["rustls"]
+rustls = ["reqwest/rustls"]
+
+[dependencies]
+base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["serde", "std"] }
+flate2 = "1.1"
+futures-core = "0.3"
+futures-util = { version = "0.3", default-features = false }
+getrandom = "0.3"
+httpdate = "1.0"
+log = "0.4"
+percent-encoding = "2.3"
+reqwest = { version = "0.13", default-features = false, features = ["http2", "multipart"] }
+serde = "1.0"
+serde_json = "1.0"
+sha2 = "0.10"
+tokio = { version = "1.43", features = ["sync", "time"] }
+url = "2.5"
+
+[dev-dependencies]
+futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("signing"))'] }
+
+[[example]]
+name = "dispatch-check"
+path = "conformance/check.rs"

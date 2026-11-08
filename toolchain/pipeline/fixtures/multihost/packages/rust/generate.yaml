@@ -1,0 +1,19 @@
+generator: rust
+output: src
+source: src
+generated: [apis, models]
+resources: resources.rs
+runtime: runtime
+ignore: [src/apis/configuration.rs]
+supporting_files:
+  dispatch.mustache: conformance/dispatch.rs
+format: [sh, -c, cargo fmt, --]
+properties:
+  packageName: multihost
+  library: reqwest
+drop_nullable: true
+drop_unions: true
+type_mappings:
+  integer: i64
+  i32: i64
+  float: f64

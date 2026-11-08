@@ -1,0 +1,2 @@
+getWidget: { resource: Widgets, method: GetAsync, summary: Get one widget. }
+listUploads: { resource: Uploads, method: ListAsync, summary: List uploads. }
