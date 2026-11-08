@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import base64
+import dataclasses
 import itertools
 import logging
-from collections.abc import Callable
+import threading
+from collections.abc import Callable, Iterator
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
 import httpx
@@ -291,6 +294,58 @@ def test_a_post_or_put_without_a_body_signs_a_zero_content_length(method: str) -
     signer.sign(request)
     assert "content-length" not in request.headers
     assert MessageSigner._value(request, "content-length") == "0"
+
+
+@pytest.fixture
+def server() -> Iterator[tuple[str, list[dict[str, str]]]]:
+    received: list[dict[str, str]] = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def reply(self) -> None:
+            received.append({name.lower(): value for name, value in self.headers.items()})
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", "2")
+            self.end_headers()
+            self.wfile.write(b"{}")
+
+        do_POST = do_PUT = reply
+
+        def log_message(self, format: str, *args: Any) -> None:
+            pass
+
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{httpd.server_port}", received
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+@pytest.mark.parametrize("method", ["POST", "PUT"])
+def test_a_post_or_put_without_a_body_sends_the_zero_content_length_it_signs(
+    method: str, server: tuple[str, list[dict[str, str]]]
+) -> None:
+    url, received = server
+    pem, public = fresh_key()
+    signer = MessageSigner(pem, ["content-length", "@method"], clock=lambda: 1700000000)
+    settings = Settings(
+        base_url=url,
+        credentials=Signed(signer),
+        headers={},
+        to_error=to_error,
+        logger=logging.getLogger("signing-test"),
+    )
+    operation = dataclasses.replace(LIST, id="touch", method=method, name="touch")
+    Resource(SyncTransport(settings))._call(operation)
+    [headers] = received
+    assert headers["content-length"] == "0"
+    params = headers["signature-input"].removeprefix("sig1=")
+    assert params == '("content-length" "@method");created=1700000000'
+    base = f'"content-length": 0\n"@method": {method}\n"@signature-params": {params}'
+    public.verify(base64.b64decode(headers["signature"].removeprefix("sig1=:").removesuffix(":")), base.encode())
 
 
 @pytest.mark.parametrize("method", ["GET", "DELETE", "PATCH"])

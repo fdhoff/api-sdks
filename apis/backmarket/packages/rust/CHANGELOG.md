@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* A POST or PUT without a body sends `Content-Length: 0`, as the other languages' HTTP libraries do.
 * The repository moved to `fdhoff/api-sdks`; the package's repository and documentation links point there.
 * An empty success body where the spec declares JSON is an `ErrorKind::Decode` error instead of a default model.
 * Breaking: integer enum members are named after their meaning, such as `OrderState::PendingShipment` instead of `Variant3`. This covers `OrderState`, `OrderLineState`, `ListingStateValue`, `ProductCondition` and `ReturnReason`; the wire values are unchanged.

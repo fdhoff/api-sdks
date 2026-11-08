@@ -113,7 +113,7 @@ public sealed class ConnectionTests
         $"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {Encoding.UTF8.GetByteCount(json)}\r\n\r\n{json}";
 
     /// <summary>Answers each request in turn with a raw response, or with null by closing the connection unanswered.</summary>
-    private sealed class LoopbackServer : IAsyncDisposable
+    internal sealed class LoopbackServer : IAsyncDisposable
     {
         private readonly TcpListener listener = new(IPAddress.Loopback, 0);
         private readonly string?[] responses;
@@ -205,7 +205,7 @@ public sealed class ConnectionTests
         }
     }
 
-    private sealed record Received(int Connection, string Method, string Head);
+    internal sealed record Received(int Connection, string Method, string Head);
 
     private sealed class ListLoggerProvider : ILoggerProvider, ILogger
     {

@@ -417,6 +417,7 @@ l9EOzXkzfx4bZxjAHU9mkMdJwOcMDQ==
                 "content-digest" => seen.headers["content-digest"].to_str().unwrap().to_owned(),
                 "@method" => seen.method.to_string(),
                 "@path" => url.path().to_owned(),
+                "content-length" => seen.body.len().to_string(),
                 _ => format!("{}:{}", url.host_str().unwrap(), url.port().unwrap()),
             };
             base.push_str(&format!("\"{name}\": {value}\n"));
@@ -631,6 +632,45 @@ l9EOzXkzfx4bZxjAHU9mkMdJwOcMDQ==
             let mut request = auth_request(method.clone(), "https://example.com/items", &[], b"");
             let error = signer.sign(&mut request).unwrap_err();
             assert!(error.to_string().contains("content-length"), "{method}: {error}");
+        }
+    }
+
+    #[tokio::test]
+    async fn a_post_or_put_without_a_body_sends_the_zero_content_length_it_signs() {
+        static POST: Operation = Operation {
+            id: "touch",
+            method: "POST",
+            path: "/items",
+            query_params: &[],
+            returns_json: false,
+            paging: None,
+            security: &[&[Scheme { name: "key", scopes: &[] }]],
+        };
+        static PUT: Operation = Operation {
+            id: "touch",
+            method: "PUT",
+            path: "/items",
+            query_params: &[],
+            returns_json: false,
+            paging: None,
+            security: &[&[Scheme { name: "key", scopes: &[] }]],
+        };
+        let (pem, public) = fresh_key();
+        let options = SignerOptions { components: &["content-length", "@method"], ..SignerOptions::default() };
+        let signer = MessageSigner::new(&pem, options).unwrap().with_clock(fixed(1700000000));
+        let credentials = Arc::new(Signed { signer, seen: Mutex::default() });
+        let (url, log) = serve(|_, _| (200, "{}".to_owned())).await;
+        let transport = transport(&url, credentials.clone());
+        for operation in [&POST, &PUT] {
+            transport.call::<serde_json::Value>(Request::new(operation)).await.unwrap();
+        }
+
+        let seen = credentials.seen.lock().unwrap();
+        let sent = log.lock().unwrap();
+        assert_eq!((seen.len(), sent.len()), (2, 2));
+        for (seen, sent) in seen.iter().zip(sent.iter()) {
+            assert!(sent.head.contains("\r\ncontent-length: 0\r\n"), "{}", sent.head);
+            verify(&public, seen, &["content-length", "@method"]);
         }
     }
 
