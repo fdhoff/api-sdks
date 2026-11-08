@@ -5,6 +5,9 @@
         {{paramName}}: {{{vendorExtensions.x-py-typing}}},
 {{/isPathParam}}
 {{/allParams}}
+{{#vendorExtensions.x-sdk-raw-body}}
+        body: RawBody,
+{{/vendorExtensions.x-sdk-raw-body}}
 {{#bodyParam}}
         body: {{^required}}Optional[{{/required}}Union[{{{dataType}}}, Mapping[str, Any]]{{^required}}] = None{{/required}},
 {{/bodyParam}}

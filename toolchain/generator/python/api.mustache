@@ -8,6 +8,16 @@ from typing import Any, AsyncIterator, Iterator, List, Mapping, Optional, Union
 {{/imports}}
 from {{packageName}} import models as _models
 from {{#runtimePackage}}{{runtimePackage}}{{/runtimePackage}}{{^runtimePackage}}{{packageName}}{{/runtimePackage}}._runtime import AsyncResource, FileInput, NextLink, Offset, Operation, Param, Resource, Scheme, checked
+{{#operations}}
+{{#operation}}
+{{#vendorExtensions.x-sdk-binary-response}}
+from {{#runtimePackage}}{{runtimePackage}}{{/runtimePackage}}{{^runtimePackage}}{{packageName}}{{/runtimePackage}}._runtime import AsyncDownload, Download
+{{/vendorExtensions.x-sdk-binary-response}}
+{{#vendorExtensions.x-sdk-raw-body}}
+from {{#runtimePackage}}{{runtimePackage}}{{/runtimePackage}}{{^runtimePackage}}{{packageName}}{{/runtimePackage}}._runtime import RawBody
+{{/vendorExtensions.x-sdk-raw-body}}
+{{/operation}}
+{{/operations}}
 
 {{#operations}}
 {{#operation}}
@@ -37,6 +47,12 @@ _{{operationIdSnakeCase}}: Operation[{{{returnType}}}{{^returnType}}None{{/retur
 {{#vendorExtensions.x-sdk-returns-json}}
     returns_json=True,
 {{/vendorExtensions.x-sdk-returns-json}}
+{{#vendorExtensions.x-sdk-binary-response}}
+    binary_response=True,
+{{/vendorExtensions.x-sdk-binary-response}}
+{{#vendorExtensions.x-sdk-raw-body}}
+    raw_body="{{vendorExtensions.x-sdk-raw-body}}",
+{{/vendorExtensions.x-sdk-raw-body}}
 {{#vendorExtensions.x-sdk-iterator}}
     iterator="{{vendorExtensions.x-sdk-iterator}}",
     item=_models.{{vendorExtensions.x-sdk-items}},
@@ -67,10 +83,18 @@ OPERATIONS = (
 
 class {{classname}}(Resource):
 {{#operation}}
+{{#vendorExtensions.x-sdk-binary-response}}
+    @checked
+    def {{vendorExtensions.x-sdk-method}}{{>partial_sdk_args}} -> Download:
+        """{{{vendorExtensions.x-sdk-summary}}} Close the download, or read it in a `with` block."""
+        return self._download{{>partial_sdk_call}}
+{{/vendorExtensions.x-sdk-binary-response}}
+{{^vendorExtensions.x-sdk-binary-response}}
     @checked
     def {{vendorExtensions.x-sdk-method}}{{>partial_sdk_args}} -> {{{returnType}}}{{^returnType}}None{{/returnType}}:
         """{{{vendorExtensions.x-sdk-summary}}}"""
         return self._call{{>partial_sdk_call}}
+{{/vendorExtensions.x-sdk-binary-response}}
 
 {{#vendorExtensions.x-sdk-iterator}}
     @checked
@@ -83,10 +107,18 @@ class {{classname}}(Resource):
 
 class Async{{classname}}(AsyncResource):
 {{#operation}}
+{{#vendorExtensions.x-sdk-binary-response}}
+    @checked
+    async def {{vendorExtensions.x-sdk-method}}{{>partial_sdk_args}} -> AsyncDownload:
+        """{{{vendorExtensions.x-sdk-summary}}} Close the download, or read it in an `async with` block."""
+        return await self._download{{>partial_sdk_call}}
+{{/vendorExtensions.x-sdk-binary-response}}
+{{^vendorExtensions.x-sdk-binary-response}}
     @checked
     async def {{vendorExtensions.x-sdk-method}}{{>partial_sdk_args}} -> {{{returnType}}}{{^returnType}}None{{/returnType}}:
         """{{{vendorExtensions.x-sdk-summary}}}"""
         return await self._call{{>partial_sdk_call}}
+{{/vendorExtensions.x-sdk-binary-response}}
 
 {{#vendorExtensions.x-sdk-iterator}}
     @checked
