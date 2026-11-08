@@ -15,12 +15,12 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
 {{#operation}}
         ("{{operationIdOriginal}}", false) => {
 {{>partial_dispatch_inputs}}
-            output(client.{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}().{{vendorExtensions.x-sdk-method}}({{>partial_dispatch_args}}).await)
+            output(client.{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}().{{vendorExtensions.x-sdk-method}}({{>partial_dispatch_args}}).await)
         }
 {{#vendorExtensions.x-sdk-iterator}}
         ("{{operationIdOriginal}}", true) => {
 {{>partial_dispatch_inputs}}
-            collect(client.{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}().{{.}}({{>partial_dispatch_args}})).await
+            collect(client.{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}().{{.}}({{>partial_dispatch_args}})).await
         }
 {{/vendorExtensions.x-sdk-iterator}}
 {{/operation}}

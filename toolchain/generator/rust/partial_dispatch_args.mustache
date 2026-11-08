@@ -1,1 +1,1 @@
-{{#pathParams}}{{#isString}}&{{/isString}}{{{paramName}}}, {{/pathParams}}{{#bodyParam}}{{#required}}&body{{/required}}{{^required}}body.as_ref(){{/required}}, {{/bodyParam}}{{#hasQueryParams}}&params{{/hasQueryParams}}{{#hasFormParams}}&params{{/hasFormParams}}
+{{#pathParams}}{{#isString}}&{{/isString}}{{{paramName}}}, {{/pathParams}}{{#bodyParam}}{{#required}}&body{{/required}}{{^required}}body.as_ref(){{/required}}, {{/bodyParam}}{{#vendorExtensions.x-sdk-has-params}}&params{{/vendorExtensions.x-sdk-has-params}}

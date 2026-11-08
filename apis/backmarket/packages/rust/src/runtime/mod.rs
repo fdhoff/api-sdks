@@ -9,14 +9,21 @@ mod model;
 mod request;
 mod transport;
 
+pub(crate) use credentials::Scheme;
+#[allow(
+    unused_imports,
+    reason = "an API with credentials of its own uses none"
+)]
+pub(crate) use credentials::StaticCredentials;
 #[allow(
     unused_imports,
     reason = "an API with static credentials implements none of its own"
 )]
 pub(crate) use credentials::{AuthRequest, Credentials};
-pub(crate) use credentials::{Scheme, StaticCredentials};
 pub use error::{Error, ErrorContext};
-pub(crate) use model::{Fields, FormValue, open_enum, text_part, tolerant_model};
+#[allow(unused_imports, reason = "an API may declare no enumerations")]
+pub(crate) use model::open_enum;
+pub(crate) use model::{Fields, FormValue, text_part, tolerant_model};
 pub use request::File;
 pub(crate) use request::{Operation, Paging, Params, Part, Request};
 pub use transport::{Items, Settings, Transport};

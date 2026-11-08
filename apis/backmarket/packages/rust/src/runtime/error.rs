@@ -19,6 +19,7 @@ struct Inner {
     status: Option<u16>,
     raw_body: Option<String>,
     code: Option<String>,
+    detail: Option<String>,
     request_id: Option<String>,
     retry_after: Option<String>,
     cf_ray: Option<String>,
@@ -34,6 +35,7 @@ impl Error {
                 status: None,
                 raw_body: None,
                 code: None,
+                detail: None,
                 request_id: None,
                 retry_after: None,
                 cf_ray: None,
@@ -52,11 +54,28 @@ impl Error {
         self
     }
 
+    #[allow(
+        dead_code,
+        reason = "an API whose errors carry no such field leaves it unset"
+    )]
     pub(crate) fn with_code(mut self, code: Option<String>) -> Self {
         self.inner.code = code;
         self
     }
 
+    #[allow(
+        dead_code,
+        reason = "an API whose errors carry no such field leaves it unset"
+    )]
+    pub(crate) fn with_detail(mut self, detail: Option<String>) -> Self {
+        self.inner.detail = detail;
+        self
+    }
+
+    #[allow(
+        dead_code,
+        reason = "an API whose errors carry no such field leaves it unset"
+    )]
     pub(crate) fn with_request_id(mut self, request_id: Option<String>) -> Self {
         self.inner.request_id = request_id;
         self
@@ -67,6 +86,10 @@ impl Error {
         self
     }
 
+    #[allow(
+        dead_code,
+        reason = "an API whose errors carry no such field leaves it unset"
+    )]
     pub(crate) fn with_cf_ray(mut self, cf_ray: Option<String>) -> Self {
         self.inner.cf_ray = cf_ray;
         self
@@ -100,6 +123,11 @@ impl Error {
     /// The error code from the response body, when it has one.
     pub fn code(&self) -> Option<&str> {
         self.inner.code.as_deref()
+    }
+
+    /// The error text from the response body, when it has one, with every secret removed.
+    pub fn detail(&self) -> Option<&str> {
+        self.inner.detail.as_deref()
     }
 
     /// The request ID from the response body, when it has one.

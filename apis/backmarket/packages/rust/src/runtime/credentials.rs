@@ -45,11 +45,13 @@ pub trait Credentials: Send + Sync {
 }
 
 /// The same headers on every request.
+#[allow(dead_code, reason = "an API with credentials of its own uses none")]
 pub struct StaticCredentials {
     headers: HeaderMap,
     secrets: Vec<String>,
 }
 
+#[allow(dead_code, reason = "an API with credentials of its own uses none")]
 impl StaticCredentials {
     pub fn new(headers: HeaderMap, secrets: Vec<String>) -> Self {
         Self { headers, secrets }
@@ -146,6 +148,16 @@ mod tests {
             name: "key",
             scopes: &[],
         }]],
+    };
+
+    static TOKEN: Operation = Operation {
+        id: "token",
+        method: "POST",
+        path: "/token",
+        query_params: &[],
+        returns_json: true,
+        paging: None,
+        security: &[],
     };
 
     struct Seen {
@@ -419,6 +431,30 @@ mod tests {
             .unwrap_err();
         assert_eq!(error.status(), Some(401));
         assert_eq!(log.lock().unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn a_401_never_refreshes_an_operation_that_sends_no_credentials() {
+        let credentials = Arc::new(Tokens::default());
+        let (url, log) = serve(|_, _| (401, String::new())).await;
+        let mut request = Request::new(&TOKEN);
+        request.urlencoded("grant_type", &Some("refresh_token".to_owned()));
+        let error = transport(&url, credentials.clone())
+            .call::<Value>(request)
+            .await
+            .unwrap_err();
+        assert_eq!(error.status(), Some(401));
+        assert_eq!(credentials.refreshes.load(Ordering::SeqCst), 0);
+        let sent = log.lock().unwrap();
+        assert_eq!(sent.len(), 1);
+        assert_eq!(sent[0].body, b"grant_type=refresh_token");
+        assert!(
+            sent[0]
+                .head
+                .contains("content-type: application/x-www-form-urlencoded\r\n"),
+            "{}",
+            sent[0].head
+        );
     }
 
     #[tokio::test]

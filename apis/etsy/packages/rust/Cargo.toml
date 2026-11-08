@@ -1,0 +1,45 @@
+[package]
+name = "etsy-seller"
+version = "0.1.0-alpha.1"
+edition = "2024"
+rust-version = "1.85"
+description = "Unofficial Rust client for the Etsy Open API v3. Not affiliated with, endorsed or certified by Etsy."
+license = "Apache-2.0"
+repository = "https://github.com/fdhoff/api-sdks"
+readme = "README.md"
+keywords = ["api", "client", "seller", "marketplace", "oauth"]
+categories = ["api-bindings", "asynchronous"]
+include = ["/src", "/Cargo.toml", "/README.md", "/CHANGELOG.md", "/LICENSE", "/NOTICE"]
+
+[features]
+default = ["rustls"]
+# TLS through rustls, with the platform's certificate verifier.
+rustls = ["reqwest/rustls"]
+# TLS through the platform's library: OpenSSL on Linux, Security.framework on macOS, SChannel on Windows.
+native-tls = ["reqwest/native-tls"]
+
+[dependencies]
+base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["serde", "std"] }
+flate2 = "1.1"
+futures-core = "0.3"
+futures-util = { version = "0.3", default-features = false }
+getrandom = "0.3"
+httpdate = "1.0"
+log = "0.4"
+percent-encoding = "2.3"
+reqwest = { version = "0.13", default-features = false, features = ["http2", "multipart"] }
+serde = "1.0"
+serde_json = "1.0"
+sha2 = "0.10"
+tokio = { version = "1.43", features = ["sync", "time"] }
+url = "2.5"
+
+[dev-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
+tokio = { version = "1.43", features = ["io-util", "macros", "net", "rt"] }
+
+[[example]]
+name = "conformance-driver"
+path = "conformance/driver.rs"

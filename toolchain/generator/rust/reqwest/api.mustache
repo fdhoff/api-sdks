@@ -29,14 +29,17 @@ const {{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}: Operat
 };
 {{/operation}}
 {{#operation}}
-{{#hasQueryParams}}
+{{#vendorExtensions.x-sdk-has-params}}
 
-/// The query parameters of [`{{classname}}::{{vendorExtensions.x-sdk-method}}`]. Set only what you need.
+/// The {{#hasQueryParams}}query parameters{{#hasFormParams}} and {{/hasFormParams}}{{/hasQueryParams}}{{#hasFormParams}}form fields{{/hasFormParams}} of [`{{classname}}::{{vendorExtensions.x-sdk-method}}`]. Set only what you need.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct {{>partial_params_name}} {
 {{#queryParams}}
     pub {{{paramName}}}: Option<{{>partial_value_type}}>,
 {{/queryParams}}
+{{#formParams}}
+    pub {{{paramName}}}: Option<{{>partial_value_type}}>,
+{{/formParams}}
 }
 
 impl Params for {{>partial_params_name}} {
@@ -44,30 +47,15 @@ impl Params for {{>partial_params_name}} {
 {{#queryParams}}
         request.query("{{baseName}}", &self.{{{paramName}}});
 {{/queryParams}}
-    }
-}
-{{/hasQueryParams}}
-{{#hasFormParams}}
-
-/// The form fields of [`{{classname}}::{{vendorExtensions.x-sdk-method}}`]. Set only what you need.
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct {{>partial_params_name}} {
 {{#formParams}}
-    pub {{{paramName}}}: Option<{{>partial_value_type}}>,
-{{/formParams}}
-}
-
-impl Params for {{>partial_params_name}} {
-    fn apply(&self, request: &mut Request) {
-{{#formParams}}
-        request.form("{{baseName}}", &self.{{{paramName}}});
+        request.{{#isMultipart}}form{{/isMultipart}}{{^isMultipart}}urlencoded{{/isMultipart}}("{{baseName}}", &self.{{{paramName}}});
 {{/formParams}}
     }
 }
-{{/hasFormParams}}
+{{/vendorExtensions.x-sdk-has-params}}
 {{/operation}}
 
-/// The `{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}` operations, from [`Client::{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}`](crate::Client::{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}).
+/// The `{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}` operations, from [`Client::{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}`](crate::Client::{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}).
 #[derive(Clone, Debug)]
 pub struct {{classname}} {
     transport: Arc<Transport>,
