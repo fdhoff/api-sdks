@@ -24,6 +24,11 @@ _{{operationIdSnakeCase}}: Operation[{{{returnType}}}{{^returnType}}None{{/retur
 {{#queryParams}}
         Param("{{baseName}}", "{{paramName}}", "query"),
 {{/queryParams}}
+{{#headerParams}}
+{{#vendorExtensions.x-sdk-header-default}}
+        Param("{{baseName}}", "{{paramName}}", "header"),
+{{/vendorExtensions.x-sdk-header-default}}
+{{/headerParams}}
 {{#formParams}}
         Param("{{baseName}}", "{{paramName}}", "{{#isMultipart}}form{{/isMultipart}}{{^isMultipart}}urlencoded{{/isMultipart}}"),
 {{/formParams}}
@@ -47,6 +52,9 @@ _{{operationIdSnakeCase}}: Operation[{{{returnType}}}{{^returnType}}None{{/retur
         ({{#schemes}}Scheme("{{scheme}}", ({{#scopes}}"{{.}}", {{/scopes}})), {{/schemes}}),
 {{/vendorExtensions.x-sdk-security}}
     ),
+{{#vendorExtensions.x-sdk-host}}
+    host="{{vendorExtensions.x-sdk-host}}",
+{{/vendorExtensions.x-sdk-host}}
 )
 {{/operation}}
 
