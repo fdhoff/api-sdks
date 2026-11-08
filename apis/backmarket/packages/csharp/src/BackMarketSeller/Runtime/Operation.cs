@@ -4,8 +4,9 @@ using Microsoft.Extensions.Logging;
 namespace BackMarketSeller.Runtime;
 
 /// <summary>
-/// Where a parameter goes. <see cref="Form"/> is a multipart part, <see cref="Urlencoded"/> a form-encoded field, and
-/// <see cref="Header"/> a header that falls back to <see cref="Settings.HeaderDefaults"/>.
+/// Where a parameter goes. <see cref="Form"/> is a multipart part, <see cref="Urlencoded"/> a form-encoded field,
+/// <see cref="Header"/> a header that falls back to <see cref="Settings.HeaderDefaults"/>, and <see cref="Raw"/> a
+/// <see cref="RawBody"/> sent as the whole body.
 /// </summary>
 internal enum ParamLocation
 {
@@ -15,6 +16,7 @@ internal enum ParamLocation
     Urlencoded,
     Body,
     Header,
+    Raw,
 }
 
 internal sealed record Param(string Wire, string Name, ParamLocation Location);
@@ -37,8 +39,10 @@ internal sealed record OffsetPaging(string Items, string Total, string Offset) :
 /// <remarks>
 /// Any one requirement in <see cref="Security"/> authorizes the call; each lists schemes that must all be satisfied.
 /// <see cref="Host"/> is a key in <see cref="Settings.Hosts"/>; without one the call goes to <see cref="Settings.BaseUrl"/>.
+/// <see cref="ReturnsBinary"/> marks a success body that is a <see cref="Download"/>, and <see cref="RawBodyType"/> is the
+/// media type of a <see cref="RawBody"/> request body.
 /// </remarks>
-internal sealed record Operation(string Id, string Method, string Path, string Resource, string Name, string? Iterator, Param[] Params, bool ReturnsJson = false, Paging? Paging = null, Scheme[][]? Security = null, string? Host = null);
+internal sealed record Operation(string Id, string Method, string Path, string Resource, string Name, string? Iterator, Param[] Params, bool ReturnsJson = false, Paging? Paging = null, Scheme[][]? Security = null, string? Host = null, bool ReturnsBinary = false, string? RawBodyType = null);
 
 /// <summary>A failed response, with the credential already removed from <see cref="Text"/> and <see cref="Json"/>.</summary>
 internal sealed record ErrorContext(int Status, IReadOnlyDictionary<string, string> Headers, string Text, JsonElement? Json)
