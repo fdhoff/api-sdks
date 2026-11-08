@@ -1,0 +1,115 @@
+# Every paged operation answers `next` until its last page. The iterator copies `offset`, `limit` or
+# `continuation_token` out of `next` into its own request, and never fetches the link.
+cases:
+  - name: pagination-offset-follows-next-until-it-is-absent
+    request:
+      operation: sell_fulfillment.getOrders
+      params: { limit: 2 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { total: 3, limit: 2, offset: 0, next: 'https://api.ebay.com/sell/fulfillment/v1/order?limit=2&offset=2', orders: [{ orderId: a }, { orderId: b }] }
+        - status: 200
+          body: { total: 3, limit: 2, offset: 2, orders: [{ orderId: c }] }
+    wire:
+      - method: GET
+        path: /sell/fulfillment/v1/order
+        query: { limit: '2' }
+      - method: GET
+        path: /sell/fulfillment/v1/order
+        query: { limit: '2', offset: '2' }
+    expect:
+      result: [{ orderId: a }, { orderId: b }, { orderId: c }]
+
+  - name: pagination-items-field-is-set-per-operation
+    request:
+      operation: sell_inventory.getInventoryLocations
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { total: 2, next: '/sell/inventory/v1/location?limit=1&offset=1', locations: [{ merchantLocationKey: one }] }
+        - status: 200
+          body: { total: 2, next: null, locations: [{ merchantLocationKey: two }] }
+    wire:
+      - method: GET
+        path: /sell/inventory/v1/location
+      - method: GET
+        path: /sell/inventory/v1/location
+        query: { limit: '1', offset: '1' }
+    expect:
+      result: [{ merchantLocationKey: one }, { merchantLocationKey: two }]
+
+  - name: pagination-continuation-token-follows-next
+    request:
+      operation: commerce_notification.getDestinations
+      params: { limit: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { total: 2, next: 'https://api.ebay.com/commerce/notification/v1/destination?continuation_token=synthetic-cursor&limit=1', destinations: [{ destinationId: d1 }] }
+        - status: 200
+          body: { total: 2, destinations: [{ destinationId: d2 }] }
+    wire:
+      - method: GET
+        path: /commerce/notification/v1/destination
+        query: { limit: '1' }
+        headers: { authorization: 'Bearer {{app_token}}' }
+      - method: GET
+        path: /commerce/notification/v1/destination
+        query: { limit: '1', continuation_token: synthetic-cursor }
+    expect:
+      result: [{ destinationId: d1 }, { destinationId: d2 }]
+
+  - name: pagination-next-on-another-host-is-not-fetched
+    request:
+      operation: sell_fulfillment.getOrders
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { next: 'https://elsewhere.invalid/steal?offset=50&limit=50', orders: [{ orderId: a }] }
+        - status: 200
+          body: { orders: [{ orderId: b }] }
+    wire:
+      - method: GET
+        path: /sell/fulfillment/v1/order
+        headers: { authorization: 'Bearer {{user_token}}' }
+      - method: GET
+        path: /sell/fulfillment/v1/order
+        query: { offset: '50', limit: '50' }
+        headers: { authorization: 'Bearer {{user_token}}' }
+    expect:
+      result: [{ orderId: a }, { orderId: b }]
+
+  - name: pagination-next-that-does-not-advance-is-a-decode-error
+    request:
+      operation: sell_fulfillment.getOrders
+      params: { limit: 1, offset: 0 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { next: '/sell/fulfillment/v1/order?limit=1&offset=0', orders: [{ orderId: a }] }
+    wire:
+      - method: GET
+        path: /sell/fulfillment/v1/order
+        query: { limit: '1', offset: '0' }
+    expect:
+      error: { kind: decode }
+
+  - name: pagination-page-without-its-items-is-a-decode-error
+    request:
+      operation: sell_fulfillment.getOrders
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { total: 0 }
+    wire:
+      - method: GET
+        path: /sell/fulfillment/v1/order
+    expect:
+      error: { kind: decode }

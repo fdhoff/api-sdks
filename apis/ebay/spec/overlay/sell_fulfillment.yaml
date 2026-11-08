@@ -1,0 +1,33 @@
+# Corrections to the pinned sell_fulfillment contract. See ../../docs/spec-audit.md.
+overlay: 1.0.0
+info:
+  title: Corrections to the eBay sell_fulfillment contract
+  version: 0.1.0
+actions:
+  - description: C3. uploadEvidenceFile sends multipart form data, but declares no request body.
+    target: $.paths['/payment_dispute/{payment_dispute_id}/upload_evidence_file'].post
+    update:
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+  - description: C5. issueRefund must be signed for EU and UK sellers.
+    target: $.paths['/order/{order_id}/issue_refund'].post
+    update:
+      x-ebay-signature-required: true
+  - description: C8. fetchEvidenceContent returns the evidence file, but its schema is not a binary string.
+    target: $.paths.*.get.responses['200'].content['application/octet-stream'].schema
+    remove: true
+  - description: C8.
+    target: $.paths.*.get.responses['200'].content['application/octet-stream']
+    update:
+      schema:
+        type: string
+        format: binary

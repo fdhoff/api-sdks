@@ -1,0 +1,14 @@
+# Corrections to the pinned sell_finances contract. See ../../docs/spec-audit.md.
+overlay: 1.0.0
+info:
+  title: Corrections to the eBay sell_finances contract
+  version: 0.1.0
+actions:
+  - description: C5. Every Finances call must be signed for EU and UK sellers.
+    target: $.paths.*.get
+    update:
+      x-ebay-signature-required: true
+  - description: C6. Three operations need a scope that no flow declares.
+    target: $.components.securitySchemes.api_auth.flows.authorizationCode.scopes
+    update:
+      https://api.ebay.com/oauth/api_scope/sell.finances.earnings.read: Read order earnings

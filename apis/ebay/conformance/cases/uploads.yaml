@@ -1,0 +1,42 @@
+# Request bodies the overlay adds: multipart uploads, and the raw video upload.
+cases:
+  - name: uploads-evidence-file-is-a-multipart-file-part
+    request:
+      operation: sell_fulfillment.uploadEvidenceFile
+      params: { payment_dispute_id: D-1 }
+      multipart: { file: synthetic-evidence }
+    mock:
+      prism: {}
+    wire:
+      - method: POST
+        path: /sell/fulfillment/v1/payment_dispute/D-1/upload_evidence_file
+        headers_match: { content-type: '^multipart/form-data; boundary=' }
+        parts: { file: [synthetic-evidence] }
+    expect:
+      result_keys: [fileId]
+
+  - name: uploads-post-order-document-sends-every-field
+    request:
+      operation: commerce_media.uploadPostOrderDocument
+      multipart: { file: synthetic-label, documentUsageType: RETURN_SHIPPING_LABEL, entityType: RETURNS, entityId: '5000000001' }
+    mock:
+      responses:
+        - status: 201
+    wire:
+      - method: POST
+        path: /commerce/media/v1_beta/post_order/document
+        parts: { file: [synthetic-label], documentUsageType: [RETURN_SHIPPING_LABEL], entityType: [RETURNS], entityId: ['5000000001'] }
+    expect:
+      result: null
+
+  - name: uploads-mock-refuses-an-upload-without-its-file
+    request:
+      operation: sell_fulfillment.uploadEvidenceFile
+      params: { payment_dispute_id: D-1 }
+    mock:
+      prism: {}
+    wire:
+      - method: POST
+        path: /sell/fulfillment/v1/payment_dispute/D-1/upload_evidence_file
+    expect:
+      error: { kind: bad_request, status: 400 }

@@ -1,0 +1,95 @@
+# eBay documents no Retry-After on 429, so the client waits its rate-limit wait without one.
+cases:
+  - name: retry-429-without-retry-after-waits-then-succeeds
+    client: { rate_limit_wait_ms: 50 }
+    request:
+      operation: sell_inventory.getInventoryItem
+      params: { sku: SYNTHETIC-SKU-1 }
+    mock:
+      responses:
+        - status: 429
+          body: { errors: [{ errorId: 2001, domain: API, category: REQUEST, message: Too many requests }] }
+        - status: 200
+          body: { sku: SYNTHETIC-SKU-1 }
+    wire:
+      - method: GET
+        path: /sell/inventory/v1/inventory_item/SYNTHETIC-SKU-1
+      - method: GET
+        path: /sell/inventory/v1/inventory_item/SYNTHETIC-SKU-1
+        min_delay_ms: 40
+    expect:
+      result: { sku: SYNTHETIC-SKU-1 }
+
+  - name: retry-429-is-retried-on-a-post
+    request:
+      operation: sell_fulfillment.issueRefund
+      params: { order_id: 01-00000-00001 }
+      body: { reasonForRefund: BUYER_CANCEL }
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '0' }
+        - status: 200
+          body: { refundId: r1, refundStatus: PENDING }
+    wire:
+      - method: POST
+        path: /sell/fulfillment/v1/order/01-00000-00001/issue_refund
+        body: { reasonForRefund: BUYER_CANCEL }
+      - method: POST
+        path: /sell/fulfillment/v1/order/01-00000-00001/issue_refund
+        body: { reasonForRefund: BUYER_CANCEL }
+    expect:
+      result: { refundId: r1 }
+
+  - name: retry-429-after-every-retry-is-rate-limited
+    client: { max_retries: 1 }
+    request:
+      operation: sell_inventory.getInventoryItem
+      params: { sku: SYNTHETIC-SKU-1 }
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '0' }
+        - status: 429
+          headers: { retry-after: '0' }
+          body: { errors: [{ errorId: 2001, domain: API, category: REQUEST, message: Too many requests }] }
+    wire:
+      - method: GET
+        path: /sell/inventory/v1/inventory_item/SYNTHETIC-SKU-1
+      - method: GET
+        path: /sell/inventory/v1/inventory_item/SYNTHETIC-SKU-1
+    expect:
+      error: { kind: rate_limited, status: 429, code: 2001 }
+
+  - name: retry-server-error-on-a-post-is-not-retried
+    request:
+      operation: sell_fulfillment.issueRefund
+      params: { order_id: 01-00000-00001 }
+      body: { reasonForRefund: BUYER_CANCEL }
+    mock:
+      responses:
+        - status: 500
+          body: { errors: [{ errorId: 32100, domain: API_FULFILLMENT, category: APPLICATION, message: System error }] }
+    wire:
+      - method: POST
+        path: /sell/fulfillment/v1/order/01-00000-00001/issue_refund
+    expect:
+      error: { kind: server, status: 500, code: 32100 }
+
+  - name: retry-mock-declares-429-on-every-operation
+    request:
+      operation: sell_account_v1.getPrivileges
+    mock:
+      prism: { code: 429 }
+    wire:
+      - method: GET
+        path: /sell/account/v1/privilege
+      - method: GET
+        path: /sell/account/v1/privilege
+      - method: GET
+        path: /sell/account/v1/privilege
+      - method: GET
+        path: /sell/account/v1/privilege
+    client: { rate_limit_wait_ms: 1 }
+    expect:
+      error: { kind: rate_limited, status: 429 }

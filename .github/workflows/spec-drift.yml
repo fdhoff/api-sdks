@@ -205,3 +205,8 @@ jobs:
           else
             gh pr create --head "$BRANCH" --base main --title "Update $API upstream spec pin" --body-file "$RUNNER_TEMP/body.md"
           fi
+          # Removing an operation breaks its callers, so the run fails once the pull request is open.
+          if grep -q '^\*\*Operations were removed\*\*' "$RUNNER_TEMP/body.md"; then
+            echo "::error title=Upstream removed operations::$API lost operations upstream. See the drift pull request."
+            exit 1
+          fi

@@ -1,0 +1,12 @@
+# Corrections to the pinned sell_account_v2 contract. See ../../docs/spec-audit.md.
+overlay: 1.0.0
+info:
+  title: Corrections to the eBay sell_account_v2 contract
+  version: 0.1.0
+actions:
+  - description: C1. setUserPreferences refers to a request schema the contract does not define.
+    target: $.components.schemas
+    update:
+      SetUserPreferencesRequest:
+        type: object
+        additionalProperties: true

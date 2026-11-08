@@ -11,14 +11,30 @@ import { apiDirFromArgs, apiPaths } from './paths.mjs';
 const METHODS = ['get', 'put', 'post', 'delete', 'patch', 'head', 'options', 'trace'];
 const SECTIONS = ['schemas', 'responses', 'parameters', 'examples', 'requestBodies', 'headers', 'securitySchemes', 'links', 'callbacks'];
 
-export async function applyOverlay(spec, overlay) {
-  const { data, resultData } = await openapiFormat.openapiOverlay(spec, { overlaySet: overlay });
+// The corrected spec, and the target of each action that matched nothing.
+async function overlay(spec, actions) {
+  const { data, resultData } = await openapiFormat.openapiOverlay(spec, { overlaySet: actions });
   if (resultData.totalActions === 0) throw new Error('Overlay has no actions');
-  if (resultData.unusedActions.length > 0) {
-    const targets = resultData.unusedActions.map((action) => action.target).join(', ');
-    throw new Error(`Overlay actions matched nothing: ${targets}`);
-  }
+  return { data, unused: resultData.unusedActions.map((action) => action.target) };
+}
+
+export async function applyOverlay(spec, actions) {
+  const { data, unused } = await overlay(spec, actions);
+  if (unused.length > 0) throw new Error(`Overlay actions matched nothing: ${unused.join(', ')}`);
   return data;
+}
+
+// Applies one overlay to every contract. An action may miss some contracts, but not all of them.
+export async function applySharedOverlay(specs, actions) {
+  const corrected = [];
+  let unusedEverywhere = null;
+  for (const spec of specs) {
+    const { data, unused } = await overlay(spec, actions);
+    corrected.push(data);
+    unusedEverywhere = unusedEverywhere === null ? new Set(unused) : new Set(unused.filter((target) => unusedEverywhere.has(target)));
+  }
+  if (unusedEverywhere?.size > 0) throw new Error(`Shared overlay actions matched no contract: ${[...unusedEverywhere].join(', ')}`);
+  return corrected;
 }
 
 const operationsOf = (item) => METHODS.map((method) => item[method]).filter(Boolean);
@@ -187,21 +203,26 @@ async function writeSpec(path, spec) {
 }
 
 // A contract's overlay is optional; an API with one spec must have one.
-async function correct(bytes, overlayPath, required) {
-  const spec = parse(bytes.toString('utf8'));
+async function correct(spec, overlayPath, required) {
   if (!required && !(await exists(overlayPath))) return spec;
   return applyOverlay(spec, parse(await readFile(overlayPath, 'utf8')));
 }
 
+const readYaml = async (path) => parse(await readFile(path, 'utf8'));
+
+// With several contracts, the API's own overlay, if any, corrects every contract before each contract's overlay.
 export async function buildSpec(apiDir) {
   const specs = await ensureSpecs(apiDir);
+  const parsed = specs.map(({ bytes }) => parse(bytes.toString('utf8')));
   if (specs[0].source.name === null) {
-    await writeSpec(specs[0].paths.build, await correct(specs[0].bytes, specs[0].paths.overlay, true));
+    await writeSpec(specs[0].paths.build, await correct(parsed[0], specs[0].paths.overlay, true));
     return;
   }
+  const shared = apiPaths(apiDir).overlay;
+  const corrected = (await exists(shared)) ? await applySharedOverlay(parsed, await readYaml(shared)) : parsed;
   const contracts = [];
-  for (const { source, paths, bytes } of specs) {
-    const spec = inlineServerPath(await correct(bytes, paths.overlay, false));
+  for (const [index, { source, paths }] of specs.entries()) {
+    const spec = inlineServerPath(await correct(corrected[index], paths.overlay, false));
     await writeSpec(paths.build, spec);
     contracts.push({ name: source.name, spec });
   }
