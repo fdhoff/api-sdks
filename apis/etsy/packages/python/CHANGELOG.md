@@ -11,5 +11,5 @@ The first alpha, not yet published.
 * `x-api-key` on every call, and the OAuth access token only on calls that need it.
 * OAuth 2 helpers: an authorization URL with PKCE S256 and state, code exchange and refresh. Each new token pair goes to an `on_token` callback.
 * After a 401, the access token is refreshed once and the call retried. Concurrent calls, and an explicit `oauth.refresh()`, share one refresh.
-* Only the most recent tokens and codes are kept for redaction, so a long-lived client does not grow.
+* The current tokens are always redacted. Of earlier tokens and codes only the most recent are kept, so a long-lived client does not grow.
 * Offset pagination iterators, retries, rate-limit handling, typed errors and redacted logging.

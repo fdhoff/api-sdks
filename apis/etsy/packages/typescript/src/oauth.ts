@@ -149,7 +149,8 @@ export class EtsyCredentials implements Credentials {
   }
 
   secrets(): readonly string[] {
-    return [this.apiKey, this.#sharedSecret, ...this.#seen];
+    const current = [this.#accessToken, this.#refreshToken].filter((value): value is string => Boolean(value));
+    return [this.apiKey, this.#sharedSecret, ...current, ...this.#seen];
   }
 
   /** Keep values out of logs and errors from now on, such as a code about to be exchanged. Only the most recent

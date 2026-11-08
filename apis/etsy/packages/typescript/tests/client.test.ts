@@ -302,14 +302,19 @@ test('an explicit refresh and a 401 share one token request', async () => {
   assert.equal(tokens.length, 1);
 });
 
-test('credentials keep only recent values for redaction', () => {
-  const credentials = new EtsyCredentials({ apiKey: KEY, sharedSecret: SHARED, accessToken: ACCESS });
+test('credentials keep the current tokens and only recent values for redaction', () => {
+  const credentials = new EtsyCredentials({
+    apiKey: KEY,
+    sharedSecret: SHARED,
+    accessToken: ACCESS,
+    refreshToken: REFRESH,
+  });
   const values = Array.from({ length: 100 }, (_, index) => `synthetic-old-${index}`);
   credentials.remember(...values);
   const secrets = credentials.secrets();
-  assert.ok(secrets.length < 20);
-  assert.ok(secrets.includes(KEY) && secrets.includes(SHARED) && secrets.includes('synthetic-old-99'));
-  assert.equal(secrets.includes(ACCESS), false);
+  assert.ok(secrets.length < 25);
+  for (const value of [KEY, SHARED, ACCESS, REFRESH, 'synthetic-old-99']) assert.ok(secrets.includes(value), value);
+  assert.equal(secrets.includes('synthetic-old-0'), false);
   assert.equal('refresher' in credentials, false);
 });
 

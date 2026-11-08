@@ -155,7 +155,8 @@ class EtsyCredentials(Credentials):
 
     def secrets(self) -> Iterable[str]:
         with self._lock:
-            return [self.api_key, self._shared_secret, *self._seen]
+            current = [secret for secret in (self._access_token, self._refresh_token) if secret]
+            return [self.api_key, self._shared_secret, *current, *self._seen]
 
     def remember(self, *values: str) -> None:
         """Keep values out of logs and errors from now on, such as a code about to be exchanged. Only the

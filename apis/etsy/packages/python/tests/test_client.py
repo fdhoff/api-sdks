@@ -407,13 +407,13 @@ def test_async_explicit_refresh_and_a_401_share_one_token_request() -> None:
     assert handler.paths().count(TOKEN_PATH) == 1
 
 
-def test_credentials_keep_only_recent_values_for_redaction() -> None:
-    credentials = EtsyCredentials(KEY, SECRET, ACCESS, None, None)
+def test_credentials_keep_current_tokens_and_only_recent_values_for_redaction() -> None:
+    credentials = EtsyCredentials(KEY, SECRET, ACCESS, REFRESH, None)
     credentials.remember(*(f"synthetic-old-{index}" for index in range(100)))
     secrets = list(credentials.secrets())
-    assert len(secrets) < 20
-    assert {KEY, SECRET, "synthetic-old-99"} <= set(secrets)
-    assert ACCESS not in secrets
+    assert len(secrets) < 25
+    assert {KEY, SECRET, ACCESS, REFRESH, "synthetic-old-99"} <= set(secrets)
+    assert "synthetic-old-0" not in secrets
 
 
 def test_async_exchange_code_and_form_bodies() -> None:
