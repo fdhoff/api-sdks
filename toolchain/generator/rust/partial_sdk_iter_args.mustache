@@ -1,0 +1,1 @@
+&self{{#pathParams}}, {{{paramName}}}: {{>partial_path_type}}{{/pathParams}}{{#bodyParam}}, body: {{^required}}impl Into<Option<&'b {{/required}}{{#required}}&{{/required}}{{>partial_value_type}}{{^required}}>>{{/required}}{{/bodyParam}}{{#vendorExtensions.x-sdk-has-params}}, params: &{{>partial_params_name}}{{/vendorExtensions.x-sdk-has-params}}

@@ -216,6 +216,10 @@ impl MessageSigner {
     }
 
     /// Reads `created` from this clock instead of the system's.
+    #[allow(
+        dead_code,
+        reason = "an API that signs with the system clock uses only its tests' clocks"
+    )]
     pub fn with_clock(mut self, clock: impl Fn() -> SystemTime + Send + Sync + 'static) -> Self {
         self.clock = Box::new(clock);
         self

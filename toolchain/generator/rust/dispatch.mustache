@@ -1,9 +1,15 @@
 {{>partial_header}}
 
 #[allow(unused_imports)]
-use {{packageName}}::*;
+use {{packageName}}::{{#sdkModule}}{{.}}::{{/sdkModule}}*;
+{{#sdkModule}}
+use {{packageName}}::{Client, Error};
+{{/sdkModule}}
 use serde_json::{Map, Value};
 
+{{#sdkModule}}
+#[allow(unused_imports)]
+{{/sdkModule}}
 use crate::{Case, arg, body, collect, files, output, param};
 
 /// A form-encoded body's fields arrive as the case's body.
@@ -27,16 +33,16 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
 {{>partial_dispatch_inputs}}
 {{! A package with binary bodies defines raw_body and download_output in its driver. }}
 {{#vendorExtensions.x-sdk-binary-response}}
-            crate::download_output(client.{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}().{{vendorExtensions.x-sdk-method}}({{>partial_dispatch_args}}).await).await
+            crate::download_output(client.{{#sdkModule}}{{.}}().{{/sdkModule}}{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}().{{vendorExtensions.x-sdk-method}}({{>partial_dispatch_args}}).await).await
 {{/vendorExtensions.x-sdk-binary-response}}
 {{^vendorExtensions.x-sdk-binary-response}}
-            output(client.{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}().{{vendorExtensions.x-sdk-method}}({{>partial_dispatch_args}}).await)
+            output(client.{{#sdkModule}}{{.}}().{{/sdkModule}}{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}().{{vendorExtensions.x-sdk-method}}({{>partial_dispatch_args}}).await)
 {{/vendorExtensions.x-sdk-binary-response}}
         }
 {{#vendorExtensions.x-sdk-iterator}}
         ("{{operationIdOriginal}}", true) => {
 {{>partial_dispatch_inputs}}
-            collect(client.{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}().{{.}}({{>partial_dispatch_args}})).await
+            collect(client.{{#sdkModule}}{{.}}().{{/sdkModule}}{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}().{{.}}({{>partial_dispatch_args}})).await
         }
 {{/vendorExtensions.x-sdk-iterator}}
 {{/operation}}

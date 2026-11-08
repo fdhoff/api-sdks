@@ -1,5 +1,33 @@
 {{>partial_header}}
 
+{{#sdkModule}}
+use std::sync::Arc;
+
+use super::apis::*;
+use crate::runtime::Transport;
+
+/// This API's operations, grouped by resource, from [`Client::{{.}}`](crate::Client::{{.}}).
+#[derive(Clone, Debug)]
+pub struct Resources {
+    transport: Arc<Transport>,
+}
+
+impl Resources {
+    pub(crate) fn new(transport: Arc<Transport>) -> Self {
+        Self { transport }
+    }
+{{#apiInfo}}
+{{#apis}}
+
+    /// The `{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}` operations.
+    pub fn {{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}(&self) -> {{classname}} {
+        {{classname}}::new(self.transport.clone())
+    }
+{{/apis}}
+{{/apiInfo}}
+}
+{{/sdkModule}}
+{{^sdkModule}}
 use crate::Client;
 use crate::apis::*;
 
@@ -13,3 +41,4 @@ impl Client {
 {{/apis}}
 {{/apiInfo}}
 }
+{{/sdkModule}}
