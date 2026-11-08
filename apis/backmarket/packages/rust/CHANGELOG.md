@@ -15,6 +15,8 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * `rustls`, the default, and `native-tls` features choose the TLS library.
 * `ClientBuilder::http_client` takes your own `reqwest::Client`, and the crate re-exports `reqwest` and `chrono`.
 * Docs: with `http_client`, a same-host 307 or 308 under reqwest's default policy resends a write, and a reqwest retry policy can resend one. With neither TLS feature, every `https` call fails as a connection error.
+* An empty 204 response returns the type's default, even where the spec also declares JSON, instead of an `ErrorKind::Decode` error.
+* Binary response and request bodies are read and sent as raw bytes where the spec declares them. No operation in this package does yet.
 
 ## 0.1.0-alpha.1 (2026-11-07)
 
