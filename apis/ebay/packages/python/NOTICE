@@ -1,0 +1,14 @@
+api-sdks
+Copyright 2026 Foster Hoff
+
+This project is unofficial. eBay is a trademark of eBay Inc. This project is
+not affiliated with, endorsed by or sponsored by eBay Inc.
+
+The Apache License, Version 2.0 covers only this project's own code.
+
+eBay's OpenAPI contracts are not included in this repository. They are fetched
+at build time from https://developer.ebay.com/, belong to eBay, and are not
+covered by this licence. Their use is governed by the eBay API License
+Agreement.
+
+This licence grants no right to the eBay name.

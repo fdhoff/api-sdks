@@ -1,0 +1,18 @@
+# Public names for the Account API v2, keyed by operationId. Summaries are ours, not upstream's.
+getRateTable: { resource: rate_tables, method: get, summary: Get one shipping rate table. }
+updateShippingCost: { resource: rate_tables, method: update_shipping_cost, summary: Update the shipping costs in a rate table. }
+
+getPayoutSettings: { resource: payout_settings, method: get, summary: Get the seller's payout settings. }
+updatePayoutPercentage: { resource: payout_settings, method: update_percentage, summary: Split payouts between the seller's payout accounts. }
+
+getCombinedShippingRules: { resource: combined_shipping_rules, method: get, summary: Get the seller's combined shipping rules. }
+createCalculatedShippingRules: { resource: combined_shipping_rules, method: create_calculated, summary: Create calculated combined shipping rules. }
+updateCalculatedShippingRules: { resource: combined_shipping_rules, method: update_calculated, summary: Update calculated combined shipping rules. }
+createFlatShippingRules: { resource: combined_shipping_rules, method: create_flat, summary: Create flat-rate combined shipping rules. }
+updateFlatShippingRules: { resource: combined_shipping_rules, method: update_flat, summary: Update flat-rate combined shipping rules. }
+createPromotionalShippingRule: { resource: combined_shipping_rules, method: create_promotional, summary: Create a promotional shipping rule. }
+updatePromotionalShippingRule: { resource: combined_shipping_rules, method: update_promotional, summary: Update a promotional shipping rule. }
+updateCombinedPayments: { resource: combined_shipping_rules, method: update_combined_payments, summary: Set whether buyers can pay for several items at once. }
+
+getUserPreferences: { resource: user_preferences, method: get, summary: Get the seller's account preferences. }
+setUserPreferences: { resource: user_preferences, method: set, summary: Update the seller's account preferences. }
