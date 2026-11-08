@@ -50,6 +50,29 @@ function checkBody(expected, actual, label, failures) {
   if (!isDeepStrictEqual(got, expected)) failures.push(`${label}: body is ${actual}`);
 }
 
+// Each part's text by field name, in the order sent.
+export function multipartParts(contentType, body) {
+  const boundary = /boundary=(?:"([^"]+)"|([^;\s]+))/i.exec(contentType ?? '');
+  if (!boundary) return null;
+  const parts = {};
+  for (const chunk of body.split(`--${boundary[1] ?? boundary[2]}`).slice(1)) {
+    if (chunk.startsWith('--')) break;
+    const split = chunk.indexOf('\r\n\r\n');
+    if (split === -1) return null;
+    const name = /^content-disposition:.*?\bname=(?:"([^"]*)"|([^;\s]+))/im.exec(chunk.slice(0, split));
+    if (!name) return null;
+    (parts[name[1] ?? name[2]] ??= []).push(chunk.slice(split + 4).replace(/\r\n$/, ''));
+  }
+  return parts;
+}
+
+function checkParts(expected, actual, label, failures) {
+  if (expected === undefined) return;
+  const got = multipartParts(actual.headers['content-type'], actual.body);
+  if (got === null) failures.push(`${label}: body is not multipart: ${actual.body}`);
+  else if (!isDeepStrictEqual(got, expected)) failures.push(`${label}: parts are ${JSON.stringify(got)}`);
+}
+
 function checkWire(wire, requests, failures) {
   if (requests.length !== wire.length) {
     const seen = requests.map((request) => `${request.method} ${request.path}`).join(', ');
@@ -66,6 +89,7 @@ function checkWire(wire, requests, failures) {
     }
     checkHeaders(expected, actual, label, failures);
     checkBody(expected.body, actual.body, label, failures);
+    checkParts(expected.parts, actual, label, failures);
     if (expected.min_delay_ms !== undefined) {
       const delay = actual.at - (requests[index - 1]?.at ?? actual.at);
       if (delay < expected.min_delay_ms) failures.push(`${label}: sent after ${delay}ms`);

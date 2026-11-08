@@ -26,6 +26,8 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - uses: ./.github/actions/upstream-spec
+        with:
+          save: true
       - run: npm run spec:build
       - run: npm run spec:lint
       - run: npm test

@@ -93,7 +93,9 @@ function buildRequest(client, { operation, params = {}, body, multipart }) {
   const init = { method, headers, redirect: 'manual' };
   if (multipart) {
     init.body = new FormData();
-    for (const [name, value] of Object.entries(multipart)) init.body.append(name, value);
+    for (const [name, value] of Object.entries(multipart)) {
+      for (const item of Array.isArray(value) ? value : [value]) init.body.append(name, item);
+    }
   } else if (body !== undefined) {
     init.body = JSON.stringify(body);
     headers['Content-Type'] = 'application/json';

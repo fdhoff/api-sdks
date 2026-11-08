@@ -56,6 +56,8 @@ jobs:
           java-version: 21
       - run: npm ci --ignore-scripts
       - uses: ./.github/actions/upstream-spec
+        with:
+          save: true
       - run: npm run spec:build
       - name: Generated code matches the spec, templates and runtime
         run: |

@@ -53,6 +53,8 @@ jobs:
           java-version: 21
       - run: npm ci --ignore-scripts
       - uses: ./.github/actions/upstream-spec
+        with:
+          save: true
       - run: npm run spec:build
       - run: npm ci --ignore-scripts
         working-directory: apis/backmarket/packages/typescript

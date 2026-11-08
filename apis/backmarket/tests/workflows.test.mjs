@@ -40,6 +40,29 @@ test('the spec cache is keyed by the pinned hash', async () => {
   assert.equal(save.with.key, 'upstream-spec-${{ steps.pin.outputs.upstream }}');
 });
 
+test('one job per workflow saves the spec cache after a miss', async () => {
+  const savers = {};
+  for (const { name, workflow } of await workflows()) {
+    for (const [id, job] of Object.entries(workflow.jobs)) {
+      for (const step of job.steps ?? []) {
+        if (step.uses === SPEC_ACTION && step.with?.save === true) (savers[name] ??= []).push(id);
+      }
+    }
+  }
+  assert.deepEqual(savers, {
+    'ci.yml': ['spec'],
+    'release-csharp.yml': ['build'],
+    'release-python.yml': ['build'],
+    'release-rust.yml': ['build'],
+    'release-typescript.yml': ['build'],
+  });
+});
+
+test('crates.io publishes with trusted publishing only', async () => {
+  const text = await readFile(join(WORKFLOWS, 'release-rust.yml'), 'utf8');
+  assert.doesNotMatch(text, /secrets\.CARGO_REGISTRY_TOKEN/);
+});
+
 test('every publish step can be rerun after it succeeded', async () => {
   const publishing = Object.fromEntries(
     (await workflows())
