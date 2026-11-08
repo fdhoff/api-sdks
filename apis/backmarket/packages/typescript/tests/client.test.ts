@@ -589,7 +589,7 @@ test("offset paging starts at the caller's offset and stops at an empty page", a
 });
 
 test('offset paging rejects a page that is not an object', async () => {
-  const { pages } = pagesFor(() => json([]));
+  const { pages } = pagesFor(() => json('page'));
   await assert.rejects(pages.all(offsetList), DecodeError);
 });
 

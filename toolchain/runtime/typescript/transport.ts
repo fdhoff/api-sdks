@@ -234,6 +234,7 @@ function nextOffset(
 
 /** The parameters of the page after this one, or undefined after the last. */
 function nextParams(operation: Operation, params: Params, page: unknown, received: number): Params | undefined {
+  // TODO: an array page passes this check and ends the iteration quietly, where the other runtimes reject it.
   if (!isObject(page)) throw new DecodeError('A page is not a JSON object');
   const paging = operation.paging ?? NEXT_LINK;
   return paging.style === 'offset'
