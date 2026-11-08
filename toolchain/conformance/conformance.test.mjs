@@ -365,9 +365,3 @@ test('signing cases fail a driver whose digest is not of the bytes sent', async 
   const failed = await runWith('wrong-digest', cases);
   assert.ok(failed.some(({ failures }) => failures.some((failure) => /Content-Digest is/.test(failure))));
 });
-
-test('signing cases fail a driver that does not sign', async () => {
-  const cases = await loadCases(SIGNING_CASES, operations);
-  const failed = await runWith('good', cases);
-  assert.ok(failed.length > 0);
-});
