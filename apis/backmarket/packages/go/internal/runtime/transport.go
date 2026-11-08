@@ -61,6 +61,10 @@ type Operation struct {
 	Iterator    string
 	PathParams  []string
 	QueryParams []string
+	// HeaderParams are the header arguments, each falling back to the client's default.
+	HeaderParams []string
+	// Host is the key of the host that serves the operation in [Settings.Hosts]. Empty means BaseURL.
+	Host string
 	// ReturnsJSON is set when the spec declares a JSON success body, so an empty one is an error.
 	ReturnsJSON bool
 	// Paging is how Iterator walks pages. Nil means the default [NextLink].
@@ -100,7 +104,12 @@ func Lookup(id string) (*Operation, bool) {
 
 // Settings configures a Transport.
 type Settings struct {
-	BaseURL        string
+	BaseURL string
+	// Hosts maps each host key to its base URL, for operations that name one.
+	Hosts map[string]string
+	// HeaderDefaults holds the value of a header argument that a call leaves unset, matched without
+	// regard to case.
+	HeaderDefaults map[string]string
 	Credentials    Credentials
 	Headers        http.Header
 	ToError        func(ErrorContext) *Error
@@ -222,8 +231,44 @@ func (t *Transport) failure(status int, header http.Header, body []byte) *Error 
 	return t.settings.ToError(ErrorContext{Status: status, Header: header, Text: text, JSON: parsed})
 }
 
+// baseURL is the root of the operation's host. A host missing from the settings is an error, so
+// nothing is ever sent outside them.
+func (t *Transport) baseURL(operation *Operation) (string, error) {
+	if operation.Host == "" {
+		return t.settings.BaseURL, nil
+	}
+	base, found := t.settings.Hosts[operation.Host]
+	if !found {
+		return "", fmt.Errorf("no base URL for host %q", operation.Host)
+	}
+	return base, nil
+}
+
+func (t *Transport) headerDefault(name string) (string, bool) {
+	for key, value := range t.settings.HeaderDefaults {
+		if strings.EqualFold(key, name) {
+			return value, true
+		}
+	}
+	return "", false
+}
+
+// addHeaderParams sets each header argument the call passed, or else the client's default for it.
+func (t *Transport) addHeaderParams(header http.Header, built *request) {
+	for _, name := range built.operation.HeaderParams {
+		if values, passed := built.headers[name]; passed {
+			header.Del(name)
+			for _, value := range values {
+				header.Add(name, value)
+			}
+		} else if value, found := t.headerDefault(name); found {
+			header.Set(name, value)
+		}
+	}
+}
+
 // authorize builds one attempt's request and lets the credentials sign it.
-func (t *Transport) authorize(ctx context.Context, built *request) (*AuthRequest, error) {
+func (t *Transport) authorize(ctx context.Context, built *request, base string) (*AuthRequest, error) {
 	header := http.Header{}
 	for name, values := range t.settings.Headers {
 		header[name] = slices.Clone(values)
@@ -232,7 +277,8 @@ func (t *Transport) authorize(ctx context.Context, built *request) (*AuthRequest
 	if built.contentType != "" {
 		header.Set("Content-Type", built.contentType)
 	}
-	auth := &AuthRequest{Method: built.method, URL: built.url(t.settings.BaseURL), Header: header, Body: built.body, Operation: built.operation}
+	t.addHeaderParams(header, built)
+	auth := &AuthRequest{Method: built.method, URL: built.url(base), Header: header, Body: built.body, Operation: built.operation}
 	if t.settings.Credentials == nil {
 		return auth, nil
 	}
@@ -350,11 +396,15 @@ func sleep(ctx context.Context, delay time.Duration) error {
 }
 
 func (t *Transport) fetch(ctx context.Context, built *request) (*response, error) {
+	base, err := t.baseURL(built.operation)
+	if err != nil {
+		return nil, err
+	}
 	refreshed := false
 	for tries := 0; ; tries++ {
-		t.log(ctx, slog.LevelDebug, "request", slog.String("method", built.method), slog.String("url", built.url(t.settings.BaseURL)))
+		t.log(ctx, slog.LevelDebug, "request", slog.String("method", built.method), slog.String("url", built.url(base)))
 		generation := t.generation.Load()
-		auth, err := t.authorize(ctx, built)
+		auth, err := t.authorize(ctx, built, base)
 		if err != nil {
 			return nil, err
 		}
