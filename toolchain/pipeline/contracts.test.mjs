@@ -1,9 +1,11 @@
 // An API built from several upstream contracts, with synthetic fixtures only.
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { parse, stringify } from 'yaml';
 import { buildSpec, inlineServerPath, mergeContracts } from './build-spec.mjs';
 import { download, ensureSpec, ensureSpecs, pin, sha256, verify } from './fetch-spec.mjs';
@@ -169,6 +171,13 @@ test('inlineServerPath moves the server path into every path and keeps each serv
   assert.deepEqual([relative.servers, Object.keys(relative.paths)], [[{ url: '/' }], ['/v2/x']]);
 });
 
+test('inlineServerPath counts an operation with no server anywhere as served from /', () => {
+  const served = { servers: [{ url: `${HOST}/v1` }], get: {} };
+  assert.deepEqual(Object.keys(inlineServerPath({ paths: { '/a': structuredClone(served), '/b': { get: { servers: served.servers } } } }).paths), ['/v1/a', '/v1/b']);
+  assert.throws(() => inlineServerPath({ paths: { '/a': structuredClone(served), '/b': { get: {} } } }), /Servers disagree on their path: \/, \/v1$/);
+  assert.throws(() => inlineServerPath({ paths: { '/a': { get: { servers: served.servers }, post: {} } } }), /Servers disagree on their path: \/, \/v1$/);
+});
+
 test('mergeContracts keeps colliding schema names apart and every reference pointing at its own', () => {
   const merged = mergeContracts([
     { name: 'alpha', spec: inlineServerPath(contract('/alpha/v1', 'items')) },
@@ -193,6 +202,36 @@ test('mergeContracts rewrites discriminator mappings and refuses a path two cont
   const merged = mergeContracts([{ name: 'alpha', spec: pets() }]);
   assert.deepEqual(merged.components.schemas['alpha.Pet'].discriminator.mapping, { cat: '#/components/schemas/alpha.Cat' });
   assert.throws(() => mergeContracts([{ name: 'alpha', spec: pets() }, { name: 'beta', spec: pets() }]), /Contracts alpha and beta both declare \/pets/);
+});
+
+test('mergeContracts spells out bare and implicit discriminator mappings before renaming the schemas', () => {
+  const ref = (name) => ({ $ref: `#/components/schemas/${name}` });
+  const original = {
+    paths: {
+      '/pets': {
+        get: { responses: { 200: { description: 'OK', content: { 'application/json': { schema: { oneOf: [ref('Cat')], discriminator: { propertyName: 'kind' } } } } } } },
+      },
+    },
+    components: {
+      schemas: {
+        Pet: { discriminator: { propertyName: 'kind', mapping: { cat: 'Cat' } } },
+        Cat: { allOf: [ref('Pet')] },
+        Dog: { allOf: [ref('Pet')] },
+        Pick: { oneOf: [ref('Cat'), ref('Dog')], discriminator: { propertyName: 'kind', mapping: { dog: '#/components/schemas/Dog' } } },
+        Plain: { discriminator: { propertyName: 'kind' } },
+      },
+    },
+  };
+  const before = structuredClone(original);
+  const merged = mergeContracts([{ name: 'alpha', spec: original }]);
+  const schemas = merged.components.schemas;
+  const to = (name) => `#/components/schemas/alpha.${name}`;
+  assert.deepEqual(schemas['alpha.Pet'].discriminator.mapping, { cat: to('Cat'), Cat: to('Cat'), Dog: to('Dog') });
+  assert.deepEqual(schemas['alpha.Pick'].discriminator.mapping, { dog: to('Dog'), Cat: to('Cat'), Dog: to('Dog') });
+  assert.equal(schemas['alpha.Plain'].discriminator.mapping, undefined);
+  const inline = merged.paths['/pets'].get.responses[200].content['application/json'].schema;
+  assert.deepEqual(inline.discriminator.mapping, { Cat: to('Cat') });
+  assert.deepEqual(original, before);
 });
 
 test('buildSpec builds each contract on its own, then one merged document for the mock', async (t) => {
@@ -245,6 +284,30 @@ test('renderContracts names the contracts that changed and warns when operations
   assert.doesNotMatch(text, /Contract `alpha`/);
   assert.equal(renderContracts([{ name: 'alpha', before: alpha, after: alpha }]), 'No contract changed.');
   assert.doesNotMatch(renderContracts([{ name: 'alpha', before: alpha, after: { ...alpha, info: { version: '2' } } }]), /removed/);
+});
+
+test('the spec-diff command compares a single cached spec or each contract with its old copy', async (t) => {
+  const script = fileURLToPath(new URL('./spec-diff.mjs', import.meta.url));
+  const specDiff = (dir, pinned) => execFileSync(process.execPath, [script, dir, pinned], { encoding: 'utf8' });
+  const alpha = contract('/alpha/v1', 'items');
+  const shrunk = { ...alpha, info: { version: '2.0.0' }, paths: {} };
+
+  const single = await apiDir(t, { url: URLS.alpha, sha256: 'unused' });
+  await writeFile(join(single, 'spec/upstream/openapi.yaml'), stringify(shrunk));
+  await writeFile(join(single, 'pinned.yaml'), stringify(alpha));
+  const text = specDiff(single, join(single, 'pinned.yaml'));
+  assert.match(text, /^`info\.version` moved from `1\.0\.0` to `2\.0\.0`\.\n\n### Operations\n\nRemoved:\n\n\* `GET \/items`/);
+  assert.doesNotMatch(text, /Contract/);
+  assert.match(specDiff(single, join(single, 'missing.yaml')), /^No copy of the previously pinned spec was cached/);
+
+  const several = await apiDir(t);
+  await mkdir(join(several, 'pinned'));
+  for (const [name, spec] of [['alpha', alpha], ['beta', contract('/beta/v2', 'orders')]]) {
+    await mkdir(dirname(contractPaths(several, name).spec), { recursive: true });
+    await writeFile(contractPaths(several, name).spec, stringify(name === 'alpha' ? shrunk : spec));
+    await writeFile(join(several, 'pinned', `${name}.yaml`), stringify(spec));
+  }
+  assert.match(specDiff(several, join(several, 'pinned')), /^Changed contracts: `alpha`\./);
 });
 
 test('contractConfigs gives each contract its own sub-module settings over the package defaults', () => {

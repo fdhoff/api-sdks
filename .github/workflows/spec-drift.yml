@@ -156,8 +156,16 @@ jobs:
           UPSTREAM: ${{ steps.pin.outputs.upstream }}
         run: |
           upstream=$UPSTREAM
+          # An API built from several contracts names each contract's pin, since $UPSTREAM hashes them all.
+          pins=$(jq -r '.sources[]? | "\(.name) \(.sha256)"' "$LOCK")
           {
-            echo "The upstream spec changed. This moves the pin to \`$upstream\` and regenerates the clients."
+            if [ -n "$pins" ]; then
+              echo "The upstream spec changed. This moves each contract's pin and regenerates the clients:"
+              echo
+              while read -r name hash; do echo "* \`$name\`: \`$hash\`"; done <<< "$pins"
+            else
+              echo "The upstream spec changed. This moves the pin to \`$upstream\` and regenerates the clients."
+            fi
             echo
             if [ "$BUILD" != success ]; then
               echo "**The overlay no longer applies, so the clients were not regenerated.** Fix the overlay under \`apis/$API/spec/\` on this branch, then regenerate. Details are in the [drift run]($RUN_URL)."
@@ -185,7 +193,11 @@ jobs:
           git checkout -B "$BRANCH"
           git add "$LOCK"
           if [ -d "$PACKAGES" ]; then git add "$PACKAGES"; fi
-          git commit --quiet -m "Update $API upstream spec pin to ${upstream:0:12}"
+          if [ -n "$pins" ]; then
+            git commit --quiet -m "Update $API upstream spec pins" -m "$(while read -r name hash; do echo "$name ${hash:0:12}"; done <<< "$pins")"
+          else
+            git commit --quiet -m "Update $API upstream spec pin to ${upstream:0:12}"
+          fi
           gh auth setup-git
           git push --force origin "$BRANCH"
           if [ -n "$OPEN_PR" ]; then

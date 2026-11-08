@@ -58,10 +58,13 @@ function splitServer(server) {
 }
 
 // Moves the path every server shares into the paths, leaving each server its origin, so contracts that
-// share a host can share one client and one mock. Servers that disagree on the path are refused.
+// share a host can share one client and one mock. Servers that disagree on the path are refused, and an
+// operation that declares no server anywhere has the implicit `/`.
 export function inlineServerPath(spec) {
   const holders = [spec, ...Object.values(spec.paths ?? {}).flatMap((item) => [item, ...operationsOf(item)])].filter((node) => node.servers);
   const prefixes = new Set();
+  const unserved = !spec.servers && Object.values(spec.paths ?? {}).some((item) => !item.servers && operationsOf(item).some((operation) => !operation.servers));
+  if (unserved) prefixes.add('');
   for (const holder of holders) {
     holder.servers = holder.servers.map((server) => {
       const split = splitServer(server);
@@ -69,7 +72,7 @@ export function inlineServerPath(spec) {
       return split.server;
     });
   }
-  if (prefixes.size > 1) throw new Error(`Servers disagree on their path: ${[...prefixes].join(', ')}`);
+  if (prefixes.size > 1) throw new Error(`Servers disagree on their path: ${[...prefixes].map((prefix) => prefix || '/').join(', ')}`);
   const [prefix = ''] = prefixes;
   spec.paths = Object.fromEntries(Object.entries(spec.paths ?? {}).map(([path, item]) => [`${prefix}${path}`, item]));
   return spec;
@@ -93,7 +96,37 @@ function prefixRefs(node, prefix) {
   );
 }
 
-const prefixSecurity = (security, prefix) =>
+const SCHEMA_REF = '#/components/schemas/';
+
+// A discriminator may map values to bare schema names, or leave values implicit as the names of its oneOf or
+// anyOf schemas or of the schemas that extend it with allOf. Renaming the schemas breaks both, so each is
+// spelled out as a reference first.
+function explicitMappings(original) {
+  const spec = structuredClone(original);
+  const schemas = spec.components?.schemas ?? {};
+  const extending = (parent) =>
+    Object.keys(schemas).filter((name) => schemas[name]?.allOf?.some((item) => item?.$ref === `${SCHEMA_REF}${parent}`));
+  const spell = (node, name) => {
+    const mapping = Object.fromEntries(
+      Object.entries(node.discriminator.mapping ?? {}).map(([value, target]) => [value, /[#/]/.test(target) ? target : `${SCHEMA_REF}${target}`]),
+    );
+    const named = [...(node.oneOf ?? []), ...(node.anyOf ?? [])].map((item) => item?.$ref).filter((ref) => ref?.startsWith(SCHEMA_REF));
+    for (const schema of [...named.map((ref) => ref.slice(SCHEMA_REF.length)), ...(name ? extending(name) : [])]) {
+      mapping[schema] ??= `${SCHEMA_REF}${schema}`;
+    }
+    if (Object.keys(mapping).length > 0) node.discriminator = { ...node.discriminator, mapping };
+  };
+  const visit = (node) => {
+    if (node === null || typeof node !== 'object') return;
+    if (!Array.isArray(node) && node.discriminator) spell(node);
+    Object.values(node).forEach(visit);
+  };
+  for (const [name, schema] of Object.entries(schemas)) if (schema?.discriminator) spell(schema, name);
+  visit(spec);
+  return spec;
+}
+
+const prefixSecurity =(security, prefix) =>
   security.map((requirement) => Object.fromEntries(Object.entries(requirement).map(([scheme, scopes]) => [`${prefix}${scheme}`, scopes])));
 
 // One document for Prism and Spectral. Each contract's component names and operation IDs get its name and a
@@ -113,7 +146,7 @@ export function mergeContracts(contracts) {
   const owners = {};
   for (const { name, spec: original } of contracts) {
     const prefix = `${name}.`;
-    const spec = prefixRefs(original, prefix);
+    const spec = prefixRefs(explicitMappings(original), prefix);
     for (const section of SECTIONS) {
       for (const [key, value] of Object.entries(spec.components?.[section] ?? {})) {
         (merged.components[section] ??= {})[`${prefix}${key}`] = value;
