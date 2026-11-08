@@ -4,6 +4,9 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* An empty 204 response now returns `None`, and ends an iteration, instead of raising `DecodeError` where the operation also declares a JSON success.
+* Method docstrings show apostrophes as written, not as `&#39;`.
+
 ## 0.1.0a1 (2026-11-08)
 
 The first alpha.

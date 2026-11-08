@@ -491,7 +491,7 @@ class ListingsApi(Resource):
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
         keywords: Optional[StrictStr] = None,
     ) -> ShopListings:
-        """List one page of a shop&#39;s active listings."""
+        """List one page of a shop's active listings."""
         return self._call(
             _find_all_active_listings_by_shop,
             shop_id=shop_id,
@@ -601,7 +601,7 @@ class ListingsApi(Resource):
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
         legacy: Optional[StrictBool] = None,
     ) -> ShopListings:
-        """List one page of a shop&#39;s featured listings."""
+        """List one page of a shop's featured listings."""
         return self._call(
             _get_featured_listings_by_shop,
             shop_id=shop_id,
@@ -678,7 +678,7 @@ class ListingsApi(Resource):
         sort_order: Optional[StrictStr] = None,
         includes: Optional[List[StrictStr]] = None,
     ) -> ShopListingsWithAssociations:
-        """List one page of a shop&#39;s listings in any state."""
+        """List one page of a shop's listings in any state."""
         return self._call(
             _get_listings_by_shop,
             shop_id=shop_id,
@@ -1036,7 +1036,7 @@ class AsyncListingsApi(AsyncResource):
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
         keywords: Optional[StrictStr] = None,
     ) -> ShopListings:
-        """List one page of a shop&#39;s active listings."""
+        """List one page of a shop's active listings."""
         return await self._call(
             _find_all_active_listings_by_shop,
             shop_id=shop_id,
@@ -1146,7 +1146,7 @@ class AsyncListingsApi(AsyncResource):
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
         legacy: Optional[StrictBool] = None,
     ) -> ShopListings:
-        """List one page of a shop&#39;s featured listings."""
+        """List one page of a shop's featured listings."""
         return await self._call(
             _get_featured_listings_by_shop,
             shop_id=shop_id,
@@ -1223,7 +1223,7 @@ class AsyncListingsApi(AsyncResource):
         sort_order: Optional[StrictStr] = None,
         includes: Optional[List[StrictStr]] = None,
     ) -> ShopListingsWithAssociations:
-        """List one page of a shop&#39;s listings in any state."""
+        """List one page of a shop's listings in any state."""
         return await self._call(
             _get_listings_by_shop,
             shop_id=shop_id,

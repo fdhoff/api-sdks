@@ -191,8 +191,22 @@ export function applyHeaders(spec, defaults = []) {
 
 const isDefaultHeader = (parameter) => parameter.in === 'header' && parameter['x-sdk-header-default'] === true;
 
+// An operation whose operations.yaml entry sets `omit`, to the reason it is left out, is not generated.
+export function omitOperations(spec, operations) {
+  const omitted = new Set(Object.keys(operations).filter((id) => operations[id].omit));
+  for (const [path, item] of Object.entries(spec.paths)) {
+    for (const method of METHODS.filter((method) => omitted.has(item[method]?.operationId))) {
+      omitted.delete(item[method].operationId);
+      delete item[method];
+    }
+    if (!METHODS.some((method) => item[method])) delete spec.paths[path];
+  }
+  if (omitted.size > 0) throw new Error(`operations.yaml omits unknown operations: ${[...omitted].join(', ')}`);
+  return spec;
+}
+
 export function applyOperations(spec, operations, paging = {}) {
-  const unused = new Set(Object.keys(operations));
+  const unused = new Set(Object.keys(operations).filter((id) => !operations[id].omit));
   for (const item of Object.values(spec.paths)) {
     const shared = item.parameters ?? [];
     for (const operation of METHODS.map((method) => item[method]).filter(Boolean)) {
@@ -378,7 +392,7 @@ async function generateContract({ apiDir, language, packageDir, config, built, s
 
   const parsed = stripProse(parse(await readFile(built, 'utf8')));
   const routed = applyHeaders(applyHosts(renameSchemas(relax(parsed, config), config.schema_names), sdk?.hosts), sdk?.header_defaults);
-  const spec = applyOperations(routed, operations, sdk?.paging);
+  const spec = applyOperations(omitOperations(routed, operations), operations, sdk?.paging);
   const work = await mkdtemp(join(tmpdir(), 'generate-'));
   try {
     const input = join(work, 'openapi.yaml');
@@ -416,9 +430,9 @@ async function generateContract({ apiDir, language, packageDir, config, built, s
   return output;
 }
 
-// TODO: each language's templates still import the runtime from `packageName`; a contract's sub-module
-// needs them to import it from the package root instead. Add that with the first multi-contract package,
-// with an end-to-end test of generate() for several contracts.
+// TODO: the Python templates import the runtime from `runtimePackage` when it is set, so a contract's
+// sub-module finds it at the package root. The other languages' templates still import it from
+// `packageName`; add the same with each language's first multi-contract package.
 async function generate(apiDir, language) {
   const packageDir = resolve(apiDir, 'packages', language);
   const config = parse(await readFile(join(packageDir, 'generate.yaml'), 'utf8'));

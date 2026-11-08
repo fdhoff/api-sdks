@@ -63,7 +63,7 @@ class UserAddressesApi(Resource):
         self,
         user_address_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> UserAddress:
-        """Get one of the user&#39;s addresses."""
+        """Get one of the user's addresses."""
         return self._call(
             _get_user_address,
             user_address_id=user_address_id,
@@ -76,7 +76,7 @@ class UserAddressesApi(Resource):
         limit: Optional[Annotated[int, Field(le=100, strict=True, ge=1)]] = None,
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
     ) -> UserAddresses:
-        """List one page of the user&#39;s addresses."""
+        """List one page of the user's addresses."""
         return self._call(
             _get_user_addresses,
             limit=limit,
@@ -104,7 +104,7 @@ class AsyncUserAddressesApi(AsyncResource):
         self,
         user_address_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> UserAddress:
-        """Get one of the user&#39;s addresses."""
+        """Get one of the user's addresses."""
         return await self._call(
             _get_user_address,
             user_address_id=user_address_id,
@@ -117,7 +117,7 @@ class AsyncUserAddressesApi(AsyncResource):
         limit: Optional[Annotated[int, Field(le=100, strict=True, ge=1)]] = None,
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
     ) -> UserAddresses:
-        """List one page of the user&#39;s addresses."""
+        """List one page of the user's addresses."""
         return await self._call(
             _get_user_addresses,
             limit=limit,

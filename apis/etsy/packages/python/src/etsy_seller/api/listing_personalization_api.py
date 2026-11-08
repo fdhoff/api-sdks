@@ -75,7 +75,7 @@ class ListingPersonalizationApi(Resource):
         shop_id: Annotated[int, Field(strict=True, ge=1)],
         listing_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> None:
-        """Remove a listing&#39;s personalization questions."""
+        """Remove a listing's personalization questions."""
         return self._call(
             _delete_listing_personalization,
             shop_id=shop_id,
@@ -87,7 +87,7 @@ class ListingPersonalizationApi(Resource):
         self,
         listing_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ListingPersonalization:
-        """Get a listing&#39;s personalization questions."""
+        """Get a listing's personalization questions."""
         return self._call(
             _get_listing_personalization,
             listing_id=listing_id,
@@ -102,7 +102,7 @@ class ListingPersonalizationApi(Resource):
         *,
         supports_multiple_personalization_questions: Optional[StrictBool] = None,
     ) -> ListingPersonalization:
-        """Set a listing&#39;s personalization questions."""
+        """Set a listing's personalization questions."""
         return self._call(
             _update_listing_personalization,
             shop_id=shop_id,
@@ -119,7 +119,7 @@ class AsyncListingPersonalizationApi(AsyncResource):
         shop_id: Annotated[int, Field(strict=True, ge=1)],
         listing_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> None:
-        """Remove a listing&#39;s personalization questions."""
+        """Remove a listing's personalization questions."""
         return await self._call(
             _delete_listing_personalization,
             shop_id=shop_id,
@@ -131,7 +131,7 @@ class AsyncListingPersonalizationApi(AsyncResource):
         self,
         listing_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ListingPersonalization:
-        """Get a listing&#39;s personalization questions."""
+        """Get a listing's personalization questions."""
         return await self._call(
             _get_listing_personalization,
             listing_id=listing_id,
@@ -146,7 +146,7 @@ class AsyncListingPersonalizationApi(AsyncResource):
         *,
         supports_multiple_personalization_questions: Optional[StrictBool] = None,
     ) -> ListingPersonalization:
-        """Set a listing&#39;s personalization questions."""
+        """Set a listing's personalization questions."""
         return await self._call(
             _update_listing_personalization,
             shop_id=shop_id,

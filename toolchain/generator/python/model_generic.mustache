@@ -6,7 +6,7 @@ from __future__ import annotations
 {{#vendorExtensions.x-py-model-imports}}
 {{{.}}}
 {{/vendorExtensions.x-py-model-imports}}
-from {{packageName}}._runtime import ApiModel
+from {{#runtimePackage}}{{runtimePackage}}{{/runtimePackage}}{{^runtimePackage}}{{packageName}}{{/runtimePackage}}._runtime import ApiModel
 
 
 class {{classname}}({{#parent}}{{{.}}}{{/parent}}{{^parent}}ApiModel{{/parent}}):

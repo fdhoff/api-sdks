@@ -388,7 +388,7 @@ class BuybackApi(Resource):
         *,
         page: Optional[StrictInt] = None,
     ) -> BuybackMessagePage:
-        """List one page of a buyback order&#39;s messages."""
+        """List one page of a buyback order's messages."""
         return self._call(
             _get_ws_buyback_v1_orders_messages,
             buyback_order_id=buyback_order_id,
@@ -653,7 +653,7 @@ class AsyncBuybackApi(AsyncResource):
         *,
         page: Optional[StrictInt] = None,
     ) -> BuybackMessagePage:
-        """List one page of a buyback order&#39;s messages."""
+        """List one page of a buyback order's messages."""
         return await self._call(
             _get_ws_buyback_v1_orders_messages,
             buyback_order_id=buyback_order_id,

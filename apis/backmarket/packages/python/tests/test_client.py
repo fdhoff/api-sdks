@@ -164,6 +164,30 @@ def test_an_empty_body_is_a_decode_error_where_json_is_declared_whatever_the_typ
         client.orders._call(untyped)
 
 
+def test_an_empty_204_is_no_result_even_where_json_is_declared() -> None:
+    client = client_for(lambda request: httpx.Response(204))
+    typed: Operation[Order] = Operation(
+        id="typed", method="GET", path="/x", resource="r", name="n", response=Order, returns_json=True
+    )
+    assert client.orders._call(typed) is None
+    assert async_order(lambda request: httpx.Response(204)) is None
+
+
+def test_a_204_page_ends_the_iteration() -> None:
+    operation: Operation[Any] = Operation(
+        id="list-items",
+        method="GET",
+        path="/items",
+        resource="items",
+        name="list",
+        returns_json=True,
+        iterator="iter",
+        item=dict[str, Any],
+        paging=NextLink(items="data", link="more", params=("token",)),
+    )
+    assert list(Resource(client_for(lambda request: httpx.Response(204))._transport)._paginate(operation)) == []
+
+
 def test_an_empty_body_for_a_typed_response_is_a_decode_error() -> None:
     client = client_for(lambda request: httpx.Response(200))
     with pytest.raises(DecodeError) as caught:

@@ -112,7 +112,7 @@ class ListingPropertiesApi(Resource):
         shop_id: Annotated[int, Field(strict=True, ge=1)],
         listing_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ListingPropertyValues:
-        """List a listing&#39;s property values."""
+        """List a listing's property values."""
         return self._call(
             _get_listing_properties,
             shop_id=shop_id,
@@ -177,7 +177,7 @@ class AsyncListingPropertiesApi(AsyncResource):
         shop_id: Annotated[int, Field(strict=True, ge=1)],
         listing_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ListingPropertyValues:
-        """List a listing&#39;s property values."""
+        """List a listing's property values."""
         return await self._call(
             _get_listing_properties,
             shop_id=shop_id,

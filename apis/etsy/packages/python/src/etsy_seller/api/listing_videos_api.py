@@ -120,7 +120,7 @@ class ListingVideosApi(Resource):
         self,
         listing_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ListingVideos:
-        """List a listing&#39;s videos."""
+        """List a listing's videos."""
         return self._call(
             _get_listing_videos,
             listing_id=listing_id,
@@ -181,7 +181,7 @@ class AsyncListingVideosApi(AsyncResource):
         self,
         listing_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ListingVideos:
-        """List a listing&#39;s videos."""
+        """List a listing's videos."""
         return await self._call(
             _get_listing_videos,
             listing_id=listing_id,

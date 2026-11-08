@@ -59,7 +59,7 @@ class HolidayPreferencesApi(Resource):
         self,
         shop_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> List[ShopHolidayPreference]:
-        """List a shop&#39;s holiday preferences."""
+        """List a shop's holiday preferences."""
         return self._call(
             _get_holiday_preferences,
             shop_id=shop_id,
@@ -73,7 +73,7 @@ class HolidayPreferencesApi(Resource):
         *,
         is_working: StrictBool,
     ) -> ShopHolidayPreference:
-        """Update a shop&#39;s preference for one holiday."""
+        """Update a shop's preference for one holiday."""
         return self._call(
             _update_holiday_preferences,
             shop_id=shop_id,
@@ -88,7 +88,7 @@ class AsyncHolidayPreferencesApi(AsyncResource):
         self,
         shop_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> List[ShopHolidayPreference]:
-        """List a shop&#39;s holiday preferences."""
+        """List a shop's holiday preferences."""
         return await self._call(
             _get_holiday_preferences,
             shop_id=shop_id,
@@ -102,7 +102,7 @@ class AsyncHolidayPreferencesApi(AsyncResource):
         *,
         is_working: StrictBool,
     ) -> ShopHolidayPreference:
-        """Update a shop&#39;s preference for one holiday."""
+        """Update a shop's preference for one holiday."""
         return await self._call(
             _update_holiday_preferences,
             shop_id=shop_id,

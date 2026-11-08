@@ -182,7 +182,7 @@ class ProcessingProfilesApi(Resource):
         limit: Optional[Annotated[int, Field(le=100, strict=True, ge=1)]] = None,
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
     ) -> ShopProcessingProfiles:
-        """List one page of a shop&#39;s processing profiles."""
+        """List one page of a shop's processing profiles."""
         return self._call(
             _get_shop_readiness_state_definitions,
             shop_id=shop_id,
@@ -284,7 +284,7 @@ class AsyncProcessingProfilesApi(AsyncResource):
         limit: Optional[Annotated[int, Field(le=100, strict=True, ge=1)]] = None,
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
     ) -> ShopProcessingProfiles:
-        """List one page of a shop&#39;s processing profiles."""
+        """List one page of a shop's processing profiles."""
         return await self._call(
             _get_shop_readiness_state_definitions,
             shop_id=shop_id,

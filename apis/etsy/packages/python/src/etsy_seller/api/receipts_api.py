@@ -172,7 +172,7 @@ class ReceiptsApi(Resource):
         was_canceled: Optional[StrictBool] = None,
         legacy: Optional[StrictBool] = None,
     ) -> ShopReceipts:
-        """List one page of a shop&#39;s receipts."""
+        """List one page of a shop's receipts."""
         return self._call(
             _get_shop_receipts,
             shop_id=shop_id,
@@ -239,7 +239,7 @@ class ReceiptsApi(Resource):
         was_shipped: Optional[StrictBool] = None,
         was_paid: Optional[StrictBool] = None,
     ) -> ShopReceipt:
-        """Update a receipt&#39;s shipped or paid state."""
+        """Update a receipt's shipped or paid state."""
         return self._call(
             _update_shop_receipt,
             shop_id=shop_id,
@@ -304,7 +304,7 @@ class AsyncReceiptsApi(AsyncResource):
         was_canceled: Optional[StrictBool] = None,
         legacy: Optional[StrictBool] = None,
     ) -> ShopReceipts:
-        """List one page of a shop&#39;s receipts."""
+        """List one page of a shop's receipts."""
         return await self._call(
             _get_shop_receipts,
             shop_id=shop_id,
@@ -371,7 +371,7 @@ class AsyncReceiptsApi(AsyncResource):
         was_shipped: Optional[StrictBool] = None,
         was_paid: Optional[StrictBool] = None,
     ) -> ShopReceipt:
-        """Update a receipt&#39;s shipped or paid state."""
+        """Update a receipt's shipped or paid state."""
         return await self._call(
             _update_shop_receipt,
             shop_id=shop_id,

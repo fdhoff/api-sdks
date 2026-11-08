@@ -34,7 +34,7 @@ class ProductionPartnersApi(Resource):
         self,
         shop_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ShopProductionPartners:
-        """List a shop&#39;s production partners."""
+        """List a shop's production partners."""
         return self._call(
             _get_shop_production_partners,
             shop_id=shop_id,
@@ -47,7 +47,7 @@ class AsyncProductionPartnersApi(AsyncResource):
         self,
         shop_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ShopProductionPartners:
-        """List a shop&#39;s production partners."""
+        """List a shop's production partners."""
         return await self._call(
             _get_shop_production_partners,
             shop_id=shop_id,

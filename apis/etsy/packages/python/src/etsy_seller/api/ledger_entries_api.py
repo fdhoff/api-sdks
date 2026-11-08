@@ -74,7 +74,7 @@ class LedgerEntriesApi(Resource):
         limit: Optional[Annotated[int, Field(le=100, strict=True, ge=1)]] = None,
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
     ) -> PaymentAccountLedgerEntries:
-        """List one page of a shop&#39;s payment account ledger entries."""
+        """List one page of a shop's payment account ledger entries."""
         return self._call(
             _get_shop_payment_account_ledger_entries,
             shop_id=shop_id,
@@ -129,7 +129,7 @@ class AsyncLedgerEntriesApi(AsyncResource):
         limit: Optional[Annotated[int, Field(le=100, strict=True, ge=1)]] = None,
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
     ) -> PaymentAccountLedgerEntries:
-        """List one page of a shop&#39;s payment account ledger entries."""
+        """List one page of a shop's payment account ledger entries."""
         return await self._call(
             _get_shop_payment_account_ledger_entries,
             shop_id=shop_id,

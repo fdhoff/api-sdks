@@ -133,7 +133,7 @@ class TransactionsApi(Resource):
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
         legacy: Optional[StrictBool] = None,
     ) -> ShopReceiptTransactions:
-        """List one page of a listing&#39;s transactions."""
+        """List one page of a listing's transactions."""
         return self._call(
             _get_shop_receipt_transactions_by_listing,
             shop_id=shop_id,
@@ -188,7 +188,7 @@ class TransactionsApi(Resource):
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
         legacy: Optional[StrictBool] = None,
     ) -> ShopReceiptTransactions:
-        """List one page of a shop&#39;s transactions."""
+        """List one page of a shop's transactions."""
         return self._call(
             _get_shop_receipt_transactions_by_shop,
             shop_id=shop_id,
@@ -240,7 +240,7 @@ class AsyncTransactionsApi(AsyncResource):
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
         legacy: Optional[StrictBool] = None,
     ) -> ShopReceiptTransactions:
-        """List one page of a listing&#39;s transactions."""
+        """List one page of a listing's transactions."""
         return await self._call(
             _get_shop_receipt_transactions_by_listing,
             shop_id=shop_id,
@@ -295,7 +295,7 @@ class AsyncTransactionsApi(AsyncResource):
         offset: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
         legacy: Optional[StrictBool] = None,
     ) -> ShopReceiptTransactions:
-        """List one page of a shop&#39;s transactions."""
+        """List one page of a shop's transactions."""
         return await self._call(
             _get_shop_receipt_transactions_by_shop,
             shop_id=shop_id,

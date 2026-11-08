@@ -247,6 +247,8 @@ def _read(settings: Settings, operation: Operation[Any], response: httpx.Respons
         clean = redact(settings.credentials, text)
         raise settings.to_error(ErrorContext(response.status_code, response.headers, clean, _parse_json(clean)))
     status = response.status_code
+    if status == 204:
+        return _Reply(None, text, status)
     if text == "":
         if operation.returns_json:
             raise DecodeError("The response body is empty", status=status)
@@ -532,7 +534,10 @@ class AsyncTransport:
 
 
 def _parse(settings: Settings, response_type: Any, data: Any, reply: _Reply) -> Any:
-    """Inside an object, a field that does not fit keeps its raw value. A body that does not fit at all is an error."""
+    """Inside an object, a field that does not fit keeps its raw value. A body that does not fit at all is an error.
+    A 204 has no result, though many operations that answer it also declare a JSON success."""
+    if reply.status == 204:
+        return None
     try:
         return parse_response(response_type, data)
     except ValidationError:
@@ -560,6 +565,8 @@ class Resource:
         current: dict[str, Any] | None = params
         while current is not None:
             page = self._transport.fetch(operation, _body, current)
+            if page.status == 204:
+                return
             items = _items(operation, page.data)
             for item in items:
                 yield _parse(self._transport.settings, operation.item, item, page)
@@ -579,6 +586,8 @@ class AsyncResource:
         current: dict[str, Any] | None = params
         while current is not None:
             page = await self._transport.fetch(operation, _body, current)
+            if page.status == 204:
+                return
             items = _items(operation, page.data)
             for item in items:
                 yield _parse(self._transport.settings, operation.item, item, page)

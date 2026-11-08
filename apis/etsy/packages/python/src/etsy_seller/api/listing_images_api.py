@@ -123,7 +123,7 @@ class ListingImagesApi(Resource):
         self,
         listing_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ListingImages:
-        """List a listing&#39;s images."""
+        """List a listing's images."""
         return self._call(
             _get_listing_images,
             listing_id=listing_id,
@@ -190,7 +190,7 @@ class AsyncListingImagesApi(AsyncResource):
         self,
         listing_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ListingImages:
-        """List a listing&#39;s images."""
+        """List a listing's images."""
         return await self._call(
             _get_listing_images,
             listing_id=listing_id,

@@ -91,7 +91,7 @@ class ListingTranslationsApi(Resource):
         description: StrictStr,
         tags: Optional[List[StrictStr]] = None,
     ) -> ListingTranslation:
-        """Add a listing&#39;s translation into one language."""
+        """Add a listing's translation into one language."""
         return self._call(
             _create_listing_translation,
             shop_id=shop_id,
@@ -109,7 +109,7 @@ class ListingTranslationsApi(Resource):
         listing_id: Annotated[int, Field(strict=True, ge=1)],
         language: StrictStr,
     ) -> ListingTranslation:
-        """Get a listing&#39;s translation into one language."""
+        """Get a listing's translation into one language."""
         return self._call(
             _get_listing_translation,
             shop_id=shop_id,
@@ -128,7 +128,7 @@ class ListingTranslationsApi(Resource):
         description: StrictStr,
         tags: Optional[List[StrictStr]] = None,
     ) -> ListingTranslation:
-        """Update a listing&#39;s translation into one language."""
+        """Update a listing's translation into one language."""
         return self._call(
             _update_listing_translation,
             shop_id=shop_id,
@@ -152,7 +152,7 @@ class AsyncListingTranslationsApi(AsyncResource):
         description: StrictStr,
         tags: Optional[List[StrictStr]] = None,
     ) -> ListingTranslation:
-        """Add a listing&#39;s translation into one language."""
+        """Add a listing's translation into one language."""
         return await self._call(
             _create_listing_translation,
             shop_id=shop_id,
@@ -170,7 +170,7 @@ class AsyncListingTranslationsApi(AsyncResource):
         listing_id: Annotated[int, Field(strict=True, ge=1)],
         language: StrictStr,
     ) -> ListingTranslation:
-        """Get a listing&#39;s translation into one language."""
+        """Get a listing's translation into one language."""
         return await self._call(
             _get_listing_translation,
             shop_id=shop_id,
@@ -189,7 +189,7 @@ class AsyncListingTranslationsApi(AsyncResource):
         description: StrictStr,
         tags: Optional[List[StrictStr]] = None,
     ) -> ListingTranslation:
-        """Update a listing&#39;s translation into one language."""
+        """Update a listing's translation into one language."""
         return await self._call(
             _update_listing_translation,
             shop_id=shop_id,

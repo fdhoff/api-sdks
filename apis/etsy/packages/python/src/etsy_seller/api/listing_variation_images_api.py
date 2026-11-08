@@ -58,7 +58,7 @@ class ListingVariationImagesApi(Resource):
         shop_id: Annotated[int, Field(strict=True, ge=1)],
         listing_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ListingVariationImages:
-        """List the images mapped to a listing&#39;s variations."""
+        """List the images mapped to a listing's variations."""
         return self._call(
             _get_listing_variation_images,
             shop_id=shop_id,
@@ -72,7 +72,7 @@ class ListingVariationImagesApi(Resource):
         listing_id: Annotated[int, Field(strict=True, ge=1)],
         body: Optional[Union[UpdateVariationImagesRequest, Mapping[str, Any]]] = None,
     ) -> ListingVariationImages:
-        """Replace the images mapped to a listing&#39;s variations."""
+        """Replace the images mapped to a listing's variations."""
         return self._call(
             _update_variation_images,
             shop_id=shop_id,
@@ -88,7 +88,7 @@ class AsyncListingVariationImagesApi(AsyncResource):
         shop_id: Annotated[int, Field(strict=True, ge=1)],
         listing_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ListingVariationImages:
-        """List the images mapped to a listing&#39;s variations."""
+        """List the images mapped to a listing's variations."""
         return await self._call(
             _get_listing_variation_images,
             shop_id=shop_id,
@@ -102,7 +102,7 @@ class AsyncListingVariationImagesApi(AsyncResource):
         listing_id: Annotated[int, Field(strict=True, ge=1)],
         body: Optional[Union[UpdateVariationImagesRequest, Mapping[str, Any]]] = None,
     ) -> ListingVariationImages:
-        """Replace the images mapped to a listing&#39;s variations."""
+        """Replace the images mapped to a listing's variations."""
         return await self._call(
             _update_variation_images,
             shop_id=shop_id,

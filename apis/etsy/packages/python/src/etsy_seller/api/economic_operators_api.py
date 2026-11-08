@@ -167,7 +167,7 @@ class EconomicOperatorsApi(Resource):
         self,
         shop_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ShopEconomicOperators:
-        """List a shop&#39;s economic operators."""
+        """List a shop's economic operators."""
         return self._call(
             _get_shop_economic_operators,
             shop_id=shop_id,
@@ -263,7 +263,7 @@ class AsyncEconomicOperatorsApi(AsyncResource):
         self,
         shop_id: Annotated[int, Field(strict=True, ge=1)],
     ) -> ShopEconomicOperators:
-        """List a shop&#39;s economic operators."""
+        """List a shop's economic operators."""
         return await self._call(
             _get_shop_economic_operators,
             shop_id=shop_id,
