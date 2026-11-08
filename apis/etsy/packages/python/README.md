@@ -58,7 +58,7 @@ with EtsyClient(
         print(receipt.receipt_id)
 ```
 
-An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, passes it to `on_token`, and retries the call. Concurrent calls share one refresh.
+An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, passes it to `on_token`, and retries the call. Concurrent calls share one refresh. If the refresh fails, the call raises the refresh's error, such as a `BadRequestError` for `invalid_grant`, not the 401.
 
 The async client has the same methods:
 
@@ -125,7 +125,7 @@ The redirect URI must be one registered for your app. After `exchange_code` the 
 * **Retries:** 429 on every method, honouring `Retry-After` up to `max_retry_wait` seconds, otherwise after `rate_limit_wait` seconds. A longer `Retry-After`, such as at the daily limit, raises `RateLimitedError` at once, with the header in `retry_after`. 5xx, timeouts and connection failures on GET only, with exponential backoff, because a repeated `POST` could create a listing twice.
 * **Errors** derive from `ApiError`. Error responses raise an `HttpError` subclass with `status`, `message` (the body's `error` text) and `raw_body`, with every credential removed.
 * **Logging** goes to the `etsy_seller` logger. It holds methods, URLs and statuses, never your credentials or response bodies.
-* **Requests** can be a generated model or a plain mapping. Models validate strictly, and send only the fields you set. Form bodies are method arguments, sent form-encoded. Method arguments are checked against their declared types and limits, such as `limit` up to 100, and raise pydantic's `ValidationError` before anything is sent.
+* **Requests** can be a generated model or a plain mapping. Models validate strictly, and send only the fields you set. Form bodies are method arguments, sent form-encoded; a mapping or model in a form field is sent as JSON. An empty list sends nothing, so an update leaves that field as it was. Method arguments are checked against their declared types and limits, such as `limit` up to 100, and raise pydantic's `ValidationError` before anything is sent.
 * **Responses** are parsed tolerantly, because the spec has not been confirmed against the live API. A field that does not fit its declared type keeps its raw value instead of failing the call, a missing required field reads as `None`, and unknown fields are kept. A body that does not fit its declared type at all raises `DecodeError` with the body in `raw_body`.
 * **Uploads** take `bytes` or `(filename, bytes)`.
 

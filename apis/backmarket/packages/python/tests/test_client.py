@@ -8,6 +8,7 @@ from collections.abc import AsyncIterator, Callable, Iterator
 from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime
 from typing import Any, cast
+from urllib.parse import parse_qs
 
 import httpx
 import pytest
@@ -629,6 +630,25 @@ def test_next_link_paging_reads_the_configured_fields() -> None:
 
     assert list(Resource(client_for(handler)._transport)._paginate(operation)) == [{"n": 1}, {"n": 2}]
     assert queries == ["", "token=b"]
+
+
+def test_an_object_in_a_form_encoded_field_is_sent_as_json() -> None:
+    operation: Operation[None] = Operation(
+        id="update-item",
+        method="POST",
+        path="/items",
+        resource="items",
+        name="update",
+        params=(Param("meta", "meta", "urlencoded"), Param("tags", "tags", "urlencoded")),
+    )
+    bodies: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        bodies.append(request.content.decode())
+        return httpx.Response(204)
+
+    Resource(client_for(handler)._transport)._call(operation, meta={"n": 1, "s": "a b"}, tags=["x", "y"])
+    assert parse_qs(bodies[0]) == {"meta": ['{"n":1,"s":"a b"}'], "tags": ["x", "y"]}
 
 
 def test_only_gzip_is_accepted_in_sync_and_async() -> None:

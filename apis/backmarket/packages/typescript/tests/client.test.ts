@@ -105,6 +105,40 @@ const offsetList: Operation = {
   paging: { style: 'offset', items: 'data', total: 'total', offset: 'start' },
 };
 
+test('an object in a form-encoded field is sent as JSON', async () => {
+  const bodies: string[] = [];
+  const transport = new Transport({
+    baseUrl: BASE,
+    credentials: new StaticCredentials({}, [TOKEN]),
+    headers: {},
+    toError: (context) => new ApiError(`status ${context.status}`, { status: context.status }),
+    fetch: async (_input, init = {}) => {
+      bodies.push(await new Response(init.body).text());
+      return new Response(null, { status: 204 });
+    },
+    timeoutMs: 1000,
+    maxRetries: 0,
+    retryBaseDelayMs: 1,
+    rateLimitWaitMs: 1,
+    maxRetryWaitMs: 1,
+  });
+  const update: Operation = {
+    id: 'update-item',
+    method: 'POST',
+    path: '/items',
+    resource: 'items',
+    name: 'update',
+    params: [
+      { wire: 'meta', name: 'meta', location: 'urlencoded' },
+      { wire: 'tags', name: 'tags', location: 'urlencoded' },
+    ],
+  };
+  await transport.fetch(update, undefined, { meta: { n: 1, s: 'a b' }, tags: ['x', 'y'] });
+  const sent = new URLSearchParams(bodies[0]);
+  assert.deepEqual(sent.getAll('meta'), ['{"n":1,"s":"a b"}']);
+  assert.deepEqual(sent.getAll('tags'), ['x', 'y']);
+});
+
 async function serve(t: TestContext, listener: RequestListener): Promise<string> {
   const server = createServer(listener).listen(0, '127.0.0.1');
   await once(server, 'listening');

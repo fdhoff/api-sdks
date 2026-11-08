@@ -12,3 +12,4 @@ The first alpha, 0.1.0-alpha.1, not yet published.
 * After a 401, the access token is refreshed once and the call retried. Concurrent calls share one refresh.
 * Form bodies are sent form-encoded, with array fields repeated.
 * Offset pagination iterators, retries, rate-limit handling, cancellation, typed errors and redacted logging.
+* An object in a form-encoded field is sent as JSON, as in the other SDKs, not as `[object Object]`.

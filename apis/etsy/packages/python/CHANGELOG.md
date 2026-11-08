@@ -12,3 +12,4 @@ The first alpha, not yet published.
 * OAuth 2 helpers: an authorization URL with PKCE S256 and state, code exchange and refresh. Each new token pair goes to an `on_token` callback.
 * After a 401, the access token is refreshed once and the call retried. Concurrent calls share one refresh.
 * Offset pagination iterators, retries, rate-limit handling, typed errors and redacted logging.
+* A mapping or model in a form-encoded field is sent as JSON, as in the other SDKs, not as its Python repr.

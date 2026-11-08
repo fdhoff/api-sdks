@@ -63,7 +63,7 @@ for await (const receipt of client.receipts.iter(shopId, { wasShipped: false }))
 }
 ```
 
-An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, waits for `onToken`, and retries the call. Concurrent calls share one refresh.
+An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, waits for `onToken`, and retries the call. Concurrent calls share one refresh. If the refresh fails, the call rejects with the refresh's error, such as a `BadRequestError` for `invalid_grant`, not the 401.
 
 CommonJS works the same way:
 
@@ -125,7 +125,7 @@ The redirect URI must be one registered for your app. After `exchangeCode` the c
 * **Cancellation:** pass `{ signal }` as a call's last argument. Aborting it stops the request and any wait before a retry, and the call rejects with the signal's reason.
 * **Errors** derive from `ApiError`. Error responses throw an `HttpError` subclass with `kind`, `status`, `detail` (the body's `error` text) and `rawBody`, with every credential removed. If your process loads both the ESM and CommonJS builds, `instanceof` only matches errors from the same build, so compare `kind` instead. Cast to `ClientError`, and comparing `kind` narrows it to one class.
 * **Logging** is off unless you pass `logger`. It never receives your credentials or response bodies.
-* **Requests** are checked by the compiler only. Form bodies are named parameters, sent form-encoded.
+* **Requests** are checked by the compiler only. Form bodies are named parameters, sent form-encoded; an object in a form field is sent as JSON. An empty list sends nothing, so an update leaves that field as it was.
 * **Responses** are not checked at all, because the spec has not been confirmed against the live API. The types describe what the spec declares: a field can hold another type, a required field can be missing, and unknown fields are kept. Check values if you depend on them.
 * **Uploads** take a `Blob`, a `File`, a `Uint8Array`, or `{ filename, content }`.
 * **Redirects** are not followed: a 3xx is an error.

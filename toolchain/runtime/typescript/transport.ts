@@ -123,7 +123,8 @@ function buildRequest(settings: Settings, operation: Operation, body: unknown, p
     } else if (location === 'query') {
       for (const item of Array.isArray(value) ? value : [value]) query.append(wire, String(item));
     } else if (location === 'urlencoded') {
-      for (const item of Array.isArray(value) ? value : [value]) fields.append(wire, String(item));
+      for (const item of Array.isArray(value) ? value : [value])
+        fields.append(wire, isObject(item) ? JSON.stringify(item) : String(item));
     } else {
       appendPart(form, wire, value);
       hasParts = true;
