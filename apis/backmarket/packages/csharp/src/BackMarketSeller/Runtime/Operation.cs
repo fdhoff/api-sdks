@@ -3,11 +3,13 @@ using Microsoft.Extensions.Logging;
 
 namespace BackMarketSeller.Runtime;
 
+/// <summary>Where a parameter goes. <see cref="Form"/> is a multipart part, <see cref="Urlencoded"/> a form-encoded field.</summary>
 internal enum ParamLocation
 {
     Path,
     Query,
     Form,
+    Urlencoded,
     Body,
 }
 

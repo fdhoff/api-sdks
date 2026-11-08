@@ -349,6 +349,7 @@ internal sealed class Transport : IDisposable
         var path = operation.Path;
         var query = new List<string>();
         var parts = new List<(string Wire, object Value)>();
+        var fields = new List<KeyValuePair<string, string>>();
         object? body = null;
         for (var index = 0; index < operation.Params.Length; index++)
         {
@@ -369,6 +370,9 @@ internal sealed class Transport : IDisposable
                 case ParamLocation.Form:
                     parts.AddRange(Items(value).Select(item => (param.Wire, item)));
                     break;
+                case ParamLocation.Urlencoded:
+                    fields.AddRange(Items(value).Select(item => KeyValuePair.Create(param.Wire, Json.Text(item))));
+                    break;
                 default:
                     body = value;
                     break;
@@ -378,6 +382,10 @@ internal sealed class Transport : IDisposable
         if (parts.Count > 0)
         {
             return (url, () => Multipart(parts));
+        }
+        if (fields.Count > 0)
+        {
+            return (url, () => new FormUrlEncodedContent(fields));
         }
         if (body is null)
         {
@@ -421,7 +429,8 @@ internal sealed class Transport : IDisposable
             }
             catch (ApiException error)
             {
-                if (error.Status == 401 && !refreshed)
+                // An operation with no security sends no credentials, such as a token request made during a refresh.
+                if (error.Status == 401 && !refreshed && operation.Security is { Length: > 0 })
                 {
                     refreshed = true;
                     if (await RefreshAsync(auth, seen, cancellationToken).ConfigureAwait(false))
