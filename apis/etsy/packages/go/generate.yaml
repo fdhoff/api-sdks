@@ -1,0 +1,166 @@
+# How `npm run generate:go` builds this package. Public method names are in operations.yaml.
+generator: go
+output: etsyseller
+source: .
+generated_prefixes: [model_, api_]
+resources: resources.go
+runtime: ../internal/runtime
+format: [gofmt, -s, -r, 'interface{} -> any', -w]
+properties:
+  packageName: etsyseller
+  disallowAdditionalPropertiesIfNotPresent: false
+  withGoMod: false
+  apiNameSuffix: Resource
+  modulePath: github.com/fdhoff/api-sdks/apis/etsy/packages/go
+# Every page types its `results` as a union of one schema; this types them as that schema.
+collapse_single_unions: true
+# Every field is a pointer here, so nil already means null or absent.
+drop_nullable: true
+# A field of several types becomes `any`.
+drop_unions: true
+type_mappings:
+  integer: int64
+  number: float64
+  file: File
+  File: File
+  binary: File
+  DateTime: Time
+# Go spells these initialisms in capitals. Keys are wire names.
+name_mappings:
+  application_id: ApplicationID
+  bill_payment_id: BillPaymentID
+  billing_address_id: BillingAddressID
+  buyer_user_id: BuyerUserID
+  destination_return_policy_id: DestinationReturnPolicyID
+  economic_operator_id: EconomicOperatorID
+  entry_id: EntryID
+  full_path_taxonomy_ids: FullPathTaxonomyIDs
+  gpsr_manufacturer_id: GpsrManufacturerID
+  gpsr_responsible_person_id: GpsrResponsiblePersonID
+  holiday_id: HolidayID
+  icon_url_fullxfull: IconURLFullxfull
+  id: ID
+  image_id: ImageID
+  image_ids: ImageIDs
+  image_url_75x75: ImageURL75x75
+  image_url_760x100: ImageURL760x100
+  image_url_fullxfull: ImageURLFullxfull
+  ledger_id: LedgerID
+  listing_file_id: ListingFileID
+  listing_id: ListingID
+  listing_image_id: ListingImageID
+  offering_id: OfferingID
+  option_id: OptionID
+  parent_entry_id: ParentEntryID
+  parent_id: ParentID
+  payment_adjustment_id: PaymentAdjustmentID
+  payment_adjustment_item_id: PaymentAdjustmentItemID
+  payment_id: PaymentID
+  product_id: ProductID
+  production_partner_id: ProductionPartnerID
+  production_partner_ids: ProductionPartnerIDs
+  property_id: PropertyID
+  question_id: QuestionID
+  readiness_state_id: ReadinessStateID
+  receipt_id: ReceiptID
+  receipt_shipping_id: ReceiptShippingID
+  reference_id: ReferenceID
+  return_policy_id: ReturnPolicyID
+  scale_id: ScaleID
+  seller_user_id: SellerUserID
+  shipping_address_id: ShippingAddressID
+  shipping_carrier_id: ShippingCarrierID
+  shipping_profile_destination_id: ShippingProfileDestinationID
+  shipping_profile_id: ShippingProfileID
+  shipping_user_id: ShippingUserID
+  shop_id: ShopID
+  shop_section_id: ShopSectionID
+  sku: SKU
+  sku_on_property: SKUOnProperty
+  skus: SKUs
+  source_return_policy_id: SourceReturnPolicyID
+  taxonomy_id: TaxonomyID
+  thumbnail_url: ThumbnailURL
+  transaction_id: TransactionID
+  upgrade_id: UpgradeID
+  url: URL
+  url_170x135: URL170x135
+  url_570xN: URL570xN
+  url_75x75: URL75x75
+  url_fullxfull: URLFullxfull
+  user_address_id: UserAddressID
+  user_id: UserID
+  value_id: ValueID
+  value_ids: ValueIDs
+  video_id: VideoID
+  video_url: VideoURL
+parameter_name_mappings:
+  application_id: applicationID
+  bill_payment_id: billPaymentID
+  billing_address_id: billingAddressID
+  buyer_user_id: buyerUserID
+  destination_return_policy_id: destinationReturnPolicyID
+  economic_operator_id: economicOperatorID
+  entry_id: entryID
+  full_path_taxonomy_ids: fullPathTaxonomyIDs
+  gpsr_manufacturer_id: gpsrManufacturerID
+  gpsr_responsible_person_id: gpsrResponsiblePersonID
+  holiday_id: holidayID
+  icon_url_fullxfull: iconURLFullxfull
+  image_id: imageID
+  image_ids: imageIDs
+  image_url_75x75: imageURL75x75
+  image_url_760x100: imageURL760x100
+  image_url_fullxfull: imageURLFullxfull
+  ledger_entry_id: ledgerEntryID
+  ledger_entry_ids: ledgerEntryIDs
+  ledger_id: ledgerID
+  listing_file_id: listingFileID
+  listing_id: listingID
+  listing_ids: listingIDs
+  listing_image_id: listingImageID
+  offering_id: offeringID
+  option_id: optionID
+  parent_entry_id: parentEntryID
+  parent_id: parentID
+  payment_adjustment_id: paymentAdjustmentID
+  payment_adjustment_item_id: paymentAdjustmentItemID
+  payment_id: paymentID
+  payment_ids: paymentIDs
+  product_id: productID
+  production_partner_id: productionPartnerID
+  production_partner_ids: productionPartnerIDs
+  property_id: propertyID
+  question_id: questionID
+  readiness_state_definition_id: readinessStateDefinitionID
+  readiness_state_id: readinessStateID
+  receipt_id: receiptID
+  receipt_shipping_id: receiptShippingID
+  reference_id: referenceID
+  return_policy_id: returnPolicyID
+  scale_id: scaleID
+  seller_user_id: sellerUserID
+  shipping_address_id: shippingAddressID
+  shipping_carrier_id: shippingCarrierID
+  shipping_profile_destination_id: shippingProfileDestinationID
+  shipping_profile_id: shippingProfileID
+  shipping_user_id: shippingUserID
+  shop_id: shopID
+  shop_section_id: shopSectionID
+  shop_section_ids: shopSectionIDs
+  sku_on_property: skuOnProperty
+  source_return_policy_id: sourceReturnPolicyID
+  taxonomy_id: taxonomyID
+  thumbnail_url: thumbnailURL
+  transaction_id: transactionID
+  upgrade_id: upgradeID
+  url_170x135: url170x135
+  url_570xN: url570xN
+  url_75x75: url75x75
+  url_fullxfull: urlFullxfull
+  user_address_id: userAddressID
+  user_id: userID
+  value_id: valueID
+  value_ids: valueIDs
+  video_id: videoID
+  video_url: videoURL
