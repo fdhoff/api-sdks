@@ -6,7 +6,7 @@ Unofficial, spec-driven SDKs for third-party APIs, one directory per API under `
 | --- | --- | --- |
 | Back Market Seller API | [`apis/backmarket/`](apis/backmarket/) | Alphas in Python, TypeScript, Go, C# and Rust |
 | Etsy Open API v3 | [`apis/etsy/`](apis/etsy/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
-| eBay Sell, Commerce and Developer APIs | [`apis/ebay/`](apis/ebay/) | Spec pipeline, mock and conformance cases; no package yet |
+| eBay Sell, Commerce and Developer APIs | [`apis/ebay/`](apis/ebay/) | Python alpha, not yet published |
 
 Every SDK here is unofficial and is not affiliated with, endorsed by, or supported by the company whose API it calls, including Back Market, Etsy and eBay.
 
@@ -141,7 +141,7 @@ The [Rust README](apis/backmarket/packages/rust/README.md) covers installing, er
 
 Every test runs against a mock built from the public spec, so nothing here is confirmed against the live API. If you use an SDK for real, please report what you find, working or not, as a GitHub issue. The packages stay on 0.x until those reports confirm their behaviour.
 
-One gap to watch for: where the spec declares a JSON success body, every SDK treats an empty body as a decode error. A write that really answers with nothing, such as the buyback listing update (`202`) or a listing create or update, would then fail even though the API accepted it. If you see that, please report the operation and status. Confirmed cases are fixed in the overlay.
+One gap to watch for: where the spec declares a JSON success body, every SDK treats an empty body as a decode error, except that Python returns nothing for an empty `204`. A write that really answers with nothing, such as the buyback listing update (`202`) or a listing create or update, would then fail even though the API accepted it. If you see that, please report the operation and status. Confirmed cases are fixed in the overlay.
 
 ## Etsy Open API v3
 
@@ -149,7 +149,7 @@ The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see 
 
 ## eBay APIs
 
-No package yet. `apis/ebay/` pins 20 of eBay's OpenAPI contracts, corrects them, and checks the conformance cases against a reference driver. eBay is a trademark of eBay Inc. This project is not affiliated with, endorsed by or sponsored by eBay Inc.
+The Python SDK is an alpha, not yet published: see [`apis/ebay/packages/python/`](apis/ebay/packages/python/README.md). `apis/ebay/` pins 20 of eBay's OpenAPI contracts, corrects them, and checks the conformance cases against a reference driver. eBay is a trademark of eBay Inc. This project is not affiliated with, endorsed by or sponsored by eBay Inc.
 
 ## Layout
 
@@ -162,7 +162,7 @@ No package yet. `apis/ebay/` pins 20 of eBay's OpenAPI contracts, corrects them,
 | `apis/backmarket/conformance/` | Language-neutral test cases and the reference driver |
 | `apis/backmarket/docs/spec-audit.md` | Known gaps in the spec and where each is handled |
 | `apis/etsy/` | The same for Etsy's Open API v3: spec pin, overlay, conformance cases, spec audit, and Python, TypeScript, Go, C# and Rust packages |
-| `apis/ebay/` | The same for eBay's Sell, Commerce and Developer APIs: one pin and overlay per contract, an overlay shared by all of them, conformance cases and spec audit |
+| `apis/ebay/` | The same for eBay's Sell, Commerce and Developer APIs: one pin and overlay per contract, an overlay shared by all of them, conformance cases, spec audit and a Python package |
 
 `toolchain/` must not name this API or contain its endpoints or schemas; a test enforces that. This boundary keeps later extraction cheap and is not a framework.
 
