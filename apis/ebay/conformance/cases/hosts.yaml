@@ -48,7 +48,7 @@ cases:
   - name: hosts-every-page-stays-on-the-operation-host
     request:
       operation: sell_finances.getPayouts
-      params: { limit: 1 }
+      params: { limit: '1' }
       paginate: true
     mock:
       responses:

@@ -9,7 +9,7 @@ import json
 import logging
 import sys
 from collections.abc import AsyncIterator
-from typing import Any
+from typing import Any, get_args, get_type_hints
 from urllib.parse import urlsplit
 
 from cryptography.hazmat.primitives import serialization
@@ -103,14 +103,22 @@ def client_options(settings: dict[str, Any]) -> dict[str, Any]:
     return options
 
 
-def arguments(operation: Operation[Any], request: dict[str, Any]) -> dict[str, Any]:
-    """A form body's fields are method arguments, like path, query and header parameters."""
+def takes_file(hint: Any) -> bool:
+    return hint is bytes or any(takes_file(arg) for arg in get_args(hint))
+
+
+def arguments(operation: Operation[Any], request: dict[str, Any], call: Any) -> dict[str, Any]:
+    """A form body's fields are method arguments, like path, query and header parameters. Files are sent as bytes."""
     names = {param.wire: param.name for param in operation.params}
+    hints = get_type_hints(call)
     values = {**request.get("params", {}), **request.get("multipart", {})}
     form = any(param.location in FORM for param in operation.params)
     if form:
         values.update(request.get("body", {}))
-    args = {names[wire]: value.encode() if names[wire] == "file" else value for wire, value in values.items()}
+    args = {
+        names[wire]: value.encode() if isinstance(value, str) and takes_file(hints.get(names[wire])) else value
+        for wire, value in values.items()
+    }
     if "body" in request and not form:
         args["body"] = request["body"]
     return args
@@ -138,7 +146,7 @@ def run_sync(message: dict[str, Any]) -> Any:
     module, operation = OPERATIONS[request["operation"]]
     with EbayClient(**client_options(message["client"])) as client:
         call = target(client, module, operation, bool(request.get("paginate")))
-        result = call(**arguments(operation, request))
+        result = call(**arguments(operation, request, call))
         return list(result) if request.get("paginate") else result
 
 
@@ -152,8 +160,8 @@ async def run_async(message: dict[str, Any]) -> Any:
     async with AsyncEbayClient(**client_options(message["client"])) as client:
         call = target(client, module, operation, bool(request.get("paginate")))
         if request.get("paginate"):
-            return await collect(call(**arguments(operation, request)))
-        return await call(**arguments(operation, request))
+            return await collect(call(**arguments(operation, request, call)))
+        return await call(**arguments(operation, request, call))
 
 
 def output(message: dict[str, Any], capture: Capture, loop: asyncio.AbstractEventLoop | None) -> dict[str, Any]:
