@@ -47,3 +47,16 @@ func TestNoURLEncodedFieldsSendNoBody(t *testing.T) {
 		t.Errorf("sent %q as %q", built.body, built.contentType)
 	}
 }
+
+type mixedParams struct {
+	Title *string `urlencoded:"title"`
+	Image []byte  `form:"image"`
+}
+
+func TestURLEncodedAndMultipartFieldsAreRejected(t *testing.T) {
+	title := "a"
+	params := &mixedParams{Title: &title, Image: []byte("png")}
+	if _, err := newRequest(&Operation{ID: "update", Method: "PUT", Path: "/items"}, Input{Params: params}); err == nil {
+		t.Fatal("expected an error")
+	}
+}

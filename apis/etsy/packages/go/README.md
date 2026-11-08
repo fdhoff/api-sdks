@@ -84,7 +84,7 @@ for receipt, err := range client.Receipts.Iter(ctx, *me.ShopID, &etsyseller.Rece
 }
 ```
 
-An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, passes it to the `WithOnToken` function, and retries the call. Concurrent calls share one refresh.
+An access token lasts an hour. When a call that needs one is refused with a 401, the client exchanges the refresh token for a new pair once, passes it to the `WithOnToken` function, and retries the call. Concurrent calls, and an explicit `client.OAuth.Refresh`, share one refresh. When the refresh fails, the call returns the refresh's error, such as `ErrBadRequest` for an `invalid_grant`, not the 401.
 
 Your credentials are read from nowhere and stored nowhere: you pass them in, and the client sends them only to the server you selected.
 
@@ -118,7 +118,7 @@ The redirect URI must be one registered for your app. After `ExchangeCode` the c
 
 ## Configuration
 
-`NewClient(apiKey, sharedSecret, options...)` takes your app's keystring and shared secret, which are sent together as `x-api-key` on every call, and these options:
+`NewClient(apiKey, sharedSecret, options...)` takes your app's keystring and shared secret, which are sent together as `x-api-key` on every API call (token requests send none), and these options:
 
 | Option | Default | Meaning |
 | --- | --- | --- |
@@ -141,13 +141,13 @@ A `Client` is safe for concurrent use.
 
 * **Methods** are grouped by resource, such as `Listings`, `ListingImages`, `ListingInventory`, `Receipts`, `Transactions`, `Shops`, `ShippingProfiles` and `Users`. Every one of the API's 107 operations has a method.
 * **Context:** every method takes a `context.Context`. Cancelling it stops the call, including any wait before a retry, and the call returns the context's error, not an `APIError`. Use it for an overall deadline; `WithTimeout` applies to each attempt.
-* **Credentials:** `x-api-key` goes on every call. The access token goes only on calls whose spec asks for OAuth, never on public reads.
+* **Credentials:** `x-api-key` goes on every API call, but not on token requests. The access token goes only on calls whose spec asks for OAuth, never on public reads.
 * **Pagination:** `List` methods return one page, and `Iter` methods return an iterator for `range` over every item. Each page's `offset` advances by the number of results received, from the `Offset` you pass, until an empty page or `count`. An iterator stops after yielding an error.
 * **Retries:** 429 on every method, honouring `Retry-After`, otherwise after `WithRateLimitWait`. A `Retry-After` longer than `WithMaxRetryWait`, such as at the daily limit, returns `ErrRateLimited` at once, with the header in `RetryAfter`. 5xx, timeouts and connection failures on GET only, with exponential backoff, because a repeated `POST` could create a listing twice.
 * **Redirects** are never followed. A 3xx returns `ErrAPI`, so your credentials stay on the server you selected.
 * **Errors** are `*APIError`, with `Kind`, `Status`, `Detail` (the body's `error` text), `RetryAfter` and `RawBody`, with every credential removed. Test the kind with `errors.Is` and a sentinel such as `ErrNotFound` or `ErrConflict`. A request that cannot be encoded, such as a body holding NaN, is not sent and returns an error wrapping the encoder's own instead.
 * **Logging** goes to your `slog.Logger`, and holds methods, URLs and statuses, never your credentials or response bodies.
-* **Requests:** model and parameter fields are pointers, so a nil field is not sent. Use `Ptr` to set one, including to zero. Form bodies are fields of the method's params struct, sent form-encoded, with a list sent as one field per item. Types are checked at compile time and nothing more.
+* **Requests:** model and parameter fields are pointers, so a nil field is not sent. Use `Ptr` to set one, including to zero. Form bodies are fields of the method's params struct, sent form-encoded, with a list sent as one field per item. An empty list sends nothing, so an update leaves that field as it was. Types are checked at compile time and nothing more.
 * **Responses** are decoded tolerantly, because the spec has not been confirmed against the live API. Every field is a pointer because a required field can be missing, so check for nil. A field that does not fit its declared type stays nil and keeps its raw value in the model's `Extra` map, and so do unknown fields and nulls. A body whose top level is not the declared type returns `ErrDecode`, with the body in `RawBody`.
 * **Uploads** take `File` values, with an optional name.
 

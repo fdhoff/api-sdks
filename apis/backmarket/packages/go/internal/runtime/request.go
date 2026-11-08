@@ -3,6 +3,7 @@ package runtime
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"net/url"
@@ -169,7 +170,10 @@ func (r *request) addParams(params any) error {
 			return err
 		}
 	}
-	if len(fields) > 0 && !hasParts {
+	if len(fields) > 0 && hasParts {
+		return errors.New("form-encoded and multipart fields cannot be sent in one request")
+	}
+	if len(fields) > 0 {
 		r.body = []byte(fields.Encode())
 		r.contentType = "application/x-www-form-urlencoded"
 		return nil

@@ -105,7 +105,8 @@ func baseURL(root string) (string, error) {
 }
 
 // NewClient builds a client for your app. apiKey is its keystring and sharedSecret its shared
-// secret; both are sent as x-api-key on every call. The client keeps every credential only in memory.
+// secret; both are sent as x-api-key on every API call, though not on token requests. The client
+// keeps every credential only in memory.
 func NewClient(apiKey, sharedSecret string, opts ...Option) (*Client, error) {
 	if apiKey == "" || sharedSecret == "" {
 		return nil, errors.New("apiKey and sharedSecret are required")
@@ -143,7 +144,7 @@ func NewClient(apiKey, sharedSecret string, opts ...Option) (*Client, error) {
 		RateLimitWait:  config.rateLimitWait,
 		MaxRetryWait:   config.maxRetryWait,
 	})
-	oauth := &OAuth{credentials: credentials, transport: transport}
+	oauth := &OAuth{credentials: credentials, transport: transport, busy: make(chan struct{}, 1)}
 	credentials.oauth = oauth
 	return &Client{Resources: newResources(transport), OAuth: oauth}, nil
 }
