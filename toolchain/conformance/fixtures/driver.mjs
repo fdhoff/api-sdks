@@ -3,6 +3,7 @@ import { createInterface } from 'node:readline';
 const mode = process.argv[2];
 
 // Walks offset pages as the runtimes do: advance by the items received, stop at an empty page or the count.
+// A page without a `results` list is a decode error.
 async function offsetPages(client, params = {}) {
   const items = [];
   const query = { ...params };
@@ -12,9 +13,10 @@ async function offsetPages(client, params = {}) {
       headers: { authorization: `Basic ${client.token}` },
     });
     const page = await response.json();
+    if (!Array.isArray(page?.results)) return { error: { kind: 'decode' } };
     items.push(...page.results);
     const offset = Number(query.offset ?? 0) + page.results.length;
-    if (page.results.length === 0 || (typeof page.count === 'number' && offset >= page.count)) return items;
+    if (page.results.length === 0 || (typeof page.count === 'number' && offset >= page.count)) return { result: items };
     query.offset = offset;
   }
 }
@@ -26,7 +28,7 @@ for await (const line of createInterface({ input: process.stdin })) {
     continue;
   }
   if (mode === 'offset') {
-    console.log(JSON.stringify({ result: await offsetPages(client, request.params), logs: [] }));
+    console.log(JSON.stringify({ ...(await offsetPages(client, request.params)), logs: [] }));
     continue;
   }
   const response = await fetch(`${client.base_url}/items`, {

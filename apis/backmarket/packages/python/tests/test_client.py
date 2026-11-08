@@ -586,9 +586,26 @@ def test_offset_paging_starts_at_the_callers_offset_and_stops_at_an_empty_page()
     assert queries == ["start=3", "start=4"]
 
 
-def test_offset_paging_rejects_a_page_that_is_not_an_object() -> None:
+def test_offset_paging_stops_at_a_total_that_is_not_an_integer() -> None:
+    queries: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        queries.append(request.url.query.decode())
+        return httpx.Response(200, json={"total": 2.0, "data": [{"n": 1}, {"n": 2}]})
+
+    assert offset_pages(handler) == [{"n": 1}, {"n": 2}]
+    assert queries == [""]
+
+
+def test_offset_paging_rejects_an_offset_that_is_not_an_integer() -> None:
+    with pytest.raises(DecodeError, match="`start` parameter is not an integer"):
+        offset_pages(lambda request: httpx.Response(200, json={"data": [{"n": 1}]}), start="later")
+
+
+@pytest.mark.parametrize("page", [[], {"total": 1}, {"data": None}, {"data": {"n": 1}}])
+def test_offset_paging_rejects_a_page_without_an_items_list(page: Any) -> None:
     with pytest.raises(DecodeError):
-        offset_pages(lambda request: httpx.Response(200, json=[]))
+        offset_pages(lambda request: httpx.Response(200, json=page))
 
 
 def test_next_link_paging_reads_the_configured_fields() -> None:

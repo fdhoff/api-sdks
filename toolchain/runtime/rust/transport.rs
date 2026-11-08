@@ -261,7 +261,12 @@ impl Transport {
     fn next_request(&self, request: &Request, page: &Value, answer: &Answer, received: usize) -> Result<Option<Request>, Error> {
         match request.operation.paging() {
             Paging::NextLink { link, params, .. } => self.next_link(request, link, params, page, answer),
-            Paging::Offset { total, offset, .. } => self.next_offset(request, total, offset, page, answer, received),
+            Paging::Offset { items, total, offset } => {
+                if !page.get(items).is_some_and(Value::is_array) {
+                    return Err(self.decode_error(&format!("the {items} field of a page is not a list"), answer));
+                }
+                self.next_offset(request, total, offset, page, answer, received)
+            }
         }
     }
 
@@ -458,19 +463,23 @@ mod tests {
         paging: Some(Paging::NextLink { items: "data", link: "more", params: &["token"] }),
     };
 
-    fn next_url(operation: &'static Operation, query: &[(&str, &str)], page: Value, received: usize) -> Option<String> {
+    fn next(operation: &'static Operation, query: &[(&str, &str)], page: Value, received: usize) -> Result<Option<String>, Error> {
         let transport = Transport::new(settings(HeaderMap::new())).unwrap();
         let mut request = Request::new(operation);
         for (name, value) in query {
             request.set_query(name, value);
         }
         let answer = Answer { status: 200, headers: HeaderMap::new(), body: Vec::new() };
-        transport.next_request(&request, &page, &answer, received).unwrap().map(|next| next.url(""))
+        Ok(transport.next_request(&request, &page, &answer, received)?.map(|next| next.url("")))
+    }
+
+    fn next_url(operation: &'static Operation, query: &[(&str, &str)], page: Value, received: usize) -> Option<String> {
+        next(operation, query, page, received).unwrap()
     }
 
     #[test]
     fn offset_paging_advances_by_the_items_received_until_the_total() {
-        let page = serde_json::json!({ "total": 5 });
+        let page = serde_json::json!({ "total": 5, "data": [] });
         assert_eq!(next_url(&OFFSET_LIST, &[("limit", "2")], page.clone(), 2).as_deref(), Some("/items?limit=2&start=2"));
         assert_eq!(next_url(&OFFSET_LIST, &[("limit", "2"), ("start", "2")], page.clone(), 2).as_deref(), Some("/items?limit=2&start=4"));
         assert_eq!(next_url(&OFFSET_LIST, &[("limit", "2"), ("start", "4")], page, 1), None);
@@ -478,8 +487,28 @@ mod tests {
 
     #[test]
     fn offset_paging_starts_at_the_callers_offset_and_stops_at_an_empty_page() {
-        assert_eq!(next_url(&OFFSET_LIST, &[("start", "3")], serde_json::json!({ "total": null }), 1).as_deref(), Some("/items?start=4"));
-        assert_eq!(next_url(&OFFSET_LIST, &[("start", "4")], serde_json::json!({}), 0), None);
+        let page = serde_json::json!({ "total": null, "data": [] });
+        assert_eq!(next_url(&OFFSET_LIST, &[("start", "3")], page.clone(), 1).as_deref(), Some("/items?start=4"));
+        assert_eq!(next_url(&OFFSET_LIST, &[("start", "4")], page, 0), None);
+    }
+
+    #[test]
+    fn offset_paging_stops_at_a_total_that_is_not_an_integer() {
+        assert_eq!(next_url(&OFFSET_LIST, &[], serde_json::json!({ "total": 2.0, "data": [] }), 2), None);
+    }
+
+    #[test]
+    fn offset_paging_rejects_an_offset_that_is_not_an_integer() {
+        let error = next(&OFFSET_LIST, &[("start", "later")], serde_json::json!({ "data": [] }), 1).unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::Decode);
+        assert!(error.to_string().contains("start parameter is not an integer"), "{error}");
+    }
+
+    #[test]
+    fn offset_paging_rejects_a_page_without_an_items_list() {
+        for page in [serde_json::json!({ "total": 1 }), serde_json::json!({ "data": null }), serde_json::json!({ "data": {} })] {
+            assert_eq!(next(&OFFSET_LIST, &[], page, 0).unwrap_err().kind(), ErrorKind::Decode);
+        }
     }
 
     #[test]

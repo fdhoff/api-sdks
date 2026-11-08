@@ -42,7 +42,7 @@ type pageParams struct {
 }
 
 // walk serves the bodies in order and returns every item and the query of every request.
-func walk(t *testing.T, operation *Operation, params pageParams, serve func(query url.Values) any) ([]map[string]any, []string, error) {
+func walk(t *testing.T, operation *Operation, params any, serve func(query url.Values) any) ([]map[string]any, []string, error) {
 	t.Helper()
 	var lock sync.Mutex
 	var queries []string
@@ -123,6 +123,43 @@ func TestOffsetPagingRejectsAPageThatIsNotAnObject(t *testing.T) {
 	var failure *Error
 	if !errors.As(err, &failure) || failure.Kind != KindDecode {
 		t.Fatalf("error is %v", err)
+	}
+}
+
+func TestOffsetPagingStopsAtATotalThatIsNotAnInteger(t *testing.T) {
+	items, queries, err := walk(t, offsetList, pageParams{}, func(url.Values) any {
+		return map[string]any{"total": 2.0, "data": numbered(0, 2)}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(items, numbered(0, 2)) {
+		t.Errorf("items are %v", items)
+	}
+	if want := []string{""}; !reflect.DeepEqual(queries, want) {
+		t.Errorf("queries are %q, want %q", queries, want)
+	}
+}
+
+func TestOffsetPagingRejectsAnOffsetThatIsNotAnInteger(t *testing.T) {
+	start := "later"
+	params := struct {
+		Start *string `query:"start"`
+	}{Start: &start}
+	_, _, err := walk(t, offsetList, params, func(url.Values) any { return map[string]any{"data": numbered(0, 1)} })
+	var failure *Error
+	if !errors.As(err, &failure) || failure.Kind != KindDecode || !strings.Contains(err.Error(), "start parameter is not an integer") {
+		t.Fatalf("error is %v", err)
+	}
+}
+
+func TestOffsetPagingRejectsAPageWithoutAnItemsList(t *testing.T) {
+	for _, body := range []any{map[string]any{"total": 1}, map[string]any{"data": nil}, map[string]any{"data": map[string]any{"n": 1}}} {
+		_, _, err := walk(t, offsetList, pageParams{}, func(url.Values) any { return body })
+		var failure *Error
+		if !errors.As(err, &failure) || failure.Kind != KindDecode {
+			t.Errorf("for %v, error is %v", body, err)
+		}
 	}
 }
 

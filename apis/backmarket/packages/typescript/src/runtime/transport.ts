@@ -222,10 +222,14 @@ function nextOffset(
   page: Record<string, unknown>,
   received: number,
 ): Params | undefined {
+  if (!Array.isArray(page[paging.items]))
+    throw new DecodeError(`The \`${paging.items}\` field of a page is not a list`);
   if (received === 0) return undefined;
   const param = operation.params.find(({ wire, location }) => location === 'query' && wire === paging.offset);
   if (param === undefined) throw new DecodeError(`The operation has no \`${paging.offset}\` parameter`);
-  const position = Number(params[param.name] ?? 0) + received;
+  const start = String(params[param.name] ?? 0);
+  if (!/^[+-]?\d+$/.test(start)) throw new DecodeError(`The \`${paging.offset}\` parameter is not an integer`);
+  const position = Number(start) + received;
   const total = page[paging.total];
   if (typeof total === 'number' && position >= total) return undefined;
   return { ...params, [param.name]: position };
@@ -233,8 +237,7 @@ function nextOffset(
 
 /** The parameters of the page after this one, or undefined after the last. */
 function nextParams(operation: Operation, params: Params, page: unknown, received: number): Params | undefined {
-  // TODO: an array page passes this check and ends the iteration quietly, where the other runtimes reject it.
-  if (!isObject(page)) throw new DecodeError('A page is not a JSON object');
+  if (!isObject(page) || Array.isArray(page)) throw new DecodeError('A page is not a JSON object');
   const paging = operation.paging ?? NEXT_LINK;
   return paging.style === 'offset'
     ? nextOffset(operation, paging, params, page, received)

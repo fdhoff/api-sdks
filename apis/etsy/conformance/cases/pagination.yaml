@@ -55,6 +55,20 @@ cases:
     expect:
       result: []
 
+  - name: pagination-offset-page-without-a-results-list
+    request:
+      operation: findAllListingsActive
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { count: 3 }
+    wire:
+      - method: GET
+        path: /v3/application/listings/active
+    expect:
+      error: { kind: decode }
+
   - name: pagination-offset-keeps-other-parameters-on-every-page
     request:
       operation: findAllListingsActive

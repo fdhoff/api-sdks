@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import time
 import zlib
 from collections.abc import AsyncIterator, Callable, Iterator, Mapping, Sequence
@@ -30,6 +31,7 @@ FileInput = bytes | tuple[str, bytes]
 """A file to upload: its content, or its name and content."""
 
 _REDACTED = "***"
+_INTEGER = re.compile(r"[+-]?[0-9]+")
 # Only gzip is decoded, and httpx would otherwise also ask for deflate, br and zstd.
 _ACCEPT_ENCODING = {"Accept-Encoding": "gzip"}
 
@@ -290,12 +292,18 @@ def _next_link(
 def _next_offset(
     operation: Operation[Any], paging: Offset, params: dict[str, Any], page: Mapping[str, Any], received: int
 ) -> dict[str, Any] | None:
+    if not isinstance(page.get(paging.items), list):
+        raise DecodeError(f"The `{paging.items}` field of a page is not a list")
     if received == 0:
         return None
     name = _query_names(operation)[paging.offset]
-    position = int(params.get(name) or 0) + received
+    current = params.get(name)
+    start = _text(current) if current is not None else "0"
+    if not _INTEGER.fullmatch(start):
+        raise DecodeError(f"The `{paging.offset}` parameter is not an integer")
+    position = int(start) + received
     total = page.get(paging.total)
-    if isinstance(total, int) and not isinstance(total, bool) and position >= total:
+    if isinstance(total, (int, float)) and not isinstance(total, bool) and position >= total:
         return None
     return {**params, name: position}
 

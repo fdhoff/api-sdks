@@ -593,6 +593,32 @@ test('offset paging rejects a page that is not an object', async () => {
   await assert.rejects(pages.all(offsetList), DecodeError);
 });
 
+test('offset paging rejects an offset that is not an integer', async () => {
+  const { pages, queries } = pagesFor(() => json({ data: [{ n: 1 }] }));
+  await assert.rejects(pages.all(offsetList, { start: 'later' }), (error) => {
+    assert.ok(error instanceof DecodeError);
+    assert.match(error.message, /`start` parameter is not an integer/);
+    return true;
+  });
+  assert.deepEqual(queries, ['?start=later']);
+});
+
+for (const body of [[{ n: 1 }], { total: 1 }, { data: null }, { data: { n: 1 } }]) {
+  test(`offset paging rejects a page without an items list: ${JSON.stringify(body)}`, async () => {
+    const { pages } = pagesFor(() => json(body));
+    await assert.rejects(pages.all(offsetList), DecodeError);
+  });
+}
+
+test('next-link paging rejects a page that is an array', async () => {
+  const operation: Operation = {
+    ...offsetList,
+    paging: { style: 'next_link', items: 'data', link: 'more', params: [] },
+  };
+  const { pages } = pagesFor(() => json([{ n: 1 }]));
+  await assert.rejects(pages.all(operation), DecodeError);
+});
+
 test('next-link paging reads the configured fields', async () => {
   const operation: Operation = {
     ...offsetList,

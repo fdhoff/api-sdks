@@ -202,12 +202,21 @@ internal sealed class Transport : IDisposable
 
     private static object?[]? NextOffset(Operation operation, OffsetPaging paging, object?[] values, JsonElement page, int received)
     {
+        if (!page.TryGetProperty(paging.Items, out var items) || items.ValueKind != JsonValueKind.Array)
+        {
+            throw new ApiDecodeException($"The `{paging.Items}` field of a page is not a list");
+        }
         if (received == 0)
         {
             return null;
         }
         var index = Array.FindIndex(operation.Params, param => param.Location == ParamLocation.Query && param.Wire == paging.Offset);
-        var position = (values[index] is null ? 0L : Convert.ToInt64(values[index], CultureInfo.InvariantCulture)) + received;
+        var start = 0L;
+        if (values[index] is { } current && !long.TryParse(Json.Text(current), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out start))
+        {
+            throw new ApiDecodeException($"The `{paging.Offset}` parameter is not an integer");
+        }
+        var position = start + received;
         if (page.TryGetProperty(paging.Total, out var total) && total.ValueKind == JsonValueKind.Number && position >= total.GetDouble())
         {
             return null;
