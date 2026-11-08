@@ -1,0 +1,164 @@
+{
+  "sources": [
+    {
+      "name": "sell_account_v1",
+      "url": "https://developer.ebay.com/api-docs/master/sell/account/openapi/3/sell_account_v1_oas3.json",
+      "sha256": "3f04cf1fd7c80160312d68be5afd7d0de00eb57fd32d508cbb5eeec526b8bfbb",
+      "infoVersion": "v1.9.3",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "sell_account_v2",
+      "url": "https://developer.ebay.com/api-docs/master/sell/account/v2/openapi/3/sell_account_v2_oas3.json",
+      "sha256": "c5f780e43697e3f439c0004039e6d6f0fffd5b2c71f177d4463f786a40b0fff9",
+      "infoVersion": "2.2.0",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "sell_analytics",
+      "url": "https://developer.ebay.com/api-docs/master/sell/analytics/openapi/3/sell_analytics_v1_oas3.json",
+      "sha256": "28b982a8bad6a2014ef36653befe48c1073c3458689f41511c080dc9a4184353",
+      "infoVersion": "1.3.2",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "sell_feed",
+      "url": "https://developer.ebay.com/api-docs/master/sell/feed/openapi/3/sell_feed_v1_oas3.json",
+      "sha256": "254d3b27355da6306bf91150cca650a849cff6335a59dfd84cfe2ef2575ad66c",
+      "infoVersion": "v1.3.1",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "sell_finances",
+      "url": "https://developer.ebay.com/api-docs/master/sell/finances/openapi/3/sell_finances_v1_oas3.json",
+      "sha256": "f81bff0114a73108669f61684265c6e94ce761667402bd65f2d9209ce22c5455",
+      "infoVersion": "v1.19.0",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "sell_fulfillment",
+      "url": "https://developer.ebay.com/api-docs/master/sell/fulfillment/openapi/3/sell_fulfillment_v1_oas3.json",
+      "sha256": "db06cfec913918dc675c19f36efcc8c5d8ae57231463a7e322b4c43b30c16eb9",
+      "infoVersion": "v1.20.7",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "sell_inventory",
+      "url": "https://developer.ebay.com/api-docs/master/sell/inventory/openapi/3/sell_inventory_v1_oas3.json",
+      "sha256": "070e35efbc1e6b0c67c702d3bd9d8a4fb5046bcd948dca7170f1bc33d5a36a46",
+      "infoVersion": "1.18.5",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "sell_marketing",
+      "url": "https://developer.ebay.com/api-docs/master/sell/marketing/openapi/3/sell_marketing_v1_oas3.json",
+      "sha256": "478dbf08967eb410e4c0f7b827a76f0566a1421d009220c5966a9c30748db81c",
+      "infoVersion": "v1.23.2",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "sell_metadata",
+      "url": "https://developer.ebay.com/api-docs/master/sell/metadata/openapi/3/sell_metadata_v1_oas3.json",
+      "sha256": "b35e8e51a4bb3b7d937a3586700a329ba26700b4f0fd939385fa506f9764182f",
+      "infoVersion": "v1.12.1",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "sell_negotiation",
+      "url": "https://developer.ebay.com/api-docs/master/sell/negotiation/openapi/3/sell_negotiation_v1_oas3.json",
+      "sha256": "b46728a37390e6a1cb1f0ce910c7591b03940620b29892921fb2c798d6f6b3c6",
+      "infoVersion": "v1.1.0",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "sell_recommendation",
+      "url": "https://developer.ebay.com/api-docs/master/sell/recommendation/openapi/3/sell_recommendation_v1_oas3.json",
+      "sha256": "4b63129916a01b018e3032943f62e5ec380fb4d99676f4a09b173df1288a38f9",
+      "infoVersion": "v1.1.0",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "sell_stores",
+      "url": "https://developer.ebay.com/api-docs/master/sell/stores/openapi/3/sell_stores_v1_oas3.json",
+      "sha256": "86dbfce2391809412e2017908724819106cedb6ccbac8f042695b793cf35938b",
+      "infoVersion": "1",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "commerce_taxonomy",
+      "url": "https://developer.ebay.com/api-docs/master/commerce/taxonomy/openapi/3/commerce_taxonomy_v1_oas3.json",
+      "sha256": "294c327d8484b172d81c29a23e3ab6c28f4ba679bdb7d7c1dca4df901574a14d",
+      "infoVersion": "v1.1.1",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "commerce_notification",
+      "url": "https://developer.ebay.com/api-docs/master/commerce/notification/openapi/3/commerce_notification_v1_oas3.json",
+      "sha256": "149a7a23e4ca40fbae11b17cfb7df24b55c34117fd8426ea99e9a15483575590",
+      "infoVersion": "v1.6.7",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "commerce_media",
+      "url": "https://developer.ebay.com/api-docs/master/commerce/media/openapi/3/commerce_media_v1_beta_oas3.json",
+      "sha256": "0ad949cd2fd6e1973506d5a6f4f673e3195d73844236f626e4fb031ec5e10f18",
+      "infoVersion": "v1_beta.5.0",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "commerce_identity",
+      "url": "https://developer.ebay.com/api-docs/master/commerce/identity/openapi/3/commerce_identity_v1_oas3.json",
+      "sha256": "8daac3dc299bfb873c1cd27bee76af4dde0812bfb05c7539276d09d9093ce30d",
+      "infoVersion": "v2.0.0",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "commerce_feedback",
+      "url": "https://developer.ebay.com/api-docs/master/commerce/feedback/openapi/3/commerce_feedback_v1_beta_oas3.json",
+      "sha256": "43c22d3a7a25534ba3c8dc9c689a399625e32859d61d305e36df9707541ac133",
+      "infoVersion": "v1.0.0",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "commerce_message",
+      "url": "https://developer.ebay.com/api-docs/master/commerce/message/openapi/3/commerce_message_v1_oas3.json",
+      "sha256": "dbc5911d02bbac91038978257583659065ca2e7d64d1199056176b7f19787057",
+      "infoVersion": "1.0.0",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "developer_key_management",
+      "url": "https://developer.ebay.com/api-docs/master/developer/key-management/openapi/3/developer_key_management_v1_oas3.json",
+      "sha256": "4252155ef0040e371bc95205f6d44740e991dc209f308f07dd4051a25b44e95e",
+      "infoVersion": "v1.0.0",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
+      "name": "developer_analytics",
+      "url": "https://developer.ebay.com/api-docs/master/developer/analytics/openapi/3/developer_analytics_v1_beta_oas3.json",
+      "sha256": "419ccc5cb97fdeb947bb7d7647b45e19e526ef1264230dc7283f106dc86dab3c",
+      "infoVersion": "v1_beta.0.1",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    }
+  ]
+}

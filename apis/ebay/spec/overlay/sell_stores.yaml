@@ -1,0 +1,15 @@
+# Corrections to the pinned sell_stores contract. See ../../docs/spec-audit.md.
+overlay: 1.0.0
+info:
+  title: Corrections to the eBay sell_stores contract
+  version: 0.1.0
+actions:
+  - description: C7. The security scheme declares no OAuth flow, so the scopes its operations need are undeclared.
+    target: $.components.securitySchemes.api_auth
+    update:
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.ebay.com/oauth2/authorize
+          tokenUrl: https://api.ebay.com/identity/v1/oauth2/token
+          scopes:
+            https://api.ebay.com/oauth/api_scope/sell.stores: Manage the seller's store

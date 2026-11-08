@@ -1,0 +1,14 @@
+# Corrections to the pinned sell_marketing contract. See ../../docs/spec-audit.md.
+overlay: 1.0.0
+info:
+  title: Corrections to the eBay sell_marketing contract
+  version: 0.1.0
+actions:
+  - description: C8. getReport returns a tab-separated report, but its schema is an object, not a string.
+    target: $.paths.*.get.responses['200'].content['text/tab-separated-values'].schema
+    remove: true
+  - description: C8.
+    target: $.paths.*.get.responses['200'].content['text/tab-separated-values']
+    update:
+      schema:
+        type: string

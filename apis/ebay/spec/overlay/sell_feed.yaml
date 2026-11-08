@@ -1,0 +1,35 @@
+# Corrections to the pinned sell_feed contract. See ../../docs/spec-audit.md.
+overlay: 1.0.0
+info:
+  title: Corrections to the eBay sell_feed contract
+  version: 0.1.0
+actions:
+  - description: C2. uploadFile sends multipart form data, but declares no request body.
+    target: $.paths['/task/{task_id}/upload_file'].post
+    update:
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                fileName:
+                  type: string
+                name:
+                  type: string
+                type:
+                  type: string
+  - description: C8. Each file download returns the file, but its schema is not a binary string.
+    target: $.paths.*.get.responses['200'].content['application/octet-stream'].schema
+    remove: true
+  - description: C8.
+    target: $.paths.*.get.responses['200'].content['application/octet-stream']
+    update:
+      schema:
+        type: string
+        format: binary

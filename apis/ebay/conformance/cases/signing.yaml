@@ -1,0 +1,86 @@
+# EU and UK sellers must sign Finances calls and issueRefund (RFC 9421), with `x-ebay-signature-key` holding
+# the public key JWE from the Key Management API and a `Content-Digest` (RFC 9530) when there is a body.
+# A client with a signature key signs every call; eBay ignores signatures where it does not need them.
+# Drivers sign with an Ed25519 key they generate, so no private key is stored here.
+# TODO: assert `content_digest: true` once the conformance harness checks digests.
+cases:
+  - name: signing-refund-is-signed-over-its-digest
+    client: { signature_key: conformance-synthetic-public-key-jwe }
+    request:
+      operation: sell_fulfillment.issueRefund
+      params: { order_id: 01-00000-00001 }
+      body: { reasonForRefund: BUYER_CANCEL, comment: synthetic }
+    mock:
+      responses:
+        - status: 200
+          body: { refundId: r1, refundStatus: PENDING }
+    wire:
+      - method: POST
+        path: /sell/fulfillment/v1/order/01-00000-00001/issue_refund
+        headers: { x-ebay-signature-key: conformance-synthetic-public-key-jwe }
+        headers_match:
+          content-digest: '^sha-256=:[A-Za-z0-9+/]{43}=:$'
+          signature-input: '^sig1=\("content-digest" "x-ebay-signature-key" "@method" "@path" "@authority"\);created=\d+$'
+          signature: '^sig1=:[A-Za-z0-9+/]+={0,2}:$'
+        body: { reasonForRefund: BUYER_CANCEL, comment: synthetic }
+    expect:
+      result: { refundId: r1 }
+
+  - name: signing-finances-call-without-a-body-has-no-digest
+    client: { signature_key: conformance-synthetic-public-key-jwe }
+    request:
+      operation: sell_finances.getSellerFundsSummary
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /sell/finances/v1/seller_funds_summary
+        headers: { x-ebay-signature-key: conformance-synthetic-public-key-jwe }
+        headers_match:
+          signature-input: '^sig1=\("x-ebay-signature-key" "@method" "@path" "@authority"\);created=\d+$'
+          signature: '^sig1=:[A-Za-z0-9+/]+={0,2}:$'
+        headers_absent: [content-digest]
+    expect:
+      result_keys: [totalFunds]
+
+  - name: signing-each-attempt-is-signed
+    client: { signature_key: conformance-synthetic-public-key-jwe }
+    request:
+      operation: sell_fulfillment.issueRefund
+      params: { order_id: 01-00000-00001 }
+      body: { reasonForRefund: BUYER_CANCEL }
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '0' }
+        - status: 200
+          body: { refundId: r1 }
+    wire:
+      - method: POST
+        path: /sell/fulfillment/v1/order/01-00000-00001/issue_refund
+        headers_match:
+          signature-input: '^sig1=\("content-digest" "x-ebay-signature-key" "@method" "@path" "@authority"\);created=\d+$'
+          content-digest: '^sha-256=:'
+      - method: POST
+        path: /sell/fulfillment/v1/order/01-00000-00001/issue_refund
+        headers_match:
+          signature-input: '^sig1=\("content-digest" "x-ebay-signature-key" "@method" "@path" "@authority"\);created=\d+$'
+          content-digest: '^sha-256=:'
+    expect:
+      result: { refundId: r1 }
+
+  - name: signing-client-without-a-key-does-not-sign
+    request:
+      operation: sell_fulfillment.issueRefund
+      params: { order_id: 01-00000-00001 }
+      body: { reasonForRefund: BUYER_CANCEL }
+    mock:
+      responses:
+        - status: 200
+          body: { refundId: r1 }
+    wire:
+      - method: POST
+        path: /sell/fulfillment/v1/order/01-00000-00001/issue_refund
+        headers_absent: [signature, signature-input, content-digest, x-ebay-signature-key]
+    expect:
+      result: { refundId: r1 }
