@@ -174,8 +174,8 @@ test('inlineServerPath moves the server path into every path and keeps each serv
 test('inlineServerPath counts an operation with no server anywhere as served from /', () => {
   const served = { servers: [{ url: `${HOST}/v1` }], get: {} };
   assert.deepEqual(Object.keys(inlineServerPath({ paths: { '/a': structuredClone(served), '/b': { get: { servers: served.servers } } } }).paths), ['/v1/a', '/v1/b']);
-  assert.throws(() => inlineServerPath({ paths: { '/a': structuredClone(served), '/b': { get: {} } } }), /Servers disagree on their path: \/v1, \/$/);
-  assert.throws(() => inlineServerPath({ paths: { '/a': { get: { servers: served.servers }, post: {} } } }), /Servers disagree on their path: \/v1, \/$/);
+  assert.throws(() => inlineServerPath({ paths: { '/a': structuredClone(served), '/b': { get: {} } } }), /Servers disagree on their path: \/, \/v1$/);
+  assert.throws(() => inlineServerPath({ paths: { '/a': { get: { servers: served.servers }, post: {} } } }), /Servers disagree on their path: \/, \/v1$/);
 });
 
 test('mergeContracts keeps colliding schema names apart and every reference pointing at its own', () => {
