@@ -43,22 +43,30 @@ type {{classname}} struct {
 {{#operation}}
 {{#hasQueryParams}}
 
-// {{baseName}}{{vendorExtensions.x-sdk-method}}Params holds the query parameters of [{{classname}}.{{vendorExtensions.x-sdk-method}}]. Set only what you need.
+// {{baseName}}{{vendorExtensions.x-sdk-method}}Params holds the query parameters{{#hasFormParams}} and form fields{{/hasFormParams}} of [{{classname}}.{{vendorExtensions.x-sdk-method}}]. Set only what you need.
 type {{baseName}}{{vendorExtensions.x-sdk-method}}Params struct {
-{{#queryParams}}
-	{{nameInPascalCase}} {{^isArray}}*{{/isArray}}{{{dataType}}} `query:"{{baseName}}"`
-{{/queryParams}}
-}
 {{/hasQueryParams}}
+{{^hasQueryParams}}
 {{#hasFormParams}}
 
 // {{baseName}}{{vendorExtensions.x-sdk-method}}Params holds the form fields of [{{classname}}.{{vendorExtensions.x-sdk-method}}].
 type {{baseName}}{{vendorExtensions.x-sdk-method}}Params struct {
+{{/hasFormParams}}
+{{/hasQueryParams}}
+{{#queryParams}}
+	{{nameInPascalCase}} {{^isArray}}*{{/isArray}}{{{dataType}}} `query:"{{baseName}}"`
+{{/queryParams}}
 {{#formParams}}
-	{{nameInPascalCase}} {{^isArray}}{{^isFile}}*{{/isFile}}{{/isArray}}{{{dataType}}} `form:"{{baseName}}"`
+	{{nameInPascalCase}} {{^isArray}}{{^isFile}}*{{/isFile}}{{/isArray}}{{{dataType}}} `{{#isMultipart}}form{{/isMultipart}}{{^isMultipart}}urlencoded{{/isMultipart}}:"{{baseName}}"`
 {{/formParams}}
+{{#hasQueryParams}}
+}
+{{/hasQueryParams}}
+{{^hasQueryParams}}
+{{#hasFormParams}}
 }
 {{/hasFormParams}}
+{{/hasQueryParams}}
 
 // {{{vendorExtensions.x-sdk-summary}}}
 func (r *{{classname}}) {{vendorExtensions.x-sdk-method}}({{>partial_sdk_args}}) {{#returnType}}({{>partial_sdk_return}}, error){{/returnType}}{{^returnType}}error{{/returnType}} {

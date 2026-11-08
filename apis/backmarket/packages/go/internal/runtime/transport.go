@@ -363,7 +363,8 @@ func (t *Transport) fetch(ctx context.Context, built *request) (*response, error
 		if err == nil || !errors.As(err, &failure) {
 			return answer, err
 		}
-		if failure.Status == http.StatusUnauthorized && !refreshed {
+		// Never for an operation that sends no credentials, such as a token request made during a refresh.
+		if failure.Status == http.StatusUnauthorized && !refreshed && len(built.operation.Security) > 0 {
 			refreshed = true
 			retry, err := t.refresh(ctx, auth, generation)
 			if err != nil {

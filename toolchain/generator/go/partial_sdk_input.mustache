@@ -1,1 +1,1 @@
-runtime.Input{ {{#hasPathParams}}Path: []any{ {{#pathParams}}{{paramName}},{{/pathParams}} },{{/hasPathParams}}{{#bodyParam}}Body: body,{{/bodyParam}}{{#hasQueryParams}}Params: params,{{/hasQueryParams}}{{#hasFormParams}}Params: params,{{/hasFormParams}} }
+runtime.Input{ {{#hasPathParams}}Path: []any{ {{#pathParams}}{{paramName}},{{/pathParams}} },{{/hasPathParams}}{{#bodyParam}}Body: body,{{/bodyParam}}{{#hasQueryParams}}Params: params,{{/hasQueryParams}}{{^hasQueryParams}}{{#hasFormParams}}Params: params,{{/hasFormParams}}{{/hasQueryParams}} }
