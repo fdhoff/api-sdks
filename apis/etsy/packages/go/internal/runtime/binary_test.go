@@ -38,7 +38,7 @@ func binaryServer(t *testing.T, timeout time.Duration, handler func(w http.Respo
 		handler(w, r, count)
 	}))
 	t.Cleanup(server.Close)
-	transport := NewTransport(Settings{
+	transport := mustTransport(t, Settings{
 		BaseURL: server.URL,
 		ToError: func(context ErrorContext) *Error {
 			kind := KindAPI

@@ -186,7 +186,7 @@ func TestNextLinkPagingReadsTheConfiguredFields(t *testing.T) {
 }
 
 func TestAnEmpty204IsNoResultEvenWhereJSONIsDeclared(t *testing.T) {
-	transport := NewTransport(Settings{BaseURL: "http://example.invalid", Credentials: StaticCredentials{}, Timeout: time.Second})
+	transport := mustTransport(t, Settings{BaseURL: "http://example.invalid", Credentials: StaticCredentials{}, Timeout: time.Second})
 	operation := &Operation{ID: "get-item", Method: "GET", Path: "/items/1", ReturnsJSON: true}
 	result, err := decode[*map[string]any](transport, operation, &response{status: http.StatusNoContent})
 	if err != nil || result != nil {
