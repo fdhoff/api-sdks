@@ -4,6 +4,9 @@ description: >-
   Downloads it only on a miss, and fails if upstream no longer matches the pin.
   Run npm ci first. See docs/architecture.md.
 inputs:
+  api:
+    description: The directory under apis/ whose spec to restore.
+    required: true
   save:
     description: >-
       Save the spec to the cache after a miss. Set it in one job per workflow, so parallel jobs do not race to save
@@ -14,14 +17,17 @@ runs:
   steps:
     - id: key
       shell: bash
-      run: echo "key=upstream-spec-$(jq -r .sha256 apis/backmarket/spec/upstream/lock.json)" >> "$GITHUB_OUTPUT"
+      env:
+        API: ${{ inputs.api }}
+      run: echo "key=upstream-spec-$(jq -r .sha256 "apis/$API/spec/upstream/lock.json")" >> "$GITHUB_OUTPUT"
     - id: cache
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        path: apis/backmarket/spec/upstream/openapi.yaml
+        path: apis/${{ inputs.api }}/spec/upstream/openapi.yaml
         key: ${{ steps.key.outputs.key }}
     - shell: bash
       env:
+        API: ${{ inputs.api }}
         HIT: ${{ steps.cache.outputs.cache-hit }}
       run: |
         if [ "$HIT" != true ]; then
@@ -34,5 +40,5 @@ runs:
     - if: inputs.save == 'true' && steps.cache.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        path: apis/backmarket/spec/upstream/openapi.yaml
+        path: apis/${{ inputs.api }}/spec/upstream/openapi.yaml
         key: ${{ steps.key.outputs.key }}

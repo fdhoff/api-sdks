@@ -182,6 +182,8 @@ npm run generate:rust           # regenerate the Rust client; needs Java 21 and 
 npm run conformance:rust        # build the Rust driver and run the cases against it
 ```
 
+The scripts work on `apis/backmarket` by default. Set `API` to use another directory under `apis/`, for example `API=<api> npm run spec:build`. They need a POSIX shell.
+
 Once the spec is cached, the build and tests need no network. A hash mismatch stops the build; the error says how to recover.
 
 A daily job opens a pull request when the upstream spec changes. See [Spec updates](docs/architecture.md#spec-updates).
