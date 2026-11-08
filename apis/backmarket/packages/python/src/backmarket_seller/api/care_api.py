@@ -24,6 +24,7 @@ _get_care_folder_details: Operation[GetCareFolderDetailsResponse] = Operation(
     name="get_folder",
     params=(Param("careFolderId", "care_folder_id", "path"),),
     response=GetCareFolderDetailsResponse,
+    returns_json=True,
 )
 _get_care_folder_list: Operation[GetCareFolderListResponse] = Operation(
     id="getCareFolderList",
@@ -40,6 +41,7 @@ _get_care_folder_list: Operation[GetCareFolderListResponse] = Operation(
         Param("page", "page", "query"),
     ),
     response=GetCareFolderListResponse,
+    returns_json=True,
     iterator="iter_folders",
     item=_models.CareFolder,
 )
@@ -64,6 +66,7 @@ _post_message: Operation[PostMessageResponse] = Operation(
         Param("message", "message", "form"),
     ),
     response=PostMessageResponse,
+    returns_json=True,
 )
 _post_note: Operation[PostNoteResponse] = Operation(
     id="postNote",
@@ -73,6 +76,7 @@ _post_note: Operation[PostNoteResponse] = Operation(
     name="add_note",
     params=(Param("careFolderId", "care_folder_id", "path"),),
     response=PostNoteResponse,
+    returns_json=True,
 )
 _post_problem: Operation[None] = Operation(
     id="postProblem",

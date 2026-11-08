@@ -32,6 +32,7 @@ _get_ws_buyback_v1_competitors: Operation[List[BuybackCompetitor]] = Operation(
     name="list_competitors",
     params=(Param("listingId", "listing_id", "path"),),
     response=List[BuybackCompetitor],
+    returns_json=True,
 )
 _get_ws_buyback_v1_listing: Operation[BuybackListing] = Operation(
     id="get-ws-buyback-v1-listing",
@@ -41,6 +42,7 @@ _get_ws_buyback_v1_listing: Operation[BuybackListing] = Operation(
     name="get_listing",
     params=(Param("buybackListingId", "buyback_listing_id", "path"),),
     response=BuybackListing,
+    returns_json=True,
 )
 _get_ws_buyback_v1_listings: Operation[BuybackPaginatedListingResponse] = Operation(
     id="get-ws-buyback-v1-listings",
@@ -54,6 +56,7 @@ _get_ws_buyback_v1_listings: Operation[BuybackPaginatedListingResponse] = Operat
         Param("pageSize", "page_size", "query"),
     ),
     response=BuybackPaginatedListingResponse,
+    returns_json=True,
     iterator="iter_listings",
     item=_models.BuybackListing,
 )
@@ -65,6 +68,7 @@ _get_ws_buyback_v1_order: Operation[BuybackOrder] = Operation(
     name="get_order",
     params=(Param("buybackOrderId", "buyback_order_id", "path"),),
     response=BuybackOrder,
+    returns_json=True,
 )
 _get_ws_buyback_v1_orders: Operation[BuybackOrderPage] = Operation(
     id="get-ws-buyback-v1-orders",
@@ -84,6 +88,7 @@ _get_ws_buyback_v1_orders: Operation[BuybackOrderPage] = Operation(
         Param("page", "page", "query"),
     ),
     response=BuybackOrderPage,
+    returns_json=True,
     iterator="iter_orders",
     item=_models.BuybackOrder,
 )
@@ -98,6 +103,7 @@ _get_ws_buyback_v1_orders_messages: Operation[BuybackMessagePage] = Operation(
         Param("page", "page", "query"),
     ),
     response=BuybackMessagePage,
+    returns_json=True,
     iterator="iter_messages",
     item=_models.BuybackMessage,
 )
@@ -109,6 +115,7 @@ _get_ws_buyback_v1_orders_pending_reply: Operation[BuybackOrderPage] = Operation
     name="list_pending_orders",
     params=(Param("page", "page", "query"),),
     response=BuybackOrderPage,
+    returns_json=True,
     iterator="iter_pending_orders",
     item=_models.BuybackOrder,
 )
@@ -120,6 +127,7 @@ _get_ws_buyback_v1_orders_suspend_reasons: Operation[List[BuybackReason]] = Oper
     name="list_suspend_reasons",
     params=(),
     response=List[BuybackReason],
+    returns_json=True,
 )
 _get_ws_counter_offer_reason: Operation[List[BuybackCounterOfferReasonsInner]] = Operation(
     id="get-ws-counter-offer-reason",
@@ -129,6 +137,7 @@ _get_ws_counter_offer_reason: Operation[List[BuybackCounterOfferReasonsInner]] =
     name="list_counter_offer_reasons",
     params=(Param("buybackOrderId", "buyback_order_id", "path"),),
     response=List[BuybackCounterOfferReasonsInner],
+    returns_json=True,
 )
 _post_ws_buyback_v1_orders_messages: Operation[BuybackMessage] = Operation(
     id="post-ws-buyback-v1-orders-messages",
@@ -138,6 +147,7 @@ _post_ws_buyback_v1_orders_messages: Operation[BuybackMessage] = Operation(
     name="send_message",
     params=(Param("buybackOrderId", "buyback_order_id", "path"),),
     response=BuybackMessage,
+    returns_json=True,
 )
 _put_ws_buyback_v1_listing: Operation[object] = Operation(
     id="put-ws-buyback-v1-listing",
@@ -147,6 +157,7 @@ _put_ws_buyback_v1_listing: Operation[object] = Operation(
     name="update_listing",
     params=(Param("buybackListingId", "buyback_listing_id", "path"),),
     response=object,
+    returns_json=True,
 )
 _put_ws_buyback_v1_orders_suspend: Operation[BuybackOrder] = Operation(
     id="put-ws-buyback-v1-orders-suspend",
@@ -156,6 +167,7 @@ _put_ws_buyback_v1_orders_suspend: Operation[BuybackOrder] = Operation(
     name="suspend_order",
     params=(Param("buybackOrderId", "buyback_order_id", "path"),),
     response=BuybackOrder,
+    returns_json=True,
 )
 _put_ws_buyback_v1_orders_validate: Operation[BuybackOrder] = Operation(
     id="put-ws-buyback-v1-orders-validate",
@@ -165,6 +177,7 @@ _put_ws_buyback_v1_orders_validate: Operation[BuybackOrder] = Operation(
     name="validate_order",
     params=(Param("buybackOrderId", "buyback_order_id", "path"),),
     response=BuybackOrder,
+    returns_json=True,
 )
 _put_ws_refurbisher_counter_offer: Operation[None] = Operation(
     id="put-ws-refurbisher-counter-offer",

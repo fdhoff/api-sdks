@@ -33,6 +33,7 @@ _get_ws_list_order: Operation[OrderPage] = Operation(
         Param("page-size", "page_size", "query"),
     ),
     response=OrderPage,
+    returns_json=True,
     iterator="iter",
     item=_models.Order,
 )
@@ -44,6 +45,7 @@ _get_ws_specific_order: Operation[Order] = Operation(
     name="get",
     params=(Param("order_id", "order_id", "path"),),
     response=Order,
+    returns_json=True,
 )
 _post_ws_specific_order_invoice: Operation[None] = Operation(
     id="post-ws-specific-order-invoice",
@@ -65,6 +67,7 @@ _update_ws_specific_order: Operation[Order] = Operation(
     name="update",
     params=(Param("order_id", "order_id", "path"),),
     response=Order,
+    returns_json=True,
 )
 _update_ws_specific_orderline: Operation[UpdatedOrderLine] = Operation(
     id="update-ws-specific-orderline",
@@ -74,6 +77,7 @@ _update_ws_specific_orderline: Operation[UpdatedOrderLine] = Operation(
     name="update_line",
     params=(Param("orderline_id", "orderline_id", "path"),),
     response=UpdatedOrderLine,
+    returns_json=True,
 )
 
 OPERATIONS = (

@@ -31,6 +31,7 @@ _get_ws_list_listing: Operation[ListingPage] = Operation(
         Param("page-size", "page_size", "query"),
     ),
     response=ListingPage,
+    returns_json=True,
     iterator="iter",
     item=_models.ListingPublic,
 )
@@ -46,6 +47,7 @@ _get_ws_listing_detail: Operation[ListingDetail] = Operation(
         Param("id", "id", "query"),
     ),
     response=ListingDetail,
+    returns_json=True,
 )
 _get_ws_specific_listing: Operation[ListingDetail] = Operation(
     id="get-ws-specific-listing",
@@ -55,6 +57,7 @@ _get_ws_specific_listing: Operation[ListingDetail] = Operation(
     name="get",
     params=(Param("listingId", "listing_id", "path"),),
     response=ListingDetail,
+    returns_json=True,
 )
 _post_ws_create_or_update_listings: Operation[ListingsBatch] = Operation(
     id="post-ws-create-or-update-listings",
@@ -64,6 +67,7 @@ _post_ws_create_or_update_listings: Operation[ListingsBatch] = Operation(
     name="batch_update",
     params=(),
     response=ListingsBatch,
+    returns_json=True,
 )
 _update_ws_specific_listing: Operation[UpdatedListing] = Operation(
     id="update-ws-specific-listing",
@@ -73,6 +77,7 @@ _update_ws_specific_listing: Operation[UpdatedListing] = Operation(
     name="update",
     params=(Param("listingId", "listing_id", "path"),),
     response=UpdatedListing,
+    returns_json=True,
 )
 
 OPERATIONS = (

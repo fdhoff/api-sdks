@@ -28,7 +28,7 @@ from backmarket_seller import (
 )
 from backmarket_seller._resources import OPERATIONS
 from backmarket_seller._runtime.model import ApiModel, parse_response
-from backmarket_seller._runtime.transport import _retry_after
+from backmarket_seller._runtime.transport import Operation, _retry_after
 from backmarket_seller.models import CategoryTree, Order, OrderPage, UpdateOrder
 
 TOKEN = "synthetic-token"
@@ -141,10 +141,26 @@ def test_salvage_keeps_unknown_keys_named_like_its_own_arguments(key: str) -> No
 
 
 def test_a_response_that_is_not_an_object_is_a_decode_error() -> None:
-    client = client_for(lambda request: httpx.Response(200, json=["unexpected", TOKEN]))
+    body = f'[ "unexpected", "caf\u00e9", "{TOKEN}" ]'
+    client = client_for(lambda request: httpx.Response(200, text=body, headers={"content-type": "application/json"}))
     with pytest.raises(DecodeError) as caught:
         client.orders.get(1)
-    assert caught.value.raw_body == '["unexpected", "***"]'
+    assert caught.value.raw_body == '[ "unexpected", "café", "***" ]'
+    assert caught.value.status == 200
+
+
+def test_an_empty_body_is_a_decode_error_where_json_is_declared_whatever_the_type() -> None:
+    client = client_for(lambda request: httpx.Response(200))
+    text: Operation[str] = Operation(id="text", method="GET", path="/x", resource="r", name="n", response=str)
+    json_text: Operation[str] = Operation(
+        id="json", method="GET", path="/x", resource="r", name="n", response=str, returns_json=True
+    )
+    untyped: Operation[None] = Operation(id="none", method="GET", path="/x", resource="r", name="n", returns_json=True)
+    assert client.orders._call(text) == ""
+    with pytest.raises(DecodeError):
+        client.orders._call(json_text)
+    with pytest.raises(DecodeError):
+        client.orders._call(untyped)
 
 
 def test_an_empty_body_for_a_typed_response_is_a_decode_error() -> None:
