@@ -19,7 +19,7 @@ Sections below describe the design; this table says how much of it is real.
 | C# client | Alpha, published |
 | Rust client | Alpha, published, async only |
 | Spec drift job | Built |
-| Release workflows and changelogs | Built for all five packages, publishing on |
+| Release workflows and changelogs | Built per API. Publishing on for Back Market, off for Etsy |
 | Quickstarts | Built for Python, TypeScript, Go, C# and Rust |
 
 ## Goals
@@ -217,18 +217,32 @@ Every package description and README says the project is unofficial and not affi
 
 ### Publishing a package
 
-`.github/workflows/release-python.yml`, `release-typescript.yml`, `release-csharp.yml` and `release-rust.yml` each have a build job and a publish job. The build job reruns the generated-code check, the package tests and conformance, then builds the package. It runs on pull requests that touch the package version or changelog, and on release tags. Nothing is published unless the maintainer has done all of the following.
+`.github/workflows/release-python.yml`, `release-typescript.yml`, `release-csharp.yml` and `release-rust.yml` each release that language's package for every API. A target job reads the API and version from the tag, through `.github/actions/release-target`. A build job then reruns the generated-code check, the package tests and conformance, and builds the package. A publish job uploads it. On a pull request that touches a package version or changelog, the build job dry-runs every API that has that package, and nothing is published.
 
-| Language | Registry setup | Environment | Repository variable | Tag |
-| --- | --- | --- | --- | --- |
-| Python | Add a PyPI trusted publisher for this repository, workflow `release-python.yml`, environment `pypi` | `pypi`, with the maintainer as required reviewer | `PUBLISH_PYTHON` = `true` | `python/v<version>` |
-| TypeScript | Add an npm trusted publisher for this repository, workflow `release-typescript.yml`, environment `npm` | `npm`, with the maintainer as required reviewer | `PUBLISH_TYPESCRIPT` = `true` | `typescript/v<version>` |
-| C# | Add a nuget.org trusted publishing policy for this repository, workflow `release-csharp.yml`, environment `nuget` | `nuget`, with the maintainer as required reviewer | `PUBLISH_CSHARP` = `true` | `csharp/v<version>` |
-| Rust | Add a crates.io trusted publisher for this repository, workflow `release-rust.yml`, environment `crates-io` | `crates-io`, with the maintainer as required reviewer | `PUBLISH_RUST` = `true` | `rust/v<version>` |
+Release tags are `<api>/<language>/v<version>`, such as `etsy/python/v0.1.0a1`. Back Market's tags from before tags named the API, `<language>/v<version>`, still release Back Market. Go has no release workflow: its module is versioned by the tag `apis/<api>/packages/go/v<version>`, which Go requires.
 
-To release, rename `## Unreleased` in the package changelog to `## <version> (<date>)`, set that version in the package manifest, merge, and tag that commit on `main`. The build job fails unless the tag matches the package version and changelog and the commit is on `main`.
+| Language | Tags | Environment | Repository variables |
+| --- | --- | --- | --- |
+| Python | `<api>/python/v<version>` | `pypi` | `PUBLISH_PYTHON` and `PUBLISH_<API>_PYTHON` |
+| TypeScript | `<api>/typescript/v<version>` | `npm` | `PUBLISH_TYPESCRIPT` and `PUBLISH_<API>_TYPESCRIPT` |
+| C# | `<api>/csharp/v<version>` | `nuget` | `PUBLISH_CSHARP` and `PUBLISH_<API>_CSHARP` |
+| Rust | `<api>/rust/v<version>` | `crates-io` | `PUBLISH_RUST` and `PUBLISH_<API>_RUST` |
+| Go | `apis/<api>/packages/go/v<version>` | None | None |
 
-A release run can be rerun after it published. Each publish job skips a version the registry already has: `skip-existing` for PyPI, `--skip-duplicate` for NuGet, and a registry lookup before `npm publish` and `cargo publish`. `apis/backmarket/tests/workflows.test.mjs` checks this.
+Each environment needs the maintainer's approval, and allows only tags matching `*/v*` and `*/*/v*`. `<API>` is the API's directory name in capitals, with `-` as `_`, so Etsy's Python variable is `PUBLISH_ETSY_PYTHON`. A publish job runs only when both variables are `true`, so an API cannot publish until the maintainer turns its own variable on. Back Market published before per-API variables, and needs only the language variable.
+
+One workflow serves every API, because each registry's trusted publisher is set on the package and names the workflow file and environment, which every API shares. Before an API's first release, the maintainer sets up each registry:
+
+| Registry | First release |
+| --- | --- |
+| PyPI | Add a pending trusted publisher for the new project: this repository, workflow `release-python.yml`, environment `pypi`. The first publish creates the project. |
+| npm | Trusted publishing needs the package to exist. Publish the first version by hand with a short-lived token, from the tarball the release run built, then add a trusted publisher: this repository, workflow `release-typescript.yml`, environment `npm`. Revoke the token. |
+| NuGet | Make sure a trusted publishing policy for this repository, workflow `release-csharp.yml`, environment `nuget`, covers the new package ID. |
+| crates.io | Trusted publishing needs the crate to exist. Publish the first version by hand with a short-lived token, from the tagged commit, then add a trusted publisher: this repository, workflow `release-rust.yml`, environment `crates-io`. Revoke the token. |
+
+To release, rename `## Unreleased` in the package changelog to `## <version> (<date>)`, set that version in the package manifest, merge, and tag that commit on `main`. The build job fails unless the tag names an API with that package, matches its version and changelog, and the commit is on `main`.
+
+A release run can be rerun after it published. Each publish job skips a version the registry already has: `skip-existing` for PyPI, `--skip-duplicate` for NuGet, and a registry lookup before `npm publish` and `cargo publish`. `apis/backmarket/tests/workflows.test.mjs` checks this, and how tags map to APIs.
 
 ## Spec updates
 

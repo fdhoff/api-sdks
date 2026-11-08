@@ -1,33 +1,55 @@
 name: Release Rust
 
-# Pull requests get a dry run. Only a rust/v* tag publishes, and only once the
-# PUBLISH_RUST repository variable is true. See docs/architecture.md.
+# Pull requests get a dry run for every API. Only an <api>/rust/v* tag publishes, and only once the PUBLISH_RUST
+# repository variable and that API's own variable, such as PUBLISH_ETSY_RUST, are true. See docs/architecture.md.
 on:
   pull_request:
     paths:
+      - .github/actions/release-target/**
       - .github/actions/upstream-spec/**
       - .github/workflows/release-rust.yml
-      - apis/backmarket/packages/rust/CHANGELOG.md
-      - apis/backmarket/packages/rust/Cargo.toml
+      - apis/*/packages/rust/CHANGELOG.md
+      - apis/*/packages/rust/Cargo.toml
   push:
-    tags: ["rust/v*"]
+    tags: ["*/rust/v*", "rust/v*"]
 
 permissions:
   contents: read
 
-# TODO: Release another API's package with a copy of this workflow that sets API to its directory under apis/ and
-# uses its own tag prefix, paths and registry environment. Publishing it waits for the owner's approval.
 env:
-  API: backmarket
   RUSTUP_TOOLCHAIN: "1.99"
 
 jobs:
+  target:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.target.outputs.matrix }}
+      api: ${{ steps.target.outputs.api }}
+      package: ${{ steps.target.outputs.package }}
+      version: ${{ steps.target.outputs.version }}
+      gate: ${{ steps.target.outputs.gate }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: target
+        uses: ./.github/actions/release-target
+        with:
+          language: rust
+
   build:
+    needs: target
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.target.outputs.matrix) }}
     env:
       SCARF_ANALYTICS: "false"
       CARGO_TERM_COLOR: never
+      API: ${{ matrix.api }}
     defaults:
       run:
         shell: bash
@@ -38,14 +60,13 @@ jobs:
           persist-credentials: false
       - name: Tag matches the package version and changelog, is on main, and the crate is publishable
         if: github.event_name == 'push'
-        working-directory: apis/backmarket/packages/rust
+        working-directory: apis/${{ matrix.api }}/packages/rust
         env:
-          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.target.outputs.version }}
         run: |
-          version="${TAG#rust/v}"
-          grep -Fx "version = \"$version\"" Cargo.toml
+          grep -Fx "version = \"$VERSION\"" Cargo.toml
           ! grep -Fx "publish = false" Cargo.toml
-          grep -F "## $version " CHANGELOG.md | grep -Fv unreleased
+          grep -F "## $VERSION " CHANGELOG.md | grep -Fv unreleased
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -59,22 +80,22 @@ jobs:
       - run: npm ci --ignore-scripts
       - uses: ./.github/actions/upstream-spec
         with:
-          api: ${{ env.API }}
+          api: ${{ matrix.api }}
           save: true
       - run: npm run spec:build
       - name: Generated code matches the spec, templates and runtime
         run: |
           npm run generate:rust
-          git add -N apis/backmarket/packages/rust
-          git diff --exit-code apis/backmarket/packages/rust
-      - working-directory: apis/backmarket/packages/rust
+          git add -N "apis/$API/packages/rust"
+          git diff --exit-code "apis/$API/packages/rust"
+      - working-directory: apis/${{ matrix.api }}/packages/rust
         run: |
           cargo fmt --check
           cargo clippy --all-targets --locked -- -D warnings
           cargo test --locked
       - run: npm run conformance:rust
       - name: Package, and check the licence and notice ship
-        working-directory: apis/backmarket/packages/rust
+        working-directory: apis/${{ matrix.api }}/packages/rust
         run: |
           cargo package --locked --allow-dirty
           cargo package --list --locked --allow-dirty | grep -x LICENSE
@@ -82,31 +103,33 @@ jobs:
 
   # cargo publish builds from source, so this job checks out the tagged commit
   # instead of reusing an artifact. The generated code is committed, so it needs
-  # no spec.
+  # no spec. Back Market published before each API had its own variable, so it
+  # needs only PUBLISH_RUST.
   publish:
-    needs: build
-    if: github.event_name == 'push' && vars.PUBLISH_RUST == 'true'
+    needs: [target, build]
+    if: >-
+      github.event_name == 'push' && vars.PUBLISH_RUST == 'true' &&
+      (needs.target.outputs.api == 'backmarket' || vars[needs.target.outputs.gate] == 'true')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment:
       name: crates-io
-      url: https://crates.io/crates/backmarket-seller
+      url: https://crates.io/crates/${{ needs.target.outputs.package }}
     permissions:
       id-token: write
     env:
       CARGO_TERM_COLOR: never
+      PACKAGE: ${{ needs.target.outputs.package }}
+      VERSION: ${{ needs.target.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Check whether this version is already on crates.io
         id: published
-        env:
-          TAG: ${{ github.ref_name }}
         run: |
-          version="${TAG#rust/v}"
-          if curl -fsS https://index.crates.io/ba/ck/backmarket-seller | jq -e --arg v "$version" 'select(.vers == $v)' > /dev/null; then
-            echo "backmarket-seller $version is already published."
+          if curl -fsS "https://index.crates.io/${PACKAGE:0:2}/${PACKAGE:2:2}/$PACKAGE" | jq -e --arg v "$VERSION" 'select(.vers == $v)' > /dev/null; then
+            echo "$PACKAGE $VERSION is already published."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.published.outputs.skip != 'true'
@@ -115,7 +138,7 @@ jobs:
         if: steps.published.outputs.skip != 'true'
         uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
       - if: steps.published.outputs.skip != 'true'
-        working-directory: apis/backmarket/packages/rust
+        working-directory: apis/${{ needs.target.outputs.api }}/packages/rust
         run: cargo publish --locked
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}

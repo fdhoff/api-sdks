@@ -1,31 +1,52 @@
 name: Release Python
 
-# Pull requests get a dry run. Only a python/v* tag publishes, and only once the
-# PUBLISH_PYTHON repository variable is true. See docs/architecture.md.
+# Pull requests get a dry run for every API. Only an <api>/python/v* tag publishes, and only once the PUBLISH_PYTHON
+# repository variable and that API's own variable, such as PUBLISH_ETSY_PYTHON, are true. See docs/architecture.md.
 on:
   pull_request:
     paths:
+      - .github/actions/release-target/**
       - .github/actions/upstream-spec/**
       - .github/workflows/release-python.yml
-      - apis/backmarket/packages/python/CHANGELOG.md
-      - apis/backmarket/packages/python/src/backmarket_seller/__init__.py
+      - apis/*/packages/python/CHANGELOG.md
+      - apis/*/packages/python/src/*/__init__.py
   push:
-    tags: ["python/v*"]
+    tags: ["*/python/v*", "python/v*"]
 
 permissions:
   contents: read
 
-# TODO: Release another API's package with a copy of this workflow that sets API to its directory under apis/ and
-# uses its own tag prefix, paths and registry environment. Publishing it waits for the owner's approval.
-env:
-  API: backmarket
-
 jobs:
+  target:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.target.outputs.matrix }}
+      api: ${{ steps.target.outputs.api }}
+      package: ${{ steps.target.outputs.package }}
+      version: ${{ steps.target.outputs.version }}
+      gate: ${{ steps.target.outputs.gate }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: target
+        uses: ./.github/actions/release-target
+        with:
+          language: python
+
   build:
+    needs: target
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.target.outputs.matrix) }}
     env:
       SCARF_ANALYTICS: "false"
+      API: ${{ matrix.api }}
+      PACKAGE: ${{ matrix.package }}
     defaults:
       run:
         shell: bash
@@ -36,13 +57,12 @@ jobs:
           persist-credentials: false
       - name: Tag matches the package version and changelog, and is on main
         if: github.event_name == 'push'
-        working-directory: apis/backmarket/packages/python
+        working-directory: apis/${{ matrix.api }}/packages/python
         env:
-          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.target.outputs.version }}
         run: |
-          version="${TAG#python/v}"
-          grep -Fx "__version__ = \"$version\"" src/backmarket_seller/__init__.py
-          grep -F "## $version " CHANGELOG.md | grep -Fv unreleased
+          grep -Fx "__version__ = \"$VERSION\"" "src/${PACKAGE//-/_}/__init__.py"
+          grep -F "## $VERSION " CHANGELOG.md | grep -Fv unreleased
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -58,21 +78,21 @@ jobs:
       - run: npm ci --ignore-scripts
       - uses: ./.github/actions/upstream-spec
         with:
-          api: ${{ env.API }}
+          api: ${{ matrix.api }}
           save: true
       - run: npm run spec:build
-      - run: python -m pip install -e 'apis/backmarket/packages/python[dev]'
+      - run: python -m pip install -e "apis/$API/packages/python[dev]"
       - name: Generated code matches the spec, templates and runtime
         run: |
           npm run generate:python
-          git add -N apis/backmarket/packages/python
-          git diff --exit-code apis/backmarket/packages/python
-      - working-directory: apis/backmarket/packages/python
+          git add -N "apis/$API/packages/python"
+          git diff --exit-code "apis/$API/packages/python"
+      - working-directory: apis/${{ matrix.api }}/packages/python
         run: python -m pytest
       - run: npm run conformance:python
       - run: npm run conformance:python:async
       - name: Build, and check the licence and notice ship
-        working-directory: apis/backmarket/packages/python
+        working-directory: apis/${{ matrix.api }}/packages/python
         run: |
           python -m build
           unzip -l dist/*.whl | grep -E 'licenses/LICENSE$'
@@ -81,24 +101,27 @@ jobs:
           tar tzf dist/*.tar.gz | grep -E '/NOTICE$'
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: python-dist
-          path: apis/backmarket/packages/python/dist/
+          name: python-dist-${{ matrix.api }}
+          path: apis/${{ matrix.api }}/packages/python/dist/
           if-no-files-found: error
 
+  # Back Market published before each API had its own variable, so it needs only PUBLISH_PYTHON.
   publish:
-    needs: build
-    if: github.event_name == 'push' && vars.PUBLISH_PYTHON == 'true'
+    needs: [target, build]
+    if: >-
+      github.event_name == 'push' && vars.PUBLISH_PYTHON == 'true' &&
+      (needs.target.outputs.api == 'backmarket' || vars[needs.target.outputs.gate] == 'true')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment:
       name: pypi
-      url: https://pypi.org/project/backmarket-seller/
+      url: https://pypi.org/project/${{ needs.target.outputs.package }}/
     permissions:
       id-token: write
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: python-dist
+          name: python-dist-${{ needs.target.outputs.api }}
           path: dist/
       - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
