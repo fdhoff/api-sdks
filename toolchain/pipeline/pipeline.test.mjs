@@ -154,6 +154,21 @@ test('applyOperations marks operations whose query or form parameters must be pa
   const allOf = { allOf: [{ required: ['file'] }] };
   assert.equal(required(op('a', form), { schemas: { F: {} } }), false);
   assert.equal(required(op('a', form), { schemas: { F: allOf } }), true);
+  const urlencoded = { requestBody: { content: { 'application/x-www-form-urlencoded': { schema: { required: ['title'] } } } } };
+  assert.equal(required(op('a', urlencoded)), true);
+});
+
+test('applyOperations marks operations that take query or form parameters', () => {
+  const names = { a: { resource: 'r', method: 'a', summary: 'A.' } };
+  const has = (extra) => applyOperations({ paths: { '/x': { get: { operationId: 'a', ...extra } } } }, names).paths['/x'].get['x-sdk-has-params'];
+  const body = (type) => ({ requestBody: { content: { [type]: { schema: {} } } } });
+
+  assert.equal(has({}), false);
+  assert.equal(has({ parameters: [{ name: 'id', in: 'path', required: true }] }), false);
+  assert.equal(has(body('application/json')), false);
+  assert.equal(has({ parameters: [{ name: 'q', in: 'query' }] }), true);
+  assert.equal(has(body('multipart/form-data')), true);
+  assert.equal(has({ parameters: [{ name: 'q', in: 'query' }], ...body('application/x-www-form-urlencoded') }), true);
 });
 
 test('applyOperations marks operations whose success response declares a JSON body', () => {

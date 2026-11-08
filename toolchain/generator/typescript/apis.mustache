@@ -27,7 +27,7 @@ const {{nickname}}: Operation = {
     { wire: '{{baseName}}', name: '{{paramName}}', location: 'query' },
 {{/queryParams}}
 {{#formParams}}
-    { wire: '{{baseName}}', name: '{{paramName}}', location: 'form' },
+    { wire: '{{baseName}}', name: '{{paramName}}', location: '{{#isMultipart}}form{{/isMultipart}}{{^isMultipart}}urlencoded{{/isMultipart}}' },
 {{/formParams}}
   ],
 {{#bodyParam}}

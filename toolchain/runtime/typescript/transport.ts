@@ -6,10 +6,11 @@ export type FileContent = Blob | Uint8Array;
 /** A file to upload: its content, or its name and content. */
 export type FileInput = FileContent | { filename: string; content: FileContent };
 
+/** `form` is a multipart part, and `urlencoded` a field of a form-encoded body. */
 export interface Param {
   wire: string;
   name: string;
-  location: 'path' | 'query' | 'form';
+  location: 'path' | 'query' | 'form' | 'urlencoded';
 }
 
 /** Pages that link to the next one. Only `params` are read from the link: it is never fetched. */
@@ -78,7 +79,7 @@ type Params = Record<string, unknown>;
 interface Built {
   url: string;
   headers: Record<string, string>;
-  body: string | FormData | undefined;
+  body: string | FormData | URLSearchParams | undefined;
 }
 
 interface Encoded {
@@ -109,6 +110,7 @@ function buildRequest(settings: Settings, operation: Operation, body: unknown, p
   let path = operation.path;
   const query = new URLSearchParams();
   const form = new FormData();
+  const fields = new URLSearchParams();
   let hasParts = false;
   for (const { wire, name, location } of operation.params) {
     const value = params[name];
@@ -120,6 +122,8 @@ function buildRequest(settings: Settings, operation: Operation, body: unknown, p
       path = path.replace(`{${wire}}`, encodeURIComponent(String(value)));
     } else if (location === 'query') {
       for (const item of Array.isArray(value) ? value : [value]) query.append(wire, String(item));
+    } else if (location === 'urlencoded') {
+      for (const item of Array.isArray(value) ? value : [value]) fields.append(wire, String(item));
     } else {
       appendPart(form, wire, value);
       hasParts = true;
@@ -128,9 +132,11 @@ function buildRequest(settings: Settings, operation: Operation, body: unknown, p
   const search = query.size > 0 ? `?${query}` : '';
   // fetch accepts a gzip body cut short, so ask for none.
   const headers: Record<string, string> = { 'Accept-Encoding': 'identity', ...settings.headers };
-  let encoded: string | FormData | undefined;
+  let encoded: Built['body'];
   if (hasParts) {
     encoded = form;
+  } else if (fields.size > 0) {
+    encoded = fields;
   } else if (body !== undefined) {
     encoded = JSON.stringify(body);
     headers['Content-Type'] = 'application/json';
@@ -138,7 +144,8 @@ function buildRequest(settings: Settings, operation: Operation, body: unknown, p
   return { url: `${settings.baseUrl}${path}${search}`, headers, body: encoded };
 }
 
-/** The exact bytes to send, so that credentials can sign them. A form is encoded once, with one boundary. */
+/** The exact bytes to send, so that credentials can sign them. A multipart form is encoded once, with one
+ * boundary. */
 async function encode(body: Built['body']): Promise<Encoded> {
   if (body === undefined) return { bytes: new Uint8Array() };
   if (typeof body === 'string') return { bytes: new TextEncoder().encode(body) };
@@ -367,7 +374,8 @@ export class Transport {
       } catch (error) {
         signal?.throwIfAborted();
         if (!(error instanceof ApiError)) throw error;
-        if (error.status === 401 && !refreshed) {
+        // Never for an operation that sends no credentials, such as a token request made during a refresh.
+        if (error.status === 401 && !refreshed && (operation.security?.length ?? 0) > 0) {
           refreshed = true;
           if (await this.#refresh(auth, generation)) {
             this.#log('info', 'retrying after refreshing credentials');

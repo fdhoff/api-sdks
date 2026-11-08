@@ -1,1 +1,1 @@
-({{nickname}}, {{#bodyParam}}body{{/bodyParam}}{{^bodyParam}}undefined{{/bodyParam}}, { {{#pathParams}}{{paramName}}, {{/pathParams}}{{#hasQueryParams}}...params{{/hasQueryParams}}{{#hasFormParams}}...params{{/hasFormParams}} }, options)
+({{nickname}}, {{#bodyParam}}body{{/bodyParam}}{{^bodyParam}}undefined{{/bodyParam}}, { {{#pathParams}}{{paramName}}, {{/pathParams}}{{#vendorExtensions.x-sdk-has-params}}...params{{/vendorExtensions.x-sdk-has-params}} }, options)
