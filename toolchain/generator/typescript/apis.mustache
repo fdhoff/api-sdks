@@ -27,7 +27,7 @@ const {{nickname}}: Operation = {
     { wire: '{{baseName}}', name: '{{paramName}}', location: 'query' },
 {{/queryParams}}
 {{#formParams}}
-    { wire: '{{baseName}}', name: '{{paramName}}', location: 'form' },
+    { wire: '{{baseName}}', name: '{{paramName}}', location: '{{#isMultipart}}form{{/isMultipart}}{{^isMultipart}}urlencoded{{/isMultipart}}' },
 {{/formParams}}
   ],
 {{#bodyParam}}
@@ -62,7 +62,7 @@ export const OPERATIONS: readonly Operation[] = [
 
 export class {{classname}} extends Resource {
 {{#operation}}
-  /** {{vendorExtensions.x-sdk-summary}} */
+  /** {{{vendorExtensions.x-sdk-summary}}} */
   {{vendorExtensions.x-sdk-method}}{{>partial_sdk_args}}: Promise<{{{returnType}}}{{^returnType}}void{{/returnType}}> {
     return this.call{{>partial_sdk_call}};
   }

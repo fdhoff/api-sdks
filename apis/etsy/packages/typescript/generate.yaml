@@ -1,0 +1,16 @@
+# How `npm run generate:typescript` builds this package. Public method names are in operations.yaml.
+generator: typescript-fetch
+output: src
+source: .
+generated: [apis, models]
+resources: resources.ts
+runtime: runtime
+format: [npx, --no-install, prettier, --write, --log-level=warn]
+properties:
+  dateLibrary: string
+  disallowAdditionalPropertiesIfNotPresent: false
+  importFileExtension: .js
+  modelPropertyNaming: original
+  withoutRuntimeChecks: true
+# Every page types its `results` as a union of one schema; this types them as that schema.
+collapse_single_unions: true

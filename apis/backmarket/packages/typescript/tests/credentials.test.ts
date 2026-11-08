@@ -42,6 +42,21 @@ const upload: Operation = {
   security: [[{ scheme: 'key', scopes: [] }]],
 };
 
+const submit: Operation = {
+  id: 'submit',
+  method: 'POST',
+  path: '/forms',
+  resource: 'forms',
+  name: 'submit',
+  params: [
+    { wire: 'title', name: 'title', location: 'urlencoded' },
+    { wire: 'tags', name: 'tags', location: 'urlencoded' },
+  ],
+  security: [[{ scheme: 'key', scopes: [] }]],
+};
+
+const unsecured: Operation = { ...getItem, id: 'token', security: [] };
+
 /** A synthetic bearer token that changes on each refresh, beside a fixed key. */
 class Tokens implements Credentials {
   version = 1;
@@ -150,6 +165,25 @@ test('a 401 refreshes once and retries once', async () => {
   await assert.rejects(() => callsFor(stale, accepts('never')).calls.run(getItem, { id: 1 }), { status: 401 });
   assert.equal(stale.refreshes, 1);
   assert.equal(stale.seen.length, 2);
+});
+
+test('apply gets the form-encoded bytes that are sent', async () => {
+  const credentials = new Tokens();
+  const { calls, sent } = callsFor(credentials, () => json({}));
+  await calls.run(submit, { title: 'a b&c', tags: ['x', 'y'] });
+  const [seen] = credentials.seen;
+  const { init } = sent[0] ?? { init: {} as RequestInit };
+  assert.deepEqual(new Uint8Array(init.body as Uint8Array), seen?.body);
+  assert.equal(new TextDecoder().decode(seen?.body), 'title=a+b%26c&tags=x&tags=y');
+  assert.match(new Headers(init.headers).get('content-type') ?? '', /^application\/x-www-form-urlencoded/);
+});
+
+test('a 401 never refreshes an operation that sends no credentials', async () => {
+  const credentials = new Tokens();
+  const { calls, sent } = callsFor(credentials, () => json({}, 401));
+  await assert.rejects(() => calls.run(unsecured, { id: 1 }), { status: 401 });
+  assert.equal(credentials.refreshes, 0);
+  assert.equal(sent.length, 1);
 });
 
 test('a 401 is final when the credentials cannot refresh', async () => {

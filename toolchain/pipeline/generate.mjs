@@ -68,10 +68,22 @@ function requiredProperties(spec, node) {
   return [...(schema?.required ?? []), ...(schema?.allOf ?? []).flatMap((part) => requiredProperties(spec, part))];
 }
 
+const FORMS = ['multipart/form-data', 'application/x-www-form-urlencoded'];
+
+function formSchema(spec, operation) {
+  const content = dereference(spec, operation.requestBody)?.content ?? {};
+  return FORMS.map((type) => content[type]?.schema).find(Boolean);
+}
+
+// True when an operation takes query or form parameters, for templates that gather those into one argument.
+function hasParams(spec, parameters, operation) {
+  return parameters.some((parameter) => dereference(spec, parameter).in === 'query') || formSchema(spec, operation) !== undefined;
+}
+
 // True when a query or form parameter must be passed, for templates that gather those into one argument.
 function paramsRequired(spec, parameters, operation) {
   const query = parameters.map((parameter) => dereference(spec, parameter));
-  const form = dereference(spec, operation.requestBody)?.content?.['multipart/form-data']?.schema;
+  const form = formSchema(spec, operation);
   return query.some((parameter) => parameter.in === 'query' && parameter.required) || requiredProperties(spec, form).length > 0;
 }
 
@@ -139,6 +151,7 @@ export function applyOperations(spec, operations, paging = {}) {
       operation['x-sdk-method'] = names.method;
       operation['x-sdk-summary'] = names.summary;
       operation['x-sdk-resource'] = names.resource;
+      operation['x-sdk-has-params'] = hasParams(spec, [...shared, ...(operation.parameters ?? [])], operation);
       operation['x-sdk-params-required'] = paramsRequired(spec, [...shared, ...(operation.parameters ?? [])], operation);
       operation['x-sdk-returns-json'] = returnsJson(spec, operation);
       operation['x-sdk-security'] = securityOf(spec, operation);
