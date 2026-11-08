@@ -98,8 +98,16 @@ type response struct {
 	body   []byte
 }
 
+// redact removes the token as written and as a path or query value escapes it.
 func (t *Transport) redact(value string) string {
-	return strings.ReplaceAll(value, t.settings.Secret, redacted)
+	secret := t.settings.Secret
+	value = strings.ReplaceAll(value, secret, redacted)
+	for _, escaped := range []string{url.PathEscape(secret), url.QueryEscape(secret)} {
+		if escaped != secret {
+			value = strings.ReplaceAll(value, escaped, redacted)
+		}
+	}
+	return value
 }
 
 // redactedError prints its cause with the token removed, and still unwraps to it.
@@ -114,10 +122,14 @@ func (e *redactedError) Unwrap() error { return e.cause }
 
 // hide keeps the token out of a cause's message, such as a URL holding it as a path value.
 func (t *Transport) hide(err error) error {
-	if !strings.Contains(err.Error(), t.settings.Secret) {
+	if err == nil {
+		return nil
+	}
+	text := t.redact(err.Error())
+	if text == err.Error() {
 		return err
 	}
-	return &redactedError{cause: err, text: t.redact(err.Error())}
+	return &redactedError{cause: err, text: text}
 }
 
 func (t *Transport) log(ctx context.Context, level slog.Level, message string, attrs ...slog.Attr) {
@@ -199,7 +211,7 @@ func (t *Transport) attempt(ctx context.Context, built *request) (*response, err
 	}
 	body, err = decompress(incoming.Header, body)
 	if err != nil && success {
-		return nil, &Error{Kind: KindDecode, Message: "the response body cannot be decompressed", Status: incoming.StatusCode, Cause: err}
+		return nil, &Error{Kind: KindDecode, Message: "the response body cannot be decompressed", Status: incoming.StatusCode, Cause: t.hide(err)}
 	}
 	t.log(ctx, slog.LevelDebug, "response", slog.String("method", built.method), slog.Int("status", incoming.StatusCode), slog.Int("bytes", len(body)))
 	if !success {
@@ -280,7 +292,7 @@ func (t *Transport) fetch(ctx context.Context, built *request) (*response, error
 }
 
 func (t *Transport) decodeError(message string, answer *response, cause error) *Error {
-	return &Error{Kind: KindDecode, Message: message, Status: answer.status, RawBody: t.redact(string(answer.body)), Cause: cause}
+	return &Error{Kind: KindDecode, Message: message, Status: answer.status, RawBody: t.redact(string(answer.body)), Cause: t.hide(cause)}
 }
 
 func decode[T any](t *Transport, operation *Operation, answer *response) (T, error) {

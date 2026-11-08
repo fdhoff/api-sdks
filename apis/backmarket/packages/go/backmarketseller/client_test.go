@@ -15,6 +15,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -325,6 +326,42 @@ func TestAConnectionFailureShowsItsCauseWithoutTheToken(t *testing.T) {
 	}
 	if strings.Contains(message, token) {
 		t.Errorf("error shows the token: %q", message)
+	}
+}
+
+func TestATimeoutDoesNotShowTheTokenEvenEscaped(t *testing.T) {
+	const slashed = "synthetic/test+token="
+	release := make(chan struct{})
+	mock := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { <-release }))
+	defer mock.Close()
+	defer close(release)
+	client, err := bm.NewClient(slashed, "BM-Example-Test;test@example.com", "en-us",
+		bm.WithBaseURL(mock.URL), bm.WithTimeout(50*time.Millisecond), bm.WithMaxRetries(0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.Buyback.GetOrder(context.Background(), slashed)
+	if !errors.Is(err, bm.ErrTimeout) {
+		t.Fatalf("error is %v", err)
+	}
+	message := err.Error()
+	for _, form := range []string{slashed, url.PathEscape(slashed), url.QueryEscape(slashed)} {
+		if strings.Contains(message, form) {
+			t.Errorf("error shows %q: %q", form, message)
+		}
+	}
+}
+
+func TestADecodeErrorDoesNotShowTheTokenInItsCause(t *testing.T) {
+	client := server(t, func(w http.ResponseWriter, _ *http.Request) {
+		replyJSON(w, 200, `{"next": "%zz`+token+`", "results": []}`)
+	})
+	var last error
+	for _, err := range client.Orders.Iter(context.Background(), nil) {
+		last = err
+	}
+	if !errors.Is(last, bm.ErrDecode) || errors.Unwrap(last) == nil || strings.Contains(last.Error(), token) {
+		t.Errorf("error is %v", last)
 	}
 }
 
