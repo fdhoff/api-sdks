@@ -194,6 +194,83 @@ public sealed class SigningTests
         Assert.Contains(Body, signer.Secrets());
     }
 
+    [Fact]
+    public void LifetimeIsWholeSecondsOfAtLeastOne()
+    {
+        foreach (var lifetime in new[] { TimeSpan.Zero, TimeSpan.FromSeconds(-1), TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(1500) })
+        {
+            Assert.Throws<ArgumentException>(() => new MessageSigner(Ed25519Key, Covered, lifetime: lifetime));
+        }
+        using var signer = new MessageSigner(Ed25519Key, ["@method"], lifetime: TimeSpan.FromSeconds(1), clock: new Clock(1700000000));
+        var request = Request("GET", "https://example.com/", [], []);
+
+        signer.Sign(request);
+
+        Assert.Equal("""sig1=("@method");created=1700000000;expires=1700000001""", request.Headers["signature-input"]);
+    }
+
+    [Fact]
+    public void ContentLengthAndHostComeFromTheBodyAndUrlWhenAbsent()
+    {
+        var (pem, publicKey) = FreshKey();
+        using var signer = new MessageSigner(pem, ["content-length", "host"]);
+        var request = Request("POST", "https://Example.com:443/items", [], Encoding.UTF8.GetBytes("synthetic"));
+
+        signer.Sign(request);
+
+        Assert.False(request.Headers.ContainsKey("content-length"));
+        Assert.False(request.Headers.ContainsKey("host"));
+        VerifyBase(publicKey, request, ["\"content-length\": 9", "\"host\": example.com"]);
+        var given = Request("POST", "https://example.com/items", new() { ["Content-Length"] = "18", ["Host"] = "proxy.example" }, []);
+        signer.Sign(given);
+        VerifyBase(publicKey, given, ["\"content-length\": 18", "\"host\": proxy.example"]);
+        var error = Assert.Throws<InvalidOperationException>(() => signer.Sign(Request("GET", "https://example.com/items", [], [])));
+        Assert.Contains("content-length", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnEmptyQueryIsNoQuery()
+    {
+        var (pem, publicKey) = FreshKey();
+        using var signer = new MessageSigner(pem, ["@request-target", "@query"]);
+        var request = Request("GET", "https://example.com/p?", [], []);
+
+        signer.Sign(request);
+
+        VerifyBase(publicKey, request, ["\"@request-target\": /p", "\"@query\": ?"]);
+    }
+
+    [Fact]
+    public void RejectsAFieldThatIsNotAscii()
+    {
+        using var signer = new MessageSigner(Ed25519Key, ["x-note"]);
+        var request = Request("GET", "https://example.com/", new() { ["X-Note"] = "café" }, []);
+
+        Assert.Throws<InvalidOperationException>(() => signer.Sign(request));
+        Assert.False(request.Headers.ContainsKey("signature"));
+    }
+
+    [Fact]
+    public void EachLineOfTheKeyBodyIsASecret()
+    {
+        using var signer = new MessageSigner(RsaKey, Covered);
+        var lines = RsaKey.Trim().Split('\n')[1..^1];
+
+        Assert.All(lines, line => Assert.Contains(line.Trim(), signer.Secrets()));
+    }
+
+    private static void VerifyBase(Ed25519PublicKeyParameters publicKey, AuthRequest request, string[] lines)
+    {
+        var input = request.Headers["signature-input"];
+        var signatureBase = string.Join('\n', lines.Append($"\"@signature-params\": {input["sig1=".Length..]}"));
+        var signature = Convert.FromBase64String(request.Headers["signature"]["sig1=:".Length..^1]);
+        var verifier = new Ed25519Signer();
+        verifier.Init(false, publicKey);
+        var data = Encoding.ASCII.GetBytes(signatureBase);
+        verifier.BlockUpdate(data, 0, data.Length);
+        Assert.True(verifier.VerifySignature(signature), signatureBase);
+    }
+
     private static AuthRequest Request(string method, string url, Dictionary<string, string> headers, byte[] body) => new()
     {
         Method = method,
