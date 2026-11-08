@@ -1,5 +1,6 @@
 //! OAuth 2 authorization code flow with PKCE, as Etsy implements it.
 
+use std::collections::VecDeque;
 use std::fmt;
 use std::sync::{Arc, Mutex, OnceLock, PoisonError, RwLock, Weak};
 
@@ -15,6 +16,8 @@ use crate::{Error, ErrorKind};
 
 /// Where to send a user to grant your app access.
 pub const AUTHORIZATION_URL: &str = "https://www.etsy.com/oauth/connect";
+
+const REMEMBERED: usize = 16;
 
 static TOKEN: Operation = Operation {
     id: "oauthToken",
@@ -95,7 +98,7 @@ fn random(bytes: usize) -> Result<String, Error> {
     let mut buffer = vec![0; bytes];
     getrandom::fill(&mut buffer).map_err(|error| {
         Error::new(
-            ErrorKind::InvalidInput,
+            ErrorKind::System,
             format!("no random bytes are available: {error}"),
         )
     })?;
@@ -171,6 +174,7 @@ fn header(text: &str) -> Result<HeaderValue, Error> {
 struct Tokens {
     access: Option<String>,
     refresh: Option<String>,
+    last: Option<Token>,
 }
 
 /// Sends `x-api-key` on every operation and the access token on those that need OAuth. After a 401 on
@@ -180,8 +184,10 @@ pub(crate) struct EtsyCredentials {
     key_header: HeaderValue,
     shared_secret: String,
     tokens: RwLock<Tokens>,
-    /// Every token and code this client has held, so that none reaches a log or error.
-    seen: Mutex<Vec<String>>,
+    /// Recent tokens and codes, so that none reaches a log or error.
+    seen: Mutex<VecDeque<String>>,
+    /// Serialises token requests, since each refresh token works only once.
+    refreshing: tokio::sync::Mutex<()>,
     on_token: Option<OnToken>,
     transport: OnceLock<Weak<Transport>>,
 }
@@ -214,8 +220,13 @@ impl EtsyCredentials {
             api_key,
             key_header,
             shared_secret,
-            tokens: RwLock::new(Tokens { access, refresh }),
+            tokens: RwLock::new(Tokens {
+                access,
+                refresh,
+                last: None,
+            }),
             seen: Mutex::new(seen),
+            refreshing: tokio::sync::Mutex::new(()),
             on_token,
             transport: OnceLock::new(),
         })
@@ -226,6 +237,8 @@ impl EtsyCredentials {
         let _ = self.transport.set(Arc::downgrade(transport));
     }
 
+    /// Keeps values out of logs and errors from now on. Only the most recent are kept, so a
+    /// long-lived client does not grow.
     fn remember(&self, values: &[&str]) {
         let mut seen = self.seen.lock().unwrap_or_else(PoisonError::into_inner);
         seen.extend(
@@ -234,6 +247,8 @@ impl EtsyCredentials {
                 .filter(|value| !value.is_empty())
                 .map(|value| (*value).to_owned()),
         );
+        let excess = seen.len().saturating_sub(REMEMBERED);
+        seen.drain(..excess);
     }
 
     fn refresh_token(&self) -> Option<String> {
@@ -250,6 +265,7 @@ impl EtsyCredentials {
             let mut tokens = self.tokens.write().unwrap_or_else(PoisonError::into_inner);
             tokens.access = Some(token.access_token.clone());
             tokens.refresh = Some(token.refresh_token.clone());
+            tokens.last = Some(token.clone());
         }
         if let Some(on_token) = &self.on_token {
             on_token(&token);
@@ -270,7 +286,26 @@ impl EtsyCredentials {
         Ok(self.store(parse_token(&reply)?))
     }
 
-    async fn refresh_with(&self, transport: &Transport) -> Result<Token, Error> {
+    /// The token another refresh stored while this one waited, since each refresh token works only
+    /// once.
+    fn replaced(&self, refresh_token: Option<&str>) -> Option<Token> {
+        let tokens = self.tokens.read().unwrap_or_else(PoisonError::into_inner);
+        tokens
+            .last
+            .clone()
+            .filter(|_| tokens.refresh.as_deref() != refresh_token)
+    }
+
+    /// Refreshes `refresh_token`, or returns the token a refresh that ran meanwhile stored.
+    async fn refresh_with(
+        &self,
+        transport: &Transport,
+        refresh_token: Option<String>,
+    ) -> Result<Token, Error> {
+        let _refreshing = self.refreshing.lock().await;
+        if let Some(token) = self.replaced(refresh_token.as_deref()) {
+            return Ok(token);
+        }
         let Some(refresh_token) = self.refresh_token() else {
             return Err(invalid_input(
                 "there is no refresh token: set refresh_token, or exchange a code first",
@@ -331,22 +366,48 @@ impl Credentials for EtsyCredentials {
     }
 
     fn secrets(&self) -> Vec<String> {
+        let current: Vec<String> = {
+            let tokens = self.tokens.read().unwrap_or_else(PoisonError::into_inner);
+            [&tokens.access, &tokens.refresh]
+                .into_iter()
+                .flatten()
+                .filter(|token| !token.is_empty())
+                .cloned()
+                .collect()
+        };
         let seen = self.seen.lock().unwrap_or_else(PoisonError::into_inner);
         [self.api_key.clone(), self.shared_secret.clone()]
             .into_iter()
+            .chain(current)
             .chain(seen.iter().cloned())
             .collect()
     }
 
     fn refresh<'a>(&'a self, request: &'a AuthRequest) -> BoxFuture<'a, Result<bool, Error>> {
         Box::pin(async move {
-            if !needs(request.operation, "oauth2") || self.refresh_token().is_none() {
+            let (stale, refresh_token) = {
+                let tokens = self.tokens.read().unwrap_or_else(PoisonError::into_inner);
+                let current = tokens
+                    .access
+                    .as_ref()
+                    .map(|access| format!("Bearer {access}"));
+                let sent = request
+                    .headers
+                    .get(AUTHORIZATION)
+                    .and_then(|value| value.to_str().ok());
+                (sent != current.as_deref(), tokens.refresh.clone())
+            };
+            if !needs(request.operation, "oauth2") || refresh_token.is_none() {
                 return Ok(false);
+            }
+            // An explicit refresh already replaced the token this request sent.
+            if stale {
+                return Ok(true);
             }
             let Some(transport) = self.transport.get().and_then(Weak::upgrade) else {
                 return Ok(false);
             };
-            self.refresh_with(&transport).await?;
+            self.refresh_with(&transport, refresh_token).await?;
             Ok(true)
         })
     }
@@ -388,6 +449,7 @@ impl OAuth {
         redirect_uri: &str,
     ) -> Result<Token, Error> {
         self.credentials.remember(&[code, code_verifier]);
+        let _refreshing = self.credentials.refreshing.lock().await;
         let fields = [
             ("grant_type", "authorization_code"),
             ("client_id", self.credentials.api_key.as_str()),
@@ -400,10 +462,13 @@ impl OAuth {
             .await
     }
 
-    /// Replaces the access token now. The client also does this itself after a 401.
-    // TODO: share one refresh with an automatic refresh that is already running.
+    /// Replaces the access token now. The client also does this itself after a 401. A refresh asked
+    /// for while another is under way waits for it and returns its token.
     pub async fn refresh(&self) -> Result<Token, Error> {
-        self.credentials.refresh_with(&self.transport).await
+        let refresh_token = self.credentials.refresh_token();
+        self.credentials
+            .refresh_with(&self.transport, refresh_token)
+            .await
     }
 }
 
@@ -515,5 +580,33 @@ mod tests {
             .user_id(),
             None
         );
+    }
+
+    #[test]
+    fn credentials_keep_current_tokens_and_only_recent_values_for_redaction() {
+        let current = [
+            "synthetic-keystring",
+            "synthetic-shared-secret",
+            "12345678.synthetic-access",
+            "12345678.synthetic-refresh",
+        ];
+        let credentials = EtsyCredentials::new(
+            current[0].into(),
+            current[1].into(),
+            Some(current[2].into()),
+            Some(current[3].into()),
+            None,
+        )
+        .unwrap();
+        let old: Vec<String> = (0..100)
+            .map(|index| format!("synthetic-old-{index}"))
+            .collect();
+        credentials.remember(&old.iter().map(String::as_str).collect::<Vec<_>>());
+        let secrets = credentials.secrets();
+        assert!(secrets.len() < 25);
+        for value in current.into_iter().chain(["synthetic-old-99"]) {
+            assert!(secrets.iter().any(|secret| secret == value), "{value}");
+        }
+        assert!(!secrets.iter().any(|secret| secret == "synthetic-old-0"));
     }
 }

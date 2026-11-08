@@ -2,9 +2,19 @@
 
 #[allow(unused_imports)]
 use {{packageName}}::*;
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 use crate::{Case, arg, body, collect, files, output, param};
+
+/// A form-encoded body's fields arrive as the case's body.
+#[allow(dead_code)]
+fn form_fields(case: &Case) -> Map<String, Value> {
+    case.body
+        .as_ref()
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default()
+}
 
 /// Calls the public client method that serves one case.
 pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {

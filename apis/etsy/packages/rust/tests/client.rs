@@ -338,6 +338,34 @@ async fn concurrent_calls_share_one_refresh() {
 }
 
 #[tokio::test]
+async fn an_explicit_refresh_and_a_401_share_one_token_request() {
+    let (url, log) = serve(expiring).await;
+    let (stored, on_token) = tokens();
+    let client = builder(&url)
+        .access_token(ACCESS)
+        .refresh_token(REFRESH)
+        .on_token(on_token)
+        .build()
+        .unwrap();
+    let oauth = client.oauth();
+    let users = client.users();
+    let (token, me) = tokio::join!(oauth.refresh(), users.get_me());
+    assert_eq!(token.unwrap().access_token, NEW_ACCESS);
+    assert_eq!(me.unwrap().shop_id, Some(1));
+    let refreshed: Vec<String> = log
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|sent| sent.path == TOKEN_PATH)
+        .flat_map(Sent::form)
+        .filter(|(name, _)| name == "refresh_token")
+        .map(|(_, value)| value)
+        .collect();
+    assert_eq!(refreshed, [REFRESH]);
+    assert_eq!(stored.lock().unwrap().len(), 1);
+}
+
+#[tokio::test]
 async fn a_401_without_a_refresh_token_is_final() {
     let (url, log) = serve(expiring).await;
     let error = builder(&url)

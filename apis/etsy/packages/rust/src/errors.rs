@@ -33,6 +33,8 @@ pub enum ErrorKind {
     Decode,
     /// A call the client refuses before sending anything, such as a refresh with no refresh token.
     InvalidInput,
+    /// The system could not provide what the call needs, such as random bytes.
+    System,
 }
 
 impl ErrorKind {
@@ -52,6 +54,7 @@ impl ErrorKind {
             Self::Connection => "connection",
             Self::Decode => "decode",
             Self::InvalidInput => "invalid_input",
+            Self::System => "system",
         }
     }
 }

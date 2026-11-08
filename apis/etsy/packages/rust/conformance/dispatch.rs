@@ -2,9 +2,19 @@
 
 #[allow(unused_imports)]
 use etsy_seller::*;
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 use crate::{Case, arg, body, collect, files, output, param};
+
+/// A form-encoded body's fields arrive as the case's body.
+#[allow(dead_code)]
+fn form_fields(case: &Case) -> Map<String, Value> {
+    case.body
+        .as_ref()
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default()
+}
 
 /// Calls the public client method that serves one case.
 pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
@@ -12,7 +22,7 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
         ("ping", false) => output(client.application().ping().await),
         ("tokenScopes", false) => {
             let params = ApplicationGetTokenScopesParams {
-                token: param(&crate::form_fields(case), "token"),
+                token: param(&form_fields(case), "token"),
             };
             output(client.application().get_token_scopes(&params).await)
         }
@@ -24,17 +34,17 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
         ("createShopEconomicOperator", false) => {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let params = EconomicOperatorsCreateParams {
-                operator_name: param(&crate::form_fields(case), "operator_name"),
-                email: param(&crate::form_fields(case), "email"),
-                first_line: param(&crate::form_fields(case), "first_line"),
-                city: param(&crate::form_fields(case), "city"),
-                zip: param(&crate::form_fields(case), "zip"),
-                country_iso: param(&crate::form_fields(case), "country_iso"),
-                phone: param(&crate::form_fields(case), "phone"),
-                second_line: param(&crate::form_fields(case), "second_line"),
-                state: param(&crate::form_fields(case), "state"),
-                phone_country_iso: param(&crate::form_fields(case), "phone_country_iso"),
-                trademark_name: param(&crate::form_fields(case), "trademark_name"),
+                operator_name: param(&form_fields(case), "operator_name"),
+                email: param(&form_fields(case), "email"),
+                first_line: param(&form_fields(case), "first_line"),
+                city: param(&form_fields(case), "city"),
+                zip: param(&form_fields(case), "zip"),
+                country_iso: param(&form_fields(case), "country_iso"),
+                phone: param(&form_fields(case), "phone"),
+                second_line: param(&form_fields(case), "second_line"),
+                state: param(&form_fields(case), "state"),
+                phone_country_iso: param(&form_fields(case), "phone_country_iso"),
+                trademark_name: param(&form_fields(case), "trademark_name"),
             };
             output(client.economic_operators().create(shop_id, &params).await)
         }
@@ -56,17 +66,17 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let economic_operator_id: i64 = arg(&case.params, "economic_operator_id");
             let params = EconomicOperatorsUpdateParams {
-                operator_name: param(&crate::form_fields(case), "operator_name"),
-                email: param(&crate::form_fields(case), "email"),
-                first_line: param(&crate::form_fields(case), "first_line"),
-                second_line: param(&crate::form_fields(case), "second_line"),
-                city: param(&crate::form_fields(case), "city"),
-                state: param(&crate::form_fields(case), "state"),
-                zip: param(&crate::form_fields(case), "zip"),
-                country_iso: param(&crate::form_fields(case), "country_iso"),
-                phone: param(&crate::form_fields(case), "phone"),
-                phone_country_iso: param(&crate::form_fields(case), "phone_country_iso"),
-                trademark_name: param(&crate::form_fields(case), "trademark_name"),
+                operator_name: param(&form_fields(case), "operator_name"),
+                email: param(&form_fields(case), "email"),
+                first_line: param(&form_fields(case), "first_line"),
+                second_line: param(&form_fields(case), "second_line"),
+                city: param(&form_fields(case), "city"),
+                state: param(&form_fields(case), "state"),
+                zip: param(&form_fields(case), "zip"),
+                country_iso: param(&form_fields(case), "country_iso"),
+                phone: param(&form_fields(case), "phone"),
+                phone_country_iso: param(&form_fields(case), "phone_country_iso"),
+                trademark_name: param(&form_fields(case), "trademark_name"),
             };
             output(
                 client
@@ -83,7 +93,7 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let holiday_id: i64 = arg(&case.params, "holiday_id");
             let params = HolidayPreferencesUpdateParams {
-                is_working: param(&crate::form_fields(case), "is_working"),
+                is_working: param(&form_fields(case), "is_working"),
             };
             output(
                 client
@@ -306,9 +316,9 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let listing_id: i64 = arg(&case.params, "listing_id");
             let property_id: i64 = arg(&case.params, "property_id");
             let params = ListingPropertiesUpdateParams {
-                value_ids: param(&crate::form_fields(case), "value_ids"),
-                values: param(&crate::form_fields(case), "values"),
-                scale_id: param(&crate::form_fields(case), "scale_id"),
+                value_ids: param(&form_fields(case), "value_ids"),
+                values: param(&form_fields(case), "values"),
+                scale_id: param(&form_fields(case), "scale_id"),
             };
             output(
                 client
@@ -322,9 +332,9 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let listing_id: i64 = arg(&case.params, "listing_id");
             let language: String = arg(&case.params, "language");
             let params = ListingTranslationsCreateParams {
-                title: param(&crate::form_fields(case), "title"),
-                description: param(&crate::form_fields(case), "description"),
-                tags: param(&crate::form_fields(case), "tags"),
+                title: param(&form_fields(case), "title"),
+                description: param(&form_fields(case), "description"),
+                tags: param(&form_fields(case), "tags"),
             };
             output(
                 client
@@ -349,9 +359,9 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let listing_id: i64 = arg(&case.params, "listing_id");
             let language: String = arg(&case.params, "language");
             let params = ListingTranslationsUpdateParams {
-                title: param(&crate::form_fields(case), "title"),
-                description: param(&crate::form_fields(case), "description"),
-                tags: param(&crate::form_fields(case), "tags"),
+                title: param(&form_fields(case), "title"),
+                description: param(&form_fields(case), "description"),
+                tags: param(&form_fields(case), "tags"),
             };
             output(
                 client
@@ -419,66 +429,63 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
         ("createDraftListing", false) => {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let params = ListingsCreateDraftParams {
-                quantity: param(&crate::form_fields(case), "quantity"),
-                title: param(&crate::form_fields(case), "title"),
-                description: param(&crate::form_fields(case), "description"),
-                price: param(&crate::form_fields(case), "price"),
-                who_made: param(&crate::form_fields(case), "who_made"),
-                when_made: param(&crate::form_fields(case), "when_made"),
-                taxonomy_id: param(&crate::form_fields(case), "taxonomy_id"),
-                shipping_profile_id: param(&crate::form_fields(case), "shipping_profile_id"),
-                return_policy_id: param(&crate::form_fields(case), "return_policy_id"),
-                materials: param(&crate::form_fields(case), "materials"),
-                shop_section_id: param(&crate::form_fields(case), "shop_section_id"),
-                processing_min: param(&crate::form_fields(case), "processing_min"),
-                processing_max: param(&crate::form_fields(case), "processing_max"),
-                readiness_state_id: param(&crate::form_fields(case), "readiness_state_id"),
-                tags: param(&crate::form_fields(case), "tags"),
-                styles: param(&crate::form_fields(case), "styles"),
-                item_weight: param(&crate::form_fields(case), "item_weight"),
-                item_length: param(&crate::form_fields(case), "item_length"),
-                item_width: param(&crate::form_fields(case), "item_width"),
-                item_height: param(&crate::form_fields(case), "item_height"),
-                item_weight_unit: param(&crate::form_fields(case), "item_weight_unit"),
-                item_dimensions_unit: param(&crate::form_fields(case), "item_dimensions_unit"),
-                production_partner_ids: param(&crate::form_fields(case), "production_partner_ids"),
-                image_ids: param(&crate::form_fields(case), "image_ids"),
-                ecgt_garan_brand: param(&crate::form_fields(case), "ecgt_garan_brand"),
-                ecgt_garan_years: param(&crate::form_fields(case), "ecgt_garan_years"),
-                ecgt_garan_model: param(&crate::form_fields(case), "ecgt_garan_model"),
+                quantity: param(&form_fields(case), "quantity"),
+                title: param(&form_fields(case), "title"),
+                description: param(&form_fields(case), "description"),
+                price: param(&form_fields(case), "price"),
+                who_made: param(&form_fields(case), "who_made"),
+                when_made: param(&form_fields(case), "when_made"),
+                taxonomy_id: param(&form_fields(case), "taxonomy_id"),
+                shipping_profile_id: param(&form_fields(case), "shipping_profile_id"),
+                return_policy_id: param(&form_fields(case), "return_policy_id"),
+                materials: param(&form_fields(case), "materials"),
+                shop_section_id: param(&form_fields(case), "shop_section_id"),
+                processing_min: param(&form_fields(case), "processing_min"),
+                processing_max: param(&form_fields(case), "processing_max"),
+                readiness_state_id: param(&form_fields(case), "readiness_state_id"),
+                tags: param(&form_fields(case), "tags"),
+                styles: param(&form_fields(case), "styles"),
+                item_weight: param(&form_fields(case), "item_weight"),
+                item_length: param(&form_fields(case), "item_length"),
+                item_width: param(&form_fields(case), "item_width"),
+                item_height: param(&form_fields(case), "item_height"),
+                item_weight_unit: param(&form_fields(case), "item_weight_unit"),
+                item_dimensions_unit: param(&form_fields(case), "item_dimensions_unit"),
+                production_partner_ids: param(&form_fields(case), "production_partner_ids"),
+                image_ids: param(&form_fields(case), "image_ids"),
+                ecgt_garan_brand: param(&form_fields(case), "ecgt_garan_brand"),
+                ecgt_garan_years: param(&form_fields(case), "ecgt_garan_years"),
+                ecgt_garan_model: param(&form_fields(case), "ecgt_garan_model"),
                 ecgt_garan_guarantee_details: param(
-                    &crate::form_fields(case),
+                    &form_fields(case),
                     "ecgt_garan_guarantee_details",
                 ),
                 ecgt_other_commercial_guarantee_details: param(
-                    &crate::form_fields(case),
+                    &form_fields(case),
                     "ecgt_other_commercial_guarantee_details",
                 ),
                 ecgt_after_sales_service_info: param(
-                    &crate::form_fields(case),
+                    &form_fields(case),
                     "ecgt_after_sales_service_info",
                 ),
                 ecgt_software_update_details: param(
-                    &crate::form_fields(case),
+                    &form_fields(case),
                     "ecgt_software_update_details",
                 ),
-                gpsr_manufacturer_type: param(&crate::form_fields(case), "gpsr_manufacturer_type"),
-                gpsr_manufacturer_id: param(&crate::form_fields(case), "gpsr_manufacturer_id"),
+                gpsr_manufacturer_type: param(&form_fields(case), "gpsr_manufacturer_type"),
+                gpsr_manufacturer_id: param(&form_fields(case), "gpsr_manufacturer_id"),
                 gpsr_responsible_person_type: param(
-                    &crate::form_fields(case),
+                    &form_fields(case),
                     "gpsr_responsible_person_type",
                 ),
-                gpsr_responsible_person_id: param(
-                    &crate::form_fields(case),
-                    "gpsr_responsible_person_id",
-                ),
-                gpsr_serial_number: param(&crate::form_fields(case), "gpsr_serial_number"),
-                gpsr_safety_warnings: param(&crate::form_fields(case), "gpsr_safety_warnings"),
-                is_supply: param(&crate::form_fields(case), "is_supply"),
-                is_customizable: param(&crate::form_fields(case), "is_customizable"),
-                should_auto_renew: param(&crate::form_fields(case), "should_auto_renew"),
-                is_taxable: param(&crate::form_fields(case), "is_taxable"),
-                r#type: param(&crate::form_fields(case), "type"),
+                gpsr_responsible_person_id: param(&form_fields(case), "gpsr_responsible_person_id"),
+                gpsr_serial_number: param(&form_fields(case), "gpsr_serial_number"),
+                gpsr_safety_warnings: param(&form_fields(case), "gpsr_safety_warnings"),
+                is_supply: param(&form_fields(case), "is_supply"),
+                is_customizable: param(&form_fields(case), "is_customizable"),
+                should_auto_renew: param(&form_fields(case), "should_auto_renew"),
+                is_taxable: param(&form_fields(case), "is_taxable"),
+                r#type: param(&form_fields(case), "type"),
             };
             output(client.listings().create_draft(shop_id, &params).await)
         }
@@ -685,60 +692,57 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let listing_id: i64 = arg(&case.params, "listing_id");
             let params = ListingsUpdateParams {
-                image_ids: param(&crate::form_fields(case), "image_ids"),
-                title: param(&crate::form_fields(case), "title"),
-                description: param(&crate::form_fields(case), "description"),
-                materials: param(&crate::form_fields(case), "materials"),
-                should_auto_renew: param(&crate::form_fields(case), "should_auto_renew"),
-                shipping_profile_id: param(&crate::form_fields(case), "shipping_profile_id"),
-                return_policy_id: param(&crate::form_fields(case), "return_policy_id"),
-                shop_section_id: param(&crate::form_fields(case), "shop_section_id"),
-                item_weight: param(&crate::form_fields(case), "item_weight"),
-                item_length: param(&crate::form_fields(case), "item_length"),
-                item_width: param(&crate::form_fields(case), "item_width"),
-                item_height: param(&crate::form_fields(case), "item_height"),
-                item_weight_unit: param(&crate::form_fields(case), "item_weight_unit"),
-                item_dimensions_unit: param(&crate::form_fields(case), "item_dimensions_unit"),
-                is_taxable: param(&crate::form_fields(case), "is_taxable"),
-                taxonomy_id: param(&crate::form_fields(case), "taxonomy_id"),
-                tags: param(&crate::form_fields(case), "tags"),
-                who_made: param(&crate::form_fields(case), "who_made"),
-                when_made: param(&crate::form_fields(case), "when_made"),
-                state: param(&crate::form_fields(case), "state"),
-                is_supply: param(&crate::form_fields(case), "is_supply"),
-                production_partner_ids: param(&crate::form_fields(case), "production_partner_ids"),
-                r#type: param(&crate::form_fields(case), "type"),
-                ecgt_garan_brand: param(&crate::form_fields(case), "ecgt_garan_brand"),
-                ecgt_garan_years: param(&crate::form_fields(case), "ecgt_garan_years"),
-                ecgt_garan_model: param(&crate::form_fields(case), "ecgt_garan_model"),
+                image_ids: param(&form_fields(case), "image_ids"),
+                title: param(&form_fields(case), "title"),
+                description: param(&form_fields(case), "description"),
+                materials: param(&form_fields(case), "materials"),
+                should_auto_renew: param(&form_fields(case), "should_auto_renew"),
+                shipping_profile_id: param(&form_fields(case), "shipping_profile_id"),
+                return_policy_id: param(&form_fields(case), "return_policy_id"),
+                shop_section_id: param(&form_fields(case), "shop_section_id"),
+                item_weight: param(&form_fields(case), "item_weight"),
+                item_length: param(&form_fields(case), "item_length"),
+                item_width: param(&form_fields(case), "item_width"),
+                item_height: param(&form_fields(case), "item_height"),
+                item_weight_unit: param(&form_fields(case), "item_weight_unit"),
+                item_dimensions_unit: param(&form_fields(case), "item_dimensions_unit"),
+                is_taxable: param(&form_fields(case), "is_taxable"),
+                taxonomy_id: param(&form_fields(case), "taxonomy_id"),
+                tags: param(&form_fields(case), "tags"),
+                who_made: param(&form_fields(case), "who_made"),
+                when_made: param(&form_fields(case), "when_made"),
+                state: param(&form_fields(case), "state"),
+                is_supply: param(&form_fields(case), "is_supply"),
+                production_partner_ids: param(&form_fields(case), "production_partner_ids"),
+                r#type: param(&form_fields(case), "type"),
+                ecgt_garan_brand: param(&form_fields(case), "ecgt_garan_brand"),
+                ecgt_garan_years: param(&form_fields(case), "ecgt_garan_years"),
+                ecgt_garan_model: param(&form_fields(case), "ecgt_garan_model"),
                 ecgt_garan_guarantee_details: param(
-                    &crate::form_fields(case),
+                    &form_fields(case),
                     "ecgt_garan_guarantee_details",
                 ),
                 ecgt_other_commercial_guarantee_details: param(
-                    &crate::form_fields(case),
+                    &form_fields(case),
                     "ecgt_other_commercial_guarantee_details",
                 ),
                 ecgt_after_sales_service_info: param(
-                    &crate::form_fields(case),
+                    &form_fields(case),
                     "ecgt_after_sales_service_info",
                 ),
                 ecgt_software_update_details: param(
-                    &crate::form_fields(case),
+                    &form_fields(case),
                     "ecgt_software_update_details",
                 ),
-                gpsr_manufacturer_type: param(&crate::form_fields(case), "gpsr_manufacturer_type"),
-                gpsr_manufacturer_id: param(&crate::form_fields(case), "gpsr_manufacturer_id"),
+                gpsr_manufacturer_type: param(&form_fields(case), "gpsr_manufacturer_type"),
+                gpsr_manufacturer_id: param(&form_fields(case), "gpsr_manufacturer_id"),
                 gpsr_responsible_person_type: param(
-                    &crate::form_fields(case),
+                    &form_fields(case),
                     "gpsr_responsible_person_type",
                 ),
-                gpsr_responsible_person_id: param(
-                    &crate::form_fields(case),
-                    "gpsr_responsible_person_id",
-                ),
-                gpsr_serial_number: param(&crate::form_fields(case), "gpsr_serial_number"),
-                gpsr_safety_warnings: param(&crate::form_fields(case), "gpsr_safety_warnings"),
+                gpsr_responsible_person_id: param(&form_fields(case), "gpsr_responsible_person_id"),
+                gpsr_serial_number: param(&form_fields(case), "gpsr_serial_number"),
+                gpsr_safety_warnings: param(&form_fields(case), "gpsr_safety_warnings"),
             };
             output(client.listings().update(shop_id, listing_id, &params).await)
         }
@@ -769,10 +773,10 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
         ("createShopReadinessStateDefinition", false) => {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let params = ProcessingProfilesCreateParams {
-                readiness_state: param(&crate::form_fields(case), "readiness_state"),
-                min_processing_time: param(&crate::form_fields(case), "min_processing_time"),
-                max_processing_time: param(&crate::form_fields(case), "max_processing_time"),
-                processing_time_unit: param(&crate::form_fields(case), "processing_time_unit"),
+                readiness_state: param(&form_fields(case), "readiness_state"),
+                min_processing_time: param(&form_fields(case), "min_processing_time"),
+                max_processing_time: param(&form_fields(case), "max_processing_time"),
+                processing_time_unit: param(&form_fields(case), "processing_time_unit"),
             };
             output(client.processing_profiles().create(shop_id, &params).await)
         }
@@ -819,10 +823,10 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let readiness_state_definition_id: i64 =
                 arg(&case.params, "readiness_state_definition_id");
             let params = ProcessingProfilesUpdateParams {
-                readiness_state: param(&crate::form_fields(case), "readiness_state"),
-                min_processing_time: param(&crate::form_fields(case), "min_processing_time"),
-                max_processing_time: param(&crate::form_fields(case), "max_processing_time"),
-                processing_time_unit: param(&crate::form_fields(case), "processing_time_unit"),
+                readiness_state: param(&form_fields(case), "readiness_state"),
+                min_processing_time: param(&form_fields(case), "min_processing_time"),
+                max_processing_time: param(&form_fields(case), "max_processing_time"),
+                processing_time_unit: param(&form_fields(case), "processing_time_unit"),
             };
             output(
                 client
@@ -900,20 +904,17 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let receipt_id: i64 = arg(&case.params, "receipt_id");
             let params = ReceiptsUpdateParams {
                 legacy: param(&case.params, "legacy"),
-                was_shipped: param(&crate::form_fields(case), "was_shipped"),
-                was_paid: param(&crate::form_fields(case), "was_paid"),
+                was_shipped: param(&form_fields(case), "was_shipped"),
+                was_paid: param(&form_fields(case), "was_paid"),
             };
             output(client.receipts().update(shop_id, receipt_id, &params).await)
         }
         ("consolidateShopReturnPolicies", false) => {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let params = ReturnPoliciesConsolidateParams {
-                source_return_policy_id: param(
-                    &crate::form_fields(case),
-                    "source_return_policy_id",
-                ),
+                source_return_policy_id: param(&form_fields(case), "source_return_policy_id"),
                 destination_return_policy_id: param(
-                    &crate::form_fields(case),
+                    &form_fields(case),
                     "destination_return_policy_id",
                 ),
             };
@@ -922,9 +923,9 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
         ("createShopReturnPolicy", false) => {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let params = ReturnPoliciesCreateParams {
-                accepts_returns: param(&crate::form_fields(case), "accepts_returns"),
-                accepts_exchanges: param(&crate::form_fields(case), "accepts_exchanges"),
-                return_deadline: param(&crate::form_fields(case), "return_deadline"),
+                accepts_returns: param(&form_fields(case), "accepts_returns"),
+                accepts_exchanges: param(&form_fields(case), "accepts_exchanges"),
+                return_deadline: param(&form_fields(case), "return_deadline"),
             };
             output(client.return_policies().create(shop_id, &params).await)
         }
@@ -956,9 +957,9 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let return_policy_id: i64 = arg(&case.params, "return_policy_id");
             let params = ReturnPoliciesUpdateParams {
-                accepts_returns: param(&crate::form_fields(case), "accepts_returns"),
-                accepts_exchanges: param(&crate::form_fields(case), "accepts_exchanges"),
-                return_deadline: param(&crate::form_fields(case), "return_deadline"),
+                accepts_returns: param(&form_fields(case), "accepts_returns"),
+                accepts_exchanges: param(&form_fields(case), "accepts_exchanges"),
+                return_deadline: param(&form_fields(case), "return_deadline"),
             };
             output(
                 client
@@ -1024,23 +1025,20 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
         ("createShopShippingProfile", false) => {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let params = ShippingProfilesCreateParams {
-                title: param(&crate::form_fields(case), "title"),
-                origin_country_iso: param(&crate::form_fields(case), "origin_country_iso"),
-                primary_cost: param(&crate::form_fields(case), "primary_cost"),
-                secondary_cost: param(&crate::form_fields(case), "secondary_cost"),
-                min_processing_time: param(&crate::form_fields(case), "min_processing_time"),
-                max_processing_time: param(&crate::form_fields(case), "max_processing_time"),
-                processing_time_unit: param(&crate::form_fields(case), "processing_time_unit"),
-                destination_country_iso: param(
-                    &crate::form_fields(case),
-                    "destination_country_iso",
-                ),
-                destination_region: param(&crate::form_fields(case), "destination_region"),
-                origin_postal_code: param(&crate::form_fields(case), "origin_postal_code"),
-                shipping_carrier_id: param(&crate::form_fields(case), "shipping_carrier_id"),
-                mail_class: param(&crate::form_fields(case), "mail_class"),
-                min_delivery_days: param(&crate::form_fields(case), "min_delivery_days"),
-                max_delivery_days: param(&crate::form_fields(case), "max_delivery_days"),
+                title: param(&form_fields(case), "title"),
+                origin_country_iso: param(&form_fields(case), "origin_country_iso"),
+                primary_cost: param(&form_fields(case), "primary_cost"),
+                secondary_cost: param(&form_fields(case), "secondary_cost"),
+                min_processing_time: param(&form_fields(case), "min_processing_time"),
+                max_processing_time: param(&form_fields(case), "max_processing_time"),
+                processing_time_unit: param(&form_fields(case), "processing_time_unit"),
+                destination_country_iso: param(&form_fields(case), "destination_country_iso"),
+                destination_region: param(&form_fields(case), "destination_region"),
+                origin_postal_code: param(&form_fields(case), "origin_postal_code"),
+                shipping_carrier_id: param(&form_fields(case), "shipping_carrier_id"),
+                mail_class: param(&form_fields(case), "mail_class"),
+                min_delivery_days: param(&form_fields(case), "min_delivery_days"),
+                max_delivery_days: param(&form_fields(case), "max_delivery_days"),
             };
             output(client.shipping_profiles().create(shop_id, &params).await)
         }
@@ -1048,17 +1046,14 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let shipping_profile_id: i64 = arg(&case.params, "shipping_profile_id");
             let params = ShippingProfilesCreateDestinationParams {
-                primary_cost: param(&crate::form_fields(case), "primary_cost"),
-                secondary_cost: param(&crate::form_fields(case), "secondary_cost"),
-                destination_country_iso: param(
-                    &crate::form_fields(case),
-                    "destination_country_iso",
-                ),
-                destination_region: param(&crate::form_fields(case), "destination_region"),
-                shipping_carrier_id: param(&crate::form_fields(case), "shipping_carrier_id"),
-                mail_class: param(&crate::form_fields(case), "mail_class"),
-                min_delivery_days: param(&crate::form_fields(case), "min_delivery_days"),
-                max_delivery_days: param(&crate::form_fields(case), "max_delivery_days"),
+                primary_cost: param(&form_fields(case), "primary_cost"),
+                secondary_cost: param(&form_fields(case), "secondary_cost"),
+                destination_country_iso: param(&form_fields(case), "destination_country_iso"),
+                destination_region: param(&form_fields(case), "destination_region"),
+                shipping_carrier_id: param(&form_fields(case), "shipping_carrier_id"),
+                mail_class: param(&form_fields(case), "mail_class"),
+                min_delivery_days: param(&form_fields(case), "min_delivery_days"),
+                max_delivery_days: param(&form_fields(case), "max_delivery_days"),
             };
             output(
                 client
@@ -1071,14 +1066,14 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let shipping_profile_id: i64 = arg(&case.params, "shipping_profile_id");
             let params = ShippingProfilesCreateUpgradeParams {
-                r#type: param(&crate::form_fields(case), "type"),
-                upgrade_name: param(&crate::form_fields(case), "upgrade_name"),
-                price: param(&crate::form_fields(case), "price"),
-                secondary_price: param(&crate::form_fields(case), "secondary_price"),
-                shipping_carrier_id: param(&crate::form_fields(case), "shipping_carrier_id"),
-                mail_class: param(&crate::form_fields(case), "mail_class"),
-                min_delivery_days: param(&crate::form_fields(case), "min_delivery_days"),
-                max_delivery_days: param(&crate::form_fields(case), "max_delivery_days"),
+                r#type: param(&form_fields(case), "type"),
+                upgrade_name: param(&form_fields(case), "upgrade_name"),
+                price: param(&form_fields(case), "price"),
+                secondary_price: param(&form_fields(case), "secondary_price"),
+                shipping_carrier_id: param(&form_fields(case), "shipping_carrier_id"),
+                mail_class: param(&form_fields(case), "mail_class"),
+                min_delivery_days: param(&form_fields(case), "min_delivery_days"),
+                max_delivery_days: param(&form_fields(case), "max_delivery_days"),
             };
             output(
                 client
@@ -1186,12 +1181,12 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let shipping_profile_id: i64 = arg(&case.params, "shipping_profile_id");
             let params = ShippingProfilesUpdateParams {
-                title: param(&crate::form_fields(case), "title"),
-                origin_country_iso: param(&crate::form_fields(case), "origin_country_iso"),
-                min_processing_time: param(&crate::form_fields(case), "min_processing_time"),
-                max_processing_time: param(&crate::form_fields(case), "max_processing_time"),
-                processing_time_unit: param(&crate::form_fields(case), "processing_time_unit"),
-                origin_postal_code: param(&crate::form_fields(case), "origin_postal_code"),
+                title: param(&form_fields(case), "title"),
+                origin_country_iso: param(&form_fields(case), "origin_country_iso"),
+                min_processing_time: param(&form_fields(case), "min_processing_time"),
+                max_processing_time: param(&form_fields(case), "max_processing_time"),
+                processing_time_unit: param(&form_fields(case), "processing_time_unit"),
+                origin_postal_code: param(&form_fields(case), "origin_postal_code"),
             };
             output(
                 client
@@ -1206,17 +1201,14 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let shipping_profile_destination_id: i64 =
                 arg(&case.params, "shipping_profile_destination_id");
             let params = ShippingProfilesUpdateDestinationParams {
-                primary_cost: param(&crate::form_fields(case), "primary_cost"),
-                secondary_cost: param(&crate::form_fields(case), "secondary_cost"),
-                destination_country_iso: param(
-                    &crate::form_fields(case),
-                    "destination_country_iso",
-                ),
-                destination_region: param(&crate::form_fields(case), "destination_region"),
-                shipping_carrier_id: param(&crate::form_fields(case), "shipping_carrier_id"),
-                mail_class: param(&crate::form_fields(case), "mail_class"),
-                min_delivery_days: param(&crate::form_fields(case), "min_delivery_days"),
-                max_delivery_days: param(&crate::form_fields(case), "max_delivery_days"),
+                primary_cost: param(&form_fields(case), "primary_cost"),
+                secondary_cost: param(&form_fields(case), "secondary_cost"),
+                destination_country_iso: param(&form_fields(case), "destination_country_iso"),
+                destination_region: param(&form_fields(case), "destination_region"),
+                shipping_carrier_id: param(&form_fields(case), "shipping_carrier_id"),
+                mail_class: param(&form_fields(case), "mail_class"),
+                min_delivery_days: param(&form_fields(case), "min_delivery_days"),
+                max_delivery_days: param(&form_fields(case), "max_delivery_days"),
             };
             output(
                 client
@@ -1235,14 +1227,14 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let shipping_profile_id: i64 = arg(&case.params, "shipping_profile_id");
             let upgrade_id: i64 = arg(&case.params, "upgrade_id");
             let params = ShippingProfilesUpdateUpgradeParams {
-                upgrade_name: param(&crate::form_fields(case), "upgrade_name"),
-                r#type: param(&crate::form_fields(case), "type"),
-                price: param(&crate::form_fields(case), "price"),
-                secondary_price: param(&crate::form_fields(case), "secondary_price"),
-                shipping_carrier_id: param(&crate::form_fields(case), "shipping_carrier_id"),
-                mail_class: param(&crate::form_fields(case), "mail_class"),
-                min_delivery_days: param(&crate::form_fields(case), "min_delivery_days"),
-                max_delivery_days: param(&crate::form_fields(case), "max_delivery_days"),
+                upgrade_name: param(&form_fields(case), "upgrade_name"),
+                r#type: param(&form_fields(case), "type"),
+                price: param(&form_fields(case), "price"),
+                secondary_price: param(&form_fields(case), "secondary_price"),
+                shipping_carrier_id: param(&form_fields(case), "shipping_carrier_id"),
+                mail_class: param(&form_fields(case), "mail_class"),
+                min_delivery_days: param(&form_fields(case), "min_delivery_days"),
+                max_delivery_days: param(&form_fields(case), "max_delivery_days"),
             };
             output(
                 client
@@ -1254,7 +1246,7 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
         ("createShopSection", false) => {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let params = ShopSectionsCreateParams {
-                title: param(&crate::form_fields(case), "title"),
+                title: param(&form_fields(case), "title"),
             };
             output(client.shop_sections().create(shop_id, &params).await)
         }
@@ -1281,7 +1273,7 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let shop_section_id: i64 = arg(&case.params, "shop_section_id");
             let params = ShopSectionsUpdateParams {
-                title: param(&crate::form_fields(case), "title"),
+                title: param(&form_fields(case), "title"),
             };
             output(
                 client
@@ -1317,11 +1309,11 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
         ("updateShop", false) => {
             let shop_id: i64 = arg(&case.params, "shop_id");
             let params = ShopsUpdateParams {
-                title: param(&crate::form_fields(case), "title"),
-                announcement: param(&crate::form_fields(case), "announcement"),
-                sale_message: param(&crate::form_fields(case), "sale_message"),
-                digital_sale_message: param(&crate::form_fields(case), "digital_sale_message"),
-                policy_additional: param(&crate::form_fields(case), "policy_additional"),
+                title: param(&form_fields(case), "title"),
+                announcement: param(&form_fields(case), "announcement"),
+                sale_message: param(&form_fields(case), "sale_message"),
+                digital_sale_message: param(&form_fields(case), "digital_sale_message"),
+                policy_additional: param(&form_fields(case), "policy_additional"),
             };
             output(client.shops().update(shop_id, &params).await)
         }

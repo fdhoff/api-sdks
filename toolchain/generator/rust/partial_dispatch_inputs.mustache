@@ -10,7 +10,7 @@
                 {{{paramName}}}: param(&case.params, "{{baseName}}"),
 {{/queryParams}}
 {{#formParams}}
-                {{{paramName}}}: {{#isFile}}files{{/isFile}}{{^isFile}}param{{/isFile}}({{#isMultipart}}&case.multipart{{/isMultipart}}{{^isMultipart}}&crate::form_fields(case){{/isMultipart}}, "{{baseName}}"),
+                {{{paramName}}}: {{#isFile}}files{{/isFile}}{{^isFile}}param{{/isFile}}({{#isMultipart}}&case.multipart{{/isMultipart}}{{^isMultipart}}&form_fields(case){{/isMultipart}}, "{{baseName}}"),
 {{/formParams}}
             };
 {{/vendorExtensions.x-sdk-has-params}}
