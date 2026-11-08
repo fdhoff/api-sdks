@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* Method doc comments show apostrophes as written, not as `&#39;`.
 * An iterator page that is a JSON array throws `DecodeError`, as in the other languages, instead of ending the iteration with no items.
 * Breaking: the `Task` model is `BackgroundTask`, and `TaskActionStatusEnum` is `BackgroundTaskActionStatusEnum`, as in every other language.
 * The repository moved to `fdhoff/api-sdks`; the package's repository and documentation links point there.

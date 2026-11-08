@@ -294,7 +294,7 @@ export class BuybackApi extends Resource {
     return this.paginate(getWsBuybackV1Orders, undefined, { ...params }, options);
   }
 
-  /** List one page of a buyback order&#39;s messages. */
+  /** List one page of a buyback order's messages. */
   listMessages(
     buybackOrderId: string,
     params: { page?: number } = {},
