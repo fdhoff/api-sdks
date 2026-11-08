@@ -7,7 +7,7 @@ import time
 from collections.abc import AsyncIterator, Callable, Iterator
 from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime
-from typing import Any
+from typing import Any, cast
 
 import httpx
 import pytest
@@ -140,10 +140,85 @@ def test_salvage_keeps_unknown_keys_named_like_its_own_arguments(key: str) -> No
     assert place.model_extra == {key: "kept"}
 
 
-def test_a_non_object_response_comes_back_raw() -> None:
-    client = client_for(lambda request: httpx.Response(200, json=["unexpected"]))
-    result: Any = client.orders.get(1)
-    assert result == ["unexpected"]
+def test_a_response_that_is_not_an_object_is_a_decode_error() -> None:
+    client = client_for(lambda request: httpx.Response(200, json=["unexpected", TOKEN]))
+    with pytest.raises(DecodeError) as caught:
+        client.orders.get(1)
+    assert caught.value.raw_body == '["unexpected", "***"]'
+
+
+def test_an_empty_body_for_a_typed_response_is_a_decode_error() -> None:
+    client = client_for(lambda request: httpx.Response(200))
+    with pytest.raises(DecodeError) as caught:
+        client.orders.get(1)
+    assert caught.value.raw_body is None
+
+
+def test_an_iterated_item_that_is_not_an_object_is_a_decode_error() -> None:
+    page = {"next": None, "results": [{"order_id": 1}, "unexpected"]}
+    client = client_for(lambda request: httpx.Response(200, json=page))
+    with pytest.raises(DecodeError):
+        list(client.orders.iter())
+
+
+def test_an_operation_with_no_declared_response_returns_none() -> None:
+    client = client_for(lambda request: httpx.Response(200, json={"unexpected": 1}))
+    assert client.orders.upload_invoice(1, invoice=[b"%PDF"]) is None
+
+
+def test_parameter_constraints_are_enforced_before_sending() -> None:
+    sent: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(request)
+        return httpx.Response(200, json={"results": []})
+
+    client = client_for(handler)
+    with pytest.raises(ValidationError, match="page_size"):
+        client.orders.list(page_size=500)
+    with pytest.raises(ValidationError, match="page_size"):
+        client.orders.iter(page_size=51)
+    with pytest.raises(ValidationError, match="order_id"):
+        client.orders.get(cast(Any, "1"))
+    assert sent == []
+
+    client.orders.list(page_size=50)
+    assert [request.url.query for request in sent] == [b"page-size=50"]
+
+
+def test_parameters_are_checked_but_sent_as_given() -> None:
+    queries: list[bytes] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        queries.append(request.url.query)
+        return httpx.Response(200, json={"results": []})
+
+    client_for(handler).orders.list(date_creation=cast(Any, "2026-01-02"))
+    assert queries == [b"date_creation=2026-01-02"]
+
+
+def test_async_parameter_constraints_are_enforced_before_sending() -> None:
+    sent: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(request)
+        return httpx.Response(200, json={"results": []})
+
+    async def run() -> None:
+        async with AsyncBackMarketClient(
+            TOKEN,
+            user_agent="agent",
+            locale="en-us",
+            base_url="http://mock.invalid",
+            http_transport=httpx.MockTransport(handler),
+        ) as client:
+            with pytest.raises(ValidationError, match="page_size"):
+                await client.orders.list(page_size=500)
+            with pytest.raises(ValidationError, match="page_size"):
+                client.orders.iter(page_size=500)
+
+    asyncio.run(run())
+    assert sent == []
 
 
 @pytest.mark.parametrize("headers", [{"content-type": "application/json"}, {}])
@@ -158,8 +233,9 @@ def test_an_empty_success_body_is_a_decode_error(headers: dict[str, str]) -> Non
         async_order(handler)
 
 
-def test_an_empty_body_is_fine_where_none_is_declared() -> None:
-    client = client_for(lambda request: httpx.Response(201))
+@pytest.mark.parametrize("headers", [{"content-type": "text/plain"}, {}])
+def test_an_empty_body_is_fine_where_none_is_declared(headers: dict[str, str]) -> None:
+    client = client_for(lambda request: httpx.Response(201, headers=headers))
     client.care.transfer_item(1, {})
     assert client.care.create_refund({}) == ""
 

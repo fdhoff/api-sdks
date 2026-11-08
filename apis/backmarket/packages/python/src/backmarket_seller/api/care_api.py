@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, Iterator, List, Mapping, Optional, Tuple, Union
+from typing import Any, AsyncIterator, Iterator, List, Mapping, Optional, Union
 
-from pydantic import Field, StrictFloat, StrictInt, StrictStr
-from typing_extensions import Annotated
+from pydantic import StrictInt, StrictStr
 
-from pydantic import StrictBytes, StrictInt, StrictStr, field_validator
-from typing import List, Optional, Tuple, Union
+from backmarket_seller import models as _models
+from backmarket_seller._runtime import AsyncResource, FileInput, Operation, Param, Resource, checked
 from backmarket_seller.models.get_care_folder_details_response import GetCareFolderDetailsResponse
 from backmarket_seller.models.get_care_folder_list_response import GetCareFolderListResponse
 from backmarket_seller.models.post_item_transfer_create_request import PostItemTransferCreateRequest
@@ -16,8 +15,6 @@ from backmarket_seller.models.post_message_response import PostMessageResponse
 from backmarket_seller.models.post_note_request import PostNoteRequest
 from backmarket_seller.models.post_note_response import PostNoteResponse
 from backmarket_seller.models.post_refund_create_request import PostRefundCreateRequest
-from backmarket_seller.models import CareFolder
-from backmarket_seller._runtime import AsyncResource, FileInput, Operation, Param, Resource
 
 _get_care_folder_details: Operation[GetCareFolderDetailsResponse] = Operation(
     id="getCareFolderDetails",
@@ -44,7 +41,7 @@ _get_care_folder_list: Operation[GetCareFolderListResponse] = Operation(
     ),
     response=GetCareFolderListResponse,
     iterator="iter_folders",
-    item=CareFolder,
+    item=_models.CareFolder,
 )
 _post_item_transfer: Operation[None] = Operation(
     id="postItemTransfer",
@@ -113,6 +110,7 @@ OPERATIONS = (
 
 
 class CareApi(Resource):
+    @checked
     def get_folder(
         self,
         care_folder_id: StrictInt,
@@ -123,6 +121,7 @@ class CareApi(Resource):
             care_folder_id=care_folder_id,
         )
 
+    @checked
     def list_folders(
         self,
         *,
@@ -144,6 +143,7 @@ class CareApi(Resource):
             page=page,
         )
 
+    @checked
     def iter_folders(
         self,
         *,
@@ -153,7 +153,7 @@ class CareApi(Resource):
         last_modification_date: Optional[StrictStr] = None,
         last_message_date: Optional[StrictStr] = None,
         page: Optional[StrictInt] = None,
-    ) -> Iterator[CareFolder]:
+    ) -> Iterator[_models.CareFolder]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_care_folder_list,
@@ -165,6 +165,7 @@ class CareApi(Resource):
             page=page,
         )
 
+    @checked
     def transfer_item(
         self,
         care_folder_id: StrictInt,
@@ -177,6 +178,7 @@ class CareApi(Resource):
             _body=body,
         )
 
+    @checked
     def send_message(
         self,
         care_folder_id: StrictInt,
@@ -192,6 +194,7 @@ class CareApi(Resource):
             message=message,
         )
 
+    @checked
     def add_note(
         self,
         care_folder_id: StrictInt,
@@ -204,6 +207,7 @@ class CareApi(Resource):
             _body=body,
         )
 
+    @checked
     def report_problem(
         self,
         care_folder_id: StrictInt,
@@ -221,6 +225,7 @@ class CareApi(Resource):
             attachment=attachment,
         )
 
+    @checked
     def create_refund(
         self,
         body: Optional[Union[PostRefundCreateRequest, Mapping[str, Any]]] = None,
@@ -233,6 +238,7 @@ class CareApi(Resource):
 
 
 class AsyncCareApi(AsyncResource):
+    @checked
     async def get_folder(
         self,
         care_folder_id: StrictInt,
@@ -243,6 +249,7 @@ class AsyncCareApi(AsyncResource):
             care_folder_id=care_folder_id,
         )
 
+    @checked
     async def list_folders(
         self,
         *,
@@ -264,6 +271,7 @@ class AsyncCareApi(AsyncResource):
             page=page,
         )
 
+    @checked
     def iter_folders(
         self,
         *,
@@ -273,7 +281,7 @@ class AsyncCareApi(AsyncResource):
         last_modification_date: Optional[StrictStr] = None,
         last_message_date: Optional[StrictStr] = None,
         page: Optional[StrictInt] = None,
-    ) -> AsyncIterator[CareFolder]:
+    ) -> AsyncIterator[_models.CareFolder]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_care_folder_list,
@@ -285,6 +293,7 @@ class AsyncCareApi(AsyncResource):
             page=page,
         )
 
+    @checked
     async def transfer_item(
         self,
         care_folder_id: StrictInt,
@@ -297,6 +306,7 @@ class AsyncCareApi(AsyncResource):
             _body=body,
         )
 
+    @checked
     async def send_message(
         self,
         care_folder_id: StrictInt,
@@ -312,6 +322,7 @@ class AsyncCareApi(AsyncResource):
             message=message,
         )
 
+    @checked
     async def add_note(
         self,
         care_folder_id: StrictInt,
@@ -324,6 +335,7 @@ class AsyncCareApi(AsyncResource):
             _body=body,
         )
 
+    @checked
     async def report_problem(
         self,
         care_folder_id: StrictInt,
@@ -341,6 +353,7 @@ class AsyncCareApi(AsyncResource):
             attachment=attachment,
         )
 
+    @checked
     async def create_refund(
         self,
         body: Optional[Union[PostRefundCreateRequest, Mapping[str, Any]]] = None,

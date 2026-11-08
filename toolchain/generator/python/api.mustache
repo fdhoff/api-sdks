@@ -1,22 +1,13 @@
 {{>partial_header}}
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, Iterator, List, Mapping, Optional, Tuple, Union
-
-from pydantic import Field, StrictFloat, StrictInt, StrictStr
-from typing_extensions import Annotated
+from typing import Any, AsyncIterator, Iterator, List, Mapping, Optional, Union
 
 {{#imports}}
 {{import}}
 {{/imports}}
-{{#operations}}
-{{#operation}}
-{{#vendorExtensions.x-sdk-items}}
-from {{packageName}}.models import {{.}}
-{{/vendorExtensions.x-sdk-items}}
-{{/operation}}
-{{/operations}}
-from {{packageName}}._runtime import AsyncResource, FileInput, Operation, Param, Resource
+from {{packageName}} import models as _models
+from {{packageName}}._runtime import AsyncResource, FileInput, Operation, Param, Resource, checked
 
 {{#operations}}
 {{#operation}}
@@ -40,7 +31,7 @@ _{{operationIdSnakeCase}}: Operation[{{{returnType}}}{{^returnType}}None{{/retur
     response={{{returnType}}}{{^returnType}}None{{/returnType}},
 {{#vendorExtensions.x-sdk-iterator}}
     iterator="{{vendorExtensions.x-sdk-iterator}}",
-    item={{vendorExtensions.x-sdk-items}},
+    item=_models.{{vendorExtensions.x-sdk-items}},
 {{/vendorExtensions.x-sdk-iterator}}
 )
 {{/operation}}
@@ -54,12 +45,14 @@ OPERATIONS = (
 
 class {{classname}}(Resource):
 {{#operation}}
+    @checked
     def {{vendorExtensions.x-sdk-method}}{{>partial_sdk_args}} -> {{{returnType}}}{{^returnType}}None{{/returnType}}:
         """{{vendorExtensions.x-sdk-summary}}"""
         return self._call{{>partial_sdk_call}}
 
 {{#vendorExtensions.x-sdk-iterator}}
-    def {{vendorExtensions.x-sdk-iterator}}{{>partial_sdk_args}} -> Iterator[{{vendorExtensions.x-sdk-items}}]:
+    @checked
+    def {{vendorExtensions.x-sdk-iterator}}{{>partial_sdk_args}} -> Iterator[_models.{{vendorExtensions.x-sdk-items}}]:
         """Iterate every item across all pages."""
         return self._paginate{{>partial_sdk_call}}
 
@@ -68,12 +61,14 @@ class {{classname}}(Resource):
 
 class Async{{classname}}(AsyncResource):
 {{#operation}}
+    @checked
     async def {{vendorExtensions.x-sdk-method}}{{>partial_sdk_args}} -> {{{returnType}}}{{^returnType}}None{{/returnType}}:
         """{{vendorExtensions.x-sdk-summary}}"""
         return await self._call{{>partial_sdk_call}}
 
 {{#vendorExtensions.x-sdk-iterator}}
-    def {{vendorExtensions.x-sdk-iterator}}{{>partial_sdk_args}} -> AsyncIterator[{{vendorExtensions.x-sdk-items}}]:
+    @checked
+    def {{vendorExtensions.x-sdk-iterator}}{{>partial_sdk_args}} -> AsyncIterator[_models.{{vendorExtensions.x-sdk-items}}]:
         """Iterate every item across all pages."""
         return self._paginate{{>partial_sdk_call}}
 

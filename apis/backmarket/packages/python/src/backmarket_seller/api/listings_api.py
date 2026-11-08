@@ -2,23 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, Iterator, List, Mapping, Optional, Tuple, Union
-
-from pydantic import Field, StrictFloat, StrictInt, StrictStr
-from typing_extensions import Annotated
-
-from pydantic import Field, StrictInt, StrictStr, field_validator
-from typing import Optional
-from typing_extensions import Annotated
+from typing import Any, AsyncIterator, Iterator, Mapping, Optional, Union
 from uuid import UUID
+
+from pydantic import Field, StrictInt, StrictStr
+from typing_extensions import Annotated
+
+from backmarket_seller import models as _models
+from backmarket_seller._runtime import AsyncResource, Operation, Param, Resource, checked
 from backmarket_seller.models.listing_detail import ListingDetail
 from backmarket_seller.models.listing_page import ListingPage
 from backmarket_seller.models.listing_update import ListingUpdate
 from backmarket_seller.models.listings_batch import ListingsBatch
 from backmarket_seller.models.listings_catalog import ListingsCatalog
 from backmarket_seller.models.updated_listing import UpdatedListing
-from backmarket_seller.models import ListingPublic
-from backmarket_seller._runtime import AsyncResource, FileInput, Operation, Param, Resource
 
 _get_ws_list_listing: Operation[ListingPage] = Operation(
     id="get-ws-list-listing",
@@ -35,7 +32,7 @@ _get_ws_list_listing: Operation[ListingPage] = Operation(
     ),
     response=ListingPage,
     iterator="iter",
-    item=ListingPublic,
+    item=_models.ListingPublic,
 )
 _get_ws_listing_detail: Operation[ListingDetail] = Operation(
     id="get-ws-listing-detail",
@@ -88,6 +85,7 @@ OPERATIONS = (
 
 
 class ListingsApi(Resource):
+    @checked
     def list(
         self,
         *,
@@ -107,6 +105,7 @@ class ListingsApi(Resource):
             page_size=page_size,
         )
 
+    @checked
     def iter(
         self,
         *,
@@ -115,7 +114,7 @@ class ListingsApi(Resource):
         max_quantity: Optional[StrictInt] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[Annotated[int, Field(le=50, strict=True)]] = None,
-    ) -> Iterator[ListingPublic]:
+    ) -> Iterator[_models.ListingPublic]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_ws_list_listing,
@@ -126,6 +125,7 @@ class ListingsApi(Resource):
             page_size=page_size,
         )
 
+    @checked
     def find(
         self,
         *,
@@ -141,6 +141,7 @@ class ListingsApi(Resource):
             id=id,
         )
 
+    @checked
     def get(
         self,
         listing_id: StrictStr,
@@ -151,6 +152,7 @@ class ListingsApi(Resource):
             listing_id=listing_id,
         )
 
+    @checked
     def batch_update(
         self,
         body: Optional[Union[ListingsCatalog, Mapping[str, Any]]] = None,
@@ -161,6 +163,7 @@ class ListingsApi(Resource):
             _body=body,
         )
 
+    @checked
     def update(
         self,
         listing_id: StrictStr,
@@ -175,6 +178,7 @@ class ListingsApi(Resource):
 
 
 class AsyncListingsApi(AsyncResource):
+    @checked
     async def list(
         self,
         *,
@@ -194,6 +198,7 @@ class AsyncListingsApi(AsyncResource):
             page_size=page_size,
         )
 
+    @checked
     def iter(
         self,
         *,
@@ -202,7 +207,7 @@ class AsyncListingsApi(AsyncResource):
         max_quantity: Optional[StrictInt] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[Annotated[int, Field(le=50, strict=True)]] = None,
-    ) -> AsyncIterator[ListingPublic]:
+    ) -> AsyncIterator[_models.ListingPublic]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_ws_list_listing,
@@ -213,6 +218,7 @@ class AsyncListingsApi(AsyncResource):
             page_size=page_size,
         )
 
+    @checked
     async def find(
         self,
         *,
@@ -228,6 +234,7 @@ class AsyncListingsApi(AsyncResource):
             id=id,
         )
 
+    @checked
     async def get(
         self,
         listing_id: StrictStr,
@@ -238,6 +245,7 @@ class AsyncListingsApi(AsyncResource):
             listing_id=listing_id,
         )
 
+    @checked
     async def batch_update(
         self,
         body: Optional[Union[ListingsCatalog, Mapping[str, Any]]] = None,
@@ -248,6 +256,7 @@ class AsyncListingsApi(AsyncResource):
             _body=body,
         )
 
+    @checked
     async def update(
         self,
         listing_id: StrictStr,

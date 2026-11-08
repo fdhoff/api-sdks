@@ -2,21 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, Iterator, List, Mapping, Optional, Tuple, Union
-
-from pydantic import Field, StrictFloat, StrictInt, StrictStr
-from typing_extensions import Annotated
-
 from datetime import datetime
-from pydantic import StrictBool, StrictInt, field_validator
-from typing import Optional
+from typing import AsyncIterator, Iterator, Optional
+
+from pydantic import StrictBool, StrictInt
+
+from backmarket_seller import models as _models
+from backmarket_seller._runtime import AsyncResource, Operation, Param, Resource, checked
 from backmarket_seller.models.delivery import Delivery
 from backmarket_seller.models.delivery_page import DeliveryPage
 from backmarket_seller.models.return_page import ReturnPage
 from backmarket_seller.models.return_shipment import ReturnShipment
-from backmarket_seller.models import Delivery
-from backmarket_seller.models import ReturnShipment
-from backmarket_seller._runtime import AsyncResource, FileInput, Operation, Param, Resource
 
 _get_deliveries: Operation[DeliveryPage] = Operation(
     id="GetDeliveries",
@@ -36,7 +32,7 @@ _get_deliveries: Operation[DeliveryPage] = Operation(
     ),
     response=DeliveryPage,
     iterator="iter_deliveries",
-    item=Delivery,
+    item=_models.Delivery,
 )
 _get_delivery: Operation[Delivery] = Operation(
     id="GetDelivery",
@@ -74,7 +70,7 @@ _get_returns: Operation[ReturnPage] = Operation(
     ),
     response=ReturnPage,
     iterator="iter_returns",
-    item=ReturnShipment,
+    item=_models.ReturnShipment,
 )
 
 OPERATIONS = (
@@ -86,6 +82,7 @@ OPERATIONS = (
 
 
 class ShippingApi(Resource):
+    @checked
     def list_deliveries(
         self,
         *,
@@ -111,6 +108,7 @@ class ShippingApi(Resource):
             hub_scanned=hub_scanned,
         )
 
+    @checked
     def iter_deliveries(
         self,
         *,
@@ -122,7 +120,7 @@ class ShippingApi(Resource):
         pickup_end_date: Optional[datetime] = None,
         order_state: Optional[StrictInt] = None,
         hub_scanned: Optional[StrictBool] = None,
-    ) -> Iterator[Delivery]:
+    ) -> Iterator[_models.Delivery]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_deliveries,
@@ -136,6 +134,7 @@ class ShippingApi(Resource):
             hub_scanned=hub_scanned,
         )
 
+    @checked
     def get_delivery(
         self,
         id: StrictInt,
@@ -146,6 +145,7 @@ class ShippingApi(Resource):
             id=id,
         )
 
+    @checked
     def get_return(
         self,
         id: StrictInt,
@@ -156,6 +156,7 @@ class ShippingApi(Resource):
             id=id,
         )
 
+    @checked
     def list_returns(
         self,
         *,
@@ -181,6 +182,7 @@ class ShippingApi(Resource):
             hub_scanned=hub_scanned,
         )
 
+    @checked
     def iter_returns(
         self,
         *,
@@ -192,7 +194,7 @@ class ShippingApi(Resource):
         pickup_end_date: Optional[datetime] = None,
         order_state: Optional[StrictInt] = None,
         hub_scanned: Optional[StrictBool] = None,
-    ) -> Iterator[ReturnShipment]:
+    ) -> Iterator[_models.ReturnShipment]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_returns,
@@ -208,6 +210,7 @@ class ShippingApi(Resource):
 
 
 class AsyncShippingApi(AsyncResource):
+    @checked
     async def list_deliveries(
         self,
         *,
@@ -233,6 +236,7 @@ class AsyncShippingApi(AsyncResource):
             hub_scanned=hub_scanned,
         )
 
+    @checked
     def iter_deliveries(
         self,
         *,
@@ -244,7 +248,7 @@ class AsyncShippingApi(AsyncResource):
         pickup_end_date: Optional[datetime] = None,
         order_state: Optional[StrictInt] = None,
         hub_scanned: Optional[StrictBool] = None,
-    ) -> AsyncIterator[Delivery]:
+    ) -> AsyncIterator[_models.Delivery]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_deliveries,
@@ -258,6 +262,7 @@ class AsyncShippingApi(AsyncResource):
             hub_scanned=hub_scanned,
         )
 
+    @checked
     async def get_delivery(
         self,
         id: StrictInt,
@@ -268,6 +273,7 @@ class AsyncShippingApi(AsyncResource):
             id=id,
         )
 
+    @checked
     async def get_return(
         self,
         id: StrictInt,
@@ -278,6 +284,7 @@ class AsyncShippingApi(AsyncResource):
             id=id,
         )
 
+    @checked
     async def list_returns(
         self,
         *,
@@ -303,6 +310,7 @@ class AsyncShippingApi(AsyncResource):
             hub_scanned=hub_scanned,
         )
 
+    @checked
     def iter_returns(
         self,
         *,
@@ -314,7 +322,7 @@ class AsyncShippingApi(AsyncResource):
         pickup_end_date: Optional[datetime] = None,
         order_state: Optional[StrictInt] = None,
         hub_scanned: Optional[StrictBool] = None,
-    ) -> AsyncIterator[ReturnShipment]:
+    ) -> AsyncIterator[_models.ReturnShipment]:
         """Iterate every item across all pages."""
         return self._paginate(
             _get_returns,

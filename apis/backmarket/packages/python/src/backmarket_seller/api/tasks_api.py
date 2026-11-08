@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, Iterator, List, Mapping, Optional, Tuple, Union
-
-from pydantic import Field, StrictFloat, StrictInt, StrictStr
-from typing_extensions import Annotated
-
 from pydantic import StrictInt
+
+from backmarket_seller._runtime import AsyncResource, Operation, Param, Resource, checked
 from backmarket_seller.models.task import Task
-from backmarket_seller._runtime import AsyncResource, FileInput, Operation, Param, Resource
 
 _get_ws_task: Operation[Task] = Operation(
     id="get-ws-task",
@@ -25,6 +21,7 @@ OPERATIONS = (_get_ws_task,)
 
 
 class TasksApi(Resource):
+    @checked
     def get(
         self,
         task_id: StrictInt,
@@ -37,6 +34,7 @@ class TasksApi(Resource):
 
 
 class AsyncTasksApi(AsyncResource):
+    @checked
     async def get(
         self,
         task_id: StrictInt,
