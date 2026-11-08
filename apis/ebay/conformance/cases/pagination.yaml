@@ -4,7 +4,7 @@ cases:
   - name: pagination-offset-follows-next-until-it-is-absent
     request:
       operation: sell_fulfillment.getOrders
-      params: { limit: 2 }
+      params: { limit: '2' }
       paginate: true
     mock:
       responses:
@@ -44,7 +44,7 @@ cases:
   - name: pagination-continuation-token-follows-next
     request:
       operation: commerce_notification.getDestinations
-      params: { limit: 1 }
+      params: { limit: '1' }
       paginate: true
     mock:
       responses:
@@ -87,7 +87,7 @@ cases:
   - name: pagination-next-that-does-not-advance-is-a-decode-error
     request:
       operation: sell_fulfillment.getOrders
-      params: { limit: 1, offset: 0 }
+      params: { limit: '1', offset: '0' }
       paginate: true
     mock:
       responses:

@@ -39,6 +39,7 @@ cases:
     wire:
       - method: GET
         path: /commerce/taxonomy/v1/get_default_category_tree_id
+        query: { marketplace_id: EBAY_US }
     expect:
       error: { kind: bad_request, status: 400 }
 
