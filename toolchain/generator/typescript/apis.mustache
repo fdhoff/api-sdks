@@ -41,6 +41,12 @@ const {{nickname}}: Operation = {
 {{#bodyParam}}
   hasBody: true,
 {{/bodyParam}}
+{{#vendorExtensions.x-sdk-binary-response}}
+  returnsBinary: true,
+{{/vendorExtensions.x-sdk-binary-response}}
+{{#vendorExtensions.x-sdk-raw-body}}
+  rawBody: '{{{vendorExtensions.x-sdk-raw-body}}}',
+{{/vendorExtensions.x-sdk-raw-body}}
 {{#vendorExtensions.x-sdk-returns-json}}
   returnsJson: true,
 {{/vendorExtensions.x-sdk-returns-json}}
@@ -71,7 +77,7 @@ export const OPERATIONS: readonly Operation[] = [
 export class {{classname}} extends Resource {
 {{#operation}}
   /** {{{vendorExtensions.x-sdk-summary}}} */
-  {{vendorExtensions.x-sdk-method}}{{>partial_sdk_args}}: Promise<{{{returnType}}}{{^returnType}}void{{/returnType}}> {
+  {{vendorExtensions.x-sdk-method}}{{>partial_sdk_args}}: Promise<{{#vendorExtensions.x-sdk-binary-response}}import('../runtime/index.js').Download{{/vendorExtensions.x-sdk-binary-response}}{{^vendorExtensions.x-sdk-binary-response}}{{{returnType}}}{{^returnType}}void{{/returnType}}{{/vendorExtensions.x-sdk-binary-response}}> {
     return this.call{{>partial_sdk_call}};
   }
 

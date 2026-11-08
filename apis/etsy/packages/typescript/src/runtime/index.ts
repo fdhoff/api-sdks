@@ -6,6 +6,7 @@ export type { MessageSignerOptions, SignatureAlgorithm } from './signing.js';
 export type { ApiErrorFields, ErrorContext } from './errors.js';
 export { Resource, selectHosts, Transport } from './transport.js';
 export type {
+  Download,
   FileContent,
   FileInput,
   Logger,
@@ -14,6 +15,7 @@ export type {
   Operation,
   Paging,
   Param,
+  RawBody,
   RequestOptions,
   Settings,
 } from './transport.js';
