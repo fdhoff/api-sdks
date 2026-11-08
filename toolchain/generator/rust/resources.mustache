@@ -6,8 +6,8 @@ use crate::apis::*;
 impl Client {
 {{#apiInfo}}
 {{#apis}}
-    /// The `{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}` operations.
-    pub fn {{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}(&self) -> {{classname}} {
+    /// The `{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}` operations.
+    pub fn {{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}(&self) -> {{classname}} {
         {{classname}}::new(self.transport.clone())
     }
 {{/apis}}

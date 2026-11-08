@@ -55,7 +55,7 @@ impl Params for {{>partial_params_name}} {
 {{/vendorExtensions.x-sdk-has-params}}
 {{/operation}}
 
-/// The `{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}` operations, from [`Client::{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}`](crate::Client::{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}).
+/// The `{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}` operations, from [`Client::{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}`](crate::Client::{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}).
 #[derive(Clone, Debug)]
 pub struct {{classname}} {
     transport: Arc<Transport>,
