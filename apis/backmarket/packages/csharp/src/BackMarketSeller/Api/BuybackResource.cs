@@ -19,7 +19,7 @@ public sealed class BuybackResource
 
     internal static readonly Operation GetWsBuybackV1ListingsOperation = new(
         "get-ws-buyback-v1-listings", "GET", "/ws/buyback/v1/listings", "Buyback", "ListListingsAsync", "ListAllListingsAsync",
-        [new("productId", "productId", ParamLocation.Query), new("cursor", "cursor", ParamLocation.Query), new("pageSize", "pageSize", ParamLocation.Query),], ReturnsJson: true);
+        [new("productId", "productId", ParamLocation.Query), new("cursor", "cursor", ParamLocation.Query), new("pageSize", "pageSize", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
 
     internal static readonly Operation GetWsBuybackV1OrderOperation = new(
         "get-ws-buyback-v1-order", "GET", "/ws/buyback/v1/orders/{buybackOrderId}", "Buyback", "GetOrderAsync", null,
@@ -27,15 +27,15 @@ public sealed class BuybackResource
 
     internal static readonly Operation GetWsBuybackV1OrdersOperation = new(
         "get-ws-buyback-v1-orders", "GET", "/ws/buyback/v1/orders", "Buyback", "ListOrdersAsync", "ListAllOrdersAsync",
-        [new("status", "status", ParamLocation.Query), new("productId", "productId", ParamLocation.Query), new("creationDate", "creationDate", ParamLocation.Query), new("modificationDate", "modificationDate", ParamLocation.Query), new("shippingDate", "shippingDate", ParamLocation.Query), new("receivedDate", "receivedDate", ParamLocation.Query), new("suspendedDate", "suspendedDate", ParamLocation.Query), new("paymentDate", "paymentDate", ParamLocation.Query), new("page", "page", ParamLocation.Query),], ReturnsJson: true);
+        [new("status", "status", ParamLocation.Query), new("productId", "productId", ParamLocation.Query), new("creationDate", "creationDate", ParamLocation.Query), new("modificationDate", "modificationDate", ParamLocation.Query), new("shippingDate", "shippingDate", ParamLocation.Query), new("receivedDate", "receivedDate", ParamLocation.Query), new("suspendedDate", "suspendedDate", ParamLocation.Query), new("paymentDate", "paymentDate", ParamLocation.Query), new("page", "page", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
 
     internal static readonly Operation GetWsBuybackV1OrdersMessagesOperation = new(
         "get-ws-buyback-v1-orders-messages", "GET", "/ws/buyback/v1/orders/{buybackOrderId}/messages", "Buyback", "ListMessagesAsync", "ListAllMessagesAsync",
-        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path), new("page", "page", ParamLocation.Query),], ReturnsJson: true);
+        [new("buybackOrderId", "buybackOrderId", ParamLocation.Path), new("page", "page", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
 
     internal static readonly Operation GetWsBuybackV1OrdersPendingReplyOperation = new(
         "get-ws-buyback-v1-orders-pending-reply", "GET", "/ws/buyback/v1/orders/pending-reply", "Buyback", "ListPendingOrdersAsync", "ListAllPendingOrdersAsync",
-        [new("page", "page", ParamLocation.Query),], ReturnsJson: true);
+        [new("page", "page", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
 
     internal static readonly Operation GetWsBuybackV1OrdersSuspendReasonsOperation = new(
         "get-ws-buyback-v1-orders-suspend-reasons", "GET", "/ws/buyback/v1/orders/suspend-reasons", "Buyback", "ListSuspendReasonsAsync", null,

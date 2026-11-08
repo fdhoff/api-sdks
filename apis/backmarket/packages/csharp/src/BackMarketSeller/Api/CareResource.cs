@@ -15,7 +15,7 @@ public sealed class CareResource
 
     internal static readonly Operation GetCareFolderListOperation = new(
         "getCareFolderList", "GET", "/ws/sav", "Care", "ListFoldersAsync", "ListAllFoldersAsync",
-        [new("last_id", "lastId", ParamLocation.Query), new("state", "state", ParamLocation.Query), new("orderline", "orderline", ParamLocation.Query), new("last_modification_date", "lastModificationDate", ParamLocation.Query), new("last_message_date", "lastMessageDate", ParamLocation.Query), new("page", "page", ParamLocation.Query),], ReturnsJson: true);
+        [new("last_id", "lastId", ParamLocation.Query), new("state", "state", ParamLocation.Query), new("orderline", "orderline", ParamLocation.Query), new("last_modification_date", "lastModificationDate", ParamLocation.Query), new("last_message_date", "lastMessageDate", ParamLocation.Query), new("page", "page", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
 
     internal static readonly Operation PostItemTransferOperation = new(
         "postItemTransfer", "POST", "/ws/sav/{careFolderId}/item-transfer", "Care", "TransferItemAsync", null,

@@ -1,6 +1,7 @@
 # Public names for every operation, keyed by operationId. Summaries are ours, not upstream's.
 # `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
 # `string_params` narrows a parameter the spec types as a union to a plain string.
+# `paging` overrides how that iterator walks pages, as set in ../../sdk.yaml.
 get-bm-catalog-category: { resource: Categories, method: ListAsync, summary: List the category tree. }
 get-bm-catalog-category-branch: { resource: Categories, method: GetAsync, summary: Get one branch of the category tree. }
 

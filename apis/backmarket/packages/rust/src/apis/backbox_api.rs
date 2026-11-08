@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::Error;
 #[allow(unused_imports)]
-use crate::runtime::{Items, Operation, Params, Request, Transport};
+use crate::runtime::{Items, Operation, Paging, Params, Request, Transport};
 #[allow(unused_imports)]
 use crate::{File, models};
 
@@ -14,6 +14,11 @@ const GET_BACKBOX_DATA: Operation = Operation {
     path: "/ws/listings_bi",
     query_params: &["page", "page-size"],
     returns_json: true,
+    paging: Some(Paging::NextLink {
+        items: "results",
+        link: "next",
+        params: &["page", "cursor"],
+    }),
 };
 const GET_WS_BACKBOX_V1_COMPETITORS: Operation = Operation {
     id: "get-ws-backbox-v1-competitors",
@@ -21,6 +26,7 @@ const GET_WS_BACKBOX_V1_COMPETITORS: Operation = Operation {
     path: "/ws/backbox/v1/competitors/{listingId}",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 
 /// The query parameters of [`BackboxApi::list`]. Set only what you need.

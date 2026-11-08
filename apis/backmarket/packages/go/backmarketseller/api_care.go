@@ -29,6 +29,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"last_id", "state", "orderline", "last_modification_date", "last_message_date", "page"},
+		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
 	})
 	opPostItemTransfer = runtime.Register(runtime.Operation{
 		ID:          "postItemTransfer",

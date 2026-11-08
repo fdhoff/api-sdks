@@ -38,6 +38,7 @@ const getCareFolderList: Operation = {
   ],
   returnsJson: true,
   iterator: 'iterFolders',
+  paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
 };
 
 const postItemTransfer: Operation = {

@@ -9,7 +9,7 @@ from pydantic import Field, StrictInt
 from typing_extensions import Annotated
 
 from backmarket_seller import models as _models
-from backmarket_seller._runtime import AsyncResource, FileInput, Operation, Param, Resource, checked
+from backmarket_seller._runtime import AsyncResource, FileInput, NextLink, Operation, Param, Resource, checked
 from backmarket_seller.models.country_code import CountryCode
 from backmarket_seller.models.order import Order
 from backmarket_seller.models.order_line_update import OrderLineUpdate
@@ -36,6 +36,14 @@ _get_ws_list_order: Operation[OrderPage] = Operation(
     returns_json=True,
     iterator="iter",
     item=_models.Order,
+    paging=NextLink(
+        items="results",
+        link="next",
+        params=(
+            "page",
+            "cursor",
+        ),
+    ),
 )
 _get_ws_specific_order: Operation[Order] = Operation(
     id="get-ws-specific-order",

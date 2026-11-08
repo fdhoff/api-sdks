@@ -6,7 +6,7 @@ use crate::Error;
 #[allow(unused_imports)]
 use crate::{File, models};
 #[allow(unused_imports)]
-use crate::runtime::{Items, Operation, Params, Request, Transport};
+use crate::runtime::{Items, Operation, Paging, Params, Request, Transport};
 
 {{#operations}}
 {{#operation}}
@@ -16,6 +16,15 @@ const {{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}: Operat
     path: "{{{path}}}",
     query_params: &[{{#queryParams}}"{{baseName}}", {{/queryParams}}],
     returns_json: {{#vendorExtensions.x-sdk-returns-json}}true{{/vendorExtensions.x-sdk-returns-json}}{{^vendorExtensions.x-sdk-returns-json}}false{{/vendorExtensions.x-sdk-returns-json}},
+{{#vendorExtensions.x-sdk-paging.next_link}}
+    paging: Some(Paging::NextLink { items: "{{items}}", link: "{{link}}", params: &[{{#params}}"{{.}}", {{/params}}] }),
+{{/vendorExtensions.x-sdk-paging.next_link}}
+{{#vendorExtensions.x-sdk-paging.offset}}
+    paging: Some(Paging::Offset { items: "{{items}}", total: "{{total}}", offset: "{{offset}}" }),
+{{/vendorExtensions.x-sdk-paging.offset}}
+{{^vendorExtensions.x-sdk-paging}}
+    paging: None,
+{{/vendorExtensions.x-sdk-paging}}
 };
 {{/operation}}
 {{#operation}}

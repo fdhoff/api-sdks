@@ -11,7 +11,7 @@ public sealed class ListingsResource
 {
     internal static readonly Operation GetWsListListingOperation = new(
         "get-ws-list-listing", "GET", "/ws/listings", "Listings", "ListAsync", "ListAllAsync",
-        [new("publication_state", "publicationState", ParamLocation.Query), new("min_quantity", "minQuantity", ParamLocation.Query), new("max_quantity", "maxQuantity", ParamLocation.Query), new("page", "page", ParamLocation.Query), new("page-size", "pageSize", ParamLocation.Query),], ReturnsJson: true);
+        [new("publication_state", "publicationState", ParamLocation.Query), new("min_quantity", "minQuantity", ParamLocation.Query), new("max_quantity", "maxQuantity", ParamLocation.Query), new("page", "page", ParamLocation.Query), new("page-size", "pageSize", ParamLocation.Query),], ReturnsJson: true, Paging: new NextLinkPaging("results", "next", ["page", "cursor",]));
 
     internal static readonly Operation GetWsListingDetailOperation = new(
         "get-ws-listing-detail", "GET", "/ws/listings/detail", "Listings", "FindAsync", null,

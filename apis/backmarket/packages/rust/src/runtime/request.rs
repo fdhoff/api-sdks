@@ -12,6 +12,39 @@ const PATH_SEGMENT: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'_')
     .remove(b'~');
 
+/// How an iterator walks pages.
+#[derive(Debug)]
+pub enum Paging {
+    /// Pages that link to the next one. Only `params` are read from the link: it is never fetched.
+    NextLink {
+        items: &'static str,
+        link: &'static str,
+        params: &'static [&'static str],
+    },
+    /// Pages addressed by an offset, which advances by the number of items received. Iteration ends
+    /// at an empty page or once the offset reaches the page's `total`.
+    #[allow(dead_code, reason = "an API may page only by link")]
+    Offset {
+        items: &'static str,
+        total: &'static str,
+        offset: &'static str,
+    },
+}
+
+impl Paging {
+    pub const DEFAULT: Self = Self::NextLink {
+        items: "results",
+        link: "next",
+        params: &["page", "cursor"],
+    };
+
+    pub fn items(&self) -> &'static str {
+        match self {
+            Self::NextLink { items, .. } | Self::Offset { items, .. } => items,
+        }
+    }
+}
+
 /// Describes one API call.
 #[derive(Debug)]
 pub struct Operation {
@@ -21,6 +54,14 @@ pub struct Operation {
     pub query_params: &'static [&'static str],
     /// Set when the spec declares a JSON success body, so an empty one is an error.
     pub returns_json: bool,
+    /// How an iterator walks pages. `None` means [`Paging::DEFAULT`].
+    pub paging: Option<Paging>,
+}
+
+impl Operation {
+    pub fn paging(&self) -> &Paging {
+        self.paging.as_ref().unwrap_or(&Paging::DEFAULT)
+    }
 }
 
 /// A file to upload. `name` defaults to the form field's name.
@@ -346,6 +387,7 @@ mod tests {
         path: "/items/{id}",
         query_params: &["page"],
         returns_json: true,
+        paging: None,
     };
 
     struct Query {

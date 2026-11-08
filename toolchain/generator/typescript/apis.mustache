@@ -44,6 +44,12 @@ const {{nickname}}: Operation = {
 {{#vendorExtensions.x-sdk-iterator}}
   iterator: '{{vendorExtensions.x-sdk-iterator}}',
 {{/vendorExtensions.x-sdk-iterator}}
+{{#vendorExtensions.x-sdk-paging.next_link}}
+  paging: { style: 'next_link', items: '{{items}}', link: '{{link}}', params: [{{#params}}'{{.}}', {{/params}}] },
+{{/vendorExtensions.x-sdk-paging.next_link}}
+{{#vendorExtensions.x-sdk-paging.offset}}
+  paging: { style: 'offset', items: '{{items}}', total: '{{total}}', offset: '{{offset}}' },
+{{/vendorExtensions.x-sdk-paging.offset}}
 };
 
 {{/operation}}

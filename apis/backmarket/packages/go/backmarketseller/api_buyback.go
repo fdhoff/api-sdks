@@ -39,6 +39,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"productId", "cursor", "pageSize"},
+		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
 	})
 	opGetWsBuybackV1Order = runtime.Register(runtime.Operation{
 		ID:          "get-ws-buyback-v1-order",
@@ -60,6 +61,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"status", "productId", "creationDate", "modificationDate", "shippingDate", "receivedDate", "suspendedDate", "paymentDate", "page"},
+		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
 	})
 	opGetWsBuybackV1OrdersMessages = runtime.Register(runtime.Operation{
 		ID:          "get-ws-buyback-v1-orders-messages",
@@ -71,6 +73,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{"buybackOrderId"},
 		QueryParams: []string{"page"},
+		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
 	})
 	opGetWsBuybackV1OrdersPendingReply = runtime.Register(runtime.Operation{
 		ID:          "get-ws-buyback-v1-orders-pending-reply",
@@ -82,6 +85,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"page"},
+		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
 	})
 	opGetWsBuybackV1OrdersSuspendReasons = runtime.Register(runtime.Operation{
 		ID:          "get-ws-buyback-v1-orders-suspend-reasons",

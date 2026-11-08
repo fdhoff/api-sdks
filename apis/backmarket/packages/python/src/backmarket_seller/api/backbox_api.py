@@ -9,7 +9,7 @@ from pydantic import Field, StrictInt
 from typing_extensions import Annotated
 
 from backmarket_seller import models as _models
-from backmarket_seller._runtime import AsyncResource, Operation, Param, Resource, checked
+from backmarket_seller._runtime import AsyncResource, NextLink, Operation, Param, Resource, checked
 from backmarket_seller.models.backbox_page import BackboxPage
 from backmarket_seller.models.competitor import Competitor
 
@@ -27,6 +27,14 @@ _get_backbox_data: Operation[BackboxPage] = Operation(
     returns_json=True,
     iterator="iter",
     item=_models.Backbox,
+    paging=NextLink(
+        items="results",
+        link="next",
+        params=(
+            "page",
+            "cursor",
+        ),
+    ),
 )
 _get_ws_backbox_v1_competitors: Operation[List[Competitor]] = Operation(
     id="get-ws-backbox-v1-competitors",

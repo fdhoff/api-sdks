@@ -7,7 +7,7 @@ from typing import Any, AsyncIterator, Iterator, List, Mapping, Optional, Union
 from pydantic import StrictInt, StrictStr
 
 from backmarket_seller import models as _models
-from backmarket_seller._runtime import AsyncResource, FileInput, Operation, Param, Resource, checked
+from backmarket_seller._runtime import AsyncResource, FileInput, NextLink, Operation, Param, Resource, checked
 from backmarket_seller.models.get_care_folder_details_response import GetCareFolderDetailsResponse
 from backmarket_seller.models.get_care_folder_list_response import GetCareFolderListResponse
 from backmarket_seller.models.post_item_transfer_create_request import PostItemTransferCreateRequest
@@ -44,6 +44,14 @@ _get_care_folder_list: Operation[GetCareFolderListResponse] = Operation(
     returns_json=True,
     iterator="iter_folders",
     item=_models.CareFolder,
+    paging=NextLink(
+        items="results",
+        link="next",
+        params=(
+            "page",
+            "cursor",
+        ),
+    ),
 )
 _post_item_transfer: Operation[None] = Operation(
     id="postItemTransfer",

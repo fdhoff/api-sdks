@@ -9,7 +9,7 @@ from pydantic import Field, StrictInt, StrictStr
 from typing_extensions import Annotated
 
 from backmarket_seller import models as _models
-from backmarket_seller._runtime import AsyncResource, Operation, Param, Resource, checked
+from backmarket_seller._runtime import AsyncResource, NextLink, Operation, Param, Resource, checked
 from backmarket_seller.models.listing_detail import ListingDetail
 from backmarket_seller.models.listing_page import ListingPage
 from backmarket_seller.models.listing_update import ListingUpdate
@@ -34,6 +34,14 @@ _get_ws_list_listing: Operation[ListingPage] = Operation(
     returns_json=True,
     iterator="iter",
     item=_models.ListingPublic,
+    paging=NextLink(
+        items="results",
+        link="next",
+        params=(
+            "page",
+            "cursor",
+        ),
+    ),
 )
 _get_ws_listing_detail: Operation[ListingDetail] = Operation(
     id="get-ws-listing-detail",

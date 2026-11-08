@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::Error;
 #[allow(unused_imports)]
-use crate::runtime::{Items, Operation, Params, Request, Transport};
+use crate::runtime::{Items, Operation, Paging, Params, Request, Transport};
 #[allow(unused_imports)]
 use crate::{File, models};
 
@@ -23,6 +23,11 @@ const GET_DELIVERIES: Operation = Operation {
         "hub_scanned",
     ],
     returns_json: true,
+    paging: Some(Paging::NextLink {
+        items: "results",
+        link: "next",
+        params: &["page", "cursor"],
+    }),
 };
 const GET_DELIVERY: Operation = Operation {
     id: "GetDelivery",
@@ -30,6 +35,7 @@ const GET_DELIVERY: Operation = Operation {
     path: "/ws/shipping/v1/deliveries/{id}",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const GET_RETURN: Operation = Operation {
     id: "GetReturn",
@@ -37,6 +43,7 @@ const GET_RETURN: Operation = Operation {
     path: "/ws/shipping/v1/returns/{id}",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const GET_RETURNS: Operation = Operation {
     id: "GetReturns",
@@ -53,6 +60,11 @@ const GET_RETURNS: Operation = Operation {
         "hub_scanned",
     ],
     returns_json: true,
+    paging: Some(Paging::NextLink {
+        items: "results",
+        link: "next",
+        params: &["page", "cursor"],
+    }),
 };
 
 /// The query parameters of [`ShippingApi::list_deliveries`]. Set only what you need.

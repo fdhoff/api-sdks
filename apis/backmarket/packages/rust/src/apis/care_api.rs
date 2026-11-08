@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::Error;
 #[allow(unused_imports)]
-use crate::runtime::{Items, Operation, Params, Request, Transport};
+use crate::runtime::{Items, Operation, Paging, Params, Request, Transport};
 #[allow(unused_imports)]
 use crate::{File, models};
 
@@ -14,6 +14,7 @@ const GET_CARE_FOLDER_DETAILS: Operation = Operation {
     path: "/ws/sav/{careFolderId}",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const GET_CARE_FOLDER_LIST: Operation = Operation {
     id: "getCareFolderList",
@@ -28,6 +29,11 @@ const GET_CARE_FOLDER_LIST: Operation = Operation {
         "page",
     ],
     returns_json: true,
+    paging: Some(Paging::NextLink {
+        items: "results",
+        link: "next",
+        params: &["page", "cursor"],
+    }),
 };
 const POST_ITEM_TRANSFER: Operation = Operation {
     id: "postItemTransfer",
@@ -35,6 +41,7 @@ const POST_ITEM_TRANSFER: Operation = Operation {
     path: "/ws/sav/{careFolderId}/item-transfer",
     query_params: &[],
     returns_json: false,
+    paging: None,
 };
 const POST_MESSAGE: Operation = Operation {
     id: "postMessage",
@@ -42,6 +49,7 @@ const POST_MESSAGE: Operation = Operation {
     path: "/ws/sav/{careFolderId}/msg",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const POST_NOTE: Operation = Operation {
     id: "postNote",
@@ -49,6 +57,7 @@ const POST_NOTE: Operation = Operation {
     path: "/ws/sav/{careFolderId}/note",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const POST_PROBLEM: Operation = Operation {
     id: "postProblem",
@@ -56,6 +65,7 @@ const POST_PROBLEM: Operation = Operation {
     path: "/ws/sav/{careFolderId}/problem",
     query_params: &[],
     returns_json: false,
+    paging: None,
 };
 const POST_REFUND_CREATE: Operation = Operation {
     id: "postRefundCreate",
@@ -63,6 +73,7 @@ const POST_REFUND_CREATE: Operation = Operation {
     path: "/ws/sav/refund",
     query_params: &[],
     returns_json: false,
+    paging: None,
 };
 
 /// The query parameters of [`CareApi::list_folders`]. Set only what you need.

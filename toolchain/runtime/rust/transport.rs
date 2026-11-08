@@ -12,15 +12,13 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use super::error::{Error, ErrorContext};
-use super::request::{Body, Operation, Part, Request};
+use super::request::{Body, Operation, Paging, Part, Request};
 use crate::ErrorKind;
 
 const REDACTED: &str = "***";
 
 /// A backoff doubles per retry, and this keeps the shift in range for any retry count.
 const MAX_BACKOFF_DOUBLINGS: u32 = 20;
-
-const PAGE_MARKERS: [&str; 2] = ["page", "cursor"];
 
 /// A stream of every item across all pages. It ends after yielding an error.
 pub type Items<T> = Pin<Box<dyn Stream<Item = Result<T, Error>> + Send>>;
@@ -259,21 +257,36 @@ impl Transport {
         self.decode(request.operation, &answer)
     }
 
-    /// Reads the position out of a page's `next` link and applies it to our own request. `next`
-    /// is never fetched: it could send the token to another host. `None` means the last page.
-    fn next_request(&self, request: &Request, page: &Value, answer: &Answer) -> Result<Option<Request>, Error> {
-        let link = match page.get("next") {
+    /// The request for the page after this one. `None` means the last page.
+    fn next_request(&self, request: &Request, page: &Value, answer: &Answer, received: usize) -> Result<Option<Request>, Error> {
+        match request.operation.paging() {
+            Paging::NextLink { link, params, .. } => self.next_link(request, link, params, page, answer),
+            Paging::Offset { total, offset, .. } => self.next_offset(request, total, offset, page, answer, received),
+        }
+    }
+
+    /// Reads the position out of a page's link and applies it to our own request. The link is
+    /// never fetched: it could send the token to another host.
+    fn next_link(
+        &self,
+        request: &Request,
+        field: &str,
+        params: &[&str],
+        page: &Value,
+        answer: &Answer,
+    ) -> Result<Option<Request>, Error> {
+        let link = match page.get(field) {
             None | Some(Value::Null) => return Ok(None),
             Some(Value::String(link)) if link.is_empty() => return Ok(None),
             Some(Value::String(link)) => link,
-            Some(_) => return Err(self.decode_error("the next link is not a string", answer)),
+            Some(_) => return Err(self.decode_error(&format!("the {field} link is not a string"), answer)),
         };
         let base = url::Url::parse("http://localhost/").expect("a valid base");
-        let parsed = base.join(link).map_err(|_| self.decode_error("the next link cannot be parsed", answer))?;
+        let parsed = base.join(link).map_err(|_| self.decode_error(&format!("the {field} link cannot be parsed"), answer))?;
         let mut next = request.clone();
         let mut advanced = false;
-        for marker in PAGE_MARKERS {
-            if !request.operation.query_params.contains(&marker) {
+        for marker in params {
+            if !request.operation.query_params.contains(marker) {
                 continue;
             }
             let Some((_, value)) = parsed.query_pairs().find(|(name, value)| name == marker && !value.is_empty()) else {
@@ -283,8 +296,36 @@ impl Transport {
             next.set_query(marker, &value);
         }
         if !advanced {
-            return Err(self.decode_error("the next link does not advance the iteration", answer));
+            return Err(self.decode_error(&format!("the {field} link does not advance the iteration"), answer));
         }
+        Ok(Some(next))
+    }
+
+    /// Moves the offset past the items received.
+    fn next_offset(
+        &self,
+        request: &Request,
+        total: &str,
+        offset: &str,
+        page: &Value,
+        answer: &Answer,
+        received: usize,
+    ) -> Result<Option<Request>, Error> {
+        if received == 0 {
+            return Ok(None);
+        }
+        let start = match request.query_value(offset) {
+            None => 0,
+            Some(text) => text
+                .parse::<u64>()
+                .map_err(|_| self.decode_error(&format!("the {offset} parameter is not an integer"), answer))?,
+        };
+        let position = start.saturating_add(received as u64);
+        if page.get(total).and_then(Value::as_f64).is_some_and(|total| position as f64 >= total) {
+            return Ok(None);
+        }
+        let mut next = request.clone();
+        next.set_query(offset, &position.to_string());
         Ok(Some(next))
     }
 
@@ -294,11 +335,11 @@ impl Transport {
         if !page.is_object() {
             return Err(self.decode_error("a page is not a JSON object", &answer));
         }
-        let items = match page.get("results") {
+        let items: VecDeque<Value> = match page.get(request.operation.paging().items()) {
             Some(Value::Array(items)) => items.iter().cloned().collect(),
             _ => VecDeque::new(),
         };
-        let next = self.next_request(request, &page, &answer)?;
+        let next = self.next_request(request, &page, &answer, items.len())?;
         Ok((items, next))
     }
 
@@ -376,11 +417,8 @@ mod tests {
         assert_eq!(decompress(&headers, body).unwrap(), b"first second");
     }
 
-    #[test]
-    fn an_empty_secret_marks_no_header_sensitive() {
-        let mut headers = HeaderMap::new();
-        headers.insert("x-name", HeaderValue::from_static("value"));
-        let settings = Settings {
+    fn settings(headers: HeaderMap) -> Settings {
+        Settings {
             base_url: "http://127.0.0.1:1".to_owned(),
             secret: String::new(),
             headers,
@@ -391,10 +429,69 @@ mod tests {
             rate_limit_wait: Duration::ZERO,
             max_retry_wait: Duration::ZERO,
             http: None,
-        };
-        let transport = Transport::new(settings).unwrap();
+        }
+    }
+
+    #[test]
+    fn an_empty_secret_marks_no_header_sensitive() {
+        let mut headers = HeaderMap::new();
+        headers.insert("x-name", HeaderValue::from_static("value"));
+        let transport = Transport::new(settings(headers)).unwrap();
         assert!(!transport.settings.headers["x-name"].is_sensitive());
     }
+
+    const OFFSET_LIST: Operation = Operation {
+        id: "list-items",
+        method: "GET",
+        path: "/items",
+        query_params: &["limit", "start"],
+        returns_json: true,
+        paging: Some(Paging::Offset { items: "data", total: "total", offset: "start" }),
+    };
+
+    const LINKED_LIST: Operation = Operation {
+        id: "list-items",
+        method: "GET",
+        path: "/items",
+        query_params: &["token"],
+        returns_json: true,
+        paging: Some(Paging::NextLink { items: "data", link: "more", params: &["token"] }),
+    };
+
+    fn next_url(operation: &'static Operation, query: &[(&str, &str)], page: Value, received: usize) -> Option<String> {
+        let transport = Transport::new(settings(HeaderMap::new())).unwrap();
+        let mut request = Request::new(operation);
+        for (name, value) in query {
+            request.set_query(name, value);
+        }
+        let answer = Answer { status: 200, headers: HeaderMap::new(), body: Vec::new() };
+        transport.next_request(&request, &page, &answer, received).unwrap().map(|next| next.url(""))
+    }
+
+    #[test]
+    fn offset_paging_advances_by_the_items_received_until_the_total() {
+        let page = serde_json::json!({ "total": 5 });
+        assert_eq!(next_url(&OFFSET_LIST, &[("limit", "2")], page.clone(), 2).as_deref(), Some("/items?limit=2&start=2"));
+        assert_eq!(next_url(&OFFSET_LIST, &[("limit", "2"), ("start", "2")], page.clone(), 2).as_deref(), Some("/items?limit=2&start=4"));
+        assert_eq!(next_url(&OFFSET_LIST, &[("limit", "2"), ("start", "4")], page, 1), None);
+    }
+
+    #[test]
+    fn offset_paging_starts_at_the_callers_offset_and_stops_at_an_empty_page() {
+        assert_eq!(next_url(&OFFSET_LIST, &[("start", "3")], serde_json::json!({ "total": null }), 1).as_deref(), Some("/items?start=4"));
+        assert_eq!(next_url(&OFFSET_LIST, &[("start", "4")], serde_json::json!({}), 0), None);
+    }
+
+    #[test]
+    fn next_link_paging_reads_the_configured_fields() {
+        let page = serde_json::json!({ "more": "/items?token=b", "next": "/items?token=c" });
+        assert_eq!(next_url(&LINKED_LIST, &[], page, 1).as_deref(), Some("/items?token=b"));
+        assert_eq!(next_url(&LINKED_LIST, &[("token", "b")], serde_json::json!({ "more": null, "next": "/x?token=c" }), 1), None);
+        assert_eq!(OFFSET_LIST.paging().items(), "data");
+        assert_eq!(Operation { paging: None, ..LINKED_LIST }.paging().items(), "results");
+    }
+
+
 
     #[test]
     fn a_request_that_cannot_be_built_is_not_a_connection_failure() {

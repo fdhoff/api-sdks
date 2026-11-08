@@ -27,7 +27,28 @@ const redacted = "***"
 // A backoff doubles per retry, and this keeps the shift in range for any retry count.
 const maxBackoffDoublings = 20
 
-var pageMarkers = []string{"page", "cursor"}
+// Paging is how an iterator walks pages: a [NextLink] or an [Offset].
+type Paging interface{ itemsField() string }
+
+// NextLink pages link to the next one. Only Params are read from the link: it is never fetched.
+type NextLink struct {
+	Items  string
+	Link   string
+	Params []string
+}
+
+// Offset pages are addressed by an offset, which advances by the number of items received. Iteration
+// ends at an empty page or once the offset reaches the page's Total.
+type Offset struct {
+	Items  string
+	Total  string
+	Offset string
+}
+
+func (paging NextLink) itemsField() string { return paging.Items }
+func (paging Offset) itemsField() string   { return paging.Items }
+
+var defaultPaging = NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}}
 
 // Operation describes one API call.
 type Operation struct {
@@ -41,6 +62,23 @@ type Operation struct {
 	QueryParams []string
 	// ReturnsJSON is set when the spec declares a JSON success body, so an empty one is an error.
 	ReturnsJSON bool
+	// Paging is how Iterator walks pages. Nil means the default [NextLink].
+	Paging Paging
+}
+
+func (o *Operation) paging() Paging {
+	if o.Paging == nil {
+		return defaultPaging
+	}
+	return o.Paging
+}
+
+func (o *Operation) items(page map[string]json.RawMessage) []json.RawMessage {
+	var items []json.RawMessage
+	if json.Unmarshal(page[o.paging().itemsField()], &items) != nil {
+		return nil
+	}
+	return items
 }
 
 var operations = map[string]*Operation{}
@@ -334,23 +372,23 @@ func Call[T any](ctx context.Context, t *Transport, operation *Operation, input 
 	return decode[T](t, operation, answer)
 }
 
-// nextQuery reads the position out of a page's `next` link and applies it to our own request.
-// `next` is never fetched: it could send the token to another host. A nil result means the last page.
-func (t *Transport) nextQuery(operation *Operation, query url.Values, page map[string]json.RawMessage, answer *response) (url.Values, error) {
+// nextLink reads the position out of a page's link and applies it to our own request. The link is
+// never fetched: it could send the token to another host. A nil result means the last page.
+func (t *Transport) nextLink(operation *Operation, paging NextLink, query url.Values, page map[string]json.RawMessage, answer *response) (url.Values, error) {
 	var link any
-	if err := json.Unmarshal(page["next"], &link); page["next"] != nil && err != nil {
-		return nil, t.decodeError("the next link is not valid JSON", answer, err)
+	if err := json.Unmarshal(page[paging.Link], &link); page[paging.Link] != nil && err != nil {
+		return nil, t.decodeError(fmt.Sprintf("the %s link is not valid JSON", paging.Link), answer, err)
 	}
 	if link == nil || link == "" {
 		return nil, nil
 	}
 	text, isText := link.(string)
 	if !isText {
-		return nil, t.decodeError("the next link is not a string", answer, nil)
+		return nil, t.decodeError(fmt.Sprintf("the %s link is not a string", paging.Link), answer, nil)
 	}
 	parsed, err := url.Parse(text)
 	if err != nil {
-		return nil, t.decodeError("the next link cannot be parsed", answer, err)
+		return nil, t.decodeError(fmt.Sprintf("the %s link cannot be parsed", paging.Link), answer, err)
 	}
 	position := parsed.Query()
 	updated := url.Values{}
@@ -358,7 +396,7 @@ func (t *Transport) nextQuery(operation *Operation, query url.Values, page map[s
 		updated[name] = values
 	}
 	advanced := false
-	for _, marker := range pageMarkers {
+	for _, marker := range paging.Params {
 		value := position.Get(marker)
 		if value == "" || !slices.Contains(operation.QueryParams, marker) {
 			continue
@@ -367,9 +405,47 @@ func (t *Transport) nextQuery(operation *Operation, query url.Values, page map[s
 		updated.Set(marker, value)
 	}
 	if !advanced {
-		return nil, t.decodeError("the next link does not advance the iteration", answer, nil)
+		return nil, t.decodeError(fmt.Sprintf("the %s link does not advance the iteration", paging.Link), answer, nil)
 	}
 	return updated, nil
+}
+
+// nextOffset moves the offset past the items received. A nil result means the last page.
+func (t *Transport) nextOffset(paging Offset, query url.Values, page map[string]json.RawMessage, answer *response, received int) (url.Values, error) {
+	if received == 0 {
+		return nil, nil
+	}
+	start := 0
+	if current := query.Get(paging.Offset); current != "" {
+		parsed, err := strconv.Atoi(current)
+		if err != nil {
+			return nil, t.decodeError(fmt.Sprintf("the %s parameter is not an integer", paging.Offset), answer, err)
+		}
+		start = parsed
+	}
+	position := start + received
+	var total *float64
+	if json.Unmarshal(page[paging.Total], &total) == nil && total != nil && float64(position) >= *total {
+		return nil, nil
+	}
+	updated := url.Values{}
+	for name, values := range query {
+		updated[name] = values
+	}
+	updated.Set(paging.Offset, strconv.Itoa(position))
+	return updated, nil
+}
+
+// nextQuery is the query of the page after this one. A nil result means the last page.
+func (t *Transport) nextQuery(operation *Operation, query url.Values, page map[string]json.RawMessage, answer *response, received int) (url.Values, error) {
+	switch paging := operation.paging().(type) {
+	case Offset:
+		return t.nextOffset(paging, query, page, answer, received)
+	case NextLink:
+		return t.nextLink(operation, paging, query, page, answer)
+	default:
+		return nil, t.decodeError(fmt.Sprintf("unknown paging %T", paging), answer, nil)
+	}
 }
 
 // Paginate walks every page of an operation, yielding each item. It stops after yielding an error.
@@ -392,10 +468,7 @@ func Paginate[T any](ctx context.Context, t *Transport, operation *Operation, in
 				yield(empty, t.decodeError("a page is not a JSON object", answer, err))
 				return
 			}
-			var items []json.RawMessage
-			if json.Unmarshal(page["results"], &items) != nil {
-				items = nil
-			}
+			items := operation.items(page)
 			for _, raw := range items {
 				var item T
 				if err := json.Unmarshal(raw, &item); err != nil {
@@ -406,7 +479,7 @@ func Paginate[T any](ctx context.Context, t *Transport, operation *Operation, in
 					return
 				}
 			}
-			query, err := t.nextQuery(operation, built.query, page, answer)
+			query, err := t.nextQuery(operation, built.query, page, answer, len(items))
 			if err != nil {
 				yield(empty, err)
 				return

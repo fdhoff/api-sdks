@@ -19,6 +19,7 @@ var (
 		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"date_creation", "date_modification", "country_code", "state", "page", "page-size"},
+		Paging:      runtime.NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}},
 	})
 	opGetWsSpecificOrder = runtime.Register(runtime.Operation{
 		ID:          "get-ws-specific-order",

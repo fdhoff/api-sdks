@@ -22,6 +22,7 @@ const getDeliveries: Operation = {
   ],
   returnsJson: true,
   iterator: 'iterDeliveries',
+  paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
 };
 
 const getDelivery: Operation = {
@@ -62,6 +63,7 @@ const getReturns: Operation = {
   ],
   returnsJson: true,
   iterator: 'iterReturns',
+  paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
 };
 
 export const OPERATIONS: readonly Operation[] = [getDeliveries, getDelivery, getReturn, getReturns];

@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::Error;
 #[allow(unused_imports)]
-use crate::runtime::{Items, Operation, Params, Request, Transport};
+use crate::runtime::{Items, Operation, Paging, Params, Request, Transport};
 #[allow(unused_imports)]
 use crate::{File, models};
 
@@ -21,6 +21,11 @@ const GET_WS_LIST_ORDER: Operation = Operation {
         "page-size",
     ],
     returns_json: true,
+    paging: Some(Paging::NextLink {
+        items: "results",
+        link: "next",
+        params: &["page", "cursor"],
+    }),
 };
 const GET_WS_SPECIFIC_ORDER: Operation = Operation {
     id: "get-ws-specific-order",
@@ -28,6 +33,7 @@ const GET_WS_SPECIFIC_ORDER: Operation = Operation {
     path: "/ws/orders/{order_id}",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const POST_WS_SPECIFIC_ORDER_INVOICE: Operation = Operation {
     id: "post-ws-specific-order-invoice",
@@ -35,6 +41,7 @@ const POST_WS_SPECIFIC_ORDER_INVOICE: Operation = Operation {
     path: "/ws/orders/{order_id}/invoice",
     query_params: &[],
     returns_json: false,
+    paging: None,
 };
 const UPDATE_WS_SPECIFIC_ORDER: Operation = Operation {
     id: "update-ws-specific-order",
@@ -42,6 +49,7 @@ const UPDATE_WS_SPECIFIC_ORDER: Operation = Operation {
     path: "/ws/orders/{order_id}",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 const UPDATE_WS_SPECIFIC_ORDERLINE: Operation = Operation {
     id: "update-ws-specific-orderline",
@@ -49,6 +57,7 @@ const UPDATE_WS_SPECIFIC_ORDERLINE: Operation = Operation {
     path: "/ws/orderlines/{orderline_id}",
     query_params: &[],
     returns_json: true,
+    paging: None,
 };
 
 /// The query parameters of [`OrdersApi::list`]. Set only what you need.

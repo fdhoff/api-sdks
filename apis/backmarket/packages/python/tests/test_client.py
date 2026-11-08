@@ -28,7 +28,7 @@ from backmarket_seller import (
 )
 from backmarket_seller._resources import OPERATIONS
 from backmarket_seller._runtime.model import ApiModel, parse_response
-from backmarket_seller._runtime.transport import Operation, _retry_after
+from backmarket_seller._runtime.transport import NextLink, Offset, Operation, Param, Resource, _retry_after
 from backmarket_seller.models import CategoryTree, Order, OrderPage, UpdateOrder
 
 TOKEN = "synthetic-token"
@@ -542,6 +542,76 @@ def test_async_client_iterates_pages() -> None:
     orders = asyncio.run(run())
     assert [order.order_id for order in orders] == [1, 2]
     assert queries == ["", "page=2"]
+
+
+OFFSET_LIST: Operation[Any] = Operation(
+    id="list-items",
+    method="GET",
+    path="/items",
+    resource="items",
+    name="list",
+    params=(Param("limit", "limit", "query"), Param("start", "start", "query")),
+    iterator="iter",
+    item=dict[str, Any],
+    paging=Offset(items="data", total="total", offset="start"),
+)
+
+
+def offset_pages(handler: Handler, **params: Any) -> list[dict[str, Any]]:
+    client = client_for(handler)
+    return list(Resource(client._transport)._paginate(OFFSET_LIST, **params))
+
+
+def test_offset_paging_advances_by_the_items_received_until_the_total() -> None:
+    queries: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        queries.append(request.url.query.decode())
+        start = int(request.url.params.get("start", 0))
+        return httpx.Response(200, json={"total": 5, "data": [{"n": n} for n in range(start, min(start + 2, 5))]})
+
+    assert offset_pages(handler, limit=2) == [{"n": n} for n in range(5)]
+    assert queries == ["limit=2", "limit=2&start=2", "limit=2&start=4"]
+
+
+def test_offset_paging_starts_at_the_callers_offset_and_stops_at_an_empty_page() -> None:
+    queries: list[str] = []
+    pages = [{"data": [{"n": 3}]}, {"data": []}]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        queries.append(request.url.query.decode())
+        return httpx.Response(200, json=pages[len(queries) - 1])
+
+    assert offset_pages(handler, start=3) == [{"n": 3}]
+    assert queries == ["start=3", "start=4"]
+
+
+def test_offset_paging_rejects_a_page_that_is_not_an_object() -> None:
+    with pytest.raises(DecodeError):
+        offset_pages(lambda request: httpx.Response(200, json=[]))
+
+
+def test_next_link_paging_reads_the_configured_fields() -> None:
+    operation: Operation[Any] = Operation(
+        id="list-items",
+        method="GET",
+        path="/items",
+        resource="items",
+        name="list",
+        params=(Param("token", "token", "query"),),
+        iterator="iter",
+        item=dict[str, Any],
+        paging=NextLink(items="data", link="more", params=("token",)),
+    )
+    pages = [{"more": "/items?token=b", "data": [{"n": 1}]}, {"more": None, "data": [{"n": 2}]}]
+    queries: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        queries.append(request.url.query.decode())
+        return httpx.Response(200, json=pages[len(queries) - 1])
+
+    assert list(Resource(client_for(handler)._transport)._paginate(operation)) == [{"n": 1}, {"n": 2}]
+    assert queries == ["", "token=b"]
 
 
 def test_only_gzip_is_accepted_in_sync_and_async() -> None:

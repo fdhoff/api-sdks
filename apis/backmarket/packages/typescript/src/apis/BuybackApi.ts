@@ -55,6 +55,7 @@ const getWsBuybackV1Listings: Operation = {
   ],
   returnsJson: true,
   iterator: 'iterListings',
+  paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
 };
 
 const getWsBuybackV1Order: Operation = {
@@ -86,6 +87,7 @@ const getWsBuybackV1Orders: Operation = {
   ],
   returnsJson: true,
   iterator: 'iterOrders',
+  paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
 };
 
 const getWsBuybackV1OrdersMessages: Operation = {
@@ -100,6 +102,7 @@ const getWsBuybackV1OrdersMessages: Operation = {
   ],
   returnsJson: true,
   iterator: 'iterMessages',
+  paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
 };
 
 const getWsBuybackV1OrdersPendingReply: Operation = {
@@ -111,6 +114,7 @@ const getWsBuybackV1OrdersPendingReply: Operation = {
   params: [{ wire: 'page', name: 'page', location: 'query' }],
   returnsJson: true,
   iterator: 'iterPendingOrders',
+  paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
 };
 
 const getWsBuybackV1OrdersSuspendReasons: Operation = {

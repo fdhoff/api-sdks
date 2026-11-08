@@ -3,12 +3,13 @@ import { after, before, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { get } from 'node:http';
 import { gunzipSync } from 'node:zlib';
-import { validateCase } from './cases.mjs';
+import { loadCases, validateCase } from './cases.mjs';
 import { checkCase, fill, matches } from './check.mjs';
 import { startHarness } from './harness.mjs';
 import { runCases, startDriver } from './run.mjs';
 
 const FIXTURE = fileURLToPath(new URL('./fixtures/driver.mjs', import.meta.url));
+const FIXTURE_CASES = fileURLToPath(new URL('./fixtures/cases', import.meta.url));
 const operations = new Set(['list-items']);
 
 const baseCase = () => ({
@@ -295,10 +296,10 @@ test('harness forwards unscripted requests and reports a dead mock', async () =>
   assert.match(await response.text(), /prism forward failed/);
 });
 
-async function runWith(mode) {
+async function runWith(mode, cases = [baseCase()]) {
   const driver = startDriver(`node ${FIXTURE} ${mode}`);
   try {
-    return await runCases({ cases: [baseCase()], defaults: {}, driver, harness });
+    return await runCases({ cases, defaults: {}, driver, harness });
   } finally {
     driver.stop();
   }
@@ -316,4 +317,16 @@ test('runCases fails a driver that skips the wire', async () => {
 test('runCases fails a driver that logs the token', async () => {
   const [{ failures }] = await runWith('leaky');
   assert.match(failures.join(), /token leaked/);
+});
+
+test('offset paging cases hold for a driver that walks offsets', async () => {
+  const cases = await loadCases(FIXTURE_CASES, operations);
+  assert.ok(cases.length > 0);
+  assert.deepEqual(await runWith('offset', cases), []);
+});
+
+test('offset paging cases fail a driver that reads only the first page', async () => {
+  const cases = await loadCases(FIXTURE_CASES, operations);
+  const failed = await runWith('good', cases);
+  assert.ok(failed.length > 0);
 });

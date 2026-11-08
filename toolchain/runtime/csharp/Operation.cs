@@ -13,7 +13,22 @@ internal enum ParamLocation
 
 internal sealed record Param(string Wire, string Name, ParamLocation Location);
 
-internal sealed record Operation(string Id, string Method, string Path, string Resource, string Name, string? Iterator, Param[] Params, bool ReturnsJson = false);
+/// <summary>How an iterator walks pages: a <see cref="NextLinkPaging"/> or an <see cref="OffsetPaging"/>.</summary>
+internal abstract record Paging(string Items);
+
+/// <summary>Pages that link to the next one. Only <see cref="Params"/> are read from the link: it is never fetched.</summary>
+internal sealed record NextLinkPaging(string Items, string Link, string[] Params) : Paging(Items)
+{
+    public static readonly NextLinkPaging Default = new("results", "next", ["page", "cursor"]);
+}
+
+/// <summary>
+/// Pages addressed by an offset, which advances by the number of items received. Iteration ends at an empty page
+/// or once the offset reaches the page's <see cref="Total"/>.
+/// </summary>
+internal sealed record OffsetPaging(string Items, string Total, string Offset) : Paging(Items);
+
+internal sealed record Operation(string Id, string Method, string Path, string Resource, string Name, string? Iterator, Param[] Params, bool ReturnsJson = false, Paging? Paging = null);
 
 /// <summary>A failed response, with the credential already removed from <see cref="Text"/> and <see cref="Json"/>.</summary>
 internal sealed record ErrorContext(int Status, IReadOnlyDictionary<string, string> Headers, string Text, JsonElement? Json)
