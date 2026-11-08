@@ -338,6 +338,8 @@ def _next_link(
 ) -> dict[str, Any] | None:
     """Read the position out of the link and apply it to our own request. The link is never fetched:
     it could send the credential to another host."""
+    if not isinstance(page.get(paging.items), list):
+        raise DecodeError(f"The `{paging.items}` field of a page is not a list")
     link = page.get(paging.link)
     if not link:
         return None

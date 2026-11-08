@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* A page without its `results` list now raises `DecodeError` instead of ending the iteration.
 * An empty 204 response now returns `None`, and ends an iteration, instead of raising `DecodeError` where the operation also declares a JSON success.
 * Method docstrings show apostrophes as written, not as `&#39;`.
 

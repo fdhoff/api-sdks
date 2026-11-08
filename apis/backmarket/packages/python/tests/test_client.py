@@ -656,6 +656,13 @@ def test_next_link_paging_reads_the_configured_fields() -> None:
     assert queries == ["", "token=b"]
 
 
+@pytest.mark.parametrize("page", [{"next": None}, {"results": None, "next": None}, {"results": {"id": 1}}])
+def test_next_link_paging_rejects_a_page_without_an_items_list(page: Any) -> None:
+    client = client_for(lambda request: httpx.Response(200, json=page))
+    with pytest.raises(DecodeError, match="`results` field of a page is not a list"):
+        list(client.orders.iter())
+
+
 def test_an_object_in_a_form_encoded_field_is_sent_as_json() -> None:
     operation: Operation[None] = Operation(
         id="update-item",
