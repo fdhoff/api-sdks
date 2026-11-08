@@ -198,9 +198,22 @@ export function dropUnions(spec) {
   return rewritten;
 }
 
+// A union of one schema, with nothing beside it, is that schema. Generators otherwise emit a wrapper or
+// alias for it, and an alias that refers back to its own schema can lose its import.
+export function collapseSingleUnions(node, keys = false) {
+  if (Array.isArray(node)) return node.map((item) => collapseSingleUnions(item));
+  if (node === null || typeof node !== 'object') return node;
+  const entries = Object.entries(node);
+  if (!keys && entries.length === 1 && UNIONS.includes(entries[0][0]) && entries[0][1].length === 1) {
+    return collapseSingleUnions(entries[0][1][0]);
+  }
+  return Object.fromEntries(entries.map(([key, value]) => [key, collapseSingleUnions(value, !keys && key === 'properties')]));
+}
+
 // Null-plus-one and single-branch unions collapse first, so only real unions are left untyped.
 export function relax(spec, config) {
-  const collapsed = config.drop_nullable ? dropNullable(spec) : spec;
+  const single = config.collapse_single_unions ? collapseSingleUnions(spec) : spec;
+  const collapsed = config.drop_nullable ? dropNullable(single) : single;
   return config.drop_unions ? dropUnions(collapsed) : collapsed;
 }
 

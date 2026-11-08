@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
+import { applyOperations, collapseSingleUnions, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -211,6 +211,24 @@ test('dropNullable removes nullability but keeps properties that use its name', 
     b: { type: 'string' },
     c: { anyOf: [{ type: 'string' }, { type: 'integer' }] },
     d: { properties: { nullable: { type: 'boolean' } } },
+  });
+});
+
+test('collapseSingleUnions replaces a lone single-branch union with its branch', () => {
+  const ref = { $ref: '#/components/schemas/Node' };
+  const spec = {
+    lone: { items: { oneOf: [ref] } },
+    nested: { anyOf: [{ oneOf: [ref] }] },
+    beside: { oneOf: [ref], nullable: true },
+    real: { oneOf: [ref, { type: 'string' }] },
+    properties: { oneOf: { type: 'array', items: { oneOf: [ref] } } },
+  };
+  assert.deepEqual(collapseSingleUnions(spec), {
+    lone: { items: ref },
+    nested: ref,
+    beside: { oneOf: [ref], nullable: true },
+    real: { oneOf: [ref, { type: 'string' }] },
+    properties: { oneOf: { type: 'array', items: ref } },
   });
 });
 

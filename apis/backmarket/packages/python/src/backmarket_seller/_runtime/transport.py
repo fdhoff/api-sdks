@@ -40,6 +40,8 @@ _ACCEPT_ENCODING = {"Accept-Encoding": "gzip"}
 
 @dataclass(frozen=True)
 class Param:
+    """`location` is `path`, `query`, `form` for a multipart part, or `urlencoded` for a form-encoded field."""
+
     wire: str
     name: str
     location: str
@@ -139,6 +141,7 @@ def _build_request(
     path = operation.path
     query: list[tuple[str, str]] = []
     parts: list[tuple[str, Any]] = []
+    fields: dict[str, list[str]] = {}
     for param in operation.params:
         value = params.get(param.name)
         if value is None:
@@ -148,12 +151,17 @@ def _build_request(
         elif param.location == "query":
             items = value if isinstance(value, (list, set)) else [value]
             query.extend((param.wire, _text(item)) for item in items)
+        elif param.location == "urlencoded":
+            items = value if isinstance(value, (list, set)) else [value]
+            fields.setdefault(param.wire, []).extend(_text(item) for item in items)
         else:
             parts.extend(_multipart(param.wire, value))
     search = f"?{urlencode(query)}" if query else ""
     request: dict[str, Any] = {"method": operation.method, "url": f"{settings.base_url}{path}{search}"}
     if parts:
         request["files"] = parts
+    elif fields:
+        request["data"] = fields
     elif body is not None:
         request["json"] = to_wire(body)
     return request
@@ -342,8 +350,10 @@ async def _settle(value: Any) -> Any:
     return await value if inspect.isawaitable(value) else value
 
 
-def _unauthorized(error: ApiError, refreshed: bool) -> bool:
-    return error.status == 401 and not refreshed
+def _unauthorized(operation: Operation[Any], error: ApiError, refreshed: bool) -> bool:
+    """Only once per call, and never for an operation that sends no credentials, such as a token request
+    made during a refresh."""
+    return error.status == 401 and not refreshed and bool(operation.security)
 
 
 class SyncTransport:
@@ -394,7 +404,7 @@ class SyncTransport:
                     raise _translate(error) from error
                 return _read(settings, operation, response)
             except ApiError as error:
-                if _unauthorized(error, refreshed):
+                if _unauthorized(operation, error, refreshed):
                     refreshed = True
                     if self._refresh(auth, generation):
                         _log(settings, logging.INFO, "retrying after refreshing credentials")
@@ -455,7 +465,7 @@ class AsyncTransport:
                     raise ApiTimeoutError("The request timed out") from error
                 return _read(settings, operation, response)
             except ApiError as error:
-                if _unauthorized(error, refreshed):
+                if _unauthorized(operation, error, refreshed):
                     refreshed = True
                     if await self._refresh(auth, generation):
                         _log(settings, logging.INFO, "retrying after refreshing credentials")
