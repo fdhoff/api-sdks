@@ -89,6 +89,12 @@ test('every upload declares its request body', () => {
   });
 });
 
+test('the evidence upload requires its file part', () => {
+  const body = deref(byId.get('sell_fulfillment.uploadEvidenceFile').requestBody);
+  assert.equal(body.required, true);
+  assert.deepEqual(deref(body.content['multipart/form-data'].schema).required, ['file']);
+});
+
 test('every non-JSON success body is a string, and every binary one is binary', () => {
   const odd = [];
   for (const operation of operations) {

@@ -28,15 +28,3 @@ cases:
         parts: { file: [synthetic-label], documentUsageType: [RETURN_SHIPPING_LABEL], entityType: [RETURNS], entityId: ['5000000001'] }
     expect:
       result: null
-
-  - name: uploads-mock-refuses-an-upload-without-its-file
-    request:
-      operation: sell_fulfillment.uploadEvidenceFile
-      params: { payment_dispute_id: D-1 }
-    mock:
-      prism: {}
-    wire:
-      - method: POST
-        path: /sell/fulfillment/v1/payment_dispute/D-1/upload_evidence_file
-    expect:
-      error: { kind: bad_request, status: 400 }
