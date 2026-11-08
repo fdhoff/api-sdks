@@ -70,42 +70,67 @@ async function runStep(name, cwd, env) {
   return readFile(calls, 'utf8').catch(() => '');
 }
 
+const git = (cwd, ...args) => execFileSync('git', args, { cwd, env: { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null' } });
+const LOCK = 'apis/example/spec/upstream/lock.json';
+
+// A clone of a fresh origin whose one commit pins `lock`, and the environment the pull request step gets.
+async function driftRepo(root, lock) {
+  const origin = join(root, 'origin.git');
+  const work = join(root, 'work');
+  git(root, 'init', '--quiet', '--bare', origin);
+  git(root, 'clone', '--quiet', origin, work);
+  await mkdir(join(work, 'apis/example/spec/upstream'), { recursive: true });
+  await writeFile(join(work, LOCK), lock);
+  git(work, 'add', '.');
+  git(work, '-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '--quiet', '-m', 'pin');
+  const env = {
+    API: 'example',
+    BRANCH: 'spec-drift-example',
+    LOCK,
+    PACKAGES: 'apis/example/packages',
+    UPSTREAM: 'abc',
+    RUNNER_TEMP: root,
+    OPEN_PR: '',
+    HAS_TOKEN: 'true',
+    RUN_URL: 'https://example.com/run',
+  };
+  return { work, base: git(work, 'rev-parse', 'HEAD').toString().trim(), env };
+}
+
 test('the spec drift job proposes a pin for an API with no packages', async () => {
   const root = await mkdtemp(join(tmpdir(), 'drift-'));
   try {
-    const git = (cwd, ...args) => execFileSync('git', args, { cwd, env: { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null' } });
-    const origin = join(root, 'origin.git');
-    const work = join(root, 'work');
-    git(root, 'init', '--quiet', '--bare', origin);
-    git(root, 'clone', '--quiet', origin, work);
-    const lock = 'apis/example/spec/upstream/lock.json';
-    await mkdir(join(work, 'apis/example/spec/upstream'), { recursive: true });
-    await writeFile(join(work, lock), '{"sha256": "old"}\n');
-    git(work, 'add', '.');
-    git(work, '-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '--quiet', '-m', 'pin');
-    const base = git(work, 'rev-parse', 'HEAD').toString().trim();
-    const env = {
-      API: 'example',
-      BRANCH: 'spec-drift-example',
-      LOCK: lock,
-      PACKAGES: 'apis/example/packages',
-      UPSTREAM: 'abc',
-      RUNNER_TEMP: root,
-      OPEN_PR: '',
-      HAS_TOKEN: 'true',
-      RUN_URL: 'https://example.com/run',
-    };
+    const { work, base, env } = await driftRepo(root, '{"sha256": "old"}\n');
 
     assert.equal(await runStep('Regenerate clients', work, env), '');
     for (const outcome of ['success', 'failure']) {
       git(work, 'checkout', '--quiet', '--detach', base);
-      await writeFile(join(work, lock), `{"sha256": "${outcome}"}\n`);
+      await writeFile(join(work, LOCK), `{"sha256": "${outcome}"}\n`);
       await rm(join(root, 'calls.log'), { force: true });
       const calls = await runStep('Open or update the pull request', work, { ...env, BUILD: outcome, JOB: outcome });
       assert.match(calls, /^gh pr create --head spec-drift-example /m);
+      assert.match(await readFile(join(root, 'body.md'), 'utf8'), /^The upstream spec changed\. This moves the pin to `abc` and/);
       const files = git(work, 'show', '--name-only', '--format=', 'origin/spec-drift-example').toString().trim();
-      assert.equal(files, lock);
+      assert.equal(files, LOCK);
     }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('the spec drift job names each contract\'s new pin, not the hash over all of them', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'drift-'));
+  try {
+    const pins = (alpha, beta) => `${JSON.stringify({ sources: [{ name: 'alpha', sha256: alpha }, { name: 'beta', sha256: beta }] })}\n`;
+    const { work, env } = await driftRepo(root, pins('old', 'old'));
+    const [alpha, beta] = ['a'.repeat(64), 'b'.repeat(64)];
+    await writeFile(join(work, LOCK), pins(alpha, beta));
+    await runStep('Open or update the pull request', work, { ...env, UPSTREAM: 'c'.repeat(64), BUILD: 'success', JOB: 'success' });
+    const body = await readFile(join(root, 'body.md'), 'utf8');
+    assert.match(body, new RegExp(`^The upstream spec changed\\. This moves each contract's pin and regenerates the clients:\n\n\\* \`alpha\`: \`${alpha}\`\n\\* \`beta\`: \`${beta}\`\n`));
+    assert.doesNotMatch(body, /c{12}/);
+    const message = git(work, 'log', '-1', '--format=%B', 'origin/spec-drift-example').toString().trim();
+    assert.equal(message, `Update example upstream spec pins\n\nalpha ${alpha.slice(0, 12)}\nbeta ${beta.slice(0, 12)}`);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

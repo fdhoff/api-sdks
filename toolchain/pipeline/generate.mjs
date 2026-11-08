@@ -362,7 +362,8 @@ async function generateContract({ apiDir, language, packageDir, config, built, s
 }
 
 // TODO: each language's templates still import the runtime from `packageName`; a contract's sub-module
-// needs them to import it from the package root instead. Add that with the first multi-contract package.
+// needs them to import it from the package root instead. Add that with the first multi-contract package,
+// with an end-to-end test of generate() for several contracts.
 async function generate(apiDir, language) {
   const packageDir = resolve(apiDir, 'packages', language);
   const config = parse(await readFile(join(packageDir, 'generate.yaml'), 'utf8'));
