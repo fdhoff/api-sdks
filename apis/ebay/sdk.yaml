@@ -1,0 +1,67 @@
+# Settings every language's package shares.
+
+# `next_link` reads the position out of each page's `next` link and never fetches the link. eBay pages by
+# `offset` and `limit`, or by `continuation_token`, and every paged response carries `next` until the last page.
+paging: { style: next_link, link: next, params: [offset, limit, continuation_token] }
+
+# The list each iterated operation's pages hold, by `<contract>.<operationId>`. A package's operations.yaml
+# names the same `items` for each. Feedback's two paged operations nest their position under `pagination`
+# and have no `next` link, so they have no iterator.
+# TODO: iterate commerce_feedback.getFeedback and getItemsAwaitingFeedback once a paging style reads `pagination`.
+# TODO: have generate.mjs read these, so operations.yaml need not repeat them.
+iterators:
+  sell_account_v1.getSubscription: subscriptions
+  sell_feed.getOrderTasks: tasks
+  sell_feed.getInventoryTasks: tasks
+  sell_feed.getSchedules: schedules
+  sell_feed.getScheduleTemplates: scheduleTemplates
+  sell_feed.getTasks: tasks
+  sell_feed.getCustomerServiceMetricTasks: tasks
+  sell_finances.getOrderEarnings: orders
+  sell_finances.getPayouts: payouts
+  sell_finances.getTransactions: transactions
+  sell_finances.getBillingActivities: billingActivities
+  sell_fulfillment.getOrders: orders
+  sell_fulfillment.getPaymentDisputeSummaries: paymentDisputeSummaries
+  sell_inventory.getInventoryItems: inventoryItems
+  sell_inventory.getOffers: offers
+  sell_inventory.getInventoryLocations: locations
+  sell_marketing.getAds: ads
+  sell_marketing.getAdGroups: adGroups
+  sell_marketing.getCampaigns: campaigns
+  sell_marketing.suggestItems: suggestedItems
+  sell_marketing.getKeywords: keywords
+  sell_marketing.getNegativeKeywords: negativeKeywords
+  sell_marketing.getReportTasks: reportTasks
+  sell_marketing.getListingSet: listings
+  sell_marketing.getPromotions: promotions
+  sell_marketing.getPromotionReports: promotionReports
+  sell_marketing.getEmailCampaigns: campaigns
+  sell_marketing.getAudiences: audiences
+  sell_negotiation.findEligibleItems: eligibleItems
+  sell_recommendation.findListingRecommendations: listingRecommendations
+  commerce_notification.getDestinations: destinations
+  commerce_notification.getSubscriptions: subscriptions
+  commerce_notification.getTopics: topics
+  commerce_message.getConversation: messages
+  commerce_message.getConversations: conversations
+
+# Host key for each server the contracts declare. Each operation goes to its first server's key.
+hosts:
+  https://api.ebay.com: api
+  https://apiz.ebay.com: apiz
+  https://apim.ebay.com: apim
+
+# A full host map per environment. No contract lists the sandbox; see docs/spec-audit.md for the sources.
+environments:
+  production:
+    api: https://api.ebay.com
+    apiz: https://apiz.ebay.com
+    apim: https://apim.ebay.com
+  sandbox:
+    api: https://api.sandbox.ebay.com
+    apiz: https://apiz.sandbox.ebay.com
+    apim: https://apim.sandbox.ebay.com
+
+# Header parameters that take a client-level default, sent only by operations that declare them.
+header_defaults: [X-EBAY-C-MARKETPLACE-ID, Content-Language]

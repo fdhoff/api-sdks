@@ -1,0 +1,36 @@
+# Corrections applied to every pinned eBay contract, in OpenAPI Overlay 1.0.0 format, before each contract's
+# own overlay in overlay/<name>.yaml. Every action must justify itself in ../docs/spec-audit.md, and every
+# action must match something in at least one contract: the build fails on one that no longer applies.
+overlay: 1.0.0
+info:
+  title: Corrections shared by the eBay contracts
+  version: 0.1.0
+actions:
+  - description: B1. OpenAPI 3.0 ignores a description beside a $ref, and Spectral rejects it.
+    target: $..[?(@['$ref'] && @.description)].description
+    remove: true
+
+  - description: B2. The client sets Content-Type from the body; as a required header parameter it makes the mock refuse bodiless calls.
+    target: $.paths.*.*.parameters[?(@.name == 'Content-Type')]
+    remove: true
+
+  - description: B3. Any call can answer 429 once a call limit is reached, but no operation declares it.
+    target: $.components
+    update:
+      responses:
+        RateLimited:
+          description: Too many requests.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+  - description: B3.
+    target: $.paths.*.*.responses
+    update:
+      '429':
+        $ref: '#/components/responses/RateLimited'

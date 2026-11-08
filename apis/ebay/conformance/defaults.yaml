@@ -1,0 +1,10 @@
+# Synthetic credentials. `app_token` is an application token from the client credentials grant, and
+# `user_token` a seller's token from the authorization code grant.
+secrets: [app_token, user_token]
+client:
+  app_token: conformance-synthetic-app-token
+  user_token: conformance-synthetic-user-token
+  header_defaults:
+    X-EBAY-C-MARKETPLACE-ID: EBAY_US
+    Content-Language: en-US
+  retry_base_delay_ms: 1

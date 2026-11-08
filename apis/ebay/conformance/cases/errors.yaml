@@ -1,0 +1,57 @@
+# eBay answers errors as `{errors: [{errorId, domain, category, message, ...}]}`. The first error's `message`
+# and `errorId` become the error's `message` and `code`.
+cases:
+  - name: errors-not-found-carries-the-first-error
+    request:
+      operation: sell_inventory.getInventoryItem
+      params: { sku: MISSING }
+    mock:
+      responses:
+        - status: 404
+          body: { errors: [{ errorId: 25710, domain: API_INVENTORY, category: REQUEST, message: Not found }, { errorId: 1, message: second }] }
+    wire:
+      - method: GET
+        path: /sell/inventory/v1/inventory_item/MISSING
+    expect:
+      error: { kind: not_found, status: 404, code: 25710, message: Not found }
+
+  - name: errors-body-that-is-not-json-keeps-the-raw-text
+    request:
+      operation: sell_inventory.getInventoryItem
+      params: { sku: SYNTHETIC-SKU-1 }
+    mock:
+      responses:
+        - status: 400
+          headers: { content-type: text/html }
+          body: '<html>bad request</html>'
+    wire:
+      - method: GET
+        path: /sell/inventory/v1/inventory_item/SYNTHETIC-SKU-1
+    expect:
+      error: { kind: bad_request, status: 400, raw_body: '<html>bad request</html>' }
+
+  - name: errors-mock-validation-failure-is-a-bad-request
+    request:
+      operation: commerce_taxonomy.getDefaultCategoryTreeId
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /commerce/taxonomy/v1/get_default_category_tree_id
+    expect:
+      error: { kind: bad_request, status: 400 }
+
+  - name: errors-forbidden-is-a-permission-error
+    request:
+      operation: sell_fulfillment.issueRefund
+      params: { order_id: 01-00000-00001 }
+      body: { reasonForRefund: BUYER_CANCEL }
+    mock:
+      responses:
+        - status: 403
+          body: { errors: [{ errorId: 215001, domain: ACCESS, category: REQUEST, message: Missing x-ebay-signature-key header }] }
+    wire:
+      - method: POST
+        path: /sell/fulfillment/v1/order/01-00000-00001/issue_refund
+    expect:
+      error: { kind: permission, status: 403, code: 215001 }

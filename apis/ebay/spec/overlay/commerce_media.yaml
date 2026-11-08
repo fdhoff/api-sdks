@@ -1,0 +1,80 @@
+# Corrections to the pinned commerce_media contract. See ../../docs/spec-audit.md.
+overlay: 1.0.0
+info:
+  title: Corrections to the eBay commerce_media contract
+  version: 0.1.0
+actions:
+  - description: C4. createImageFromFile sends multipart form data, but declares no request body.
+    target: $.paths['/image/create_image_from_file'].post
+    update:
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+  - description: C4. uploadDocument sends multipart form data, but declares no request body.
+    target: $.paths['/document/{document_id}/upload'].post
+    update:
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+  - description: C4. uploadPostOrderDocument sends multipart form data, but declares no request body.
+    target: $.paths['/post_order/document'].post
+    update:
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, documentUsageType, entityType, entityId]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                documentUsageType:
+                  type: string
+                entityType:
+                  type: string
+                entityId:
+                  type: string
+  - description: C4. uploadVideo sends the raw video bytes, but declares no request body.
+    target: $.paths['/video/{video_id}/upload'].post
+    update:
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+  - description: C6. Three operations need a scope that no flow declares.
+    target: $.components.securitySchemes.api_auth.flows.authorizationCode.scopes
+    update:
+      https://api.ebay.com/oauth/api_scope/commerce.post_order.document: Manage post-order documents
+  - description: C8. downloadPostOrderDocument returns a PDF, but its schema is not a binary string.
+    target: $.paths.*.get.responses['200'].content['application/pdf'].schema
+    remove: true
+  - description: C8.
+    target: $.paths.*.get.responses['200'].content['application/pdf']
+    update:
+      schema:
+        type: string
+        format: binary
+  - description: C9. uploadPostOrderDocument answers 201 with the document's location and no body, but declares a JSON body.
+    target: $.paths['/post_order/document'].post.responses['201'].content
+    remove: true

@@ -1,0 +1,57 @@
+# `X-EBAY-C-MARKETPLACE-ID` and `Content-Language` take client-level defaults, sent only by operations that
+# declare them, and a call can pass its own value by the header's name.
+cases:
+  - name: headers-marketplace-default-is-sent-where-declared
+    request:
+      operation: sell_finances.getTransactions
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /sell/finances/v1/transaction
+        headers: { x-ebay-c-marketplace-id: EBAY_US, authorization: 'Bearer {{user_token}}' }
+    expect:
+      result_keys: [transactions]
+
+  - name: headers-marketplace-can-be-set-per-call
+    request:
+      operation: sell_finances.getTransactions
+      params: { X-EBAY-C-MARKETPLACE-ID: EBAY_GB }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /sell/finances/v1/transaction
+        headers: { x-ebay-c-marketplace-id: EBAY_GB }
+    expect:
+      result_keys: [transactions]
+
+  - name: headers-marketplace-default-is-not-sent-where-undeclared
+    request:
+      operation: sell_fulfillment.getOrders
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /sell/fulfillment/v1/order
+        headers_absent: [x-ebay-c-marketplace-id, content-language]
+    expect:
+      result_keys: [orders]
+
+  - name: headers-content-language-default-is-sent-with-the-body
+    request:
+      operation: sell_inventory.createOrReplaceInventoryItem
+      params: { sku: SYNTHETIC-SKU-1 }
+      body: { condition: NEW, availability: { shipToLocationAvailability: { quantity: 1 } } }
+    mock:
+      responses:
+        - status: 204
+    wire:
+      - method: PUT
+        path: /sell/inventory/v1/inventory_item/SYNTHETIC-SKU-1
+        headers: { content-language: en-US }
+        headers_match: { content-type: '^application/json' }
+        headers_absent: [x-ebay-c-marketplace-id]
+        body: { condition: NEW, availability: { shipToLocationAvailability: { quantity: 1 } } }
+    expect:
+      result: null

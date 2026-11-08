@@ -1,0 +1,46 @@
+# No token may reach a result, error or log, even when the API echoes it back.
+cases:
+  - name: redaction-user-token-echoed-in-an-error-is-removed
+    request:
+      operation: sell_fulfillment.getOrders
+    mock:
+      responses:
+        - status: 401
+          body: { errors: [{ errorId: 1001, domain: OAuth, category: REQUEST, message: 'Invalid access token {{user_token}}' }] }
+    wire:
+      - method: GET
+        path: /sell/fulfillment/v1/order
+    expect:
+      error: { kind: authentication, status: 401 }
+      logs_required: true
+
+  - name: redaction-app-token-echoed-in-a-result-is-removed-from-logs
+    request:
+      operation: commerce_taxonomy.getDefaultCategoryTreeId
+      params: { marketplace_id: EBAY_US }
+    mock:
+      responses:
+        - status: 400
+          body: 'token={{app_token}}'
+    wire:
+      - method: GET
+        path: /commerce/taxonomy/v1/get_default_category_tree_id
+        query: { marketplace_id: EBAY_US }
+    expect:
+      error: { kind: bad_request, status: 400 }
+      logs_required: true
+
+  - name: redaction-both-tokens-in-one-body-are-removed
+    request:
+      operation: sell_metadata.getItemConditionPolicies
+      params: { marketplace_id: EBAY_US }
+    mock:
+      responses:
+        - status: 500
+          body: '{{app_token}} {{user_token}}'
+    client: { max_retries: 0 }
+    wire:
+      - method: GET
+        path: /sell/metadata/v1/marketplace/EBAY_US/get_item_condition_policies
+    expect:
+      error: { kind: server, status: 500, raw_body: '*** ***' }

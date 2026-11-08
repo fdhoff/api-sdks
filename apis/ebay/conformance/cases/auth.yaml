@@ -1,0 +1,66 @@
+cases:
+  - name: auth-app-scoped-operation-sends-the-application-token
+    request:
+      operation: commerce_taxonomy.getDefaultCategoryTreeId
+      params: { marketplace_id: EBAY_US }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /commerce/taxonomy/v1/get_default_category_tree_id
+        query: { marketplace_id: EBAY_US }
+        headers: { authorization: 'Bearer {{app_token}}' }
+    expect:
+      result_keys: [categoryTreeId]
+
+  - name: auth-user-scoped-operation-sends-the-user-token
+    request:
+      operation: sell_fulfillment.getOrder
+      params: { orderId: 01-00000-00001 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /sell/fulfillment/v1/order/01-00000-00001
+        headers: { authorization: 'Bearer {{user_token}}' }
+    expect:
+      result_keys: [orderId]
+
+  - name: auth-operation-accepting-either-scope-sends-the-application-token
+    request:
+      operation: sell_metadata.getItemConditionPolicies
+      params: { marketplace_id: EBAY_US }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /sell/metadata/v1/marketplace/EBAY_US/get_item_condition_policies
+        headers: { authorization: 'Bearer {{app_token}}' }
+    expect:
+      result_keys: [itemConditionPolicies]
+
+  - name: auth-one-contract-uses-both-tokens-by-operation
+    request:
+      operation: developer_analytics.getUserRateLimits
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /developer/analytics/v1_beta/user_rate_limit/
+        headers: { authorization: 'Bearer {{user_token}}' }
+    expect:
+      result_keys: [rateLimits]
+
+  - name: auth-rejected-token-is-an-authentication-error
+    request:
+      operation: developer_analytics.getRateLimits
+    mock:
+      responses:
+        - status: 401
+          body: { errors: [{ errorId: 1001, domain: OAuth, category: REQUEST, message: Invalid access token }] }
+    wire:
+      - method: GET
+        path: /developer/analytics/v1_beta/rate_limit/
+        headers: { authorization: 'Bearer {{app_token}}' }
+    expect:
+      error: { kind: authentication, status: 401, code: 1001, message: Invalid access token }
