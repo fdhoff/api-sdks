@@ -1,0 +1,24 @@
+generator: csharp
+output: src/Multihost
+source: src/Multihost
+generated: [Api, Models]
+resources: ClientResources.cs
+runtime: Runtime
+runtime_package: Multihost
+format: [dotnet, format, whitespace, --folder]
+properties:
+  packageName: Multihost
+  library: httpclient
+  apiPackage: Api
+  modelPackage: Models
+  apiNameSuffix: Resource
+  disallowAdditionalPropertiesIfNotPresent: false
+  nullableReferenceTypes: true
+  useDateTimeOffset: true
+drop_nullable: true
+drop_unions: true
+type_mappings:
+  integer: long
+  AnyType: object
+  object: object
+ignore: [src/Multihost/Models/AbstractOpenAPISchema.cs]

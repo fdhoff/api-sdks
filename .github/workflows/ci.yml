@@ -62,6 +62,71 @@ jobs:
       - run: npm run spec:lint
       - run: npm test
 
+  # Generates a synthetic spec that uses hosts and header defaults in every language, and type-checks the output.
+  templates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      SCARF_ANALYTICS: "false"
+      FIXTURE: toolchain/pipeline/fixtures/multihost
+      CARGO_TERM_COLOR: never
+      RUSTUP_TOOLCHAIN: "1.85"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            toolchain/pipeline/fixtures/multihost/packages/typescript/package-lock.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.10"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.24"
+          cache: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --component rustfmt
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci --ignore-scripts
+      - run: node toolchain/pipeline/build-spec.mjs "$FIXTURE"
+      - name: Python
+        run: |
+          python -m pip install -e "$FIXTURE/packages/python[dev]"
+          node toolchain/pipeline/generate.mjs "$FIXTURE" python
+          cd "$FIXTURE/packages/python" && python -m mypy
+      - name: TypeScript
+        run: |
+          npm ci --ignore-scripts --prefix "$FIXTURE/packages/typescript"
+          node toolchain/pipeline/generate.mjs "$FIXTURE" typescript
+          cd "$FIXTURE/packages/typescript" && npm run typecheck
+      - name: Go
+        run: |
+          node toolchain/pipeline/generate.mjs "$FIXTURE" go
+          cd "$FIXTURE/packages/go" && go vet ./...
+      - name: C#
+        run: |
+          node toolchain/pipeline/generate.mjs "$FIXTURE" csharp
+          cd "$FIXTURE/packages/csharp" && dotnet build src/Multihost -c Release
+      - name: Rust
+        run: |
+          node toolchain/pipeline/generate.mjs "$FIXTURE" rust
+          cd "$FIXTURE/packages/rust" && cargo check --locked --lib --examples
+
   python:
     needs: apis
     if: needs.apis.outputs.python != '[]'

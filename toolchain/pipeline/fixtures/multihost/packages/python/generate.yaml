@@ -1,0 +1,10 @@
+generator: python
+output: src/multihost
+generated: [api, models]
+resources: _resources.py
+runtime: _runtime
+format: [sh, -c, 'python -m ruff check --fix-only --quiet "$1" && python -m ruff format --quiet "$1"', --]
+properties:
+  packageName: multihost
+  generateSourceCodeOnly: true
+  disallowAdditionalPropertiesIfNotPresent: false

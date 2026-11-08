@@ -1,0 +1,85 @@
+# Each operation goes to its first server's host key: `api`, `apiz` or `apim`. With `environment`, the
+# recorded host is the hostname that environment maps the key to.
+cases:
+  - name: hosts-finances-goes-to-apiz
+    request:
+      operation: sell_finances.getPayouts
+    mock:
+      responses:
+        - status: 200
+          body: { total: 0, payouts: [] }
+    wire:
+      - method: GET
+        host: apiz
+        path: /sell/finances/v1/payout
+    expect:
+      result: { total: 0, payouts: [] }
+
+  - name: hosts-billing-activity-stays-on-api
+    request:
+      operation: sell_finances.getBillingActivities
+    mock:
+      responses:
+        - status: 200
+          body: { total: 0, billingActivities: [] }
+    wire:
+      - method: GET
+        host: api
+        path: /sell/finances/v1/billing_activity
+    expect:
+      result: { total: 0, billingActivities: [] }
+
+  - name: hosts-media-image-upload-goes-to-apim
+    request:
+      operation: commerce_media.createImageFromFile
+      multipart: { image: synthetic-image }
+    mock:
+      responses:
+        - status: 201
+          body: { imageId: synthetic-image-1 }
+    wire:
+      - method: POST
+        host: apim
+        path: /commerce/media/v1_beta/image/create_image_from_file
+        parts: { image: [synthetic-image] }
+    expect:
+      result: { imageId: synthetic-image-1 }
+
+  - name: hosts-every-page-stays-on-the-operation-host
+    request:
+      operation: sell_finances.getPayouts
+      params: { limit: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { total: 2, next: 'https://apiz.ebay.com/sell/finances/v1/payout?limit=1&offset=1', payouts: [{ payoutId: p1 }] }
+        - status: 200
+          body: { total: 2, payouts: [{ payoutId: p2 }] }
+    wire:
+      - method: GET
+        host: apiz
+        path: /sell/finances/v1/payout
+        query: { limit: '1' }
+      - method: GET
+        host: apiz
+        path: /sell/finances/v1/payout
+        query: { limit: '1', offset: '1' }
+    expect:
+      result: [{ payoutId: p1 }, { payoutId: p2 }]
+
+  - name: hosts-sandbox-maps-each-key-to-its-sandbox-host
+    client:
+      environment: sandbox
+    request:
+      operation: sell_finances.getPayouts
+    mock:
+      responses:
+        - status: 200
+          body: { total: 0, payouts: [] }
+    wire:
+      - method: GET
+        host: apiz.sandbox.ebay.com
+        path: /sell/finances/v1/payout
+    expect:
+      result: { total: 0, payouts: [] }

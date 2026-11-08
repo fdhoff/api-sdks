@@ -59,7 +59,7 @@ Runtime:
 
 ## Pagination
 
-35 operations page with `limit` and `offset`, or `limit` and `continuation_token`, and answer `next` until the last page. The iterator copies the position out of `next`, the toolchain's `next_link` style, and `iterators` in `sdk.yaml` names each operation's list. Feedback's `getFeedback` and `getItemsAwaitingFeedback` nest their position under `pagination` and have no `next`, so they have no iterator yet.
+35 operations page with `limit` and `offset`, or `limit` and `continuation_token`, and answer `next` until the last page. The iterator copies the position out of `next`, the toolchain's `next_link` style, and `iterators` in `sdk.yaml` names each operation's list. Feedback's `getFeedback` and `getItemsAwaitingFeedback` are not iterated. Their `next` link sits under `pagination`, and reading it there would change every runtime's iterator for two operations, so callers page them with `offset` and `limit`.
 
 ## Rate limits
 
