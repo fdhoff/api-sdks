@@ -135,12 +135,18 @@ func files(value any) ([]etsyseller.File, error) {
 	return result, nil
 }
 
+// isParams reports whether a method argument is a params struct: one with a field of any params tag.
 func isParams(shape reflect.Type) bool {
-	if shape.Kind() != reflect.Pointer || shape.Elem().Kind() != reflect.Struct || shape.Elem().NumField() == 0 {
+	if shape.Kind() != reflect.Pointer || shape.Elem().Kind() != reflect.Struct {
 		return false
 	}
-	tag := shape.Elem().Field(0).Tag
-	return tag.Get("query") != "" || tag.Get("form") != "" || tag.Get("urlencoded") != ""
+	for index := range shape.Elem().NumField() {
+		tag := shape.Elem().Field(index).Tag
+		if tag.Get("query") != "" || tag.Get("header") != "" || tag.Get("form") != "" || tag.Get("urlencoded") != "" {
+			return true
+		}
+	}
+	return false
 }
 
 // isForm reports whether a params struct carries a form body, whose fields a case gives as its body.
@@ -160,6 +166,8 @@ func paramsArgument(shape reflect.Type, req request) (reflect.Value, error) {
 		field := shape.Elem().Field(index)
 		wire, values := field.Tag.Get("query"), req.Params
 		switch {
+		case field.Tag.Get("header") != "":
+			wire = field.Tag.Get("header")
 		case field.Tag.Get("form") != "":
 			wire, values = field.Tag.Get("form"), req.Multipart
 		case field.Tag.Get("urlencoded") != "":
