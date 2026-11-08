@@ -98,6 +98,7 @@ func server(t *testing.T, handle http.HandlerFunc, options ...ebaysell.Option) (
 		host, path, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
 		r.URL.Path = "/" + path
 		body, _ := io.ReadAll(r.Body)
+		r.Body = io.NopCloser(bytes.NewReader(body))
 		seen.lock.Lock()
 		seen.requests = append(seen.requests, sent{host, r.Host, r.Method, r.URL.Path, r.URL.Query(), r.Header.Clone(), string(body)})
 		seen.lock.Unlock()
