@@ -133,6 +133,12 @@ Each generated operation carries the spec's security requirements: the alternati
 
 TODO: a helper for tokens that are minted and refreshed, with a persist callback that accepts a missing refresh token and an optional early refresh before `expires_in`, once a second API needs it. Until then the interface covers it and the API package implements it.
 
+### Message signatures
+
+Each runtime has a `MessageSigner` for HTTP message signatures (RFC 9421). An API's provider calls it at the end of `apply`, so every attempt is signed again with a fresh `created` time. It adds `Content-Digest: sha-256=:<base64>:` (RFC 9530) over the exact body bytes when there is a body, then `Signature-Input` and `Signature` over the configured components: lowercase field names and `@method`, `@target-uri`, `@authority`, `@scheme`, `@request-target`, `@path` and `@query`. A covered `content-digest` is left out of a request with no body; any other missing field is an error. `keyid`, `alg` and `expires` are optional parameters. The signer names no API, so a header that identifies the key belongs to the API's provider.
+
+The key is an unencrypted PKCS #8 PEM, Ed25519 (`ed25519`) or RSA (`rsa-v1_5-sha256`). It is a secret: the signer lists the PEM and its base64 body for the provider's `secrets`, and never prints it. Go and TypeScript use their standard libraries. Python uses `cryptography`, imported only when a signer is built. .NET has no Ed25519, so C# uses BouncyCastle for it, and Rust uses `aws-lc-rs`, which rustls already brings in. A package that does not sign leaves the signer's dependency out: Python never imports `cryptography`, C# removes the file from its build, Rust builds it only under a `signing` feature or in tests, and Go and TypeScript drop it as unused code.
+
 ### Authentication and headers
 
 * Back Market uses a static provider that sends `Authorization: Basic <token>` with the token verbatim: no username and no base64. Generated Basic-auth helpers must not be used.
