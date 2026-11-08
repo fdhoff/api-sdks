@@ -1,0 +1,18 @@
+# Public names for the Account API v2, keyed by operationId. Summaries are ours, not upstream's.
+getRateTable: { resource: RateTables, method: Get, summary: Get gets one shipping rate table. }
+updateShippingCost: { resource: RateTables, method: UpdateShippingCost, summary: UpdateShippingCost updates the shipping costs in a rate table. }
+
+getPayoutSettings: { resource: PayoutSettings, method: Get, summary: "Get gets the seller's payout settings." }
+updatePayoutPercentage: { resource: PayoutSettings, method: UpdatePercentage, summary: "UpdatePercentage splits payouts between the seller's payout accounts." }
+
+getCombinedShippingRules: { resource: CombinedShippingRules, method: Get, summary: "Get gets the seller's combined shipping rules." }
+createCalculatedShippingRules: { resource: CombinedShippingRules, method: CreateCalculated, summary: CreateCalculated creates calculated combined shipping rules. }
+updateCalculatedShippingRules: { resource: CombinedShippingRules, method: UpdateCalculated, summary: UpdateCalculated updates calculated combined shipping rules. }
+createFlatShippingRules: { resource: CombinedShippingRules, method: CreateFlat, summary: CreateFlat creates flat-rate combined shipping rules. }
+updateFlatShippingRules: { resource: CombinedShippingRules, method: UpdateFlat, summary: UpdateFlat updates flat-rate combined shipping rules. }
+createPromotionalShippingRule: { resource: CombinedShippingRules, method: CreatePromotional, summary: CreatePromotional creates a promotional shipping rule. }
+updatePromotionalShippingRule: { resource: CombinedShippingRules, method: UpdatePromotional, summary: UpdatePromotional updates a promotional shipping rule. }
+updateCombinedPayments: { resource: CombinedShippingRules, method: UpdateCombinedPayments, summary: UpdateCombinedPayments sets whether buyers can pay for several items at once. }
+
+getUserPreferences: { resource: UserPreferences, method: Get, summary: "Get gets the seller's account preferences." }
+setUserPreferences: { resource: UserPreferences, method: Set, summary: "Set updates the seller's account preferences." }

@@ -1,0 +1,42 @@
+# Public names for the Inventory API, keyed by operationId. Summaries are ours, not upstream's.
+getInventoryItems: { resource: InventoryItems, method: List, iterator: Iter, items: InventoryItemWithSkuLocaleGroupid, paging: { items: inventoryItems }, summary: "List lists one page of the seller's inventory items." }
+getInventoryItem: { resource: InventoryItems, method: Get, summary: Get gets one inventory item by SKU. }
+createOrReplaceInventoryItem: { resource: InventoryItems, method: CreateOrReplace, summary: CreateOrReplace creates or replaces an inventory item. }
+deleteInventoryItem: { resource: InventoryItems, method: Delete, summary: Delete deletes an inventory item and its offers. }
+bulkCreateOrReplaceInventoryItem: { resource: InventoryItems, method: BulkCreateOrReplace, summary: BulkCreateOrReplace creates or replaces several inventory items. }
+bulkGetInventoryItem: { resource: InventoryItems, method: BulkGet, summary: BulkGet gets several inventory items by SKU. }
+bulkUpdatePriceQuantity: { resource: InventoryItems, method: BulkUpdatePriceQuantity, summary: BulkUpdatePriceQuantity updates the price and quantity of several inventory items and their offers. }
+
+getProductCompatibility: { resource: ProductCompatibility, method: Get, summary: Get gets the vehicles an inventory item fits. }
+createOrReplaceProductCompatibility: { resource: ProductCompatibility, method: CreateOrReplace, summary: CreateOrReplace sets the vehicles an inventory item fits. }
+deleteProductCompatibility: { resource: ProductCompatibility, method: Delete, summary: Delete removes the vehicle list of an inventory item. }
+
+getInventoryItemGroup: { resource: InventoryItemGroups, method: Get, summary: Get gets one inventory item group. }
+createOrReplaceInventoryItemGroup: { resource: InventoryItemGroups, method: CreateOrReplace, summary: CreateOrReplace creates or replaces an inventory item group for a multi-variation listing. }
+deleteInventoryItemGroup: { resource: InventoryItemGroups, method: Delete, summary: Delete deletes an inventory item group. }
+
+bulkMigrateListing: { resource: Listings, method: BulkMigrate, summary: BulkMigrate moves existing listings into the Inventory API. }
+getSkuLocationMapping: { resource: Listings, method: GetSKULocations, summary: GetSKULocations gets the fulfillment locations of a SKU in a listing. }
+createOrReplaceSkuLocationMapping: { resource: Listings, method: SetSKULocations, summary: SetSKULocations sets the fulfillment locations of a SKU in a listing. }
+deleteSkuLocationMapping: { resource: Listings, method: DeleteSKULocations, summary: DeleteSKULocations removes the fulfillment locations of a SKU in a listing. }
+
+getOffers: { resource: Offers, method: List, iterator: Iter, items: EbayOfferDetailsWithAll, paging: { items: offers }, summary: List lists one page of the offers of a SKU. }
+getOffer: { resource: Offers, method: Get, summary: Get gets one offer. }
+createOffer: { resource: Offers, method: Create, summary: Create creates an unpublished offer for an inventory item. }
+updateOffer: { resource: Offers, method: Update, summary: Update replaces an offer. }
+deleteOffer: { resource: Offers, method: Delete, summary: "Delete deletes an offer, ending its listing if published." }
+bulkCreateOffer: { resource: Offers, method: BulkCreate, summary: BulkCreate creates several unpublished offers. }
+getListingFees: { resource: Offers, method: GetListingFees, summary: GetListingFees estimates the listing fees of unpublished offers. }
+publishOffer: { resource: Offers, method: Publish, summary: Publish publishes an offer as a listing. }
+bulkPublishOffer: { resource: Offers, method: BulkPublish, summary: BulkPublish publishes several offers as listings. }
+publishOfferByInventoryItemGroup: { resource: Offers, method: PublishByInventoryItemGroup, summary: PublishByInventoryItemGroup publishes the offers of an inventory item group as one multi-variation listing. }
+withdrawOffer: { resource: Offers, method: Withdraw, summary: Withdraw ends the listing of an offer and keeps the offer. }
+withdrawOfferByInventoryItemGroup: { resource: Offers, method: WithdrawByInventoryItemGroup, summary: WithdrawByInventoryItemGroup ends the multi-variation listing of an inventory item group. }
+
+getInventoryLocations: { resource: Locations, method: List, iterator: Iter, items: InventoryLocationResponse, paging: { items: locations }, summary: "List lists one page of the seller's inventory locations." }
+getInventoryLocation: { resource: Locations, method: Get, summary: Get gets one inventory location. }
+createInventoryLocation: { resource: Locations, method: Create, summary: Create creates an inventory location. }
+updateInventoryLocation: { resource: Locations, method: Update, summary: Update updates the details of an inventory location. }
+deleteInventoryLocation: { resource: Locations, method: Delete, summary: Delete deletes an inventory location. }
+disableInventoryLocation: { resource: Locations, method: Disable, summary: Disable disables an inventory location. }
+enableInventoryLocation: { resource: Locations, method: Enable, summary: Enable enables a disabled inventory location. }

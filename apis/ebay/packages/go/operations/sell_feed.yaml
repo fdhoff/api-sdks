@@ -1,0 +1,28 @@
+# Public names for the Feed API, keyed by operationId. Summaries are ours, not upstream's.
+getOrderTasks: { resource: OrderTasks, method: List, iterator: Iter, items: OrderTask, paging: { items: tasks }, summary: List lists one page of order report tasks. }
+createOrderTask: { resource: OrderTasks, method: Create, summary: Create starts a task that builds an order report. }
+getOrderTask: { resource: OrderTasks, method: Get, summary: Get gets one order report task. }
+
+getInventoryTasks: { resource: InventoryTasks, method: List, iterator: Iter, items: InventoryTask, paging: { items: tasks }, summary: List lists one page of inventory report tasks. }
+createInventoryTask: { resource: InventoryTasks, method: Create, summary: Create starts a task that builds an inventory report. }
+getInventoryTask: { resource: InventoryTasks, method: Get, summary: Get gets one inventory report task. }
+
+getSchedules: { resource: Schedules, method: List, iterator: Iter, items: UserScheduleResponse, paging: { items: schedules }, summary: List lists one page of report schedules. }
+createSchedule: { resource: Schedules, method: Create, summary: Create creates a schedule that builds a report regularly. }
+getSchedule: { resource: Schedules, method: Get, summary: Get gets one schedule. }
+updateSchedule: { resource: Schedules, method: Update, summary: Update updates a schedule. }
+deleteSchedule: { resource: Schedules, method: Delete, summary: Delete deletes a schedule. }
+getLatestResultFile: { omit: The file response needs binary bodies in the runtime. }
+getScheduleTemplates: { resource: Schedules, method: ListTemplates, iterator: IterTemplates, items: ScheduleTemplateResponse, paging: { items: scheduleTemplates }, summary: ListTemplates lists one page of schedule templates. }
+getScheduleTemplate: { resource: Schedules, method: GetTemplate, summary: GetTemplate gets one schedule template. }
+
+getTasks: { resource: Tasks, method: List, iterator: Iter, items: Task, paging: { items: tasks }, summary: List lists one page of feed tasks. }
+createTask: { resource: Tasks, method: Create, summary: Create creates a feed task to upload a file to. }
+getTask: { resource: Tasks, method: Get, summary: Get gets one feed task. }
+uploadFile: { resource: Tasks, method: UploadFile, summary: UploadFile uploads the input file of a feed task. }
+getInputFile: { omit: The file response needs binary bodies in the runtime. }
+getResultFile: { omit: The file response needs binary bodies in the runtime. }
+
+getCustomerServiceMetricTasks: { resource: CustomerServiceMetricTasks, method: List, iterator: Iter, items: ServiceMetricsTask, paging: { items: tasks }, summary: List lists one page of customer service metric tasks. }
+createCustomerServiceMetricTask: { resource: CustomerServiceMetricTasks, method: Create, summary: Create starts a task that builds a customer service metric report. }
+getCustomerServiceMetricTask: { resource: CustomerServiceMetricTasks, method: Get, summary: Get gets one customer service metric task. }

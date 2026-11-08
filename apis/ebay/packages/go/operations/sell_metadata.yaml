@@ -1,0 +1,31 @@
+# Public names for the Metadata API, keyed by operationId. Summaries are ours, not upstream's.
+getAutomotivePartsCompatibilityPolicies: { resource: Marketplaces, method: GetAutomotivePartsCompatibilityPolicies, summary: GetAutomotivePartsCompatibilityPolicies lists the categories of a marketplace that support parts compatibility. }
+getCategoryPolicies: { resource: Marketplaces, method: GetCategoryPolicies, summary: "GetCategoryPolicies lists the listing policies of a marketplace's categories." }
+getClassifiedAdPolicies: { resource: Marketplaces, method: GetClassifiedAdPolicies, summary: "GetClassifiedAdPolicies lists the classified ad policies of a marketplace's categories." }
+getCurrencies: { resource: Marketplaces, method: GetCurrencies, summary: GetCurrencies gets the default currency of a marketplace. }
+getExtendedProducerResponsibilityPolicies: { resource: Marketplaces, method: GetExtendedProducerResponsibilityPolicies, summary: "GetExtendedProducerResponsibilityPolicies lists the extended producer responsibility policies of a marketplace's categories." }
+getHazardousMaterialsLabels: { resource: Marketplaces, method: GetHazardousMaterialsLabels, summary: GetHazardousMaterialsLabels lists the hazardous materials labels a marketplace accepts. }
+getItemConditionPolicies: { resource: Marketplaces, method: GetItemConditionPolicies, summary: "GetItemConditionPolicies lists the item conditions a marketplace's categories accept." }
+getListingStructurePolicies: { resource: Marketplaces, method: GetListingStructurePolicies, summary: "GetListingStructurePolicies lists which of a marketplace's categories accept multi-variation listings." }
+getListingTypePolicies: { resource: Marketplaces, method: GetListingTypePolicies, summary: "GetListingTypePolicies lists the listing formats and durations of a marketplace's categories." }
+getMotorsListingPolicies: { resource: Marketplaces, method: GetMotorsListingPolicies, summary: "GetMotorsListingPolicies lists the motors listing policies of a marketplace's categories." }
+getNegotiatedPricePolicies: { resource: Marketplaces, method: GetNegotiatedPricePolicies, summary: "GetNegotiatedPricePolicies lists the Best Offer policies of a marketplace's categories." }
+getProductSafetyLabels: { resource: Marketplaces, method: GetProductSafetyLabels, summary: GetProductSafetyLabels lists the product safety labels a marketplace accepts. }
+getRegulatoryPolicies: { resource: Marketplaces, method: GetRegulatoryPolicies, summary: "GetRegulatoryPolicies lists the regulatory policies of a marketplace's categories." }
+getReturnPolicies: { resource: Marketplaces, method: GetReturnPolicies, summary: "GetReturnPolicies lists the return policies of a marketplace's categories." }
+getShippingPolicies: { resource: Marketplaces, method: GetShippingPolicies, summary: "GetShippingPolicies lists the shipping policies of a marketplace's categories." }
+getSiteVisibilityPolicies: { resource: Marketplaces, method: GetSiteVisibilityPolicies, summary: "GetSiteVisibilityPolicies lists which of a marketplace's categories show on other marketplaces." }
+
+getCompatibilitiesBySpecification: { resource: Compatibilities, method: GetBySpecification, summary: GetBySpecification lists the vehicles that match a parts specification. }
+getCompatibilityPropertyNames: { resource: Compatibilities, method: GetPropertyNames, summary: GetPropertyNames lists the compatibility property names of a category. }
+getCompatibilityPropertyValues: { resource: Compatibilities, method: GetPropertyValues, summary: GetPropertyValues lists the values of one compatibility property. }
+getMultiCompatibilityPropertyValues: { resource: Compatibilities, method: GetMultiPropertyValues, summary: GetMultiPropertyValues lists the values of several compatibility properties. }
+getProductCompatibilities: { resource: Compatibilities, method: GetProductCompatibilities, summary: GetProductCompatibilities lists the vehicles a product fits. }
+
+getExcludeShippingLocations: { resource: Shipping, method: GetExcludedLocations, summary: GetExcludedLocations lists the regions and countries a seller can exclude from shipping. }
+getHandlingTimes: { resource: Shipping, method: GetHandlingTimes, summary: GetHandlingTimes lists the handling times a marketplace accepts. }
+getShippingCarriers: { resource: Shipping, method: GetCarriers, summary: GetCarriers lists the shipping carriers of a marketplace. }
+getShippingLocations: { resource: Shipping, method: GetLocations, summary: GetLocations lists the shipping locations of a marketplace. }
+getShippingServices: { resource: Shipping, method: GetServices, summary: GetServices lists the shipping services of a marketplace. }
+
+getSalesTaxJurisdictions: { resource: Countries, method: GetSalesTaxJurisdictions, summary: GetSalesTaxJurisdictions lists the sales tax jurisdictions of a country. }

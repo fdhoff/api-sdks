@@ -1,0 +1,4 @@
+# Public names for the Key Management API, keyed by operationId. Summaries are ours, not upstream's.
+getSigningKeys: { resource: SigningKeys, method: List, summary: "List lists the app's signing keys." }
+createSigningKey: { resource: SigningKeys, method: Create, summary: Create creates a signing key pair and returns its private key once. }
+getSigningKey: { resource: SigningKeys, method: Get, summary: Get gets one signing key. }

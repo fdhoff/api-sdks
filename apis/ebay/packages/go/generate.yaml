@@ -1,0 +1,245 @@
+# How `npm run generate:go` builds this package. Each contract becomes a sub-package with its own models,
+# so schema names that repeat across contracts never collide. Public method names are in operations/.
+generator: go
+output: ebaysell
+source: .
+generated_prefixes: [model_, api_]
+resources: resources.go
+runtime: ../internal/runtime
+format: [gofmt, -s, -r, 'interface{} -> any', -w]
+properties:
+  disallowAdditionalPropertiesIfNotPresent: false
+  withGoMod: false
+  apiNameSuffix: Resource
+  modulePath: github.com/fdhoff/api-sdks/apis/ebay/packages/go
+# A union of one schema is typed as that schema.
+collapse_single_unions: true
+# Every field is a pointer here, so nil already means null or absent.
+drop_nullable: true
+# A field of several types becomes `any`.
+drop_unions: true
+type_mappings:
+  integer: int64
+  number: float64
+  file: File
+  File: File
+  binary: File
+  DateTime: Time
+# Go spells these initialisms in capitals. Keys are wire names.
+name_mappings:
+  adGroupId: AdGroupID
+  adId: AdID
+  adIds: AdIDs
+  apiContext: APIContext
+  apiName: APIName
+  apiVersion: APIVersion
+  applicableMarketplaceIds: ApplicableMarketplaceIDs
+  applicableToConditionDescriptorId: ApplicableToConditionDescriptorID
+  applicableToConditionDescriptorIds: ApplicableToConditionDescriptorIDs
+  applicableToConditionDescriptorValueIds: ApplicableToConditionDescriptorValueIDs
+  billingTransactionId: BillingTransactionID
+  campaignId: CampaignID
+  campaignIds: CampaignIDs
+  cancelRequestId: CancelRequestID
+  cancellationId: CancellationID
+  caseId: CaseID
+  categoryId: CategoryID
+  categoryIds: CategoryIDs
+  categoryTreeId: CategoryTreeID
+  charityId: CharityID
+  combinedShippingRuleId: CombinedShippingRuleID
+  conditionDescriptorId: ConditionDescriptorID
+  conditionDescriptorValueId: ConditionDescriptorValueID
+  conditionId: ConditionID
+  contactUrl: ContactURL
+  conversationId: ConversationID
+  customPolicyId: CustomPolicyID
+  defaultConditionDescriptorValueId: DefaultConditionDescriptorValueID
+  destinationId: DestinationID
+  destinationParentCategoryId: DestinationParentCategoryID
+  discountId: DiscountID
+  documentId: DocumentID
+  documentUrl: DocumentURL
+  emailCampaignId: EmailCampaignID
+  errorId: ErrorID
+  evaluationMarketplaceId: EvaluationMarketplaceID
+  evidenceId: EvidenceID
+  excludeListingIds: ExcludeListingIDs
+  feedbackId: FeedbackID
+  fileId: FileID
+  filterId: FilterID
+  fromCategoryId: FromCategoryID
+  fulfillmentId: FulfillmentID
+  fulfillmentPolicyId: FulfillmentPolicyID
+  groupIds: GroupIDs
+  id: ID
+  imageUrl: ImageURL
+  imageUrls: ImageURLs
+  inputRefIds: InputRefIDs
+  inquiryId: InquiryID
+  instrumentId: InstrumentID
+  inventoryReferenceId: InventoryReferenceID
+  itemId: ItemID
+  itemIds: ItemIDs
+  jurisdictionId: JurisdictionID
+  keywordId: KeywordID
+  legacyItemId: LegacyItemID
+  legacyTransactionId: LegacyTransactionID
+  legacyVariationId: LegacyVariationID
+  lineItemId: LineItemID
+  listingCategoryId: ListingCategoryID
+  listingConditionId: ListingConditionID
+  listingConditionIds: ListingConditionIDs
+  listingDestinationCategoryId: ListingDestinationCategoryID
+  listingId: ListingID
+  listingIds: ListingIDs
+  listingMarketplaceId: ListingMarketplaceID
+  locationId: LocationID
+  locationWebUrl: LocationWebURL
+  logoUrl: LogoURL
+  mappedCombinedShippingRuleId: MappedCombinedShippingRuleID
+  marketplaceId: MarketplaceID
+  markupListingIds: MarkupListingIDs
+  maxDimensionImageUrl: MaxDimensionImageURL
+  mediaUrl: MediaURL
+  messageId: MessageID
+  negativeKeywordId: NegativeKeywordID
+  offerId: OfferID
+  orderId: OrderID
+  orderLineItemId: OrderLineItemID
+  outputRefIds: OutputRefIDs
+  paymentDisputeId: PaymentDisputeID
+  paymentPolicyId: PaymentPolicyID
+  paymentReferenceId: PaymentReferenceID
+  payoutId: PayoutID
+  payoutIds: PayoutIDs
+  pictogramId: PictogramID
+  pictogramUrl: PictogramURL
+  playUrl: PlayURL
+  policyIds: PolicyIDs
+  producerProductId: ProducerProductID
+  productCompliancePolicyIds: ProductCompliancePolicyIDs
+  productDocumentationId: ProductDocumentationID
+  productId: ProductID
+  productPackageId: ProductPackageID
+  promotionId: PromotionID
+  promotionImageUrl: PromotionImageURL
+  promotionReportId: PromotionReportID
+  purchaseMarketplaceId: PurchaseMarketplaceID
+  rateId: RateID
+  rateTableId: RateTableID
+  recipientUserId: RecipientUserID
+  referenceId: ReferenceID
+  refundId: RefundID
+  refundReferenceId: RefundReferenceID
+  registrationMarketplaceId: RegistrationMarketplaceID
+  remedyUrl: RemedyURL
+  reportId: ReportID
+  reportTaskId: ReportTaskID
+  returnId: ReturnID
+  returnPolicyId: ReturnPolicyID
+  salesTaxJurisdictionId: SalesTaxJurisdictionID
+  scheduleId: ScheduleID
+  scheduleTemplateId: ScheduleTemplateID
+  secondaryCategoryId: SecondaryCategoryID
+  sellerId: SellerID
+  shipToReferenceId: ShipToReferenceID
+  shipmentPackageId: ShipmentPackageID
+  shippingDiscountProfileId: ShippingDiscountProfileID
+  signalWordId: SignalWordID
+  signingKeyId: SigningKeyID
+  sku: SKU
+  statementId: StatementID
+  storeCategoryId: StoreCategoryID
+  subscriptionId: SubscriptionID
+  takeBackPolicyId: TakeBackPolicyID
+  taskId: TaskID
+  taxpayerId: TaxpayerID
+  timeZoneId: TimeZoneID
+  toCategoryId: ToCategoryID
+  topicId: TopicID
+  transactionId: TransactionID
+  transferId: TransferID
+  url: URL
+  urlPath: URLPath
+  userId: UserID
+  videoId: VideoID
+  videoIds: VideoIDs
+  webUrl: WebURL
+parameter_name_mappings:
+  X-EBAY-C-MARKETPLACE-ID: marketplaceID
+  ad_group_id: adGroupID
+  ad_group_ids: adGroupIDs
+  ad_id: adID
+  campaign_id: campaignID
+  campaign_ids: campaignIDs
+  category_id: categoryID
+  category_ids: categoryIDs
+  category_tree_id: categoryTreeID
+  conversation_id: conversationID
+  custom_policy_id: customPolicyID
+  destination_id: destinationID
+  document_id: documentID
+  email_campaign_id: emailCampaignID
+  entityId: entityID
+  evaluation_marketplace_id: evaluationMarketplaceID
+  feedback_id: feedbackID
+  filter_id: filterID
+  fulfillmentId: fulfillmentID
+  fulfillmentPolicyId: fulfillmentPolicyID
+  image_id: imageID
+  inventory_reference_id: inventoryReferenceID
+  jurisdictionId: jurisdictionID
+  keyword_id: keywordID
+  listingId: listingID
+  listing_id: listingID
+  listing_ids: listingIDs
+  marketplace_id: marketplaceID
+  negative_keyword_id: negativeKeywordID
+  offerId: offerID
+  orderId: orderID
+  orderIds: orderIDs
+  order_id: orderID
+  order_line_item_id: orderLineItemID
+  payment_dispute_id: paymentDisputeID
+  payment_policy_id: paymentPolicyID
+  payout_Id: payoutID
+  promotion_id: promotionID
+  public_key_id: publicKeyID
+  rate_table_id: rateTableID
+  reference_id: referenceID
+  report_task_id: reportTaskID
+  return_policy_id: returnPolicyID
+  schedule_id: scheduleID
+  schedule_template_id: scheduleTemplateID
+  signing_key_id: signingKeyID
+  # TODO: one mapping names both a path argument and a query field, so the offers query field stays Sku.
+  sku: sku
+  subscription_id: subscriptionID
+  task_id: taskID
+  topic_id: topicID
+  transaction_id: transactionID
+  transfer_Id: transferID
+  user_id: userID
+  video_id: videoID
+contracts:
+  sell_account_v1: { output: ebaysell/account, operations: operations/sell_account_v1.yaml, properties: { packageName: account, sdkContract: sell_account_v1 } }
+  sell_account_v2: { output: ebaysell/accountv2, operations: operations/sell_account_v2.yaml, properties: { packageName: accountv2, sdkContract: sell_account_v2 } }
+  sell_analytics: { output: ebaysell/analytics, operations: operations/sell_analytics.yaml, properties: { packageName: analytics, sdkContract: sell_analytics } }
+  sell_feed: { output: ebaysell/feed, operations: operations/sell_feed.yaml, properties: { packageName: feed, sdkContract: sell_feed } }
+  sell_finances: { output: ebaysell/finances, operations: operations/sell_finances.yaml, properties: { packageName: finances, sdkContract: sell_finances } }
+  sell_fulfillment: { output: ebaysell/fulfillment, operations: operations/sell_fulfillment.yaml, properties: { packageName: fulfillment, sdkContract: sell_fulfillment } }
+  sell_inventory: { output: ebaysell/inventory, operations: operations/sell_inventory.yaml, properties: { packageName: inventory, sdkContract: sell_inventory } }
+  sell_marketing: { output: ebaysell/marketing, operations: operations/sell_marketing.yaml, properties: { packageName: marketing, sdkContract: sell_marketing } }
+  sell_metadata: { output: ebaysell/metadata, operations: operations/sell_metadata.yaml, properties: { packageName: metadata, sdkContract: sell_metadata } }
+  sell_negotiation: { output: ebaysell/negotiation, operations: operations/sell_negotiation.yaml, properties: { packageName: negotiation, sdkContract: sell_negotiation } }
+  sell_recommendation: { output: ebaysell/recommendation, operations: operations/sell_recommendation.yaml, properties: { packageName: recommendation, sdkContract: sell_recommendation } }
+  sell_stores: { output: ebaysell/stores, operations: operations/sell_stores.yaml, properties: { packageName: stores, sdkContract: sell_stores } }
+  commerce_feedback: { output: ebaysell/feedback, operations: operations/commerce_feedback.yaml, properties: { packageName: feedback, sdkContract: commerce_feedback } }
+  commerce_identity: { output: ebaysell/identity, operations: operations/commerce_identity.yaml, properties: { packageName: identity, sdkContract: commerce_identity } }
+  commerce_media: { output: ebaysell/media, operations: operations/commerce_media.yaml, properties: { packageName: media, sdkContract: commerce_media } }
+  commerce_message: { output: ebaysell/message, operations: operations/commerce_message.yaml, properties: { packageName: message, sdkContract: commerce_message } }
+  commerce_notification: { output: ebaysell/notification, operations: operations/commerce_notification.yaml, properties: { packageName: notification, sdkContract: commerce_notification } }
+  commerce_taxonomy: { output: ebaysell/taxonomy, operations: operations/commerce_taxonomy.yaml, properties: { packageName: taxonomy, sdkContract: commerce_taxonomy } }
+  developer_analytics: { output: ebaysell/developeranalytics, operations: operations/developer_analytics.yaml, properties: { packageName: developeranalytics, sdkContract: developer_analytics } }
+  developer_key_management: { output: ebaysell/keymanagement, operations: operations/developer_key_management.yaml, properties: { packageName: keymanagement, sdkContract: developer_key_management } }
