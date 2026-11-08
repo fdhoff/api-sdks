@@ -132,6 +132,48 @@ async fn redirects_are_not_followed() {
 }
 
 #[tokio::test]
+async fn a_custom_client_follows_its_own_redirect_policy() {
+    let (foreign, foreign_count, foreign_heads) = record(|_| json(200, r#"{"order_id": 1}"#)).await;
+    let location = format!("{foreign}/");
+    let redirect = move |_: usize| Reply {
+        status: 302,
+        headers: vec![("location", location.clone())],
+        body: Vec::new(),
+    };
+    let (url, count) = serve(redirect.clone()).await;
+    let order = builder(&url)
+        .http_client(backmarket_seller::reqwest::Client::new())
+        .build()
+        .unwrap()
+        .orders()
+        .get(1)
+        .await
+        .unwrap();
+    assert_eq!(order.order_id, Some(1));
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+    assert_eq!(foreign_count.load(Ordering::SeqCst), 1);
+    let head = foreign_heads.lock().unwrap()[0].clone();
+    assert!(!head.contains("authorization"), "{head}");
+
+    let (url, count) = serve(redirect).await;
+    let none = backmarket_seller::reqwest::Client::builder()
+        .redirect(backmarket_seller::reqwest::redirect::Policy::none())
+        .build()
+        .unwrap();
+    let error = builder(&url)
+        .http_client(none)
+        .build()
+        .unwrap()
+        .orders()
+        .get(1)
+        .await
+        .unwrap_err();
+    assert_eq!(error.status(), Some(302));
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+    assert_eq!(foreign_count.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
 async fn an_empty_success_is_a_decode_error_where_the_spec_declares_json() {
     for headers in [
         vec![("content-type", "application/json".into())],

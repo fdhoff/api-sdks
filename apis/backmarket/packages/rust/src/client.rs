@@ -190,7 +190,12 @@ impl ClientBuilder {
     /// pool or to set a proxy or TLS roots. The client still sends its own headers and applies
     /// `timeout` and its retries. Redirects follow your client's policy: build it with
     /// `reqwest::redirect::Policy::none()` to keep your token on the server you selected, as the
-    /// default client does.
+    /// default client does. Under reqwest's default policy, a 307 or 308 to the same host resends
+    /// a write's body, token included, so a refund or other write can be repeated.
+    ///
+    /// The client retries only GETs after a failure, but a retry policy set with
+    /// `reqwest::ClientBuilder::retry` runs inside your client, below that rule, and can resend a
+    /// write. Leave it unset, or limit it to GETs.
     pub fn http_client(mut self, client: reqwest::Client) -> Self {
         self.http_client = Some(client);
         self

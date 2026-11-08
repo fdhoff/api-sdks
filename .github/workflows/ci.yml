@@ -345,6 +345,7 @@ jobs:
           cargo clippy --all-targets --locked -- -D warnings
           cargo clippy --all-targets --locked --no-default-features --features native-tls -- -D warnings
           cargo test --locked
+          cargo test --locked --no-default-features --features native-tls
       - run: npm run conformance:rust
       - name: Package ships the licence and notice
         working-directory: ${{ env.PACKAGE }}
