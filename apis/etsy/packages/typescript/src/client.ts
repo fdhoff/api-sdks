@@ -61,10 +61,10 @@ export class EtsyClient extends Resources {
   readonly oauth: OAuth;
 
   constructor(options: ClientOptions) {
-    const credentials = new EtsyCredentials(options);
+    let oauth: OAuth | undefined;
+    const credentials = new EtsyCredentials(options, () => oauth!.refresh());
     const shared = transport(options, credentials);
     super(shared);
-    this.oauth = new OAuth(credentials, shared);
-    credentials.refresher = () => this.oauth.refresh();
+    this.oauth = oauth = new OAuth(credentials, shared);
   }
 }

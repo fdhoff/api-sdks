@@ -12,5 +12,6 @@ The first alpha.
 * Typed sync and async clients for all 107 operations, generated from the public spec.
 * `x-api-key` on every call, and the OAuth access token only on calls that need it.
 * OAuth 2 helpers: an authorization URL with PKCE S256 and state, code exchange and refresh. Each new token pair goes to an `on_token` callback.
-* After a 401, the access token is refreshed once and the call retried. Concurrent calls share one refresh.
+* After a 401, the access token is refreshed once and the call retried. Concurrent calls, and an explicit `oauth.refresh()`, share one refresh.
+* The current tokens are always redacted. Of earlier tokens and codes only the most recent are kept, so a long-lived client does not grow.
 * Offset pagination iterators, retries, rate-limit handling, typed errors and redacted logging.
