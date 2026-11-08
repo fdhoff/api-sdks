@@ -13,24 +13,28 @@ const GET_WS_BUYBACK_V1_COMPETITORS: Operation = Operation {
     method: "GET",
     path: "/ws/buyback/v1/competitors/{listingId}",
     query_params: &[],
+    returns_json: true,
 };
 const GET_WS_BUYBACK_V1_LISTING: Operation = Operation {
     id: "get-ws-buyback-v1-listing",
     method: "GET",
     path: "/ws/buyback/v1/listings/{buybackListingId}",
     query_params: &[],
+    returns_json: true,
 };
 const GET_WS_BUYBACK_V1_LISTINGS: Operation = Operation {
     id: "get-ws-buyback-v1-listings",
     method: "GET",
     path: "/ws/buyback/v1/listings",
     query_params: &["productId", "cursor", "pageSize"],
+    returns_json: true,
 };
 const GET_WS_BUYBACK_V1_ORDER: Operation = Operation {
     id: "get-ws-buyback-v1-order",
     method: "GET",
     path: "/ws/buyback/v1/orders/{buybackOrderId}",
     query_params: &[],
+    returns_json: true,
 };
 const GET_WS_BUYBACK_V1_ORDERS: Operation = Operation {
     id: "get-ws-buyback-v1-orders",
@@ -47,60 +51,70 @@ const GET_WS_BUYBACK_V1_ORDERS: Operation = Operation {
         "paymentDate",
         "page",
     ],
+    returns_json: true,
 };
 const GET_WS_BUYBACK_V1_ORDERS_MESSAGES: Operation = Operation {
     id: "get-ws-buyback-v1-orders-messages",
     method: "GET",
     path: "/ws/buyback/v1/orders/{buybackOrderId}/messages",
     query_params: &["page"],
+    returns_json: true,
 };
 const GET_WS_BUYBACK_V1_ORDERS_PENDING_REPLY: Operation = Operation {
     id: "get-ws-buyback-v1-orders-pending-reply",
     method: "GET",
     path: "/ws/buyback/v1/orders/pending-reply",
     query_params: &["page"],
+    returns_json: true,
 };
 const GET_WS_BUYBACK_V1_ORDERS_SUSPEND_REASONS: Operation = Operation {
     id: "get-ws-buyback-v1-orders-suspend-reasons",
     method: "GET",
     path: "/ws/buyback/v1/orders/suspend-reasons",
     query_params: &[],
+    returns_json: true,
 };
 const GET_WS_COUNTER_OFFER_REASON: Operation = Operation {
     id: "get-ws-counter-offer-reason",
     method: "GET",
     path: "/ws/buyback/v1/orders/{buybackOrderId}/counter-offers/reasons",
     query_params: &[],
+    returns_json: true,
 };
 const POST_WS_BUYBACK_V1_ORDERS_MESSAGES: Operation = Operation {
     id: "post-ws-buyback-v1-orders-messages",
     method: "POST",
     path: "/ws/buyback/v1/orders/{buybackOrderId}/messages",
     query_params: &[],
+    returns_json: true,
 };
 const PUT_WS_BUYBACK_V1_LISTING: Operation = Operation {
     id: "put-ws-buyback-v1-listing",
     method: "PUT",
     path: "/ws/buyback/v1/listings/{buybackListingId}",
     query_params: &[],
+    returns_json: true,
 };
 const PUT_WS_BUYBACK_V1_ORDERS_SUSPEND: Operation = Operation {
     id: "put-ws-buyback-v1-orders-suspend",
     method: "PUT",
     path: "/ws/buyback/v1/orders/{buybackOrderId}/suspend",
     query_params: &[],
+    returns_json: true,
 };
 const PUT_WS_BUYBACK_V1_ORDERS_VALIDATE: Operation = Operation {
     id: "put-ws-buyback-v1-orders-validate",
     method: "PUT",
     path: "/ws/buyback/v1/orders/{buybackOrderId}/validate",
     query_params: &[],
+    returns_json: true,
 };
 const PUT_WS_REFURBISHER_COUNTER_OFFER: Operation = Operation {
     id: "put-ws-refurbisher-counter-offer",
     method: "PUT",
     path: "/ws/buyback/v2/orders/{buybackOrderId}/counter-offers",
     query_params: &[],
+    returns_json: false,
 };
 
 /// The query parameters of [`BuybackApi::list_listings`]. Set only what you need.

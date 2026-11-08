@@ -150,6 +150,17 @@ test('an empty success reads as undefined', async () => {
   assert.equal(await client.orders.uploadInvoice(1), undefined);
 });
 
+test('an empty success is a decode error where the spec declares a JSON body', async () => {
+  const variants: Record<string, string>[] = [{ 'content-type': 'application/json' }, {}];
+  for (const headers of variants) {
+    const { client } = clientFor(() => new Response(null, { headers }));
+    await assert.rejects(
+      () => client.orders.get(1),
+      (error) => error instanceof DecodeError && error.status === 200,
+    );
+  }
+});
+
 test('a success with broken JSON is a decode error', async () => {
   const { client } = clientFor(() => new Response('{', { headers: { 'content-type': 'application/json' } }));
   await assert.rejects(() => client.orders.get(1), DecodeError);

@@ -6,6 +6,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 * Every method takes options last, with a `signal` that cancels the request and any wait before a retry.
 * Each error class has a literal `kind`, and `ClientError` is their union, so comparing `kind` narrows the type.
+* An empty success body where the spec declares JSON throws `DecodeError` instead of resolving to `undefined`.
 
 ## 0.1.0-alpha.2 (2026-11-07)
 

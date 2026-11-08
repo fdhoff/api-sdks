@@ -90,7 +90,7 @@ The factory uses the client's own handler, which follows no redirects, and redac
 * **Connections** are pooled and reused, writes included. A write is sent so that .NET's handler never resends it, even when a reused connection closes before any response.
 * **Errors** derive from `ApiException` and carry `Kind`, `Status`, `Code`, `RequestId` and `RawBody` with your token removed. `WafBlockedException` also has `CfRay`.
 * **Logging** holds methods, URLs and statuses, never your token or response bodies.
-* **Responses** are read tolerantly, because the spec has not been confirmed against the live API. Every property is nullable. A value that does not fit its property, and any field this version does not know, is kept in the model's `Extra` instead of failing the call, and is written back if you send the model. An empty successful body reads as an empty model.
+* **Responses** are read tolerantly, because the spec has not been confirmed against the live API. Every property is nullable. A value that does not fit its property, and any field this version does not know, is kept in the model's `Extra` instead of failing the call, and is written back if you send the model. An empty successful body where the spec declares JSON throws `ApiDecodeException`, rather than reading as an empty model.
 * **Free-form and union values** are `object`, holding a `JsonElement`. Carriers are plain strings.
 * **Uploads** take `UploadFile(fileName, bytes)`.
 

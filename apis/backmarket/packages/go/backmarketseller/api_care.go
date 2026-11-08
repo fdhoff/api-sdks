@@ -15,6 +15,7 @@ var (
 		Path:        "/ws/sav/{careFolderId}",
 		Resource:    "Care",
 		Name:        "GetFolder",
+		ReturnsJSON: true,
 		PathParams:  []string{"careFolderId"},
 		QueryParams: []string{},
 	})
@@ -25,6 +26,7 @@ var (
 		Resource:    "Care",
 		Name:        "ListFolders",
 		Iterator:    "IterFolders",
+		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"last_id", "state", "orderline", "last_modification_date", "last_message_date", "page"},
 	})
@@ -43,6 +45,7 @@ var (
 		Path:        "/ws/sav/{careFolderId}/msg",
 		Resource:    "Care",
 		Name:        "SendMessage",
+		ReturnsJSON: true,
 		PathParams:  []string{"careFolderId"},
 		QueryParams: []string{},
 	})
@@ -52,6 +55,7 @@ var (
 		Path:        "/ws/sav/{careFolderId}/note",
 		Resource:    "Care",
 		Name:        "AddNote",
+		ReturnsJSON: true,
 		PathParams:  []string{"careFolderId"},
 		QueryParams: []string{},
 	})

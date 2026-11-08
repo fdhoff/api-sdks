@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
-use backmarket_seller::models::{Competitor, MarketCode};
+use backmarket_seller::models::{Competitor, MarketCode, PostItemTransferCreateRequest};
 use backmarket_seller::{Client, ClientBuilder, Error, ErrorKind, OrdersListParams};
 use futures_util::StreamExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -109,6 +109,44 @@ async fn redirects_are_not_followed() {
     assert_eq!(error.status(), Some(302));
     assert_eq!(count.load(Ordering::SeqCst), 1);
     assert_eq!(foreign_count.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn an_empty_success_is_a_decode_error_where_the_spec_declares_json() {
+    for headers in [
+        vec![("content-type", "application/json".into())],
+        Vec::new(),
+    ] {
+        let (url, _) = serve(move |_| Reply {
+            status: 200,
+            headers: headers.clone(),
+            body: Vec::new(),
+        })
+        .await;
+        let error = builder(&url)
+            .build()
+            .unwrap()
+            .orders()
+            .get(1)
+            .await
+            .unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::Decode);
+        assert_eq!(error.status(), Some(200));
+    }
+}
+
+#[tokio::test]
+async fn an_empty_success_is_fine_where_the_spec_declares_no_json() {
+    let (url, _) = serve(|_| Reply {
+        status: 201,
+        headers: Vec::new(),
+        body: Vec::new(),
+    })
+    .await;
+    let client = builder(&url).build().unwrap();
+    let body = PostItemTransferCreateRequest::default();
+    client.care().transfer_item(1, &body).await.unwrap();
+    assert_eq!(client.care().create_refund(None).await.unwrap(), "");
 }
 
 #[tokio::test]

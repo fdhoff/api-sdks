@@ -20,6 +20,9 @@ var (
 {{#vendorExtensions.x-sdk-iterator}}
 		Iterator:    "{{.}}",
 {{/vendorExtensions.x-sdk-iterator}}
+{{#vendorExtensions.x-sdk-returns-json}}
+		ReturnsJSON: true,
+{{/vendorExtensions.x-sdk-returns-json}}
 		PathParams:  []string{ {{#pathParams}}"{{baseName}}",{{/pathParams}} },
 		QueryParams: []string{ {{#queryParams}}"{{baseName}}",{{/queryParams}} },
 	})

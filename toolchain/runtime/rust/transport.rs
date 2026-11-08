@@ -12,7 +12,7 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use super::error::{Error, ErrorContext};
-use super::request::{Body, Part, Request};
+use super::request::{Body, Operation, Part, Request};
 use crate::ErrorKind;
 
 const REDACTED: &str = "***";
@@ -232,8 +232,11 @@ impl Transport {
         }
     }
 
-    fn decode<T: DeserializeOwned + Default>(&self, answer: &Answer) -> Result<T, Error> {
+    fn decode<T: DeserializeOwned + Default>(&self, operation: &Operation, answer: &Answer) -> Result<T, Error> {
         if answer.body.is_empty() {
+            if operation.returns_json {
+                return Err(self.decode_error("the response body is empty", answer));
+            }
             return Ok(T::default());
         }
         let value = if is_json(&answer.headers) {
@@ -248,7 +251,7 @@ impl Transport {
     /// Sends one operation and decodes its response.
     pub async fn call<T: DeserializeOwned + Default>(&self, request: Request) -> Result<T, Error> {
         let answer = self.fetch(&request).await?;
-        self.decode(&answer)
+        self.decode(request.operation, &answer)
     }
 
     /// Reads the position out of a page's `next` link and applies it to our own request. `next`

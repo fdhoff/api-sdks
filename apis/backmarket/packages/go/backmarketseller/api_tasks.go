@@ -15,6 +15,7 @@ var (
 		Path:        "/ws/tasks/{taskId}",
 		Resource:    "Tasks",
 		Name:        "Get",
+		ReturnsJSON: true,
 		PathParams:  []string{"taskId"},
 		QueryParams: []string{},
 	})

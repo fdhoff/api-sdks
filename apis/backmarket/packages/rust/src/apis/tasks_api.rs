@@ -13,6 +13,7 @@ const GET_WS_TASK: Operation = Operation {
     method: "GET",
     path: "/ws/tasks/{taskId}",
     query_params: &[],
+    returns_json: true,
 };
 
 /// The `tasks` operations, from [`Client::tasks`](crate::Client::tasks).

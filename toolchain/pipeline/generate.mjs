@@ -68,6 +68,14 @@ function paramsRequired(spec, parameters, operation) {
   return query.some((parameter) => parameter.in === 'query' && parameter.required) || requiredProperties(spec, form).length > 0;
 }
 
+// True when a success response declares a JSON body, so an empty one cannot be a result.
+function returnsJson(spec, operation) {
+  return Object.entries(operation.responses ?? {}).some(
+    ([status, response]) =>
+      status.startsWith('2') && Object.keys(dereference(spec, response)?.content ?? {}).some((type) => type.includes('json')),
+  );
+}
+
 export function applyOperations(spec, operations) {
   const unused = new Set(Object.keys(operations));
   for (const item of Object.values(spec.paths)) {
@@ -81,6 +89,7 @@ export function applyOperations(spec, operations) {
       operation['x-sdk-summary'] = names.summary;
       operation['x-sdk-resource'] = names.resource;
       operation['x-sdk-params-required'] = paramsRequired(spec, [...shared, ...(operation.parameters ?? [])], operation);
+      operation['x-sdk-returns-json'] = returnsJson(spec, operation);
       if (names.iterator) {
         operation['x-sdk-iterator'] = names.iterator;
         operation['x-sdk-items'] = names.items;

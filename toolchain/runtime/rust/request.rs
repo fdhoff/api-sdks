@@ -15,6 +15,8 @@ pub struct Operation {
     pub method: &'static str,
     pub path: &'static str,
     pub query_params: &'static [&'static str],
+    /// Set when the spec declares a JSON success body, so an empty one is an error.
+    pub returns_json: bool,
 }
 
 /// A file to upload. `name` defaults to the form field's name.
@@ -296,7 +298,7 @@ impl Request {
 mod tests {
     use super::*;
 
-    const OPERATION: Operation = Operation { id: "op", method: "GET", path: "/items/{id}", query_params: &["page"] };
+    const OPERATION: Operation = Operation { id: "op", method: "GET", path: "/items/{id}", query_params: &["page"], returns_json: true };
 
     struct Query {
         page: Option<i64>,

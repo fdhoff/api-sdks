@@ -8,6 +8,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * A constructor takes your own `HttpClient`, and `services.AddBackMarketSeller(token, options)` registers the client with `IHttpClientFactory`. Writes are still never resent.
 * Writes reuse pooled connections instead of opening one each. The token and other headers are sent per request, not set on the `HttpClient`.
 * The package has a project URL, Source Link, a symbols package and an icon.
+* An empty success body where the spec declares JSON throws `ApiDecodeException` instead of returning an empty model.
 
 ## 0.1.0-alpha.1 (2026-11-07)
 

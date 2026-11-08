@@ -16,6 +16,7 @@ var (
 		Resource:    "Shipping",
 		Name:        "ListDeliveries",
 		Iterator:    "IterDeliveries",
+		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"page", "order_id", "start_date", "end_date", "pickup_start_date", "pickup_end_date", "order_state", "hub_scanned"},
 	})
@@ -25,6 +26,7 @@ var (
 		Path:        "/ws/shipping/v1/deliveries/{id}",
 		Resource:    "Shipping",
 		Name:        "GetDelivery",
+		ReturnsJSON: true,
 		PathParams:  []string{"id"},
 		QueryParams: []string{},
 	})
@@ -34,6 +36,7 @@ var (
 		Path:        "/ws/shipping/v1/returns/{id}",
 		Resource:    "Shipping",
 		Name:        "GetReturn",
+		ReturnsJSON: true,
 		PathParams:  []string{"id"},
 		QueryParams: []string{},
 	})
@@ -44,6 +47,7 @@ var (
 		Resource:    "Shipping",
 		Name:        "ListReturns",
 		Iterator:    "IterReturns",
+		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"page", "order_id", "start_date", "end_date", "pickup_start_date", "pickup_end_date", "order_state", "hub_scanned"},
 	})

@@ -146,6 +146,22 @@ test('applyOperations marks operations whose query or form parameters must be pa
   assert.equal(required(op('a', form), { schemas: { F: allOf } }), true);
 });
 
+test('applyOperations marks operations whose success response declares a JSON body', () => {
+  const names = { a: { resource: 'r', method: 'a', summary: 'A.' } };
+  const json = (responses, components) =>
+    applyOperations({ paths: { '/x': { get: { operationId: 'a', responses } } }, components }, names).paths['/x'].get[
+      'x-sdk-returns-json'
+    ];
+  const body = (type) => ({ content: { [type]: { schema: {} } } });
+
+  assert.equal(json(undefined), false);
+  assert.equal(json({ 204: { description: 'None.' } }), false);
+  assert.equal(json({ 200: body('text/plain') }), false);
+  assert.equal(json({ 400: body('application/json'), 204: {} }), false);
+  assert.equal(json({ 200: body('application/json') }), true);
+  assert.equal(json({ 202: { $ref: '#/components/responses/R' } }, { responses: { R: body('application/json') } }), true);
+});
+
 test('dropNullable removes nullability but keeps properties that use its name', () => {
   const spec = {
     a: { type: 'string', nullable: true, enum: ['x', null] },

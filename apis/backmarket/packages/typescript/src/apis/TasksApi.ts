@@ -11,6 +11,7 @@ const getWsTask: Operation = {
   resource: 'tasks',
   name: 'get',
   params: [{ wire: 'taskId', name: 'taskId', location: 'path' }],
+  returnsJson: true,
 };
 
 export const OPERATIONS: readonly Operation[] = [getWsTask];

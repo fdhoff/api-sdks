@@ -16,6 +16,7 @@ var (
 		Resource:    "Listings",
 		Name:        "List",
 		Iterator:    "Iter",
+		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"publication_state", "min_quantity", "max_quantity", "page", "page-size"},
 	})
@@ -25,6 +26,7 @@ var (
 		Path:        "/ws/listings/detail",
 		Resource:    "Listings",
 		Name:        "Find",
+		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{"sku", "listing_id", "id"},
 	})
@@ -34,6 +36,7 @@ var (
 		Path:        "/ws/listings/{listingId}",
 		Resource:    "Listings",
 		Name:        "Get",
+		ReturnsJSON: true,
 		PathParams:  []string{"listingId"},
 		QueryParams: []string{},
 	})
@@ -43,6 +46,7 @@ var (
 		Path:        "/ws/listings",
 		Resource:    "Listings",
 		Name:        "BatchUpdate",
+		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{},
 	})
@@ -52,6 +56,7 @@ var (
 		Path:        "/ws/listings/{listingId}",
 		Resource:    "Listings",
 		Name:        "Update",
+		ReturnsJSON: true,
 		PathParams:  []string{"listingId"},
 		QueryParams: []string{},
 	})

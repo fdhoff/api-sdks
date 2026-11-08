@@ -202,6 +202,33 @@ func TestAResponseOfTheWrongShapeIsADecodeError(t *testing.T) {
 	}
 }
 
+func TestAnEmptySuccessIsADecodeErrorWhereTheSpecDeclaresJSON(t *testing.T) {
+	for _, contentType := range []string{"application/json", ""} {
+		client := server(t, func(w http.ResponseWriter, _ *http.Request) {
+			if contentType != "" {
+				w.Header().Set("Content-Type", contentType)
+			}
+		})
+		order, err := client.Orders.Get(context.Background(), 1)
+		var failure *bm.APIError
+		if !errors.Is(err, bm.ErrDecode) || !errors.As(err, &failure) || failure.Status != 200 || order != nil {
+			t.Fatalf("content type %q: order is %v, error is %v", contentType, order, err)
+		}
+	}
+}
+
+func TestAnEmptySuccessIsFineWhereTheSpecDeclaresNoJSON(t *testing.T) {
+	client := server(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+	})
+	if err := client.Care.TransferItem(context.Background(), 1, &bm.PostItemTransferCreateRequest{}); err != nil {
+		t.Errorf("transfer: %v", err)
+	}
+	if text, err := client.Care.CreateRefund(context.Background(), &bm.PostRefundCreateRequest{}); text != "" || err != nil {
+		t.Errorf("refund is %q, %v", text, err)
+	}
+}
+
 func TestABodyThatCannotBeEncodedFailsBeforeSending(t *testing.T) {
 	sent := false
 	client := server(t, func(w http.ResponseWriter, _ *http.Request) {

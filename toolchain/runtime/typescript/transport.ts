@@ -19,6 +19,7 @@ export interface Operation {
   name: string;
   params: readonly Param[];
   hasBody?: boolean;
+  returnsJson?: boolean;
   iterator?: string;
 }
 
@@ -206,7 +207,7 @@ export class Transport {
     this.#settings.logger?.[level](message.replaceAll(this.#settings.secret, REDACTED));
   }
 
-  async #attempt(method: string, { url, init }: Built, signal: AbortSignal | undefined): Promise<unknown> {
+  async #attempt({ method, returnsJson }: Operation, { url, init }: Built, signal: AbortSignal | undefined): Promise<unknown> {
     const settings = this.#settings;
     const { fetch } = settings;
     this.#log('debug', `-> ${method} ${url}`);
@@ -234,7 +235,11 @@ export class Transport {
         json: parseJson(clean),
       });
     }
-    if (text === '') return undefined;
+    // TODO: an empty body where the spec declares text should read as '', as it does in the other languages.
+    if (text === '') {
+      if (returnsJson) throw new DecodeError('The response body is empty', { status: response.status });
+      return undefined;
+    }
     if (!response.headers.get('content-type')?.includes('json')) return text;
     const json = parseJson(text);
     if (json === undefined) throw new DecodeError('The response body is not valid JSON', { status: response.status });
@@ -245,7 +250,7 @@ export class Transport {
     const built = buildRequest(this.#settings, operation, body, params);
     for (let tries = 0; ; tries += 1) {
       try {
-        return await this.#attempt(operation.method, built, signal);
+        return await this.#attempt(operation, built, signal);
       } catch (error) {
         if (!(error instanceof ApiError) || signal?.aborted) throw error;
         const delay = retryDelay(this.#settings, error, operation.method, tries);

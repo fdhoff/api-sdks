@@ -26,6 +26,7 @@ const getWsListOrder: Operation = {
     { wire: 'page', name: 'page', location: 'query' },
     { wire: 'page-size', name: 'pageSize', location: 'query' },
   ],
+  returnsJson: true,
   iterator: 'iter',
 };
 
@@ -36,6 +37,7 @@ const getWsSpecificOrder: Operation = {
   resource: 'orders',
   name: 'get',
   params: [{ wire: 'order_id', name: 'orderId', location: 'path' }],
+  returnsJson: true,
 };
 
 const postWsSpecificOrderInvoice: Operation = {
@@ -58,6 +60,7 @@ const updateWsSpecificOrder: Operation = {
   name: 'update',
   params: [{ wire: 'order_id', name: 'orderId', location: 'path' }],
   hasBody: true,
+  returnsJson: true,
 };
 
 const updateWsSpecificOrderline: Operation = {
@@ -68,6 +71,7 @@ const updateWsSpecificOrderline: Operation = {
   name: 'updateLine',
   params: [{ wire: 'orderline_id', name: 'orderlineId', location: 'path' }],
   hasBody: true,
+  returnsJson: true,
 };
 
 export const OPERATIONS: readonly Operation[] = [

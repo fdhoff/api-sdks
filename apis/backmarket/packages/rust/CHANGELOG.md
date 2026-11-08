@@ -2,6 +2,10 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
+## Unreleased
+
+* An empty success body where the spec declares JSON is an `ErrorKind::Decode` error instead of a default model.
+
 ## 0.1.0-alpha.1 (2026-11-07)
 
 * Async client for every operation, generated from the public spec, with `Result`-based errors.

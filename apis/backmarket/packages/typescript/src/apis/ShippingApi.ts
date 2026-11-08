@@ -20,6 +20,7 @@ const getDeliveries: Operation = {
     { wire: 'order_state', name: 'orderState', location: 'query' },
     { wire: 'hub_scanned', name: 'hubScanned', location: 'query' },
   ],
+  returnsJson: true,
   iterator: 'iterDeliveries',
 };
 
@@ -30,6 +31,7 @@ const getDelivery: Operation = {
   resource: 'shipping',
   name: 'getDelivery',
   params: [{ wire: 'id', name: 'id', location: 'path' }],
+  returnsJson: true,
 };
 
 const getReturn: Operation = {
@@ -39,6 +41,7 @@ const getReturn: Operation = {
   resource: 'shipping',
   name: 'getReturn',
   params: [{ wire: 'id', name: 'id', location: 'path' }],
+  returnsJson: true,
 };
 
 const getReturns: Operation = {
@@ -57,6 +60,7 @@ const getReturns: Operation = {
     { wire: 'order_state', name: 'orderState', location: 'query' },
     { wire: 'hub_scanned', name: 'hubScanned', location: 'query' },
   ],
+  returnsJson: true,
   iterator: 'iterReturns',
 };
 

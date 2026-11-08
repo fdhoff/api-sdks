@@ -15,6 +15,7 @@ const {{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}: Operat
     method: "{{#lambda.uppercase}}{{httpMethod}}{{/lambda.uppercase}}",
     path: "{{{path}}}",
     query_params: &[{{#queryParams}}"{{baseName}}", {{/queryParams}}],
+    returns_json: {{#vendorExtensions.x-sdk-returns-json}}true{{/vendorExtensions.x-sdk-returns-json}}{{^vendorExtensions.x-sdk-returns-json}}false{{/vendorExtensions.x-sdk-returns-json}},
 };
 {{/operation}}
 {{#operation}}

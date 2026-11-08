@@ -20,30 +20,35 @@ const GET_WS_LIST_ORDER: Operation = Operation {
         "page",
         "page-size",
     ],
+    returns_json: true,
 };
 const GET_WS_SPECIFIC_ORDER: Operation = Operation {
     id: "get-ws-specific-order",
     method: "GET",
     path: "/ws/orders/{order_id}",
     query_params: &[],
+    returns_json: true,
 };
 const POST_WS_SPECIFIC_ORDER_INVOICE: Operation = Operation {
     id: "post-ws-specific-order-invoice",
     method: "POST",
     path: "/ws/orders/{order_id}/invoice",
     query_params: &[],
+    returns_json: false,
 };
 const UPDATE_WS_SPECIFIC_ORDER: Operation = Operation {
     id: "update-ws-specific-order",
     method: "POST",
     path: "/ws/orders/{order_id}",
     query_params: &[],
+    returns_json: true,
 };
 const UPDATE_WS_SPECIFIC_ORDERLINE: Operation = Operation {
     id: "update-ws-specific-orderline",
     method: "PATCH",
     path: "/ws/orderlines/{orderline_id}",
     query_params: &[],
+    returns_json: true,
 };
 
 /// The query parameters of [`OrdersApi::list`]. Set only what you need.

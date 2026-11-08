@@ -13,12 +13,14 @@ const GET_BACKBOX_DATA: Operation = Operation {
     method: "GET",
     path: "/ws/listings_bi",
     query_params: &["page", "page-size"],
+    returns_json: true,
 };
 const GET_WS_BACKBOX_V1_COMPETITORS: Operation = Operation {
     id: "get-ws-backbox-v1-competitors",
     method: "GET",
     path: "/ws/backbox/v1/competitors/{listingId}",
     query_params: &[],
+    returns_json: true,
 };
 
 /// The query parameters of [`BackboxApi::list`]. Set only what you need.
