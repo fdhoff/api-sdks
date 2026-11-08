@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyOperations, dropNullable, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
+import { applyOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -173,6 +173,21 @@ test('applyOperations marks operations whose success response declares a JSON bo
   assert.equal(json({ 200: body('application/problem+json') }), true);
   assert.equal(json({ 200: body('*/*') }), false);
   assert.equal(json({ 200: body('application/x-ndjson') }), false);
+});
+
+test('applyOperations passes each operation its security requirements, inherited or its own', () => {
+  const names = { a: { resource: 'r', method: 'a', summary: 'A.' } };
+  const security = (spec, own) =>
+    applyOperations({ ...spec, paths: { '/x': { get: { operationId: 'a', ...own } } } }, names).paths['/x'].get['x-sdk-security'];
+
+  assert.deepEqual(security({}, {}), []);
+  assert.deepEqual(security({ security: [{ key: [] }] }, {}), [{ schemes: [{ scheme: 'key', scopes: [] }] }]);
+  assert.deepEqual(security({ security: [{ key: [] }] }, { security: [] }), []);
+  assert.deepEqual(security({ security: [{ key: [] }] }, { security: [{ key: [], oauth: ['read', 'write'] }, { app: ['read'] }] }), [
+    { schemes: [{ scheme: 'key', scopes: [] }, { scheme: 'oauth', scopes: ['read', 'write'] }] },
+    { schemes: [{ scheme: 'app', scopes: ['read'] }] },
+  ]);
+  assert.deepEqual(securityOf({}, { security: [{ key: null }] }), [{ schemes: [{ scheme: 'key', scopes: [] }] }]);
 });
 
 test('isJsonMediaType accepts application/json and +json suffixes only', () => {
