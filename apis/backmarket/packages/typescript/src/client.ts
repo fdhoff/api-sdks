@@ -1,6 +1,6 @@
 import { toError } from './errors.js';
 import { Resources } from './resources.js';
-import { Transport, type Logger } from './runtime/index.js';
+import { StaticCredentials, Transport, type Logger } from './runtime/index.js';
 
 export type Region = 'ap' | 'eu' | 'na';
 export type Environment = 'production' | 'preprod';
@@ -54,9 +54,8 @@ function transport(options: ClientOptions): Transport {
   if (!userAgent) throw new TypeError('userAgent is required; the API may refuse a request without it');
   return new Transport({
     baseUrl: serverUrl(options),
-    secret: token,
+    credentials: new StaticCredentials({ Authorization: `Basic ${token}` }, [token]),
     headers: {
-      Authorization: `Basic ${token}`,
       'User-Agent': userAgent,
       Accept: 'application/json',
       'Accept-Language': locale,

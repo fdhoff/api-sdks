@@ -20,6 +20,7 @@ const getCareFolderDetails: Operation = {
   name: 'getFolder',
   params: [{ wire: 'careFolderId', name: 'careFolderId', location: 'path' }],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const getCareFolderList: Operation = {
@@ -39,6 +40,7 @@ const getCareFolderList: Operation = {
   returnsJson: true,
   iterator: 'iterFolders',
   paging: { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] },
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const postItemTransfer: Operation = {
@@ -49,6 +51,7 @@ const postItemTransfer: Operation = {
   name: 'transferItem',
   params: [{ wire: 'careFolderId', name: 'careFolderId', location: 'path' }],
   hasBody: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const postMessage: Operation = {
@@ -63,6 +66,7 @@ const postMessage: Operation = {
     { wire: 'message', name: 'message', location: 'form' },
   ],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const postNote: Operation = {
@@ -74,6 +78,7 @@ const postNote: Operation = {
   params: [{ wire: 'careFolderId', name: 'careFolderId', location: 'path' }],
   hasBody: true,
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const postProblem: Operation = {
@@ -88,6 +93,7 @@ const postProblem: Operation = {
     { wire: 'message', name: 'message', location: 'form' },
     { wire: 'attachment', name: 'attachment', location: 'form' },
   ],
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 const postRefundCreate: Operation = {
@@ -99,6 +105,7 @@ const postRefundCreate: Operation = {
   params: [],
   hasBody: true,
   returnsText: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 export const OPERATIONS: readonly Operation[] = [

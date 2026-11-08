@@ -12,6 +12,7 @@ const getWsTask: Operation = {
   name: 'get',
   params: [{ wire: 'taskId', name: 'taskId', location: 'path' }],
   returnsJson: true,
+  security: [[{ scheme: 'ApiKeyAuth', scopes: [] }]],
 };
 
 export const OPERATIONS: readonly Operation[] = [getWsTask];

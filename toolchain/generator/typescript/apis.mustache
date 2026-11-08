@@ -50,6 +50,7 @@ const {{nickname}}: Operation = {
 {{#vendorExtensions.x-sdk-paging.offset}}
   paging: { style: 'offset', items: '{{items}}', total: '{{total}}', offset: '{{offset}}' },
 {{/vendorExtensions.x-sdk-paging.offset}}
+  security: [{{#vendorExtensions.x-sdk-security}}[{{#schemes}}{ scheme: '{{scheme}}', scopes: [{{#scopes}}'{{.}}', {{/scopes}}] }, {{/schemes}}], {{/vendorExtensions.x-sdk-security}}],
 };
 
 {{/operation}}

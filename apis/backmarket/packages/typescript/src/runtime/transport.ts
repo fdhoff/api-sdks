@@ -1,3 +1,4 @@
+import { redact, type AuthRequest, type Credentials, type Requirement } from './credentials.js';
 import { ApiConnectionError, ApiError, ApiTimeoutError, DecodeError, type ErrorContext } from './errors.js';
 
 export type FileContent = Blob | Uint8Array;
@@ -42,6 +43,8 @@ export interface Operation {
   returnsText?: boolean;
   iterator?: string;
   paging?: Paging;
+  /** Any one of these requirements authorizes the call. */
+  security?: readonly Requirement[];
 }
 
 /** Options for one call. */
@@ -58,7 +61,7 @@ export interface Logger {
 
 export interface Settings {
   baseUrl: string;
-  secret: string;
+  credentials: Credentials;
   headers: Record<string, string>;
   toError: (context: ErrorContext) => ApiError;
   fetch: typeof globalThis.fetch;
@@ -74,10 +77,14 @@ type Params = Record<string, unknown>;
 
 interface Built {
   url: string;
-  init: RequestInit;
+  headers: Record<string, string>;
+  body: string | FormData | undefined;
 }
 
-const REDACTED = '***';
+interface Encoded {
+  bytes: Uint8Array;
+  contentType?: string;
+}
 const NEXT_LINK: NextLink = { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] };
 const HTTP_DATE = /^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/;
 const MAX_TIMER_MS = 2 ** 31 - 1;
@@ -121,14 +128,25 @@ function buildRequest(settings: Settings, operation: Operation, body: unknown, p
   const search = query.size > 0 ? `?${query}` : '';
   // fetch accepts a gzip body cut short, so ask for none.
   const headers: Record<string, string> = { 'Accept-Encoding': 'identity', ...settings.headers };
-  const init: RequestInit = { method: operation.method, headers, redirect: 'manual' };
+  let encoded: string | FormData | undefined;
   if (hasParts) {
-    init.body = form;
+    encoded = form;
   } else if (body !== undefined) {
-    init.body = JSON.stringify(body);
+    encoded = JSON.stringify(body);
     headers['Content-Type'] = 'application/json';
   }
-  return { url: `${settings.baseUrl}${path}${search}`, init };
+  return { url: `${settings.baseUrl}${path}${search}`, headers, body: encoded };
+}
+
+/** The exact bytes to send, so that credentials can sign them. A form is encoded once, with one boundary. */
+async function encode(body: Built['body']): Promise<Encoded> {
+  if (body === undefined) return { bytes: new Uint8Array() };
+  if (typeof body === 'string') return { bytes: new TextEncoder().encode(body) };
+  const draft = new Request('http://body.invalid/', { method: 'POST', body });
+  return {
+    bytes: new Uint8Array(await draft.arrayBuffer()),
+    contentType: draft.headers.get('content-type') ?? undefined,
+  };
 }
 
 function parseJson(text: string): unknown {
@@ -251,18 +269,39 @@ function items(operation: Operation, page: unknown): unknown[] {
 
 export class Transport {
   readonly #settings: Settings;
+  #generation = 0;
+  #refreshing: Promise<boolean> | undefined;
 
   constructor(settings: Settings) {
     this.#settings = settings;
   }
 
   #log(level: keyof Logger, message: string): void {
-    this.#settings.logger?.[level](message.replaceAll(this.#settings.secret, REDACTED));
+    this.#settings.logger?.[level](redact(this.#settings.credentials, message));
+  }
+
+  /** Calls waiting on a refresh share it, and a call whose credentials were refreshed since it sent them
+   * retries without another. */
+  #refresh(request: AuthRequest, generation: number): Promise<boolean> {
+    const { credentials } = this.#settings;
+    if (this.#generation !== generation) return Promise.resolve(true);
+    if (credentials.refresh === undefined) return Promise.resolve(false);
+    this.#refreshing ??= (async () => {
+      try {
+        const refreshed = await credentials.refresh!(request);
+        if (refreshed) this.#generation += 1;
+        return refreshed;
+      } finally {
+        this.#refreshing = undefined;
+      }
+    })();
+    return this.#refreshing;
   }
 
   async #attempt(
     { method, returnsJson, returnsText }: Operation,
-    { url, init }: Built,
+    url: string,
+    init: RequestInit,
     signal: AbortSignal | undefined,
   ): Promise<unknown> {
     const settings = this.#settings;
@@ -284,7 +323,7 @@ export class Transport {
     });
     this.#log('debug', `<- ${method} ${response.status} (${text.length} chars)`);
     if (!response.ok) {
-      const clean = text.replaceAll(settings.secret, REDACTED);
+      const clean = redact(settings.credentials, text);
       throw settings.toError({
         status: response.status,
         headers: response.headers,
@@ -304,17 +343,42 @@ export class Transport {
 
   async fetch(operation: Operation, body: unknown, params: Params, { signal }: RequestOptions = {}): Promise<unknown> {
     signal?.throwIfAborted();
-    const built = buildRequest(this.#settings, operation, body, params);
-    for (let tries = 0; ; tries += 1) {
+    const settings = this.#settings;
+    const built = buildRequest(settings, operation, body, params);
+    const encoded = await encode(built.body);
+    let refreshed = false;
+    for (let tries = 0; ;) {
+      const generation = this.#generation;
+      const headers = new Headers(built.headers);
+      if (encoded.contentType !== undefined) headers.set('Content-Type', encoded.contentType);
+      const auth: AuthRequest = { method: operation.method, url: built.url, headers, body: encoded.bytes, operation };
+      await settings.credentials.apply(auth);
+      signal?.throwIfAborted();
+      // A JSON body goes as its text, which encodes to the same bytes.
+      const sent = typeof built.body === 'string' ? built.body : built.body && encoded.bytes;
+      const init: RequestInit = {
+        method: operation.method,
+        headers,
+        redirect: 'manual',
+        body: sent as RequestInit['body'],
+      };
       try {
-        return await this.#attempt(operation, built, signal);
+        return await this.#attempt(operation, built.url, init, signal);
       } catch (error) {
         signal?.throwIfAborted();
         if (!(error instanceof ApiError)) throw error;
-        const delay = retryDelay(this.#settings, error, operation.method, tries);
+        if (error.status === 401 && !refreshed) {
+          refreshed = true;
+          if (await this.#refresh(auth, generation)) {
+            this.#log('info', 'retrying after refreshing credentials');
+            continue;
+          }
+        }
+        const delay = retryDelay(settings, error, operation.method, tries);
         if (delay === undefined) throw error;
         this.#log('info', `retrying after ${delay}ms: ${error.kind}`);
         await sleep(delay, signal);
+        tries += 1;
       }
     }
   }
