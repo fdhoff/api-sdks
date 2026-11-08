@@ -151,6 +151,28 @@ def test_apply_gets_the_multipart_bytes_that_are_sent() -> None:
     assert "authorization" not in sent[0].headers
 
 
+def test_a_header_set_in_another_case_replaces_the_default() -> None:
+    class Agent(Credentials):
+        def apply(self, request: AuthRequest) -> None:
+            request.headers["X-Content-Type"] = request.headers["Content-Type"]
+            request.headers["User-Agent"] = "signer"
+
+    sent: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(request)
+        return httpx.Response(200, json={})
+
+    async def run() -> None:
+        await async_resource(Agent(), handler)._call(UPLOAD, file=("a.txt", b"hello"))
+
+    sync_resource(Agent(), handler)._call(UPLOAD, file=("a.txt", b"hello"))
+    asyncio.run(run())
+    for request in sent:
+        assert request.headers.get_list("user-agent") == ["signer"]
+        assert request.headers["x-content-type"].startswith("multipart/form-data")
+
+
 def test_a_401_refreshes_once_and_retries_once() -> None:
     credentials = Tokens()
     assert sync_resource(credentials, accepts("synthetic-access-2"))._call(GET_ITEM, id="1") == {"id": 1}

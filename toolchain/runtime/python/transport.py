@@ -322,11 +322,11 @@ def _next_params(operation: Operation[Any], params: dict[str, Any], page: Any, r
 
 
 def _auth_request(operation: Operation[Any], outgoing: httpx.Request, body: bytes) -> AuthRequest:
-    return AuthRequest(operation.method, str(outgoing.url), dict(outgoing.headers), body, operation)
+    return AuthRequest(operation.method, str(outgoing.url), outgoing.headers.copy(), body, operation)
 
 
 def _signed(outgoing: httpx.Request, auth: AuthRequest) -> httpx.Request:
-    outgoing.headers = httpx.Headers(dict(auth.headers))
+    outgoing.headers = httpx.Headers(auth.headers)
     return outgoing
 
 

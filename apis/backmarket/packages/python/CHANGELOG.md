@@ -12,6 +12,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * Methods with no declared response return `None`, as typed, instead of any body the API sent.
 * Breaking: integer enum members are named after their meaning, such as `OrderState.PENDING_SHIPMENT` instead of `NUMBER_3`. This covers `OrderState`, `OrderLineState`, `ListingStateValue`, `ProductCondition` and `ReturnReason`; the wire values are unchanged.
 * Breaking: the `Task` model is `BackgroundTask`, and its module `backmarket_seller.models.task` is `backmarket_seller.models.background_task`, as in every other language.
+* `AuthRequest.headers` is case-insensitive, as in the other languages. A credential provider that set a header the client already sends, such as `User-Agent`, in a different case sent it twice, and reading `headers["Content-Type"]` failed.
 
 ## 0.1.0a2 (2026-11-07)
 

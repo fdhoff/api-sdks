@@ -24,7 +24,8 @@ Requirement = tuple[Scheme, ...]
 
 @dataclass
 class AuthRequest:
-    """One attempt's request, as it will be sent. `headers` may be changed; the rest is read-only."""
+    """One attempt's request, as it will be sent. `headers` may be changed, and its names are
+    case-insensitive; the rest is read-only."""
 
     method: str
     url: str
