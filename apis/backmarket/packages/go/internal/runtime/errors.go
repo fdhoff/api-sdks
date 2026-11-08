@@ -23,6 +23,7 @@ type Error struct {
 	Status     int
 	RawBody    string // The response body, with the token removed.
 	Code       string
+	Detail     string // The body's own description of the failure, when it has one.
 	RequestID  string
 	RetryAfter string
 	CFRay      string

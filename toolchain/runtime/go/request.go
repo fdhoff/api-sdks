@@ -18,8 +18,8 @@ type File struct {
 	Content []byte
 }
 
-// Input is one call's arguments: path values in order, a pointer to a struct of tagged query or
-// form fields, and a JSON body.
+// Input is one call's arguments: path values in order, a pointer to a struct of fields tagged
+// `query`, `form` for a multipart part or `urlencoded` for a form-encoded field, and a JSON body.
 type Input struct {
 	Path   []any
 	Params any
@@ -113,6 +113,29 @@ func addPart(form *multipart.Writer, wire string, value reflect.Value) error {
 	return form.WriteField(wire, text(value))
 }
 
+// addValues adds a field once per item when it is a list. A struct or map is sent as JSON.
+func addValues(values url.Values, wire string, field reflect.Value) error {
+	item := indirect(field)
+	if item.Kind() == reflect.Slice {
+		for position := range item.Len() {
+			if err := addValues(values, wire, item.Index(position)); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if _, isTime := item.Interface().(time.Time); !isTime && (item.Kind() == reflect.Struct || item.Kind() == reflect.Map) {
+		encoded, err := json.Marshal(item.Interface())
+		if err != nil {
+			return err
+		}
+		values.Add(wire, string(encoded))
+		return nil
+	}
+	values.Add(wire, text(item))
+	return nil
+}
+
 func (r *request) addParams(params any) error {
 	source := indirect(reflect.ValueOf(params))
 	if !source.IsValid() {
@@ -121,27 +144,35 @@ func (r *request) addParams(params any) error {
 	var buffer bytes.Buffer
 	form := multipart.NewWriter(&buffer)
 	hasParts := false
+	fields := url.Values{}
 	shape := source.Type()
 	for index := range shape.NumField() {
 		field := source.Field(index)
 		if isNil(field) || field.IsZero() {
 			continue
 		}
-		if wire := shape.Field(index).Tag.Get("query"); wire != "" {
-			item := indirect(field)
-			if item.Kind() != reflect.Slice {
-				r.query.Add(wire, text(item))
-				continue
+		tag := shape.Field(index).Tag
+		if wire := tag.Get("query"); wire != "" {
+			if err := addValues(r.query, wire, field); err != nil {
+				return err
 			}
-			for position := range item.Len() {
-				r.query.Add(wire, text(indirect(item.Index(position))))
+			continue
+		}
+		if wire := tag.Get("urlencoded"); wire != "" {
+			if err := addValues(fields, wire, field); err != nil {
+				return err
 			}
 			continue
 		}
 		hasParts = true
-		if err := addPart(form, shape.Field(index).Tag.Get("form"), field); err != nil {
+		if err := addPart(form, tag.Get("form"), field); err != nil {
 			return err
 		}
+	}
+	if len(fields) > 0 && !hasParts {
+		r.body = []byte(fields.Encode())
+		r.contentType = "application/x-www-form-urlencoded"
+		return nil
 	}
 	if !hasParts {
 		return nil

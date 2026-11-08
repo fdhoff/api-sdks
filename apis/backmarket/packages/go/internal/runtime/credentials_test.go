@@ -224,3 +224,15 @@ func TestEverySecretIsKeptOutOfErrorsAndLogs(t *testing.T) {
 		}
 	}
 }
+
+func TestA401OnAnOperationWithoutSecurityDoesNotRefresh(t *testing.T) {
+	credentials := &tokens{version: 1}
+	transport := serveFor(t, credentials, accepts("never"), nil)
+	operation := &Operation{ID: "token", Method: "POST", Path: "/token"}
+	if _, err := Call[any](context.Background(), transport, operation, Input{}); err == nil {
+		t.Fatal("no error")
+	}
+	if credentials.refreshes != 0 || len(credentials.seen) != 1 {
+		t.Errorf("refreshed %d times over %d attempts", credentials.refreshes, len(credentials.seen))
+	}
+}

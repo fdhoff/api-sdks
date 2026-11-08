@@ -5,7 +5,7 @@ Unofficial, spec-driven SDKs for third-party APIs, one directory per API under `
 | API | Directory | Status |
 | --- | --- | --- |
 | Back Market Seller API | [`apis/backmarket/`](apis/backmarket/) | Alphas in Python, TypeScript, Go, C# and Rust |
-| Etsy Open API v3 | [`apis/etsy/`](apis/etsy/) | Python and C# alphas, not yet published |
+| Etsy Open API v3 | [`apis/etsy/`](apis/etsy/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
 
 Every SDK here is unofficial and is not affiliated with, endorsed by, or supported by the company whose API it calls, including Back Market and Etsy.
 
@@ -144,7 +144,7 @@ One gap to watch for: where the spec declares a JSON success body, every SDK tre
 
 ## Etsy Open API v3
 
-The Python and C# SDKs are alphas, not yet published: see [`apis/etsy/packages/python/`](apis/etsy/packages/python/README.md) and [`apis/etsy/packages/csharp/`](apis/etsy/packages/csharp/README.md). The term 'Etsy' is a trademark of Etsy, Inc. This Application uses Etsy's API, but is not endorsed or certified by Etsy.
+The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see [`apis/etsy/packages/python/`](apis/etsy/packages/python/README.md), [`apis/etsy/packages/typescript/`](apis/etsy/packages/typescript/README.md), [`apis/etsy/packages/go/`](apis/etsy/packages/go/README.md), [`apis/etsy/packages/csharp/`](apis/etsy/packages/csharp/README.md) and [`apis/etsy/packages/rust/`](apis/etsy/packages/rust/README.md). The term 'Etsy' is a trademark of Etsy, Inc. This Application uses Etsy's API, but is not endorsed or certified by Etsy.
 
 ## Layout
 
@@ -156,7 +156,7 @@ The Python and C# SDKs are alphas, not yet published: see [`apis/etsy/packages/p
 | `apis/backmarket/packages/` | Per-language package config and generated clients |
 | `apis/backmarket/conformance/` | Language-neutral test cases and the reference driver |
 | `apis/backmarket/docs/spec-audit.md` | Known gaps in the spec and where each is handled |
-| `apis/etsy/` | The same for Etsy's Open API v3: spec pin, overlay, conformance cases, spec audit, and Python and C# packages |
+| `apis/etsy/` | The same for Etsy's Open API v3: spec pin, overlay, conformance cases, spec audit, and Python, TypeScript, Go, C# and Rust packages |
 
 `toolchain/` must not name this API or contain its endpoints or schemas; a test enforces that. This boundary keeps later extraction cheap and is not a framework.
 
