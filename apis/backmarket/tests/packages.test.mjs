@@ -3,6 +3,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { parse } from 'yaml';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const PYTHON = join(ROOT, 'apis/backmarket/packages/python');
@@ -188,14 +189,24 @@ const INTEGER_ENUMS = {
 };
 
 test('generated integer enum members have names, not numbers', async () => {
+  const overlay = parse(await readFile(join(ROOT, 'apis/backmarket/spec/overlay.yaml'), 'utf8'));
+  const expected = Object.fromEntries(
+    overlay.actions
+      .filter((action) => action.update?.['x-enum-varnames'])
+      .map((action) => [action.target.replace('$.components.schemas.', ''), action.update['x-enum-varnames'].length]),
+  );
   for (const [language, [dir, declaration, member]] of Object.entries(INTEGER_ENUMS)) {
     const members = [];
+    const counts = {};
     for (const name of await readdir(dir)) {
       const text = await readFile(join(dir, name), 'utf8');
       const type = text.match(declaration)?.[1];
-      if (type) members.push(...[...text.matchAll(member)].map((match) => [type, match[1]]));
+      if (!type) continue;
+      const found = [...text.matchAll(member)].map((match) => [type, match[1]]);
+      members.push(...found);
+      if (type in expected) counts[type] = found.length;
     }
-    assert.ok(members.length > 0, `${language} has no integer enums to check`);
+    assert.deepEqual(counts, expected, `${language} enum members no longer match the parser`);
     const numeric = members.filter(([type, name]) => /^\d+$/.test(name.replace(type, '').replace(/^(NUMBER|Value|Variant|Var)_?/i, '').replace(/^MINUS_?/i, '')));
     assert.deepEqual(numeric, [], `${language} names integer enum members after their values`);
   }
