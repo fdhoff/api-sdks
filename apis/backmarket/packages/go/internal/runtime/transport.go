@@ -61,6 +61,8 @@ type Operation struct {
 	Iterator    string
 	PathParams  []string
 	QueryParams []string
+	// Contract names the API contract the operation comes from, when an API has several.
+	Contract string
 	// HeaderParams are the header arguments, each falling back to the client's default.
 	HeaderParams []string
 	// Host is the key of the host that serves the operation in [Settings.Hosts]. Empty means BaseURL.
@@ -94,15 +96,23 @@ func (o *Operation) items(page map[string]json.RawMessage) []json.RawMessage {
 
 var operations = map[string]*Operation{}
 
-// Register records a generated operation, so tools can find it by ID.
+// Key is how [Lookup] finds the operation: its ID, after its contract and a dot when it has one.
+func (o *Operation) Key() string {
+	if o.Contract == "" {
+		return o.ID
+	}
+	return o.Contract + "." + o.ID
+}
+
+// Register records a generated operation, so tools can find it by [Operation.Key].
 func Register(operation Operation) *Operation {
-	operations[operation.ID] = &operation
+	operations[operation.Key()] = &operation
 	return &operation
 }
 
-// Lookup finds a registered operation.
-func Lookup(id string) (*Operation, bool) {
-	operation, found := operations[id]
+// Lookup finds a registered operation by its [Operation.Key].
+func Lookup(key string) (*Operation, bool) {
+	operation, found := operations[key]
 	return operation, found
 }
 
@@ -531,6 +541,10 @@ func Call[T any](ctx context.Context, t *Transport, operation *Operation, input 
 // nextLink reads the position out of a page's link and applies it to our own request. The link is
 // never fetched: it could send the token to another host. A nil result means the last page.
 func (t *Transport) nextLink(operation *Operation, paging NextLink, query url.Values, page map[string]json.RawMessage, answer *response) (url.Values, error) {
+	var items []json.RawMessage
+	if err := json.Unmarshal(page[paging.Items], &items); err != nil || items == nil {
+		return nil, t.decodeError(fmt.Sprintf("the %s field of a page is not a list", paging.Items), answer, err)
+	}
 	var link any
 	if err := json.Unmarshal(page[paging.Link], &link); page[paging.Link] != nil && err != nil {
 		return nil, t.decodeError(fmt.Sprintf("the %s link is not valid JSON", paging.Link), answer, err)

@@ -196,3 +196,25 @@ func TestAnEmpty204IsNoResultEvenWhereJSONIsDeclared(t *testing.T) {
 		t.Fatal("an empty 200 decoded")
 	}
 }
+
+func TestNextLinkPagingRejectsAPageWithoutAnItemsList(t *testing.T) {
+	operation := &Operation{ID: "list-items", Method: "GET", Path: "/items", QueryParams: []string{"token"}, Paging: NextLink{Items: "data", Link: "more", Params: []string{"token"}}}
+	for _, body := range []any{map[string]any{"total": 0}, map[string]any{"data": nil}, map[string]any{"data": "none", "more": nil}} {
+		_, _, err := walk(t, operation, pageParams{}, func(url.Values) any { return body })
+		var failure *Error
+		if !errors.As(err, &failure) || failure.Kind != KindDecode {
+			t.Errorf("for %v, error is %v", body, err)
+		}
+	}
+}
+
+func TestOperationsAreFoundByContractAndID(t *testing.T) {
+	plain := Register(Operation{ID: "registry-test-get"})
+	scoped := Register(Operation{ID: "registry-test-get", Contract: "registry_test"})
+	if found, ok := Lookup("registry-test-get"); !ok || found != plain {
+		t.Errorf("Lookup without a contract found %v", found)
+	}
+	if found, ok := Lookup("registry_test.registry-test-get"); !ok || found != scoped {
+		t.Errorf("Lookup with a contract found %v", found)
+	}
+}

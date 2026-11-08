@@ -13,6 +13,9 @@ var (
 {{#operation}}
 	op{{operationId}} = runtime.Register(runtime.Operation{
 		ID:          "{{operationIdOriginal}}",
+{{#sdkContract}}
+		Contract:    "{{.}}",
+{{/sdkContract}}
 		Method:      "{{#lambda.uppercase}}{{httpMethod}}{{/lambda.uppercase}}",
 		Path:        "{{{path}}}",
 		Resource:    "{{baseName}}",
