@@ -89,7 +89,10 @@ public sealed class BackMarketClient : ClientResources, IDisposable
     /// <param name="options">Required settings and overrides. <see cref="BackMarketClientOptions.HttpHandler"/> must not be set.</param>
     /// <param name="httpClient">
     /// Used as it is: the client neither changes nor disposes it, and sends its headers with each request. Its own
-    /// <see cref="HttpClient.Timeout"/> still applies, and its handler must not resend a failed write.
+    /// <see cref="HttpClient.Timeout"/> still applies, and its handler must not resend a failed write. Its
+    /// <c>DefaultRequestHeaders.ExpectContinue</c> must not be <see langword="true"/>. A plain <c>new HttpClient()</c>
+    /// follows redirects, unlike the client's own handler; build it over
+    /// <c>new SocketsHttpHandler { AllowAutoRedirect = false }</c> to keep every call on the server you selected.
     /// </param>
     public BackMarketClient(string token, BackMarketClientOptions options, HttpClient httpClient)
         : this(token, options, httpClient, null)
@@ -110,6 +113,10 @@ public sealed class BackMarketClient : ClientResources, IDisposable
         if (httpClient is not null && options.HttpHandler is not null)
         {
             throw new ArgumentException("Set HttpHandler or pass an HttpClient, not both", nameof(options));
+        }
+        if (httpClient?.DefaultRequestHeaders.ExpectContinue == true)
+        {
+            throw new ArgumentException("DefaultRequestHeaders.ExpectContinue must not be true: it overrides the client's own setting and lets a failed write be resent", nameof(httpClient));
         }
         if (string.IsNullOrEmpty(token) || token.Any(char.IsControl))
         {

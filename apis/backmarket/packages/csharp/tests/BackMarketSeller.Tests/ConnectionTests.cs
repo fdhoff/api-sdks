@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace BackMarketSeller.Tests;
@@ -68,6 +69,36 @@ public sealed class ConnectionTests
         Assert.Equal(1, order.OrderId);
         Assert.Contains($"Authorization: Basic {Token}\r\n", server.Requests[0].Head);
         Assert.Equal(2, server.Requests.Count);
+    }
+
+    [Fact]
+    public void AnHttpClientThatExpectsContinueIsRefused()
+    {
+        using var http = new HttpClient();
+        http.DefaultRequestHeaders.ExpectContinue = true;
+        var services = new ServiceCollection();
+        services.AddBackMarketSeller(Token, Options(new Uri("http://127.0.0.1/")))
+            .ConfigureHttpClient(factoryClient => factoryClient.DefaultRequestHeaders.ExpectContinue = true);
+        using var provider = services.BuildServiceProvider();
+
+        Assert.Throws<ArgumentException>(() => new BackMarketClient(Token, Options(new Uri("http://127.0.0.1/")), http));
+        Assert.Throws<ArgumentException>(() => provider.GetRequiredService<BackMarketClient>());
+    }
+
+    [Fact]
+    public async Task TheHttpClientFactoryRedactsTheTokenFromItsLogs()
+    {
+        await using var server = new LoopbackServer(Ok("""{"order_id": 1}"""));
+        var logs = new ListLoggerProvider();
+        var services = new ServiceCollection();
+        services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Trace).AddProvider(logs));
+        services.AddBackMarketSeller(Token, Options(server.Url));
+        await using var provider = services.BuildServiceProvider();
+
+        await provider.GetRequiredService<BackMarketClient>().Orders.GetAsync(1, TestContext.Current.CancellationToken);
+
+        Assert.Contains(logs.Lines, line => line.Contains("Authorization: *", StringComparison.Ordinal));
+        Assert.DoesNotContain(logs.Lines, line => line.Contains(Token, StringComparison.Ordinal));
     }
 
     private static BackMarketClientOptions Options(Uri url) => new()
@@ -175,4 +206,28 @@ public sealed class ConnectionTests
     }
 
     private sealed record Received(int Connection, string Method, string Head);
+
+    private sealed class ListLoggerProvider : ILoggerProvider, ILogger
+    {
+        public List<string> Lines { get; } = [];
+
+        public ILogger CreateLogger(string categoryName) => this;
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            lock (Lines)
+            {
+                Lines.Add(formatter(state, exception));
+            }
+        }
+
+        public void Dispose()
+        {
+        }
+    }
 }

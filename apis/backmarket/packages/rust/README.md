@@ -16,6 +16,8 @@ Requires Rust 1.85 or later and a Tokio runtime. TLS is rustls by default. For y
 cargo add backmarket-seller@0.1.0-alpha.1 --no-default-features --features native-tls
 ```
 
+With default features off and neither TLS feature, the crate builds but every `https` call fails with `ErrorKind::Connection`, after the usual retries for a GET. That is only right if you pass an `http_client` whose `reqwest` has TLS enabled through your own dependency.
+
 ## Quickstart
 
 ```rust,no_run
@@ -68,7 +70,7 @@ Your token is read from nowhere and stored nowhere: you pass it in, and the clie
 
 A `Client` is cheap to clone and safe to share between tasks.
 
-With `http_client`, the client still sends its own headers and applies its timeout and retries, but redirects follow your client's policy. Build it with `reqwest::redirect::Policy::none()` to keep your token on the server you selected. The crate re-exports the `reqwest` it uses as `backmarket_seller::reqwest`.
+With `http_client`, the client still sends its own headers and applies its timeout and retries, but redirects follow your client's policy. Build it with `reqwest::redirect::Policy::none()` to keep your token on the server you selected: under reqwest's default policy, a 307 or 308 to the same host resends a write's body with your token. Retries of failures stay GET-only only if your client has no retry policy of its own; one set with `reqwest::ClientBuilder::retry` can resend a write. The crate re-exports the `reqwest` it uses as `backmarket_seller::reqwest`.
 
 ## Behaviour
 
