@@ -5,7 +5,7 @@ package backmarketseller
 import (
 	"encoding/json"
 
-	"github.com/fdhoff/backmarket-seller-sdk/apis/backmarket/packages/go/internal/runtime"
+	"github.com/fdhoff/api-sdks/apis/backmarket/packages/go/internal/runtime"
 )
 
 // Delivery is an API object. Extra holds unknown fields and any value that did not fit its field.

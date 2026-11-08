@@ -7,7 +7,7 @@ Unofficial Go client for the Back Market Seller API. This project is unofficial 
 ## Install
 
 ```sh
-go get github.com/fdhoff/backmarket-seller-sdk/apis/backmarket/packages/go@v0.1.0-alpha.1
+go get github.com/fdhoff/api-sdks/apis/backmarket/packages/go@latest
 ```
 
 Requires Go 1.24 or later. The module has no dependencies outside the standard library.
@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/fdhoff/backmarket-seller-sdk/apis/backmarket/packages/go/backmarketseller"
+	"github.com/fdhoff/api-sdks/apis/backmarket/packages/go/backmarketseller"
 )
 
 func main() {
@@ -90,7 +90,7 @@ A `Client` is safe for concurrent use.
 
 ## Design
 
-See the [architecture document](https://github.com/fdhoff/backmarket-seller-sdk/blob/main/docs/architecture.md) for the runtime contract, testing limits and the decisions behind them.
+See the [architecture document](https://github.com/fdhoff/api-sdks/blob/main/docs/architecture.md) for the runtime contract, testing limits and the decisions behind them.
 
 ## Licence
 

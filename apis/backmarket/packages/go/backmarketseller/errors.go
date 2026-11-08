@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/fdhoff/backmarket-seller-sdk/apis/backmarket/packages/go/internal/runtime"
+	"github.com/fdhoff/api-sdks/apis/backmarket/packages/go/internal/runtime"
 )
 
 // APIError is the error every failed call returns, apart from the caller's own context ending and

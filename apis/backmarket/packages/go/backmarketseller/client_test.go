@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	bm "github.com/fdhoff/backmarket-seller-sdk/apis/backmarket/packages/go/backmarketseller"
+	bm "github.com/fdhoff/api-sdks/apis/backmarket/packages/go/backmarketseller"
 )
 
 const token = "synthetic-test-token"

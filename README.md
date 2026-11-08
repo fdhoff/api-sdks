@@ -1,16 +1,23 @@
-# backmarket-seller-sdk
+# api-sdks
 
-Unofficial spec-driven SDKs for the Back Market Seller API.
+Unofficial, spec-driven SDKs for third-party APIs, one directory per API under `apis/`. Each is generated from the API's public OpenAPI spec and tested against a mock built from it.
 
-This project is unofficial and is not affiliated with, endorsed by, or supported by Back Market.
+| API | Directory | Status |
+| --- | --- | --- |
+| Back Market Seller API | [`apis/backmarket/`](apis/backmarket/) | Alphas in Python, TypeScript, Go, C# and Rust |
+| Etsy Open API | — | In progress, not yet in this repository |
+
+Every SDK here is unofficial and is not affiliated with, endorsed by, or supported by the company whose API it calls, including Back Market.
+
+## Back Market Seller API
 
 The Python and TypeScript SDKs are alphas on PyPI and npm: see [`apis/backmarket/packages/python/`](apis/backmarket/packages/python/README.md) and [`apis/backmarket/packages/typescript/`](apis/backmarket/packages/typescript/README.md). The Go SDK is a tagged alpha: see [`apis/backmarket/packages/go/`](apis/backmarket/packages/go/README.md). The C# and Rust SDKs are alphas on NuGet and crates.io: see [`apis/backmarket/packages/csharp/`](apis/backmarket/packages/csharp/README.md) and [`apis/backmarket/packages/rust/`](apis/backmarket/packages/rust/README.md).
 
-## Quickstart
+### Quickstart
 
 Every SDK installs from its registry. Pass in your own API token.
 
-### Python
+#### Python
 
 ```sh
 pip install --pre backmarket-seller
@@ -31,7 +38,7 @@ with BackMarketClient(
 
 The [Python README](apis/backmarket/packages/python/README.md) covers async use, errors, configuration and behaviour.
 
-### TypeScript
+#### TypeScript
 
 Requires Node 22 or later.
 
@@ -56,7 +63,7 @@ for await (const order of client.orders.iter()) {
 
 The [TypeScript README](apis/backmarket/packages/typescript/README.md) covers CommonJS, errors, configuration and behaviour.
 
-### Go
+#### Go
 
 Requires Go 1.24 or later. Every call takes a context and pages are walked with `range`:
 
@@ -80,7 +87,7 @@ for order, err := range client.Orders.Iter(context.Background(), nil) {
 
 The [Go README](apis/backmarket/packages/go/README.md) covers installing, errors, configuration and behaviour.
 
-### C#
+#### C#
 
 Requires .NET 8 or later.
 
@@ -106,7 +113,7 @@ await foreach (var order in client.Orders.ListAllAsync())
 
 The [C# README](apis/backmarket/packages/csharp/README.md) covers installing, errors, configuration and behaviour.
 
-### Rust
+#### Rust
 
 Requires Rust 1.85 or later and a Tokio runtime.
 
@@ -129,7 +136,7 @@ while let Some(order) = orders.try_next().await? {
 
 The [Rust README](apis/backmarket/packages/rust/README.md) covers installing, errors, configuration and behaviour.
 
-## Live API reports
+### Live API reports
 
 Every test runs against a mock built from the public spec, so nothing here is confirmed against the live API. If you use an SDK for real, please report what you find, working or not, as a GitHub issue. The packages stay on 0.x until those reports confirm their behaviour.
 

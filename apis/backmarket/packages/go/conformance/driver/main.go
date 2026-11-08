@@ -17,8 +17,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fdhoff/backmarket-seller-sdk/apis/backmarket/packages/go/backmarketseller"
-	"github.com/fdhoff/backmarket-seller-sdk/apis/backmarket/packages/go/internal/runtime"
+	"github.com/fdhoff/api-sdks/apis/backmarket/packages/go/backmarketseller"
+	"github.com/fdhoff/api-sdks/apis/backmarket/packages/go/internal/runtime"
 )
 
 type settings struct {
