@@ -24,6 +24,12 @@ const NAME_MAPS = ['schema_names', 'inline_schema_names'];
 const PROSE = new Set(['description', 'summary', 'example', 'examples', 'externalDocs']);
 // Runtimes in languages without relative imports write their package name as this.
 const PACKAGE_PLACEHOLDER = 'PackageNamespace';
+// How an iterator walks pages, and the defaults for each style. `next_link` reads the position out of a
+// link in each page. `offset` advances an offset query parameter by the number of items received.
+const PAGING = {
+  next_link: { items: 'results', link: 'next', params: ['page', 'cursor'] },
+  offset: { items: 'results', total: 'count', offset: 'offset' },
+};
 
 // The upstream spec is not redistributed, so its prose and examples must not reach generated code.
 // Only `properties` maps hold user-chosen keys that can collide with those names.
@@ -96,7 +102,24 @@ export function packageNames(shared, config) {
   return names;
 }
 
-export function applyOperations(spec, operations) {
+// An operation's `paging` in operations.yaml overrides the API's default, which overrides the style's.
+export function resolvePaging(operationId, queryParams, override = {}, fallback = {}) {
+  const style = override.style ?? fallback.style ?? 'next_link';
+  const defaults = PAGING[style];
+  if (!defaults) throw new Error(`${operationId}: unknown paging style ${style}`);
+  const inherited = (fallback.style ?? 'next_link') === style ? fallback : {};
+  const paging = { ...defaults, ...inherited, ...override };
+  delete paging.style;
+  const unknown = Object.keys(paging).filter((key) => !(key in defaults));
+  if (unknown.length > 0) throw new Error(`${operationId}: unknown ${style} paging keys: ${unknown.join(', ')}`);
+  const positions = style === 'offset' ? [paging.offset] : paging.params;
+  if (!positions.some((name) => queryParams.includes(name))) {
+    throw new Error(`${operationId}: no query parameter holds the ${style} paging position (${positions.join(', ')})`);
+  }
+  return { [style]: paging };
+}
+
+export function applyOperations(spec, operations, paging = {}) {
   const unused = new Set(Object.keys(operations));
   for (const item of Object.values(spec.paths)) {
     const shared = item.parameters ?? [];
@@ -111,8 +134,13 @@ export function applyOperations(spec, operations) {
       operation['x-sdk-params-required'] = paramsRequired(spec, [...shared, ...(operation.parameters ?? [])], operation);
       operation['x-sdk-returns-json'] = returnsJson(spec, operation);
       if (names.iterator) {
+        const parameters = [...shared, ...(operation.parameters ?? [])].map((parameter) => dereference(spec, parameter));
+        const queryParams = parameters.filter((parameter) => parameter.in === 'query').map((parameter) => parameter.name);
         operation['x-sdk-iterator'] = names.iterator;
         operation['x-sdk-items'] = names.items;
+        operation['x-sdk-paging'] = resolvePaging(operation.operationId, queryParams, names.paging, paging);
+      } else if (names.paging) {
+        throw new Error(`${operation.operationId}: paging is set but there is no iterator`);
       }
       for (const parameter of [...shared, ...(operation.parameters ?? [])]) {
         if (names.string_params?.includes(parameter.name)) parameter.schema = { type: 'string' };
@@ -231,11 +259,12 @@ async function generate(apiDir, language) {
   const shared = (await exists(sharedNames)) ? parse(await readFile(sharedNames, 'utf8')) : {};
   Object.assign(config, packageNames(shared, config));
   const operations = parse(await readFile(join(packageDir, 'operations.yaml'), 'utf8'));
+  const sdk = (await exists(join(apiDir, 'sdk.yaml'))) ? parse(await readFile(join(apiDir, 'sdk.yaml'), 'utf8')) : {};
   const output = join(packageDir, config.output);
   const source = config.source ?? config.properties.packageName.replaceAll('.', '/');
 
   const built = stripProse(parse(await readFile(paths.build, 'utf8')));
-  const spec = applyOperations(renameSchemas(relax(built, config), config.schema_names), operations);
+  const spec = applyOperations(renameSchemas(relax(built, config), config.schema_names), operations, sdk?.paging);
   const work = await mkdtemp(join(tmpdir(), 'generate-'));
   try {
     const input = join(work, 'openapi.yaml');

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyOperations, dropNullable, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, stripProse, supportingFiles } from './generate.mjs';
+import { applyOperations, dropNullable, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -237,7 +237,7 @@ test('applyOperations names every operation and refuses gaps', () => {
     paths: {
       '/items/{id}': {
         parameters: [{ name: 'id', schema: { oneOf: [{ type: 'string' }] } }],
-        get: { operationId: 'get-item' },
+        get: { operationId: 'get-item', parameters: [{ name: 'page', in: 'query' }] },
       },
     },
   });
@@ -252,6 +252,40 @@ test('applyOperations names every operation and refuses gaps', () => {
   assert.deepEqual(item.parameters[0].schema, { type: 'string' });
   assert.throws(() => applyOperations(spec(), {}), /does not name get-item/);
   assert.throws(() => applyOperations(spec(), { ...names, other: {} }), /unknown operations: other/);
+});
+
+test('applyOperations gives every iterator its paging, and refuses paging without one', () => {
+  const spec = () => ({
+    paths: {
+      '/items': {
+        parameters: [{ name: 'limit', in: 'query' }],
+        get: { operationId: 'list-items', parameters: [{ name: 'offset', in: 'query' }] },
+      },
+    },
+  });
+  const list = { resource: 'items', method: 'list', summary: 'List.', iterator: 'iter', items: 'Item' };
+  const offset = { style: 'offset' };
+  const { get } = applyOperations(spec(), { 'list-items': list }, offset).paths['/items'];
+  assert.deepEqual(get['x-sdk-paging'], { offset: { items: 'results', total: 'count', offset: 'offset' } });
+  const unpaged = { ...list, iterator: undefined, paging: offset };
+  assert.throws(() => applyOperations(spec(), { 'list-items': unpaged }), /paging is set but there is no iterator/);
+  assert.throws(() => applyOperations(spec(), { 'list-items': list }), /no query parameter holds the next_link paging position/);
+});
+
+test('resolvePaging layers the operation over the API default over the style default', () => {
+  assert.deepEqual(resolvePaging('op', ['page']), { next_link: { items: 'results', link: 'next', params: ['page', 'cursor'] } });
+  assert.deepEqual(resolvePaging('op', ['token'], { params: ['token'] }, { style: 'next_link', link: 'more' }), {
+    next_link: { items: 'results', link: 'more', params: ['token'] },
+  });
+  assert.deepEqual(resolvePaging('op', ['start'], { total: 'total', offset: 'start' }, { style: 'offset', items: 'data' }), {
+    offset: { items: 'data', total: 'total', offset: 'start' },
+  });
+  assert.deepEqual(resolvePaging('op', ['offset'], { style: 'offset' }, { style: 'next_link', link: 'more' }), {
+    offset: { items: 'results', total: 'count', offset: 'offset' },
+  });
+  assert.throws(() => resolvePaging('op', ['page'], { style: 'cursor' }), /op: unknown paging style cursor/);
+  assert.throws(() => resolvePaging('op', ['offset'], { style: 'offset', link: 'next' }), /unknown offset paging keys: link/);
+  assert.throws(() => resolvePaging('op', ['page'], { style: 'offset' }), /no query parameter holds the offset paging position \(offset\)/);
 });
 
 const driftSpec = (version, paths, schemas) => ({ info: { version }, paths, components: { schemas } });

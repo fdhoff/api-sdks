@@ -150,6 +150,8 @@ The API has four pagination styles, and the iterator hides them. It stops when `
 
 The iterator reads the `page` or `cursor` value out of `next` and reissues the request against the configured server. It never fetches `next` directly: that URL could send the token to another host.
 
+These rules are the toolchain's `next_link` paging style, set for this API in `apis/backmarket/sdk.yaml`. An operation can override it with `paging` in its package's `operations.yaml`. The other style, `offset`, is for APIs that page by offset: it advances the offset parameter by the number of items received and stops at an empty page or once the offset reaches the page's total. The caller's own starting offset and limit are kept.
+
 ### Typed errors
 
 Errors map on status first, then parse the body best-effort. A body that fits no known shape, or is not JSON, still produces a typed error with the status and the raw text, with the token removed. A failure response whose compressed body cannot be decompressed produces the same error with an empty body, and is retried as usual.

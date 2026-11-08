@@ -1,0 +1,4 @@
+# Settings every language's package shares.
+# `paging` is how iterator methods walk pages, unless an operation in operations.yaml sets its own.
+# `next_link` reads the `page` or `cursor` parameter out of each page's `next` link and never fetches the link.
+paging: { style: next_link, items: results, link: next, params: [page, cursor] }
