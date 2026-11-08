@@ -4,7 +4,9 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
-The first alpha, 0.1.0-alpha.1, not yet published.
+## 0.1.0-alpha.1 (2026-11-08)
+
+The first alpha.
 
 * Typed client for all 107 operations, generated from the public spec, for Node.js 22 or later, as ESM and CommonJS, with no runtime dependencies.
 * `x-api-key` on every call, and the OAuth access token only on calls that need it.

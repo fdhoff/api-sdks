@@ -4,7 +4,9 @@ This module follows semantic versioning and stays on 0.x until outside users con
 
 ## Unreleased
 
-The first alpha, not yet published.
+## 0.1.0-alpha.1 (2026-11-08)
+
+The first alpha.
 
 * Typed client for all 107 operations, generated from the public spec, with `context.Context` on every call.
 * `x-api-key` on every call, and the OAuth access token only on calls that need it.
