@@ -678,15 +678,24 @@ func (t *Transport) nextCursor(paging Cursor, query url.Values, page map[string]
 		raw = object[key]
 	}
 	var value any
-	if err := json.Unmarshal(raw, &value); raw != nil && err != nil {
-		return nil, t.decodeError(fmt.Sprintf("the %s value of a page is not valid JSON", paging.Next), answer, err)
+	if raw != nil {
+		decoder := json.NewDecoder(bytes.NewReader(raw))
+		decoder.UseNumber()
+		if err := decoder.Decode(&value); err != nil {
+			return nil, t.decodeError(fmt.Sprintf("the %s value of a page is not valid JSON", paging.Next), answer, err)
+		}
 	}
 	if value == nil || value == "" {
 		return nil, nil
 	}
+	if number, isNumber := value.(json.Number); isNumber {
+		if integer, err := strconv.ParseInt(string(number), 10, 64); err == nil {
+			value = strconv.FormatInt(integer, 10)
+		}
+	}
 	text, isText := value.(string)
 	if !isText {
-		return nil, t.decodeError(fmt.Sprintf("the %s value of a page is not a string", paging.Next), answer, nil)
+		return nil, t.decodeError(fmt.Sprintf("the %s value of a page is not a string or an integer", paging.Next), answer, nil)
 	}
 	if query.Has(paging.Param) && query.Get(paging.Param) == text {
 		return nil, t.decodeError(fmt.Sprintf("the %s value does not advance the iteration", paging.Next), answer, nil)

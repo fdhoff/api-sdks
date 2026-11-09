@@ -693,19 +693,38 @@ test("cursor paging starts at the caller's position and stops without a next val
   }
 });
 
-test('cursor paging rejects a next value equal to the one sent', async () => {
-  const { pages, queries } = pagesFor(() => json({ data: [{ n: 1 }], page: { next_page: 'a' } }));
-  await assert.rejects(pages.all(cursorList, { startAfter: 'a' }), (error) => {
-    assert.ok(error instanceof DecodeError);
-    assert.match(error.message, /does not advance the iteration/);
-    return true;
-  });
-  assert.deepEqual(queries, ['?start_after=a']);
+test('cursor paging sends an integer next value back as its digits', async () => {
+  const bodies = [
+    { data: [{ n: 0 }], page: { next_page: 0 } },
+    { data: [{ n: 1 }], page: { next_page: 7 } },
+    { data: [], page: { next_page: null } },
+  ];
+  const { pages, queries } = pagesFor(() => json(bodies.shift()));
+  assert.deepEqual(await pages.all(cursorList), [{ n: 0 }, { n: 1 }]);
+  assert.deepEqual(queries, ['', '?start_after=0', '?start_after=7']);
 });
+
+for (const [sent, next] of [
+  ['a', 'a'],
+  ['3', 3],
+  [3, 3],
+]) {
+  test(`cursor paging rejects a next value equal to the one sent: ${JSON.stringify(sent)} then ${JSON.stringify(next)}`, async () => {
+    const { pages, queries } = pagesFor(() => json({ data: [{ n: 1 }], page: { next_page: next } }));
+    await assert.rejects(pages.all(cursorList, { startAfter: sent }), (error) => {
+      assert.ok(error instanceof DecodeError);
+      assert.match(error.message, /does not advance the iteration/);
+      return true;
+    });
+    assert.deepEqual(queries, [`?start_after=${sent}`]);
+  });
+}
 
 for (const body of [
   { page: { next_page: 'b' } },
-  { data: [{ n: 1 }], page: { next_page: 2 } },
+  { data: [{ n: 1 }], page: { next_page: 2.5 } },
+  { data: [{ n: 1 }], page: { next_page: true } },
+  { data: [{ n: 1 }], page: { next_page: { id: 'b' } } },
   { data: [{ n: 1 }], page: 'b' },
 ]) {
   test(`cursor paging rejects a malformed page: ${JSON.stringify(body)}`, async () => {

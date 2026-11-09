@@ -202,15 +202,27 @@ public sealed class ClientTests
     }
 
     [Fact]
-    public void CursorPagingRejectsANextValueEqualToTheOneSent()
+    public void CursorPagingSendsAnIntegerNextValueBackAsItsDigits()
     {
-        var error = Assert.Throws<ApiDecodeException>(() => Next(CursorList, [null, "a"], """{"data": [{}], "page": {"next_page": "a"}}""", 1));
+        Assert.Equal(new object?[] { null, "0" }, Next(CursorList, [null, null], """{"data": [{}], "page": {"next_page": 0}}""", 1));
+        Assert.Equal(new object?[] { null, "7" }, Next(CursorList, [null, "0"], """{"data": [{}], "page": {"next_page": 7}}""", 1));
+    }
+
+    [Theory]
+    [InlineData("a", """{"data": [{}], "page": {"next_page": "a"}}""")]
+    [InlineData("3", """{"data": [{}], "page": {"next_page": 3}}""")]
+    [InlineData(3L, """{"data": [{}], "page": {"next_page": 3}}""")]
+    public void CursorPagingRejectsANextValueEqualToTheOneSent(object sent, string page)
+    {
+        var error = Assert.Throws<ApiDecodeException>(() => Next(CursorList, [null, sent], page, 1));
         Assert.Contains("does not advance the iteration", error.Message);
     }
 
     [Theory]
     [InlineData("""{"page": {"next_page": "b"}}""")]
-    [InlineData("""{"data": [{}], "page": {"next_page": 2}}""")]
+    [InlineData("""{"data": [{}], "page": {"next_page": 2.5}}""")]
+    [InlineData("""{"data": [{}], "page": {"next_page": true}}""")]
+    [InlineData("""{"data": [{}], "page": {"next_page": {"id": "b"}}}""")]
     [InlineData("""{"data": [{}], "page": "b"}""")]
     public void CursorPagingRejectsAMalformedPage(string page)
     {

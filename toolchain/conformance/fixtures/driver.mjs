@@ -57,7 +57,8 @@ const CURSOR_OPERATIONS = {
 };
 
 // Walks cursor pages as the runtimes do: send the value at the `next` path back as `param` until it is null,
-// empty or absent. A page without its items list, or a value equal to the one just sent, is a decode error.
+// empty or absent, an integer as its decimal digits. A page without its items list, a value that is neither
+// a string nor an integer, or a value equal to the one just sent is a decode error.
 async function cursorPages(client, request) {
   const operation = CURSOR_OPERATIONS[request.operation];
   const items = [];
@@ -70,8 +71,9 @@ async function cursorPages(client, request) {
     const page = await response.json();
     if (!Array.isArray(page?.[operation.items])) return { error: { kind: 'decode' } };
     items.push(...page[operation.items]);
-    const next = operation.next.split('.').reduce((value, key) => value?.[key], page);
-    if (next === null || next === undefined || next === '') return { result: items };
+    const value = operation.next.split('.').reduce((value, key) => value?.[key], page);
+    if (value === null || value === undefined || value === '') return { result: items };
+    const next = Number.isSafeInteger(value) ? String(value) : value;
     if (typeof next !== 'string' || String(query[operation.param]) === next) return { error: { kind: 'decode' } };
     query[operation.param] = next;
   }

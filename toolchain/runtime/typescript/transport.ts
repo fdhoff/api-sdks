@@ -440,7 +440,10 @@ function nextCursor(operation: Operation, paging: Cursor, params: Params, page: 
     value = value[key];
   }
   if (value === null || value === undefined || value === '') return undefined;
-  if (typeof value !== 'string') throw new DecodeError(`The \`${paging.next}\` value of a page is not a string`);
+  if (Number.isSafeInteger(value)) value = String(value);
+  if (typeof value !== 'string') {
+    throw new DecodeError(`The \`${paging.next}\` value of a page is not a string or an integer`);
+  }
   const param = operation.params.find(({ wire, location }) => location === 'query' && wire === paging.param);
   if (param === undefined) throw new DecodeError(`The operation has no \`${paging.param}\` parameter`);
   const current = params[param.name];
