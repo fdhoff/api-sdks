@@ -5,7 +5,7 @@
 mod dispatch;
 
 use futures_util::TryStreamExt;
-use multihost::{Download, Error, Items};
+use multihost::{Download, Error, Items, WaitOptions};
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 
@@ -15,6 +15,7 @@ pub struct Case {
     pub body: Option<Value>,
     pub multipart: Map<String, Value>,
     pub paginate: bool,
+    pub wait: bool,
 }
 
 fn coerce<T: DeserializeOwned>(value: &Value) -> T {
@@ -43,6 +44,10 @@ pub fn output<T: serde::Serialize>(result: Result<T, Error>) -> Result<Value, Er
 
 pub async fn download_output(result: Result<Download, Error>) -> Result<Value, Error> {
     result.map(|download| Value::String(download.content_type().to_owned()))
+}
+
+pub fn wait_options() -> WaitOptions {
+    WaitOptions::default()
 }
 
 pub async fn collect<T: serde::Serialize>(items: Items<T>) -> Result<Value, Error> {
