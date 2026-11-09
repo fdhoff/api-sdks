@@ -15,7 +15,7 @@ const CREATE_REPORT_TASK: Operation = Operation {
     method: "POST",
     path: "/sell/marketing/v1/ad_report_task",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -27,7 +27,7 @@ const DELETE_REPORT_TASK: Operation = Operation {
     method: "DELETE",
     path: "/sell/marketing/v1/ad_report_task/{report_task_id}",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -91,23 +91,23 @@ impl ReportTasksApi {
     }
 
     /// Start a task that builds a Promoted Listings report.
-    pub async fn create(&self, body: &models::CreateReportTask) -> Result<models::Error, Error> {
+    pub async fn create(&self, body: &models::CreateReportTask) -> Result<(), Error> {
         self.transport
-            .call(Request::new(&CREATE_REPORT_TASK).host("api").json(&body))
+            .call::<serde_json::Value>(Request::new(&CREATE_REPORT_TASK).host("api").json(&body))
             .await
+            .map(drop)
     }
 
     /// Delete a report task.
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn delete(&self, report_task_id: &str) -> Result<Option<models::Error>, Error> {
+    pub async fn delete(&self, report_task_id: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&DELETE_REPORT_TASK)
                     .host("api")
                     .path("report_task_id", &report_task_id),
             )
             .await
+            .map(drop)
     }
 
     /// Get one report task.

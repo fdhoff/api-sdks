@@ -30,7 +30,6 @@ var (
 		Path:        "/sell/inventory/v1/inventory_item/{sku}/product_compatibility",
 		Resource:    "ProductCompatibility",
 		Name:        "Delete",
-		ReturnsJSON: true,
 		PathParams:  []string{"sku"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -67,8 +66,9 @@ func (r *ProductCompatibilityResource) CreateOrReplace(ctx context.Context, sku 
 }
 
 // Delete removes the vehicle list of an inventory item.
-func (r *ProductCompatibilityResource) Delete(ctx context.Context, sku string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opDeleteProductCompatibility, runtime.Input{Path: []any{sku}})
+func (r *ProductCompatibilityResource) Delete(ctx context.Context, sku string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opDeleteProductCompatibility, runtime.Input{Path: []any{sku}})
+	return err
 }
 
 // Get gets the vehicles an inventory item fits.

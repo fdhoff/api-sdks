@@ -34,3 +34,7 @@ actions:
     update:
       '429':
         $ref: '#/components/responses/RateLimited'
+
+  - description: B4. A 204 has no body, but every 204 declares eBay's error object as one.
+    target: $.paths.*.*.responses['204'].content
+    remove: true

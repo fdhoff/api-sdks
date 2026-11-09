@@ -12,3 +12,6 @@ actions:
     update:
       schema:
         type: string
+  - description: C10. createReportTask answers 202 with the task's location and no body, but declares eBay's error object as one.
+    target: $.paths['/ad_report_task'].post.responses['202'].content
+    remove: true

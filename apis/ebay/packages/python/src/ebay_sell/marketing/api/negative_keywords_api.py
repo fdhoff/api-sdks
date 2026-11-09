@@ -13,7 +13,6 @@ from ebay_sell.marketing.models.bulk_create_negative_keyword_response import Bul
 from ebay_sell.marketing.models.bulk_update_negative_keyword_request import BulkUpdateNegativeKeywordRequest
 from ebay_sell.marketing.models.bulk_update_negative_keyword_response import BulkUpdateNegativeKeywordResponse
 from ebay_sell.marketing.models.create_negative_keyword_request import CreateNegativeKeywordRequest
-from ebay_sell.marketing.models.error import Error
 from ebay_sell.marketing.models.negative_keyword import NegativeKeyword
 from ebay_sell.marketing.models.negative_keyword_paged_collection_response import NegativeKeywordPagedCollectionResponse
 from ebay_sell.marketing.models.update_negative_keyword_request import UpdateNegativeKeywordRequest
@@ -115,15 +114,14 @@ _get_negative_keywords: Operation[NegativeKeywordPagedCollectionResponse] = Oper
     ),
     host="api",
 )
-_update_negative_keyword: Operation[Error] = Operation(
+_update_negative_keyword: Operation[None] = Operation(
     id="updateNegativeKeyword",
     method="PUT",
     path="/sell/marketing/v1/negative_keyword/{negative_keyword_id}",
     resource="negative_keywords",
     name="update",
     params=(Param("negative_keyword_id", "negative_keyword_id", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
@@ -228,7 +226,7 @@ class NegativeKeywordsApi(Resource):
         self,
         negative_keyword_id: StrictStr,
         body: Union[UpdateNegativeKeywordRequest, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Change the status of a negative keyword."""
         return self._call(
             _update_negative_keyword,
@@ -327,7 +325,7 @@ class AsyncNegativeKeywordsApi(AsyncResource):
         self,
         negative_keyword_id: StrictStr,
         body: Union[UpdateNegativeKeywordRequest, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Change the status of a negative keyword."""
         return await self._call(
             _update_negative_keyword,

@@ -39,7 +39,7 @@ const DELETE_CAMPAIGN: Operation = Operation {
     method: "DELETE",
     path: "/sell/marketing/v1/ad_campaign/{campaign_id}",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -51,7 +51,7 @@ const END_CAMPAIGN: Operation = Operation {
     method: "POST",
     path: "/sell/marketing/v1/ad_campaign/{campaign_id}/end",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -141,7 +141,7 @@ const PAUSE_CAMPAIGN: Operation = Operation {
     method: "POST",
     path: "/sell/marketing/v1/ad_campaign/{campaign_id}/pause",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -153,7 +153,7 @@ const RESUME_CAMPAIGN: Operation = Operation {
     method: "POST",
     path: "/sell/marketing/v1/ad_campaign/{campaign_id}/resume",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -205,7 +205,7 @@ const UPDATE_AD_RATE_STRATEGY: Operation = Operation {
     method: "POST",
     path: "/sell/marketing/v1/ad_campaign/{campaign_id}/update_ad_rate_strategy",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -217,7 +217,7 @@ const UPDATE_BIDDING_STRATEGY: Operation = Operation {
     method: "POST",
     path: "/sell/marketing/v1/ad_campaign/{campaign_id}/update_bidding_strategy",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -241,7 +241,7 @@ const UPDATE_CAMPAIGN_IDENTIFICATION: Operation = Operation {
     method: "POST",
     path: "/sell/marketing/v1/ad_campaign/{campaign_id}/update_campaign_identification",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -372,29 +372,27 @@ impl CampaignsApi {
     }
 
     /// Delete a campaign.
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn delete(&self, campaign_id: &str) -> Result<Option<models::Error>, Error> {
+    pub async fn delete(&self, campaign_id: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&DELETE_CAMPAIGN)
                     .host("api")
                     .path("campaign_id", &campaign_id),
             )
             .await
+            .map(drop)
     }
 
     /// End a campaign.
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn end(&self, campaign_id: &str) -> Result<Option<models::Error>, Error> {
+    pub async fn end(&self, campaign_id: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&END_CAMPAIGN)
                     .host("api")
                     .path("campaign_id", &campaign_id),
             )
             .await
+            .map(drop)
     }
 
     /// Find the campaigns that hold a listing or inventory reference.
@@ -455,29 +453,27 @@ impl CampaignsApi {
     }
 
     /// Pause a campaign.
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn pause(&self, campaign_id: &str) -> Result<Option<models::Error>, Error> {
+    pub async fn pause(&self, campaign_id: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&PAUSE_CAMPAIGN)
                     .host("api")
                     .path("campaign_id", &campaign_id),
             )
             .await
+            .map(drop)
     }
 
     /// Resume a paused campaign.
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn resume(&self, campaign_id: &str) -> Result<Option<models::Error>, Error> {
+    pub async fn resume(&self, campaign_id: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&RESUME_CAMPAIGN)
                     .host("api")
                     .path("campaign_id", &campaign_id),
             )
             .await
+            .map(drop)
     }
 
     /// Suggest a daily budget for a new campaign.
@@ -532,39 +528,37 @@ impl CampaignsApi {
     }
 
     /// Change how a campaign sets its ad rates.
-    ///
-    /// `None` when the API answers 204 with no body.
     pub async fn update_ad_rate_strategy(
         &self,
         campaign_id: &str,
         body: &models::UpdateAdrateStrategyRequest,
-    ) -> Result<Option<models::Error>, Error> {
+    ) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&UPDATE_AD_RATE_STRATEGY)
                     .host("api")
                     .path("campaign_id", &campaign_id)
                     .json(&body),
             )
             .await
+            .map(drop)
     }
 
     /// Change the bidding strategy of a campaign.
-    ///
-    /// `None` when the API answers 204 with no body.
     pub async fn update_bidding_strategy(
         &self,
         campaign_id: &str,
         body: &models::UpdateBiddingStrategyRequest,
-    ) -> Result<Option<models::Error>, Error> {
+    ) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&UPDATE_BIDDING_STRATEGY)
                     .host("api")
                     .path("campaign_id", &campaign_id)
                     .json(&body),
             )
             .await
+            .map(drop)
     }
 
     /// Change the daily budget of a campaign.
@@ -586,20 +580,19 @@ impl CampaignsApi {
     }
 
     /// Rename a campaign or change its dates.
-    ///
-    /// `None` when the API answers 204 with no body.
     pub async fn update_identification(
         &self,
         campaign_id: &str,
         body: &models::UpdateCampaignIdentificationRequest,
-    ) -> Result<Option<models::Error>, Error> {
+    ) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&UPDATE_CAMPAIGN_IDENTIFICATION)
                     .host("api")
                     .path("campaign_id", &campaign_id)
                     .json(&body),
             )
             .await
+            .map(drop)
     }
 }

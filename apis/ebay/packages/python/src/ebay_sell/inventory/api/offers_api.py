@@ -15,7 +15,6 @@ from ebay_sell.inventory.models.bulk_publish_response import BulkPublishResponse
 from ebay_sell.inventory.models.ebay_offer_details_with_all import EbayOfferDetailsWithAll
 from ebay_sell.inventory.models.ebay_offer_details_with_id import EbayOfferDetailsWithId
 from ebay_sell.inventory.models.ebay_offer_details_with_keys import EbayOfferDetailsWithKeys
-from ebay_sell.inventory.models.error import Error
 from ebay_sell.inventory.models.fees_summary_response import FeesSummaryResponse
 from ebay_sell.inventory.models.offer_keys_with_id import OfferKeysWithId
 from ebay_sell.inventory.models.offer_response import OfferResponse
@@ -61,15 +60,14 @@ _create_offer: Operation[OfferResponse] = Operation(
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
-_delete_offer: Operation[Error] = Operation(
+_delete_offer: Operation[None] = Operation(
     id="deleteOffer",
     method="DELETE",
     path="/sell/inventory/v1/offer/{offerId}",
     resource="offers",
     name="delete",
     params=(Param("offerId", "offer_id", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
@@ -207,15 +205,14 @@ _withdraw_offer: Operation[WithdrawResponse] = Operation(
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
-_withdraw_offer_by_inventory_item_group: Operation[Error] = Operation(
+_withdraw_offer_by_inventory_item_group: Operation[None] = Operation(
     id="withdrawOfferByInventoryItemGroup",
     method="POST",
     path="/sell/inventory/v1/offer/withdraw_by_inventory_item_group",
     resource="offers",
     name="withdraw_by_inventory_item_group",
     params=(),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
@@ -280,7 +277,7 @@ class OffersApi(Resource):
     def delete(
         self,
         offer_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete an offer"""
         return self._call(
             _delete_offer,
@@ -402,7 +399,7 @@ class OffersApi(Resource):
     def withdraw_by_inventory_item_group(
         self,
         body: Union[WithdrawByInventoryItemGroupRequest, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """End the multi-variation listing of an inventory item group."""
         return self._call(
             _withdraw_offer_by_inventory_item_group,
@@ -454,7 +451,7 @@ class AsyncOffersApi(AsyncResource):
     async def delete(
         self,
         offer_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete an offer"""
         return await self._call(
             _delete_offer,
@@ -576,7 +573,7 @@ class AsyncOffersApi(AsyncResource):
     async def withdraw_by_inventory_item_group(
         self,
         body: Union[WithdrawByInventoryItemGroupRequest, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """End the multi-variation listing of an inventory item group."""
         return await self._call(
             _withdraw_offer_by_inventory_item_group,

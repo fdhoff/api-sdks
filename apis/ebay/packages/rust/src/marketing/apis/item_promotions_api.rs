@@ -27,7 +27,7 @@ const DELETE_ITEM_PROMOTION: Operation = Operation {
     method: "DELETE",
     path: "/sell/marketing/v1/item_promotion/{promotion_id}",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -88,16 +88,15 @@ impl ItemPromotionsApi {
     }
 
     /// Delete a threshold promotion.
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn delete(&self, promotion_id: &str) -> Result<Option<models::Error>, Error> {
+    pub async fn delete(&self, promotion_id: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&DELETE_ITEM_PROMOTION)
                     .host("api")
                     .path("promotion_id", &promotion_id),
             )
             .await
+            .map(drop)
     }
 
     /// Get one threshold promotion.

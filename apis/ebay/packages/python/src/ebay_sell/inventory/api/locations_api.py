@@ -8,33 +8,30 @@ from pydantic import StrictStr
 
 from ebay_sell._runtime import AsyncResource, NextLink, Operation, Param, Resource, Scheme, checked
 from ebay_sell.inventory import models as _models
-from ebay_sell.inventory.models.error import Error
 from ebay_sell.inventory.models.inventory_location import InventoryLocation
 from ebay_sell.inventory.models.inventory_location_full import InventoryLocationFull
 from ebay_sell.inventory.models.inventory_location_response import InventoryLocationResponse
 from ebay_sell.inventory.models.location_response import LocationResponse
 
-_create_inventory_location: Operation[Error] = Operation(
+_create_inventory_location: Operation[None] = Operation(
     id="createInventoryLocation",
     method="POST",
     path="/sell/inventory/v1/location/{merchantLocationKey}",
     resource="locations",
     name="create",
     params=(Param("merchantLocationKey", "merchant_location_key", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
-_delete_inventory_location: Operation[Error] = Operation(
+_delete_inventory_location: Operation[None] = Operation(
     id="deleteInventoryLocation",
     method="DELETE",
     path="/sell/inventory/v1/location/{merchantLocationKey}",
     resource="locations",
     name="delete",
     params=(Param("merchantLocationKey", "merchant_location_key", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
@@ -120,15 +117,14 @@ _get_inventory_locations: Operation[LocationResponse] = Operation(
     ),
     host="api",
 )
-_update_inventory_location: Operation[Error] = Operation(
+_update_inventory_location: Operation[None] = Operation(
     id="updateInventoryLocation",
     method="POST",
     path="/sell/inventory/v1/location/{merchantLocationKey}/update_location_details",
     resource="locations",
     name="update",
     params=(Param("merchantLocationKey", "merchant_location_key", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
@@ -150,7 +146,7 @@ class LocationsApi(Resource):
         self,
         merchant_location_key: StrictStr,
         body: Union[InventoryLocationFull, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Create an inventory location."""
         return self._call(
             _create_inventory_location,
@@ -162,7 +158,7 @@ class LocationsApi(Resource):
     def delete(
         self,
         merchant_location_key: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete an inventory location."""
         return self._call(
             _delete_inventory_location,
@@ -235,7 +231,7 @@ class LocationsApi(Resource):
         self,
         merchant_location_key: StrictStr,
         body: Union[InventoryLocation, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Update the details of an inventory location."""
         return self._call(
             _update_inventory_location,
@@ -250,7 +246,7 @@ class AsyncLocationsApi(AsyncResource):
         self,
         merchant_location_key: StrictStr,
         body: Union[InventoryLocationFull, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Create an inventory location."""
         return await self._call(
             _create_inventory_location,
@@ -262,7 +258,7 @@ class AsyncLocationsApi(AsyncResource):
     async def delete(
         self,
         merchant_location_key: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete an inventory location."""
         return await self._call(
             _delete_inventory_location,
@@ -335,7 +331,7 @@ class AsyncLocationsApi(AsyncResource):
         self,
         merchant_location_key: StrictStr,
         body: Union[InventoryLocation, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Update the details of an inventory location."""
         return await self._call(
             _update_inventory_location,

@@ -135,7 +135,7 @@ const DELETE_AD: Operation = Operation {
     method: "DELETE",
     path: "/sell/marketing/v1/ad_campaign/{campaign_id}/ad/{ad_id}",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -214,7 +214,7 @@ const UPDATE_BID: Operation = Operation {
     method: "POST",
     path: "/sell/marketing/v1/ad_campaign/{campaign_id}/ad/{ad_id}/update_bid",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -428,21 +428,16 @@ impl AdsApi {
     }
 
     /// Delete an ad.
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn delete(
-        &self,
-        ad_id: &str,
-        campaign_id: &str,
-    ) -> Result<Option<models::Error>, Error> {
+    pub async fn delete(&self, ad_id: &str, campaign_id: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&DELETE_AD)
                     .host("api")
                     .path("ad_id", &ad_id)
                     .path("campaign_id", &campaign_id),
             )
             .await
+            .map(drop)
     }
 
     /// Delete a campaign's ads for one inventory reference.
@@ -517,16 +512,14 @@ impl AdsApi {
     }
 
     /// Change the bid of an ad.
-    ///
-    /// `None` when the API answers 204 with no body.
     pub async fn update_bid(
         &self,
         ad_id: &str,
         campaign_id: &str,
         body: &models::UpdateBidPercentageRequest,
-    ) -> Result<Option<models::Error>, Error> {
+    ) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&UPDATE_BID)
                     .host("api")
                     .path("ad_id", &ad_id)
@@ -534,5 +527,6 @@ impl AdsApi {
                     .json(&body),
             )
             .await
+            .map(drop)
     }
 }

@@ -91,7 +91,7 @@ const UPDATE_NEGATIVE_KEYWORD: Operation = Operation {
     method: "PUT",
     path: "/sell/marketing/v1/negative_keyword/{negative_keyword_id}",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -208,20 +208,19 @@ impl NegativeKeywordsApi {
     }
 
     /// Change the status of a negative keyword.
-    ///
-    /// `None` when the API answers 204 with no body.
     pub async fn update(
         &self,
         negative_keyword_id: &str,
         body: &models::UpdateNegativeKeywordRequest,
-    ) -> Result<Option<models::Error>, Error> {
+    ) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&UPDATE_NEGATIVE_KEYWORD)
                     .host("api")
                     .path("negative_keyword_id", &negative_keyword_id)
                     .json(&body),
             )
             .await
+            .map(drop)
     }
 }

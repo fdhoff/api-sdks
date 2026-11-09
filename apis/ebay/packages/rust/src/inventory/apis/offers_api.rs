@@ -51,7 +51,7 @@ const DELETE_OFFER: Operation = Operation {
     method: "DELETE",
     path: "/sell/inventory/v1/offer/{offerId}",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -160,7 +160,7 @@ const WITHDRAW_OFFER_BY_INVENTORY_ITEM_GROUP: Operation = Operation {
     method: "POST",
     path: "/sell/inventory/v1/offer/withdraw_by_inventory_item_group",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -281,16 +281,15 @@ impl OffersApi {
     }
 
     /// Delete an offer
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn delete(&self, offer_id: &str) -> Result<Option<models::Error>, Error> {
+    pub async fn delete(&self, offer_id: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&DELETE_OFFER)
                     .host("api")
                     .path("offerId", &offer_id),
             )
             .await
+            .map(drop)
     }
 
     /// Estimate the listing fees of unpublished offers.
@@ -390,18 +389,17 @@ impl OffersApi {
     }
 
     /// End the multi-variation listing of an inventory item group.
-    ///
-    /// `None` when the API answers 204 with no body.
     pub async fn withdraw_by_inventory_item_group(
         &self,
         body: &models::WithdrawByInventoryItemGroupRequest,
-    ) -> Result<Option<models::Error>, Error> {
+    ) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&WITHDRAW_OFFER_BY_INVENTORY_ITEM_GROUP)
                     .host("api")
                     .json(&body),
             )
             .await
+            .map(drop)
     }
 }

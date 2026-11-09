@@ -401,7 +401,7 @@ async fn an_empty_204_is_none() {
     let (url, _) = serve(|_| (204, String::new())).await;
     let client = builder(&url).user_token(USER).build().unwrap();
     let items = client.inventory().inventory_items();
-    assert_eq!(items.delete("SKU-1").await.unwrap(), None);
+    items.delete("SKU-1").await.unwrap();
     let item = ebay_sell::inventory::models::InventoryItem::default();
     let params = ebay_sell::inventory::InventoryItemsCreateOrReplaceParams::default();
     let created = items

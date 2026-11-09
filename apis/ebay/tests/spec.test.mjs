@@ -72,6 +72,15 @@ test('the operations EU and UK sellers must sign are every Finances call and iss
   assert.deepEqual(ids(signed), ids(expected));
 });
 
+test('no success response declares the error object as its body', () => {
+  const odd = operations.filter((operation) =>
+    Object.entries(operation.responses).some(
+      ([status, response]) => ['202', '204'].includes(status) && Object.keys(deref(response).content ?? {}).length > 0,
+    ),
+  );
+  assert.deepEqual(ids(odd), []);
+});
+
 test('every upload declares its request body', () => {
   const bodies = Object.fromEntries(
     ['sell_feed.uploadFile', 'sell_fulfillment.uploadEvidenceFile', 'commerce_media.createImageFromFile', 'commerce_media.uploadDocument', 'commerce_media.uploadPostOrderDocument', 'commerce_media.uploadVideo'].map((id) => [

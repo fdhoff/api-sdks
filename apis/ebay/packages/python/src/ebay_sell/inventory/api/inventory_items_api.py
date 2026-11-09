@@ -15,7 +15,6 @@ from ebay_sell.inventory.models.bulk_inventory_item import BulkInventoryItem
 from ebay_sell.inventory.models.bulk_inventory_item_response import BulkInventoryItemResponse
 from ebay_sell.inventory.models.bulk_price_quantity import BulkPriceQuantity
 from ebay_sell.inventory.models.bulk_price_quantity_response import BulkPriceQuantityResponse
-from ebay_sell.inventory.models.error import Error
 from ebay_sell.inventory.models.inventory_item import InventoryItem
 from ebay_sell.inventory.models.inventory_item_with_sku_locale_groupid import InventoryItemWithSkuLocaleGroupid
 from ebay_sell.inventory.models.inventory_items import InventoryItems
@@ -81,15 +80,14 @@ _create_or_replace_inventory_item: Operation[BaseResponse] = Operation(
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
-_delete_inventory_item: Operation[Error] = Operation(
+_delete_inventory_item: Operation[None] = Operation(
     id="deleteInventoryItem",
     method="DELETE",
     path="/sell/inventory/v1/inventory_item/{sku}",
     resource="inventory_items",
     name="delete",
     params=(Param("sku", "sku", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
@@ -220,7 +218,7 @@ class InventoryItemsApi(Resource):
     def delete(
         self,
         sku: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete an inventory item and its offers."""
         return self._call(
             _delete_inventory_item,
@@ -324,7 +322,7 @@ class AsyncInventoryItemsApi(AsyncResource):
     async def delete(
         self,
         sku: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete an inventory item and its offers."""
         return await self._call(
             _delete_inventory_item,

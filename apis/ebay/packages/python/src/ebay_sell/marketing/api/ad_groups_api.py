@@ -11,7 +11,6 @@ from ebay_sell.marketing import models as _models
 from ebay_sell.marketing.models.ad_group import AdGroup
 from ebay_sell.marketing.models.ad_group_paged_collection_response import AdGroupPagedCollectionResponse
 from ebay_sell.marketing.models.create_ad_group_request import CreateAdGroupRequest
-from ebay_sell.marketing.models.error import Error
 from ebay_sell.marketing.models.targeted_bid_request import TargetedBidRequest
 from ebay_sell.marketing.models.targeted_bids_paged_collection import TargetedBidsPagedCollection
 from ebay_sell.marketing.models.targeted_keyword_request import TargetedKeywordRequest
@@ -123,7 +122,7 @@ _suggest_keywords: Operation[TargetedKeywordsPagedCollection] = Operation(
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
-_update_ad_group: Operation[Error] = Operation(
+_update_ad_group: Operation[None] = Operation(
     id="updateAdGroup",
     method="PUT",
     path="/sell/marketing/v1/ad_campaign/{campaign_id}/ad_group/{ad_group_id}",
@@ -133,8 +132,7 @@ _update_ad_group: Operation[Error] = Operation(
         Param("ad_group_id", "ad_group_id", "path"),
         Param("campaign_id", "campaign_id", "path"),
     ),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
@@ -248,7 +246,7 @@ class AdGroupsApi(Resource):
         ad_group_id: StrictStr,
         campaign_id: StrictStr,
         body: Union[UpdateAdGroupRequest, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Update an ad group."""
         return self._call(
             _update_ad_group,
@@ -357,7 +355,7 @@ class AsyncAdGroupsApi(AsyncResource):
         ad_group_id: StrictStr,
         campaign_id: StrictStr,
         body: Union[UpdateAdGroupRequest, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Update an ad group."""
         return await self._call(
             _update_ad_group,

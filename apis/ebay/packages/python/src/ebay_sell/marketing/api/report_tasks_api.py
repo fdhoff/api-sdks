@@ -9,31 +9,28 @@ from pydantic import StrictStr
 from ebay_sell._runtime import AsyncResource, NextLink, Operation, Param, Resource, Scheme, checked
 from ebay_sell.marketing import models as _models
 from ebay_sell.marketing.models.create_report_task import CreateReportTask
-from ebay_sell.marketing.models.error import Error
 from ebay_sell.marketing.models.report_task import ReportTask
 from ebay_sell.marketing.models.report_task_paged_collection import ReportTaskPagedCollection
 
-_create_report_task: Operation[Error] = Operation(
+_create_report_task: Operation[None] = Operation(
     id="createReportTask",
     method="POST",
     path="/sell/marketing/v1/ad_report_task",
     resource="report_tasks",
     name="create",
     params=(),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
-_delete_report_task: Operation[Error] = Operation(
+_delete_report_task: Operation[None] = Operation(
     id="deleteReportTask",
     method="DELETE",
     path="/sell/marketing/v1/ad_report_task/{report_task_id}",
     resource="report_tasks",
     name="delete",
     params=(Param("report_task_id", "report_task_id", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
@@ -90,7 +87,7 @@ class ReportTasksApi(Resource):
     def create(
         self,
         body: Union[CreateReportTask, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Start a task that builds a Promoted Listings report."""
         return self._call(
             _create_report_task,
@@ -101,7 +98,7 @@ class ReportTasksApi(Resource):
     def delete(
         self,
         report_task_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete a report task."""
         return self._call(
             _delete_report_task,
@@ -157,7 +154,7 @@ class AsyncReportTasksApi(AsyncResource):
     async def create(
         self,
         body: Union[CreateReportTask, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Start a task that builds a Promoted Listings report."""
         return await self._call(
             _create_report_task,
@@ -168,7 +165,7 @@ class AsyncReportTasksApi(AsyncResource):
     async def delete(
         self,
         report_task_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete a report task."""
         return await self._call(
             _delete_report_task,

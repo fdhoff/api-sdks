@@ -8,7 +8,6 @@ from pydantic import StrictStr
 
 from ebay_sell._runtime import AsyncResource, Operation, Param, Resource, Scheme, checked
 from ebay_sell.inventory.models.base_response import BaseResponse
-from ebay_sell.inventory.models.error import Error
 from ebay_sell.inventory.models.inventory_item_group import InventoryItemGroup
 
 _create_or_replace_inventory_item_group: Operation[BaseResponse] = Operation(
@@ -26,15 +25,14 @@ _create_or_replace_inventory_item_group: Operation[BaseResponse] = Operation(
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
-_delete_inventory_item_group: Operation[Error] = Operation(
+_delete_inventory_item_group: Operation[None] = Operation(
     id="deleteInventoryItemGroup",
     method="DELETE",
     path="/sell/inventory/v1/inventory_item_group/{inventoryItemGroupKey}",
     resource="inventory_item_groups",
     name="delete",
     params=(Param("inventoryItemGroupKey", "inventory_item_group_key", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
@@ -89,7 +87,7 @@ class InventoryItemGroupsApi(Resource):
     def delete(
         self,
         inventory_item_group_key: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete an inventory item group."""
         return self._call(
             _delete_inventory_item_group,
@@ -129,7 +127,7 @@ class AsyncInventoryItemGroupsApi(AsyncResource):
     async def delete(
         self,
         inventory_item_group_key: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete an inventory item group."""
         return await self._call(
             _delete_inventory_item_group,

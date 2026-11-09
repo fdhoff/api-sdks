@@ -21,6 +21,7 @@ Each gap is handled in one place: the shared overlay (`spec/overlay.yaml`), a co
 | B1 | 513 descriptions sit beside a `$ref`, which OpenAPI 3.0 ignores and Spectral rejects. | Removed. |
 | B2 | 112 operations declare a required `Content-Type` header parameter. The client sets it from the body, and Prism refuses a call without a body that does not send one. | Removed. |
 | B3 | Any call can answer 429 once a call limit is reached, but no operation declares it. | A `RateLimited` response with eBay's error body, declared on every operation. |
+| B4 | 34 Inventory and Marketing operations declare eBay's error object as their 204 body. The 26 with no other success body were typed as returning an error, such as `inventory_items().delete` returning `Option<Error>` in Rust. | The 204 bodies removed. Those 26 return nothing. |
 
 ## Corrected in a contract's overlay
 
@@ -35,6 +36,7 @@ Each gap is handled in one place: the shared overlay (`spec/overlay.yaml`), a co
 | C7 | `sell_stores`, `commerce_feedback`, `commerce_message` | The security scheme declares no OAuth flow, so the scopes the operations need are undeclared. | An authorization code flow with those scopes. |
 | C8 | `sell_feed`, `sell_fulfillment`, `commerce_media`, `sell_marketing` | Feed file downloads and `fetchEvidenceContent` return `application/octet-stream`, and `downloadPostOrderDocument` a PDF, but their schemas are an object or a list of strings. `getReport` returns tab-separated text with an object schema. | A binary string, and a plain string for the report. |
 | C9 | `commerce_media` | `uploadPostOrderDocument` answers 201 with the document's location and no body, but declares a JSON body. | The 201 body removed. |
+| C10 | `sell_marketing` | `createReportTask` answers 202 with the task's location and no body, but declares eBay's error object as one. | The 202 body removed. |
 
 ## Hosts
 

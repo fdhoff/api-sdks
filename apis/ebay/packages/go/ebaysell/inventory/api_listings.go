@@ -29,7 +29,6 @@ var (
 		Path:        "/sell/inventory/v1/listing/{listingId}/sku/{sku}/locations",
 		Resource:    "Listings",
 		Name:        "SetSKULocations",
-		ReturnsJSON: true,
 		PathParams:  []string{"listingId", "sku"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -42,7 +41,6 @@ var (
 		Path:        "/sell/inventory/v1/listing/{listingId}/sku/{sku}/locations",
 		Resource:    "Listings",
 		Name:        "DeleteSKULocations",
-		ReturnsJSON: true,
 		PathParams:  []string{"listingId", "sku"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -74,13 +72,15 @@ func (r *ListingsResource) BulkMigrate(ctx context.Context, body *BulkMigrateLis
 }
 
 // SetSKULocations sets the fulfillment locations of a SKU in a listing.
-func (r *ListingsResource) SetSKULocations(ctx context.Context, listingID string, sku string, body *LocationMapping) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opCreateOrReplaceSkuLocationMapping, runtime.Input{Path: []any{listingID, sku}, Body: body})
+func (r *ListingsResource) SetSKULocations(ctx context.Context, listingID string, sku string, body *LocationMapping) error {
+	_, err := runtime.Call[any](ctx, r.transport, opCreateOrReplaceSkuLocationMapping, runtime.Input{Path: []any{listingID, sku}, Body: body})
+	return err
 }
 
 // DeleteSKULocations removes the fulfillment locations of a SKU in a listing.
-func (r *ListingsResource) DeleteSKULocations(ctx context.Context, listingID string, sku string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opDeleteSkuLocationMapping, runtime.Input{Path: []any{listingID, sku}})
+func (r *ListingsResource) DeleteSKULocations(ctx context.Context, listingID string, sku string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opDeleteSkuLocationMapping, runtime.Input{Path: []any{listingID, sku}})
+	return err
 }
 
 // GetSKULocations gets the fulfillment locations of a SKU in a listing.

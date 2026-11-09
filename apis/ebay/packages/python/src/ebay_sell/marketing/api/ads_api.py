@@ -42,7 +42,6 @@ from ebay_sell.marketing.models.bulk_update_ads_by_inventory_reference_response 
 from ebay_sell.marketing.models.create_ad_request import CreateAdRequest
 from ebay_sell.marketing.models.create_ads_by_inventory_reference_request import CreateAdsByInventoryReferenceRequest
 from ebay_sell.marketing.models.delete_ads_by_inventory_reference_request import DeleteAdsByInventoryReferenceRequest
-from ebay_sell.marketing.models.error import Error
 from ebay_sell.marketing.models.update_bid_percentage_request import UpdateBidPercentageRequest
 
 _bulk_create_ads_by_inventory_reference: Operation[BulkCreateAdsByInventoryReferenceResponse] = Operation(
@@ -165,7 +164,7 @@ _create_ads_by_inventory_reference: Operation[AdReferences] = Operation(
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
-_delete_ad: Operation[Error] = Operation(
+_delete_ad: Operation[None] = Operation(
     id="deleteAd",
     method="DELETE",
     path="/sell/marketing/v1/ad_campaign/{campaign_id}/ad/{ad_id}",
@@ -175,8 +174,7 @@ _delete_ad: Operation[Error] = Operation(
         Param("ad_id", "ad_id", "path"),
         Param("campaign_id", "campaign_id", "path"),
     ),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
@@ -283,7 +281,7 @@ _get_ads_by_inventory_reference: Operation[Ads] = Operation(
     ),
     host="api",
 )
-_update_bid: Operation[Error] = Operation(
+_update_bid: Operation[None] = Operation(
     id="updateBid",
     method="POST",
     path="/sell/marketing/v1/ad_campaign/{campaign_id}/ad/{ad_id}/update_bid",
@@ -293,8 +291,7 @@ _update_bid: Operation[Error] = Operation(
         Param("ad_id", "ad_id", "path"),
         Param("campaign_id", "campaign_id", "path"),
     ),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
@@ -455,7 +452,7 @@ class AdsApi(Resource):
         self,
         ad_id: StrictStr,
         campaign_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete an ad."""
         return self._call(
             _delete_ad,
@@ -555,7 +552,7 @@ class AdsApi(Resource):
         ad_id: StrictStr,
         campaign_id: StrictStr,
         body: Union[UpdateBidPercentageRequest, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Change the bid of an ad."""
         return self._call(
             _update_bid,
@@ -701,7 +698,7 @@ class AsyncAdsApi(AsyncResource):
         self,
         ad_id: StrictStr,
         campaign_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete an ad."""
         return await self._call(
             _delete_ad,
@@ -801,7 +798,7 @@ class AsyncAdsApi(AsyncResource):
         ad_id: StrictStr,
         campaign_id: StrictStr,
         body: Union[UpdateBidPercentageRequest, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Change the bid of an ad."""
         return await self._call(
             _update_bid,

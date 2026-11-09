@@ -30,7 +30,6 @@ var (
 		Path:        "/sell/inventory/v1/inventory_item_group/{inventoryItemGroupKey}",
 		Resource:    "InventoryItemGroups",
 		Name:        "Delete",
-		ReturnsJSON: true,
 		PathParams:  []string{"inventoryItemGroupKey"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -67,8 +66,9 @@ func (r *InventoryItemGroupsResource) CreateOrReplace(ctx context.Context, inven
 }
 
 // Delete deletes an inventory item group.
-func (r *InventoryItemGroupsResource) Delete(ctx context.Context, inventoryItemGroupKey string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opDeleteInventoryItemGroup, runtime.Input{Path: []any{inventoryItemGroupKey}})
+func (r *InventoryItemGroupsResource) Delete(ctx context.Context, inventoryItemGroupKey string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opDeleteInventoryItemGroup, runtime.Input{Path: []any{inventoryItemGroupKey}})
+	return err
 }
 
 // Get gets one inventory item group.

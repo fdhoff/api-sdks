@@ -5,6 +5,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 ## Unreleased
 
 * `MessageSigner` signs `content-length: 0` for a PATCH without a body, as httpx sends it, instead of raising.
+* Breaking: the 26 Inventory and Marketing operations that answer 204 with no body, such as `inventory_items.delete`, and Marketing's `report_tasks.create`, which answers 202, return `None` instead of being typed as returning `Error`.
 * Binary response and request bodies are read and sent as raw bytes where the spec declares them. No operation in this package does yet.
 
 ## 0.1.0a1 (2026-11-08)

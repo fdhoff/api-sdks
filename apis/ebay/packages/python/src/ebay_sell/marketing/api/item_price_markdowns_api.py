@@ -7,7 +7,6 @@ from typing import Any, Mapping, Optional, Union
 from pydantic import StrictStr
 
 from ebay_sell._runtime import AsyncResource, Operation, Param, Resource, Scheme, checked
-from ebay_sell.marketing.models.error import Error
 from ebay_sell.marketing.models.item_price_markdown import ItemPriceMarkdown
 
 _create_item_price_markdown_promotion: Operation[object] = Operation(
@@ -22,15 +21,14 @@ _create_item_price_markdown_promotion: Operation[object] = Operation(
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
-_delete_item_price_markdown_promotion: Operation[Error] = Operation(
+_delete_item_price_markdown_promotion: Operation[None] = Operation(
     id="deleteItemPriceMarkdownPromotion",
     method="DELETE",
     path="/sell/marketing/v1/item_price_markdown/{promotion_id}",
     resource="item_price_markdowns",
     name="delete",
     params=(Param("promotion_id", "promotion_id", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
@@ -83,7 +81,7 @@ class ItemPriceMarkdownsApi(Resource):
     def delete(
         self,
         promotion_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete a markdown sale."""
         return self._call(
             _delete_item_price_markdown_promotion,
@@ -131,7 +129,7 @@ class AsyncItemPriceMarkdownsApi(AsyncResource):
     async def delete(
         self,
         promotion_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete a markdown sale."""
         return await self._call(
             _delete_item_price_markdown_promotion,

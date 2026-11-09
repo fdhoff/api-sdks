@@ -29,7 +29,6 @@ var (
 		Path:        "/sell/marketing/v1/item_promotion/{promotion_id}",
 		Resource:    "ItemPromotions",
 		Name:        "Delete",
-		ReturnsJSON: true,
 		PathParams:  []string{"promotion_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -74,8 +73,9 @@ func (r *ItemPromotionsResource) Create(ctx context.Context, body *ItemPromotion
 }
 
 // Delete deletes a threshold promotion.
-func (r *ItemPromotionsResource) Delete(ctx context.Context, promotionID string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opDeleteItemPromotion, runtime.Input{Path: []any{promotionID}})
+func (r *ItemPromotionsResource) Delete(ctx context.Context, promotionID string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opDeleteItemPromotion, runtime.Input{Path: []any{promotionID}})
+	return err
 }
 
 // Get gets one threshold promotion.

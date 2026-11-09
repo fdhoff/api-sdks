@@ -5,6 +5,7 @@ This crate follows semantic versioning and stays on 0.x until outside users conf
 ## Unreleased
 
 * A PATCH without a body sends `Content-Length: 0`, as the other languages' HTTP libraries do, and `MessageSigner` signs it.
+* Breaking: the 26 Inventory and Marketing operations that answer 204 with no body, such as `inventory_items().delete`, and Marketing's `report_tasks().create`, which answers 202, return `()` instead of `Option<models::Error>`.
 
 ## 0.1.0-alpha.1 (2026-11-08)
 

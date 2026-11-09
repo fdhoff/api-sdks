@@ -85,7 +85,7 @@ const UPDATE_AD_GROUP: Operation = Operation {
     method: "PUT",
     path: "/sell/marketing/v1/ad_campaign/{campaign_id}/ad_group/{ad_group_id}",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -216,16 +216,14 @@ impl AdGroupsApi {
     }
 
     /// Update an ad group.
-    ///
-    /// `None` when the API answers 204 with no body.
     pub async fn update(
         &self,
         ad_group_id: &str,
         campaign_id: &str,
         body: &models::UpdateAdGroupRequest,
-    ) -> Result<Option<models::Error>, Error> {
+    ) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&UPDATE_AD_GROUP)
                     .host("api")
                     .path("ad_group_id", &ad_group_id)
@@ -233,5 +231,6 @@ impl AdGroupsApi {
                     .json(&body),
             )
             .await
+            .map(drop)
     }
 }

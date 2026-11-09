@@ -27,7 +27,7 @@ const DELETE_INVENTORY_ITEM_GROUP: Operation = Operation {
     method: "DELETE",
     path: "/sell/inventory/v1/inventory_item_group/{inventoryItemGroupKey}",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -95,19 +95,15 @@ impl InventoryItemGroupsApi {
     }
 
     /// Delete an inventory item group.
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn delete(
-        &self,
-        inventory_item_group_key: &str,
-    ) -> Result<Option<models::Error>, Error> {
+    pub async fn delete(&self, inventory_item_group_key: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&DELETE_INVENTORY_ITEM_GROUP)
                     .host("api")
                     .path("inventoryItemGroupKey", &inventory_item_group_key),
             )
             .await
+            .map(drop)
     }
 
     /// Get one inventory item group.
