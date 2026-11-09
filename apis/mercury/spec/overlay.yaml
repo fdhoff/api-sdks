@@ -47,3 +47,21 @@ actions:
     target: $.components.securitySchemes.bearerAuth
     update:
       description: A Mercury API token, sent as a bearer token.
+
+  - description: M6. The attachment uploads say they return an attachment ID and download URL, but declare no body.
+    target: $.paths.*[?(@.operationId == 'uploadTransactionAttachment' || @.operationId == 'uploadRecipientAttachment')].responses['200']
+    update:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UploadedAttachment'
+  - description: M6.
+    target: $.components.schemas
+    update:
+      UploadedAttachment:
+        type: object
+        properties:
+          attachmentId:
+            type: string
+          downloadUrl:
+            type: string

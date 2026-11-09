@@ -28,6 +28,7 @@ OAuth2 lives in a separate registry file on `oauth2.mercury.com`. Mercury approv
 | M3 | M1 and M2 leave 31 paths with no operation, whose path parameters then have nothing to declare them. | Removed. |
 | M4 | Every operation can answer 401 for a missing, invalid or revoked token, and 429 when rate limited, but none declares either. `listCredit`, `getOrganization` and `getSafeRequests` declare no error response at all. | Shared `Unauthorized` and `RateLimited` responses on every operation. Like Mercury's own error responses, they declare no body, so the typed error keeps the status and the raw body. |
 | M5 | The bearer scheme's description embeds a sample token string. | Replaced with our own description, so no token-shaped string reaches the build. |
+| M6 | `uploadRecipientAttachment` and `uploadTransactionAttachment` describe a reply holding the attachment's ID and download URL, but declare no body. | An `UploadedAttachment` JSON body with optional `attachmentId` and `downloadUrl` strings, so the reply is returned rather than dropped. |
 
 ## Authentication
 

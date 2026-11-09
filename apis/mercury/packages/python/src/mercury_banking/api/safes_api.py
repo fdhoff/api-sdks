@@ -38,6 +38,7 @@ _get_safe_request_document: Operation[None] = Operation(
     params=(Param("safeRequestId", "safe_request_id", "path"),),
     response=None,
     binary_response=True,
+    accept="application/pdf",
     security=((Scheme("bearerAuth", ()),),),
     host="api",
 )

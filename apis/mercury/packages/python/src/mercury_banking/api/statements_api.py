@@ -24,6 +24,7 @@ _get_statement_pdf: Operation[None] = Operation(
     params=(Param("statementId", "statement_id", "path"),),
     response=None,
     binary_response=True,
+    accept="application/pdf",
     security=((Scheme("bearerAuth", ()),),),
     host="api",
 )

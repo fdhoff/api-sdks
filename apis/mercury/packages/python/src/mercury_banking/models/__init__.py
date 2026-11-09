@@ -483,6 +483,7 @@ from mercury_banking.models.update_books_api_ledgers_request import UpdateBooksA
 from mercury_banking.models.update_books_api_ledgers_response import UpdateBooksAPILedgersResponse
 from mercury_banking.models.update_card_request import UpdateCardRequest
 from mercury_banking.models.update_webhook_params import UpdateWebhookParams
+from mercury_banking.models.uploaded_attachment import UploadedAttachment
 from mercury_banking.models.user_details import UserDetails
 from mercury_banking.models.users_paginated_response import UsersPaginatedResponse
 from mercury_banking.models.users_paginated_response_page import UsersPaginatedResponsePage
@@ -907,6 +908,7 @@ __all__ = [
     "UpdateBooksAPILedgersResponse",
     "UpdateCardRequest",
     "UpdateWebhookParams",
+    "UploadedAttachment",
     "UserDetails",
     "UsersPaginatedResponse",
     "UsersPaginatedResponsePage",

@@ -24,6 +24,7 @@ from mercury_banking.models.edit_recipient_request import EditRecipientRequest
 from mercury_banking.models.recipient_info import RecipientInfo
 from mercury_banking.models.recipients_attachments_paginated_response import RecipientsAttachmentsPaginatedResponse
 from mercury_banking.models.recipients_paginated_response import RecipientsPaginatedResponse
+from mercury_banking.models.uploaded_attachment import UploadedAttachment
 
 _create_recipient: Operation[RecipientInfo] = Operation(
     id="createRecipient",
@@ -112,7 +113,7 @@ _update_recipient: Operation[RecipientInfo] = Operation(
     security=((Scheme("bearerAuth", ()),),),
     host="api",
 )
-_upload_recipient_attachment: Operation[None] = Operation(
+_upload_recipient_attachment: Operation[UploadedAttachment] = Operation(
     id="uploadRecipientAttachment",
     method="POST",
     path="/recipient/{recipientId}/attachments",
@@ -122,7 +123,8 @@ _upload_recipient_attachment: Operation[None] = Operation(
         Param("recipientId", "recipient_id", "path"),
         Param("file", "file", "form"),
     ),
-    response=None,
+    response=UploadedAttachment,
+    returns_json=True,
     security=((Scheme("bearerAuth", ()),),),
     host="api",
 )
@@ -263,7 +265,7 @@ class RecipientsApi(Resource):
         recipient_id: UUID,
         *,
         file: FileInput,
-    ) -> None:
+    ) -> UploadedAttachment:
         """Attach a file"""
         return self._call(
             _upload_recipient_attachment,
@@ -397,7 +399,7 @@ class AsyncRecipientsApi(AsyncResource):
         recipient_id: UUID,
         *,
         file: FileInput,
-    ) -> None:
+    ) -> UploadedAttachment:
         """Attach a file"""
         return await self._call(
             _upload_recipient_attachment,

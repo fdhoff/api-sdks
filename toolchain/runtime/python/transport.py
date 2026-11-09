@@ -105,6 +105,8 @@ class Operation(Generic[T]):
     host: str = ""
     binary_response: bool = False
     """A success body is bytes, returned as a download."""
+    accept: str = ""
+    """The media types a download is asked for in the Accept header, instead of the client's default."""
     raw_body: str = ""
     """The media type of a raw request body, sent unchanged."""
     idempotency_key: str = ""
@@ -254,6 +256,8 @@ def _build_request(
         "url": f"{_base_url(settings, operation)}{path}{search}",
         "headers": {**headers, **(_IDENTITY if operation.binary_response else _ACCEPT_ENCODING)},
     }
+    if operation.accept:
+        request["headers"]["Accept"] = operation.accept
     if parts:
         request["files"] = parts
     elif fields:

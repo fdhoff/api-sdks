@@ -84,6 +84,7 @@ _get_invoice_pdf: Operation[None] = Operation(
     params=(Param("invoiceId", "invoice_id", "path"),),
     response=None,
     binary_response=True,
+    accept="application/pdf",
     security=((Scheme("bearerAuth", ()),),),
     host="api",
 )

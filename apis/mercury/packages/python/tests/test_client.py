@@ -180,6 +180,34 @@ def test_a_payment_without_a_key_is_not_retried() -> None:
     assert json.loads(calls[0].content)["idempotencyKey"] == ""
 
 
+def test_a_download_asks_for_a_pdf() -> None:
+    accepts: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        accepts.append(request.headers["accept"])
+        if request.url.path.endswith("/pdf"):
+            return httpx.Response(200, content=b"%PDF-1.4", headers={"content-type": "application/pdf"})
+        return httpx.Response(200, json={})
+
+    with client_for(handler) as client:
+        with client.invoices.download_pdf(UUID("00000000-0000-4000-8000-1a4000000001")) as download:
+            assert download.read() == b"%PDF-1.4"
+        client.organization.get()
+    assert accepts == ["application/pdf", "application/json"]
+
+
+def test_an_upload_returns_the_attachment() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["content-type"].startswith("multipart/form-data; boundary=")
+        return httpx.Response(200, json={"attachmentId": "att-1", "downloadUrl": "https://files.mock.invalid/att-1"})
+
+    attachment = client_for(handler).transactions.upload_attachment(
+        UUID("00000000-0000-4000-8000-7a4000000001"), file=b"synthetic receipt"
+    )
+    assert attachment.attachment_id == "att-1"
+    assert attachment.download_url == "https://files.mock.invalid/att-1"
+
+
 def test_async_iterators_follow_the_cursor() -> None:
     pages = {
         None: {"users": [{"userId": "u1"}], "page": {"nextPage": "00000000-0000-4000-8000-05e400000001"}},

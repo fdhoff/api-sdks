@@ -13,6 +13,7 @@ from mercury_banking._runtime import AsyncResource, Cursor, FileInput, Operation
 from mercury_banking.models.api_update_transaction_request import ApiUpdateTransactionRequest
 from mercury_banking.models.transaction import Transaction
 from mercury_banking.models.transactions_paginated_response import TransactionsPaginatedResponse
+from mercury_banking.models.uploaded_attachment import UploadedAttachment
 
 _get_transaction_by_id: Operation[Transaction] = Operation(
     id="getTransactionById",
@@ -69,7 +70,7 @@ _update_transaction: Operation[Transaction] = Operation(
     security=((Scheme("bearerAuth", ()),),),
     host="api",
 )
-_upload_transaction_attachment: Operation[None] = Operation(
+_upload_transaction_attachment: Operation[UploadedAttachment] = Operation(
     id="uploadTransactionAttachment",
     method="POST",
     path="/transaction/{transactionId}/attachments",
@@ -80,7 +81,8 @@ _upload_transaction_attachment: Operation[None] = Operation(
         Param("attachmentType", "attachment_type", "form"),
         Param("file", "file", "form"),
     ),
-    response=None,
+    response=UploadedAttachment,
+    returns_json=True,
     security=((Scheme("bearerAuth", ()),),),
     host="api",
 )
@@ -205,7 +207,7 @@ class TransactionsApi(Resource):
         *,
         file: FileInput,
         attachment_type: Optional[StrictStr] = None,
-    ) -> None:
+    ) -> UploadedAttachment:
         """Attach a file"""
         return self._call(
             _upload_transaction_attachment,
@@ -327,7 +329,7 @@ class AsyncTransactionsApi(AsyncResource):
         *,
         file: FileInput,
         attachment_type: Optional[StrictStr] = None,
-    ) -> None:
+    ) -> UploadedAttachment:
         """Attach a file"""
         return await self._call(
             _upload_transaction_attachment,

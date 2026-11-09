@@ -53,6 +53,9 @@ _{{operationIdSnakeCase}}: Operation[{{{returnType}}}{{^returnType}}None{{/retur
 {{#vendorExtensions.x-sdk-binary-response}}
     binary_response=True,
 {{/vendorExtensions.x-sdk-binary-response}}
+{{#vendorExtensions.x-sdk-accept}}
+    accept="{{{vendorExtensions.x-sdk-accept}}}",
+{{/vendorExtensions.x-sdk-accept}}
 {{#vendorExtensions.x-sdk-raw-body}}
     raw_body="{{vendorExtensions.x-sdk-raw-body}}",
 {{/vendorExtensions.x-sdk-raw-body}}
