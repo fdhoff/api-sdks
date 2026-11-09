@@ -18,6 +18,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * New public `Download` and `RawBody` types, for binary response and request bodies. No operation in this package uses them yet.
 * A page whose items field is missing or not a list throws `ApiDecodeException` for link-paged operations too, instead of ending as an empty last page.
 * A file part of a multipart upload is sent with `Content-Type: application/octet-stream`.
+* The runtime can poll an asynchronous job until it ends, and download a URL a response returns, sending credentials only to the base URL's origin. A new public `ApiJobTimeoutException` carries the last status in `Result` when a job outlasts its timeout. No operation in this package uses either yet.
 
 ## 0.1.0-alpha.1 (2026-11-07)
 

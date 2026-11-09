@@ -5,6 +5,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 ## Unreleased
 
 * `client.PostOrder` and the `EbaySell.PostOrder` namespace cover the Post-Order API's 29 remaining operations on cancellations, returns, item-not-received inquiries and cases. They take the seller's user token and the client's `MarketplaceId`. Return files are uploaded as base64 in a JSON body.
+* The runtime can poll an asynchronous job until it ends, and download a URL a response returns, sending credentials only to the base URL's origin. A new public `ApiJobTimeoutException` carries the last status in `Result` when a job outlasts its timeout. No operation in this package uses either yet.
 
 ## 0.1.0-alpha.1 (2026-11-08)
 

@@ -42,6 +42,18 @@ public class ApiConnectionException(string message, Exception? innerException = 
     public override string Kind => "connection";
 }
 
+/// <summary>
+/// A job had not ended by the deadline. <see cref="Result"/> holds the last status it reported, as the wait method's
+/// return type.
+/// </summary>
+public class ApiJobTimeoutException(string message, object? result) : ApiException(message)
+{
+    public override string Kind => "job_timeout";
+
+    /// <summary>The last status the job reported.</summary>
+    public object? Result { get; } = result;
+}
+
 /// <summary>A success response could not be read as the API declares it.</summary>
 public class ApiDecodeException(string message, Exception? innerException = null) : ApiException(message, innerException)
 {
