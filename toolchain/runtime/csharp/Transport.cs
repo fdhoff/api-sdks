@@ -644,6 +644,10 @@ internal sealed class Transport : IDisposable
         // A binary body is passed on as received, so it is asked for uncompressed.
         var encoding = operation.ReturnsBinary ? "identity" : "gzip";
         var headers = new Dictionary<string, string>(settings.Headers, StringComparer.OrdinalIgnoreCase) { ["Accept-Encoding"] = encoding };
+        if (operation.Accept is not null)
+        {
+            headers["Accept"] = operation.Accept;
+        }
         foreach (var (name, value) in extra)
         {
             // Removed first, so the header goes out under the name the operation declares.

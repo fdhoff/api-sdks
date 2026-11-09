@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyBinary, applyHeaders, applyHosts, applyOperations, checkHeaderDefaults, collapseSingleUnions, omitOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, resolveIdempotency, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
+import { applyBinary, applyHeaders, applyHosts, applyOperations, checkHeaderDefaults, collapseSingleUnions, omitOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, markMappedEnums, packageNames, relax, renameSchemas, resolveIdempotency, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -122,6 +122,16 @@ test('renameSchemas moves a schema and every reference to it', () => {
   assert.deepEqual(Object.keys(renamed.components.schemas), ['Renamed', 'B']);
   assert.equal(renamed.components.schemas.B.properties.x.$ref, '#/components/schemas/Renamed');
   assert.throws(() => renameSchemas(spec, { missing: 'Other' }), /unknown schemas: missing/);
+});
+
+test('markMappedEnums marks each enum holding a mapped value, and refuses a value no schema holds', () => {
+  const spec = () => ({ components: { schemas: { Form: { type: 'string', enum: ['Monthly', '1099'] }, Plain: { type: 'string', enum: ['a'] }, Thing: { type: 'object' } } } });
+  const marked = markMappedEnums(spec(), { 1099: 'Form1099' }).components.schemas;
+  assert.equal(marked.Form['x-sdk-mapped-enum'], true);
+  assert.equal(marked.Plain['x-sdk-mapped-enum'], undefined);
+  assert.equal(marked.Thing['x-sdk-mapped-enum'], undefined);
+  assert.deepEqual(markMappedEnums(spec()), spec());
+  assert.throws(() => markMappedEnums(spec(), { 1099: 'Form1099', 5498: 'Form5498' }), /values no schema holds: 5498/);
 });
 
 test('packageNames adds a package\'s own names to the shared ones but refuses a rename', () => {

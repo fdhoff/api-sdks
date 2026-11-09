@@ -1,0 +1,42 @@
+# How `npm run generate:csharp` builds this package. Public method names are in operations.yaml.
+generator: csharp
+output: src/MercuryBanking
+source: src/MercuryBanking
+generated: [Api, Models]
+resources: ClientResources.cs
+runtime: Runtime
+# The runtime's namespaces are written with a placeholder, because C# has no relative imports.
+runtime_package: MercuryBanking
+format: [dotnet, format, whitespace, --folder]
+properties:
+  packageName: MercuryBanking
+  library: httpclient
+  apiPackage: Api
+  modelPackage: Models
+  apiNameSuffix: Resource
+  disallowAdditionalPropertiesIfNotPresent: false
+  nullableReferenceTypes: true
+  useDateTimeOffset: true
+# A union of one schema is typed as that schema.
+collapse_single_unions: true
+# Every property is nullable here, so null already means null or absent.
+drop_nullable: true
+# A value of several types becomes `object`, which reads as a JsonElement.
+drop_unions: true
+type_mappings:
+  integer: long
+  float: double
+  AnyType: object
+  object: object
+  file: UploadFile
+  binary: UploadFile
+# Supporting files the generator would otherwise add to a generated directory.
+ignore: [src/MercuryBanking/Models/AbstractOpenAPISchema.cs]
+# Enum values that start with a digit are not C# identifiers. Keys are wire values.
+enum_name_mappings:
+  "1099": Form1099
+  1099R: Form1099R
+  1099Q: Form1099Q
+  1042S: Form1042S
+  "5498": Form5498
+  5498ESA: Form5498Esa

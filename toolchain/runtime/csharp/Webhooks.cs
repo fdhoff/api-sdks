@@ -38,6 +38,9 @@ public static class WebhookVerifier
     /// Checks a webhook's signature header against its raw body as received, never re-serialised. Any one matching
     /// <c>v1</c> value is enough, so a header may carry several while a secret rotates.
     /// </summary>
+    /// <param name="payload">The raw request body.</param>
+    /// <param name="header">The signature header's value.</param>
+    /// <param name="secret">The endpoint's secret.</param>
     /// <param name="tolerance">The oldest timestamp to accept, greater than zero, by default <see cref="DefaultTolerance"/>.</param>
     /// <param name="now">The time to check against, by default the clock.</param>
     /// <exception cref="WebhookSignatureException">The tolerance is invalid, or the header is malformed, too old or matches no signature.</exception>

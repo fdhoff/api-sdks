@@ -47,11 +47,12 @@ internal sealed record CursorPaging(string Items, string Next, string Param) : P
 /// <remarks>
 /// Any one requirement in <see cref="Security"/> authorizes the call; each lists schemes that must all be satisfied.
 /// <see cref="Host"/> is a key in <see cref="Settings.Hosts"/>; without one the call goes to <see cref="Settings.BaseUrl"/>.
-/// <see cref="ReturnsBinary"/> marks a success body that is a <see cref="Download"/>, and <see cref="RawBodyType"/> is the
+/// <see cref="ReturnsBinary"/> marks a success body that is a <see cref="Download"/>, which asks for the media types in
+/// <see cref="Accept"/> instead of the client's default <c>Accept</c> header, and <see cref="RawBodyType"/> is the
 /// media type of a <see cref="RawBody"/> request body. <see cref="IdempotencyKey"/> names the JSON body field the API
 /// deduplicates a write by, so a write that sets it is retried as a GET is.
 /// </remarks>
-internal sealed record Operation(string Id, string Method, string Path, string Resource, string Name, string? Iterator, Param[] Params, bool ReturnsJson = false, Paging? Paging = null, Scheme[][]? Security = null, string? Host = null, bool ReturnsBinary = false, string? RawBodyType = null, string? IdempotencyKey = null);
+internal sealed record Operation(string Id, string Method, string Path, string Resource, string Name, string? Iterator, Param[] Params, bool ReturnsJson = false, Paging? Paging = null, Scheme[][]? Security = null, string? Host = null, bool ReturnsBinary = false, string? RawBodyType = null, string? IdempotencyKey = null, string? Accept = null);
 
 /// <summary>A failed response, with the credential already removed from <see cref="Text"/> and <see cref="Json"/>.</summary>
 internal sealed record ErrorContext(int Status, IReadOnlyDictionary<string, string> Headers, string Text, JsonElement? Json)
