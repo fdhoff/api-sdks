@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* An empty 204 page ends an iteration instead of throwing `DecodeError`, as in the other languages.
 * A `Date` in a form field is sent as ISO 8601 text, not as a quoted JSON string.
 * An empty 204 response resolves to `undefined`, even where the spec also declares JSON, instead of throwing `DecodeError`.
 * Binary response and request bodies are read and sent as raw bytes where the spec declares them. No operation in this package does yet.

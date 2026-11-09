@@ -9,7 +9,7 @@ import type {
 {{/-last}}
 {{/imports}}
 import type * as models from '../models/index.js';
-import { Resource, type FileInput, type Operation, type RequestOptions } from '../runtime/index.js';
+import { Resource, type FileInput, type Operation, type RequestOptions } from '../{{#sdkModule}}../{{/sdkModule}}runtime/index.js';
 
 {{#operations}}
 {{#operation}}
@@ -77,7 +77,7 @@ export const OPERATIONS: readonly Operation[] = [
 export class {{classname}} extends Resource {
 {{#operation}}
   /** {{{vendorExtensions.x-sdk-summary}}} */
-  {{vendorExtensions.x-sdk-method}}{{>partial_sdk_args}}: Promise<{{#vendorExtensions.x-sdk-binary-response}}import('../runtime/index.js').Download{{/vendorExtensions.x-sdk-binary-response}}{{^vendorExtensions.x-sdk-binary-response}}{{{returnType}}}{{^returnType}}void{{/returnType}}{{/vendorExtensions.x-sdk-binary-response}}> {
+  {{vendorExtensions.x-sdk-method}}{{>partial_sdk_args}}: Promise<{{#vendorExtensions.x-sdk-binary-response}}import('../{{#sdkModule}}../{{/sdkModule}}runtime/index.js').Download{{/vendorExtensions.x-sdk-binary-response}}{{^vendorExtensions.x-sdk-binary-response}}{{{returnType}}}{{^returnType}}void{{/returnType}}{{/vendorExtensions.x-sdk-binary-response}}{{#vendorExtensions.x-sdk-no-content}} | undefined{{/vendorExtensions.x-sdk-no-content}}> {
     return this.call{{>partial_sdk_call}};
   }
 
