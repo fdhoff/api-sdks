@@ -205,9 +205,11 @@ fn error_output(error: &Error) -> Value {
     output.insert("kind".into(), json!(error.kind().as_str()));
     if let Some(status) = error.status() {
         output.insert("status".into(), json!(status));
-    }
-    if let Some(raw_body) = error.raw_body() {
-        output.insert("raw_body".into(), json!(raw_body));
+        // `raw_body()` is `None` for an empty body, which the cases give as "".
+        output.insert(
+            "raw_body".into(),
+            json!(error.raw_body().unwrap_or_default()),
+        );
     }
     Value::Object(output)
 }
