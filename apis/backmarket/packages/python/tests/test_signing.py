@@ -287,8 +287,8 @@ def test_content_length_and_host_come_from_the_body_and_url_when_absent() -> Non
         signer.sign(auth_request("GET", "https://example.com/items", {}, b""))
 
 
-@pytest.mark.parametrize("method", ["POST", "PUT"])
-def test_a_post_or_put_without_a_body_signs_a_zero_content_length(method: str) -> None:
+@pytest.mark.parametrize("method", ["POST", "PUT", "PATCH"])
+def test_a_post_put_or_patch_without_a_body_signs_a_zero_content_length(method: str) -> None:
     signer = MessageSigner(ED25519_KEY, ["content-length"], clock=lambda: 1700000000)
     request = auth_request(method, "https://example.com/items", {}, b"")
     signer.sign(request)
@@ -309,7 +309,7 @@ def server() -> Iterator[tuple[str, list[dict[str, str]]]]:
             self.end_headers()
             self.wfile.write(b"{}")
 
-        do_POST = do_PUT = reply
+        do_GET = do_POST = do_PUT = do_PATCH = do_DELETE = reply
 
         def log_message(self, format: str, *args: Any) -> None:
             pass
@@ -324,8 +324,8 @@ def server() -> Iterator[tuple[str, list[dict[str, str]]]]:
         httpd.server_close()
 
 
-@pytest.mark.parametrize("method", ["POST", "PUT"])
-def test_a_post_or_put_without_a_body_sends_the_zero_content_length_it_signs(
+@pytest.mark.parametrize("method", ["POST", "PUT", "PATCH"])
+def test_a_post_put_or_patch_without_a_body_sends_the_zero_content_length_it_signs(
     method: str, server: tuple[str, list[dict[str, str]]]
 ) -> None:
     url, received = server
@@ -348,11 +348,30 @@ def test_a_post_or_put_without_a_body_sends_the_zero_content_length_it_signs(
     public.verify(base64.b64decode(headers["signature"].removeprefix("sig1=:").removesuffix(":")), base.encode())
 
 
-@pytest.mark.parametrize("method", ["GET", "DELETE", "PATCH"])
+@pytest.mark.parametrize("method", ["GET", "DELETE"])
 def test_other_methods_without_a_body_have_no_content_length_to_sign(method: str) -> None:
     signer = MessageSigner(ED25519_KEY, ["content-length"], clock=lambda: 1700000000)
     with pytest.raises(ValueError, match="content-length"):
         signer.sign(auth_request(method, "https://example.com/items", {}, b""))
+
+
+@pytest.mark.parametrize("method", ["GET", "DELETE"])
+def test_other_methods_without_a_body_send_no_content_length(
+    method: str, server: tuple[str, list[dict[str, str]]]
+) -> None:
+    url, received = server
+    signer = MessageSigner(ED25519_KEY, ["@method"], clock=lambda: 1700000000)
+    settings = Settings(
+        base_url=url,
+        credentials=Signed(signer),
+        headers={},
+        to_error=to_error,
+        logger=logging.getLogger("signing-test"),
+    )
+    operation = dataclasses.replace(LIST, id="touch", method=method, name="touch")
+    Resource(SyncTransport(settings))._call(operation)
+    [headers] = received
+    assert "content-length" not in headers
 
 
 def test_an_empty_query_is_no_query() -> None:

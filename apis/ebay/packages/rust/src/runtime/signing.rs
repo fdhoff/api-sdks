@@ -11,6 +11,7 @@ use reqwest::header::{HeaderName, HeaderValue};
 use url::Url;
 
 use super::credentials::AuthRequest;
+use super::transport::sends_empty_length;
 
 pub const ED25519: &str = "ed25519";
 pub const RSA_V1_5_SHA256: &str = "rsa-v1_5-sha256";
@@ -77,8 +78,8 @@ enum Key {
 /// Signs each attempt's request: a `Content-Digest` of the body when there is one, then
 /// `Signature-Input` and `Signature` over the covered components, with a fresh `created` time.
 /// `content-digest` is left out of a request with no body. A request without `content-length` or
-/// `host` uses the body's length, `0` for a POST or PUT without one, or the URL's authority, which
-/// reqwest sends; any other field the request lacks is an error. Call [`MessageSigner::sign`] from `Credentials::apply`.
+/// `host` uses the body's length, `0` for a POST, PUT or PATCH without one, or the URL's authority,
+/// which the transport sends; any other field the request lacks is an error. Call [`MessageSigner::sign`] from `Credentials::apply`.
 pub struct MessageSigner {
     key: Key,
     secrets: Vec<String>,
@@ -303,12 +304,12 @@ fn authority(url: &Url) -> String {
         .map_or(host.clone(), |port| format!("{host}:{port}"))
 }
 
-/// What reqwest sends: the body's length, or `0` for a POST or PUT without a body.
+/// What the transport sends: the body's length, or `0` for a POST, PUT or PATCH without a body.
 fn content_length(request: &AuthRequest) -> Option<String> {
     if !request.body.is_empty() {
         return Some(request.body.len().to_string());
     }
-    matches!(request.method.as_str(), "POST" | "PUT").then(|| "0".to_owned())
+    sends_empty_length(&request.method).then(|| "0".to_owned())
 }
 
 fn value(request: &AuthRequest, url: &Url, name: &str) -> Result<String, SigningError> {
@@ -843,13 +844,13 @@ l9EOzXkzfx4bZxjAHU9mkMdJwOcMDQ==
     }
 
     #[test]
-    fn a_post_or_put_without_a_body_signs_a_zero_content_length() {
+    fn a_post_put_or_patch_without_a_body_signs_a_zero_content_length() {
         let options = SignerOptions {
             components: &["content-length"],
             ..SignerOptions::default()
         };
         let signer = MessageSigner::new(ED25519_KEY, options).unwrap();
-        for method in [Method::POST, Method::PUT] {
+        for method in [Method::POST, Method::PUT, Method::PATCH] {
             let mut request = auth_request(method.clone(), "https://example.com/items", &[], b"");
             let url = Url::parse(&request.url).unwrap();
             assert_eq!(
@@ -860,7 +861,7 @@ l9EOzXkzfx4bZxjAHU9mkMdJwOcMDQ==
             signer.sign(&mut request).unwrap();
             assert!(!request.headers.contains_key("content-length"), "{method}");
         }
-        for method in [Method::GET, Method::DELETE, Method::PATCH] {
+        for method in [Method::GET, Method::DELETE] {
             let mut request = auth_request(method.clone(), "https://example.com/items", &[], b"");
             let error = signer.sign(&mut request).unwrap_err();
             assert!(
@@ -870,32 +871,26 @@ l9EOzXkzfx4bZxjAHU9mkMdJwOcMDQ==
         }
     }
 
+    const KEY_SCHEME: &[&[Scheme]] = &[&[Scheme {
+        name: "key",
+        scopes: &[],
+    }]];
+
+    const fn touch(method: &'static str) -> Operation {
+        Operation {
+            id: "touch",
+            method,
+            path: "/items",
+            query_params: &[],
+            returns_json: false,
+            paging: None,
+            security: KEY_SCHEME,
+        }
+    }
+
     #[tokio::test]
-    async fn a_post_or_put_without_a_body_sends_the_zero_content_length_it_signs() {
-        static POST: Operation = Operation {
-            id: "touch",
-            method: "POST",
-            path: "/items",
-            query_params: &[],
-            returns_json: false,
-            paging: None,
-            security: &[&[Scheme {
-                name: "key",
-                scopes: &[],
-            }]],
-        };
-        static PUT: Operation = Operation {
-            id: "touch",
-            method: "PUT",
-            path: "/items",
-            query_params: &[],
-            returns_json: false,
-            paging: None,
-            security: &[&[Scheme {
-                name: "key",
-                scopes: &[],
-            }]],
-        };
+    async fn a_post_put_or_patch_without_a_body_sends_the_zero_content_length_it_signs() {
+        static WRITES: [Operation; 3] = [touch("POST"), touch("PUT"), touch("PATCH")];
         let (pem, public) = fresh_key();
         let options = SignerOptions {
             components: &["content-length", "@method"],
@@ -910,7 +905,7 @@ l9EOzXkzfx4bZxjAHU9mkMdJwOcMDQ==
         });
         let (url, log) = serve(|_, _| (200, "{}".to_owned())).await;
         let transport = transport(&url, credentials.clone());
-        for operation in [&POST, &PUT] {
+        for operation in &WRITES {
             transport
                 .call::<serde_json::Value>(Request::new(operation))
                 .await
@@ -919,7 +914,7 @@ l9EOzXkzfx4bZxjAHU9mkMdJwOcMDQ==
 
         let seen = credentials.seen.lock().unwrap();
         let sent = log.lock().unwrap();
-        assert_eq!((seen.len(), sent.len()), (2, 2));
+        assert_eq!((seen.len(), sent.len()), (3, 3));
         for (seen, sent) in seen.iter().zip(sent.iter()) {
             assert!(
                 sent.head.contains("\r\ncontent-length: 0\r\n"),
@@ -927,6 +922,41 @@ l9EOzXkzfx4bZxjAHU9mkMdJwOcMDQ==
                 sent.head
             );
             verify(&public, seen, &["content-length", "@method"]);
+        }
+    }
+
+    #[tokio::test]
+    async fn other_methods_without_a_body_send_no_content_length() {
+        static OTHERS: [Operation; 2] = [touch("GET"), touch("DELETE")];
+        let options = SignerOptions {
+            components: &["@method"],
+            ..SignerOptions::default()
+        };
+        let signer = MessageSigner::new(ED25519_KEY, options).unwrap();
+        let credentials = Arc::new(Signed {
+            signer,
+            seen: Mutex::default(),
+        });
+        let (url, log) = serve(|_, _| (200, "{}".to_owned())).await;
+        let transport = transport(&url, credentials);
+        for operation in &OTHERS {
+            transport
+                .call::<serde_json::Value>(Request::new(operation))
+                .await
+                .unwrap();
+        }
+
+        let sent = log.lock().unwrap();
+        assert_eq!(sent.len(), 2);
+        for sent in sent.iter() {
+            assert!(
+                !sent
+                    .head
+                    .to_ascii_lowercase()
+                    .contains("\r\ncontent-length:"),
+                "{}",
+                sent.head
+            );
         }
     }
 

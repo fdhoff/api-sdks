@@ -320,7 +320,7 @@ impl Transport {
             outgoing = outgoing.body(stream);
         } else if !auth.body.is_empty() {
             outgoing = outgoing.body(auth.body.clone());
-        } else if matches!(auth.method, Method::POST | Method::PUT) && !auth.headers.contains_key(CONTENT_LENGTH) {
+        } else if sends_empty_length(&auth.method) && !auth.headers.contains_key(CONTENT_LENGTH) {
             // The signer signs 0 for these methods, so send it rather than rely on hyper to.
             outgoing = outgoing.header(CONTENT_LENGTH, "0");
         }
@@ -585,6 +585,12 @@ impl Transport {
             }
         }))
     }
+}
+
+/// Whether a request with no body is sent with `Content-Length: 0`, as Go, Python and TypeScript send it.
+/// The signer signs the same.
+pub(super) fn sends_empty_length(method: &Method) -> bool {
+    matches!(*method, Method::POST | Method::PUT | Method::PATCH)
 }
 
 #[cfg(test)]

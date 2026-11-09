@@ -322,16 +322,16 @@ test('content-length and host come from the body and URL when absent', async () 
   );
 });
 
-test('a POST or PUT without a body signs a zero content-length', async () => {
+test('a POST, PUT or PATCH without a body signs a zero content-length', async () => {
   const [privateKey, publicKey] = freshKey();
   const signer = await MessageSigner.create({ privateKey, components: ['content-length'] });
-  for (const method of ['POST', 'PUT']) {
+  for (const method of ['POST', 'PUT', 'PATCH']) {
     const request = authRequest(method, 'https://example.com/items', {}, new Uint8Array());
     await signer.sign(request);
     assert.equal(request.headers.has('content-length'), false);
     verifyBase(publicKey, request, ['"content-length": 0']);
   }
-  for (const method of ['GET', 'DELETE', 'PATCH']) {
+  for (const method of ['GET', 'DELETE']) {
     await assert.rejects(
       signer.sign(authRequest(method, 'https://example.com/items', {}, new Uint8Array())),
       /content-length/,
@@ -339,7 +339,7 @@ test('a POST or PUT without a body signs a zero content-length', async () => {
   }
 });
 
-test('a POST or PUT without a body sends the zero content-length it signs', async (t) => {
+test('a POST, PUT or PATCH without a body sends the zero content-length it signs, and other methods send none', async (t) => {
   const received: IncomingHttpHeaders[] = [];
   const server = createServer((request, response) => {
     received.push(request.headers);
@@ -353,20 +353,21 @@ test('a POST or PUT without a body sends the zero content-length it signs', asyn
   const address = server.address();
   assert.ok(address !== null && typeof address === 'object');
   const [privateKey, publicKey] = freshKey();
-  const signer = await MessageSigner.create({ privateKey, components: ['content-length', '@method'] });
-  const transport = new Transport({
-    baseUrl: `http://127.0.0.1:${address.port}`,
-    credentials: new Signed(signer),
-    headers: {},
-    toError: (context) => new ApiError(`status ${context.status}`, { status: context.status }),
-    fetch: globalThis.fetch,
-    timeoutMs: 1000,
-    maxRetries: 0,
-    retryBaseDelayMs: 1,
-    rateLimitWaitMs: 1,
-    maxRetryWaitMs: 1,
-  });
-  for (const method of ['POST', 'PUT']) {
+  const transportFor = (signer: MessageSigner) =>
+    new Transport({
+      baseUrl: `http://127.0.0.1:${address.port}`,
+      credentials: new Signed(signer),
+      headers: {},
+      toError: (context) => new ApiError(`status ${context.status}`, { status: context.status }),
+      fetch: globalThis.fetch,
+      timeoutMs: 1000,
+      maxRetries: 0,
+      retryBaseDelayMs: 1,
+      rateLimitWaitMs: 1,
+      maxRetryWaitMs: 1,
+    });
+  const transport = transportFor(await MessageSigner.create({ privateKey, components: ['content-length', '@method'] }));
+  for (const method of ['POST', 'PUT', 'PATCH']) {
     await new Calls(transport).run({ ...list, id: 'touch', method, name: 'touch' }, {});
     const headers = received.at(-1);
     assert.ok(headers);
@@ -382,6 +383,11 @@ test('a POST or PUT without a body sends the zero content-length it signs', asyn
       operation: list,
     };
     verifyBase(publicKey, signed, ['"content-length": 0', `"@method": ${method}`]);
+  }
+  const unsized = transportFor(await MessageSigner.create({ privateKey, components: ['@method'] }));
+  for (const method of ['GET', 'DELETE']) {
+    await new Calls(unsized).run({ ...list, id: 'touch', method, name: 'touch' }, {});
+    assert.equal(received.at(-1)?.['content-length'], undefined, method);
   }
 });
 

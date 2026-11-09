@@ -362,9 +362,9 @@ func TestContentLengthAndHostComeFromTheBodyAndURLWhenAbsent(t *testing.T) {
 	}
 }
 
-func TestAPostOrPutWithoutABodySignsAZeroContentLength(t *testing.T) {
+func TestAPostPutOrPatchWithoutABodySignsAZeroContentLength(t *testing.T) {
 	signer := mustSigner(t, SignerOptions{PrivateKey: rfcEd25519Key, Components: []string{"content-length"}})
-	for _, method := range []string{"POST", "PUT"} {
+	for _, method := range []string{"POST", "PUT", "PATCH"} {
 		request := &AuthRequest{Method: method, URL: "https://example.com/items", Header: http.Header{}}
 		target, _ := url.Parse(request.URL)
 		if got, err := componentValue(request, target, "content-length"); err != nil || got != "0" {
@@ -377,7 +377,7 @@ func TestAPostOrPutWithoutABodySignsAZeroContentLength(t *testing.T) {
 			t.Errorf("%s: the signer added a header the transport sends: %v", method, request.Header)
 		}
 	}
-	for _, method := range []string{"GET", "DELETE", "PATCH"} {
+	for _, method := range []string{"GET", "DELETE"} {
 		err := signer.Sign(&AuthRequest{Method: method, URL: "https://example.com/items", Header: http.Header{}})
 		if err == nil || !strings.Contains(err.Error(), "content-length") {
 			t.Errorf("%s: got %v", method, err)
@@ -385,11 +385,11 @@ func TestAPostOrPutWithoutABodySignsAZeroContentLength(t *testing.T) {
 	}
 }
 
-func TestAPostOrPutWithoutABodySendsTheZeroContentLengthItSigns(t *testing.T) {
+func TestAPostPutOrPatchWithoutABodySendsTheZeroContentLengthItSigns(t *testing.T) {
 	public, private, _ := ed25519.GenerateKey(rand.Reader)
 	components := []string{"content-length", "@method"}
 	signer := mustSigner(t, SignerOptions{PrivateKey: pkcs8PEM(t, private), Components: components, Now: fixedClock(1700000000)})
-	for _, method := range []string{"POST", "PUT"} {
+	for _, method := range []string{"POST", "PUT", "PATCH"} {
 		transport, seen := serveSigned(t, signer, http.StatusOK)
 		operation := &Operation{ID: "touch", Method: method, Path: "/items", Security: []Requirement{{{Name: "key"}}}}
 		if _, err := Call[any](context.Background(), transport, operation, Input{}); err != nil {
@@ -404,6 +404,20 @@ func TestAPostOrPutWithoutABodySendsTheZeroContentLengthItSigns(t *testing.T) {
 		signature, _ := base64.StdEncoding.DecodeString(strings.TrimSuffix(strings.TrimPrefix(request.header.Get("Signature"), "sig1=:"), ":"))
 		if !ed25519.Verify(public, []byte(base), signature) {
 			t.Errorf("%s: the signature does not verify over %q", method, base)
+		}
+	}
+}
+
+func TestOtherMethodsWithoutABodySendNoContentLength(t *testing.T) {
+	signer := mustSigner(t, SignerOptions{PrivateKey: rfcEd25519Key, Components: []string{"@method"}})
+	for _, method := range []string{"GET", "DELETE"} {
+		transport, seen := serveSigned(t, signer, http.StatusOK)
+		operation := &Operation{ID: "touch", Method: method, Path: "/items", Security: []Requirement{{{Name: "key"}}}}
+		if _, err := Call[any](context.Background(), transport, operation, Input{}); err != nil {
+			t.Fatal(err)
+		}
+		if got := seen()[0].header.Values("Content-Length"); len(got) != 0 {
+			t.Errorf("%s: the server received Content-Length %q", method, got)
 		}
 	}
 }

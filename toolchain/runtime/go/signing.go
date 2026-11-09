@@ -52,10 +52,9 @@ type SignerOptions struct {
 // MessageSigner signs each attempt's request with an HTTP message signature (RFC 9421): a
 // Content-Digest (RFC 9530) of the body when there is one, then Signature-Input and Signature over
 // the covered components, with a fresh created time. content-digest is left out of a request with
-// no body. A request without content-length or host uses the body's length, 0 for a POST or PUT
-// without one, or the URL's authority, which net/http sends; any other field the request lacks is an
-// error. Call Sign from
-// Credentials.Apply.
+// no body. A request without content-length or host uses the body's length, 0 for a POST, PUT or
+// PATCH without one, or the URL's authority, which net/http sends; any other field the request lacks
+// is an error. Call Sign from Credentials.Apply.
 type MessageSigner struct {
 	algorithm  string
 	sign       func([]byte) ([]byte, error)
@@ -219,12 +218,12 @@ func (s *MessageSigner) Sign(request *AuthRequest) error {
 	return nil
 }
 
-// contentLength is what net/http sends: the body's length, or 0 for a POST or PUT without a body.
+// contentLength is what net/http sends: the body's length, or 0 for a POST, PUT or PATCH without a body.
 func contentLength(request *AuthRequest) []string {
 	if len(request.Body) > 0 {
 		return []string{strconv.Itoa(len(request.Body))}
 	}
-	if method := strings.ToUpper(request.Method); method == "POST" || method == "PUT" {
+	if method := strings.ToUpper(request.Method); method == "POST" || method == "PUT" || method == "PATCH" {
 		return []string{"0"}
 	}
 	return nil
