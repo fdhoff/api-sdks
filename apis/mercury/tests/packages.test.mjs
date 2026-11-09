@@ -78,3 +78,25 @@ test('the C# README says it is unofficial, not affiliated and that Mercury is no
   assert.match(readme, /not a bank/);
   assert.match(readme, /0\.x/);
 });
+
+const TYPESCRIPT = new URL('packages/typescript/', API);
+
+test('the TypeScript package ships the Apache-2.0 licence and the Python notice', async () => {
+  assert.equal(await readFile(new URL('LICENSE', TYPESCRIPT), 'utf8'), await readFile(new URL('LICENSE', ROOT), 'utf8'));
+  assert.equal(await readFile(new URL('NOTICE', TYPESCRIPT), 'utf8'), await readFile(new URL('packages/python/NOTICE', API), 'utf8'));
+});
+
+test('the TypeScript package and README say it is unofficial and not affiliated', async () => {
+  const manifest = JSON.parse(await readFile(new URL('package.json', TYPESCRIPT), 'utf8'));
+  assert.equal(manifest.name, 'mercury-banking');
+  assert.equal(manifest.license, 'Apache-2.0');
+  assert.match(manifest.description, /^Unofficial /);
+  assert.ok(manifest.description.includes(AFFILIATION));
+  assert.match(manifest.version, /^0\./);
+  const index = await unwrapped(new URL('src/index.ts', TYPESCRIPT));
+  assert.ok(index.replaceAll(' * ', ' ').includes(AFFILIATION));
+  const readme = await unwrapped(new URL('README.md', TYPESCRIPT));
+  assert.ok(readme.includes(AFFILIATION));
+  assert.match(readme, /not a bank/);
+  assert.match(readme, /0\.x/);
+});
