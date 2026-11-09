@@ -805,9 +805,9 @@ def test_a_tuple_of_strings_in_a_multipart_field_is_sent_as_form_values() -> Non
         seen.append(request)
         return httpx.Response(204)
 
-    client_for(handler).buyback.counter_offer(
-        "synthetic-order", price=1.5, reasons=("SCREEN", "BATTERY"), files=(("a.pdf", b"%PDF"),)
-    )
+    reasons: Any = ("SCREEN", "BATTERY")
+    files: Any = (("a.pdf", b"%PDF"),)
+    client_for(handler).buyback.counter_offer("synthetic-order", price=1.5, reasons=reasons, files=files)
     assert multipart(seen[0]) == [
         ("price", None, b"1.5"),
         ("reasons", None, b"SCREEN"),
