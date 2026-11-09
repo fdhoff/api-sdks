@@ -77,7 +77,7 @@ Imports and exports run in the background. `sdk.yaml` names each start operation
 
 ## Files
 
-* Binary downloads: DR73, IV02, M13, OF03, OR73, P44, P45, P46, P47, PRI03, S31 and STO03, plus PM11's `text/csv` alternative to JSON. Of the 17 upstream, OF51, OF54, OR15 and TL05 are removed by M1 and M2.
+* Binary downloads: DR73, IV02, M13, OF03, OR73, P44, P45, P46, P47, PRI03, S31 and STO03. PM11 also offers `text/csv` beside JSON; the clients take the JSON. Of the 17 binary responses upstream, OF51, OF54, OR15 and TL05 are removed by M1 and M2, and PM11 is the 17th.
 * Multipart uploads: DR74, M12, M14, OF01, OR43, OR74, P41, PRI01, S32 and STO01. Their inline bodies get names in `packages/names.yaml`; PRI01 and STO01 send the same one-file body, which generators share under one name.
 
 ## Open

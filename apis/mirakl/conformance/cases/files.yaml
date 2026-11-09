@@ -51,7 +51,7 @@ cases:
   - name: files-a-price-import-is-one-multipart-file-part
     request:
       operation: PRI01
-      multipart: { file: "offer-sku;price\nsku-1;10.00\n" }
+      multipart: { file: 'offer-sku;price;sku-1;10.00' }
     mock:
       responses:
         - status: 201
@@ -60,7 +60,7 @@ cases:
       - method: POST
         path: /api/offers/pricing/imports
         headers_match: { content-type: '^multipart/form-data; boundary=' }
-        parts: { file: ["offer-sku;price\nsku-1;10.00\n"] }
+        parts: { file: ['offer-sku;price;sku-1;10.00'] }
     expect:
       result: { import_id: price-import-2 }
 

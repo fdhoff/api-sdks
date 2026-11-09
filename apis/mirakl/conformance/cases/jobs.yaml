@@ -4,7 +4,7 @@ cases:
   - name: jobs-a-stock-import-is-polled-until-complete
     client: { poll_interval_ms: 20 }
     steps:
-      - request: { operation: STO01, multipart: { file: "offer-sku;quantity\nsku-1;5\n" } }
+      - request: { operation: STO01, multipart: { file: 'offer-sku;quantity;sku-1;5' } }
         expect: { result: { import_id: stock-import-1 } }
       - request: { operation: STO02, params: { import_id: stock-import-1 }, wait: true }
         expect: { result: { import_id: stock-import-1, status: COMPLETE, has_error_report: false } }
@@ -21,7 +21,7 @@ cases:
         path: /api/offers/stock/imports
         headers: { authorization: '{{token}}' }
         headers_match: { content-type: '^multipart/form-data; boundary=' }
-        parts: { file: ["offer-sku;quantity\nsku-1;5\n"] }
+        parts: { file: ['offer-sku;quantity;sku-1;5'] }
       - method: GET
         path: /api/offers/stock/imports/stock-import-1/status
         headers: { authorization: '{{token}}' }
@@ -32,7 +32,7 @@ cases:
   - name: jobs-a-failed-offer-import-is-returned-and-its-error-report-downloads
     client: { poll_interval_ms: 0 }
     steps:
-      - request: { operation: OF01, multipart: { file: "sku;product-id\nsku-1;0000000000001\n", import_mode: NORMAL } }
+      - request: { operation: OF01, multipart: { file: 'sku;product-id;sku-1;0000000000001', import_mode: NORMAL } }
         expect: { result: { import_id: 41 } }
       - request: { operation: OF02, params: { import: 41 }, wait: true }
         expect: { result: { import_id: 41, status: FAILED, has_error_report: true } }
@@ -52,7 +52,7 @@ cases:
     wire:
       - method: POST
         path: /api/offers/imports
-        parts: { file: ["sku;product-id\nsku-1;0000000000001\n"], import_mode: [NORMAL] }
+        parts: { file: ['sku;product-id;sku-1;0000000000001'], import_mode: [NORMAL] }
       - method: GET
         path: /api/offers/imports/41
       - method: GET

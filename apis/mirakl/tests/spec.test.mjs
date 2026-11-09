@@ -32,7 +32,7 @@ const DEPRECATED = ['M01', 'OF26', 'OF51', 'OR12', 'OR26', 'OR41', 'OR42', 'RE02
 const DYNAMIC = ['OF54', 'OR15', 'TL05'];
 const OFFSET = ['IV01', 'OF21', 'OR11', 'P11', 'P51', 'PR01'];
 const SEEK = ['DR11', 'DR12', 'M11', 'OF04', 'PL11', 'PRI02', 'RT11', 'RT12', 'RT52', 'SBC11', 'ST11', 'ST12', 'ST42', 'ST52', 'TL02'];
-const BINARY = ['DR73', 'IV02', 'M13', 'OF03', 'OR73', 'P44', 'P45', 'P46', 'P47', 'PM11', 'PRI03', 'S31', 'STO03'];
+const BINARY = ['DR73', 'IV02', 'M13', 'OF03', 'OR73', 'P44', 'P45', 'P46', 'P47', 'PRI03', 'S31', 'STO03'];
 const MULTIPART = ['DR74', 'M12', 'M14', 'OF01', 'OR43', 'OR74', 'P41', 'PRI01', 'S32', 'STO01'];
 
 test('the cached spec matches its lock and is not tracked', async () => {
@@ -97,10 +97,10 @@ test('every iterator pages the way its response says', () => {
     const schema = deref(successContent(operation)['application/json'].schema);
     assert.equal(deref(schema.properties[iterator.items]).type, 'array', id);
     if (OFFSET.includes(id)) {
-      assert.equal(paging.style, 'offset', id);
+      assert.ok(paging.offset, id);
       if (id !== 'P11') assert.ok(schema.properties.total_count, id);
     } else {
-      assert.deepEqual([paging.style, paging.next, paging.param], ['cursor', 'next_page_token', 'page_token'], id);
+      assert.deepEqual([paging.cursor?.next, paging.cursor?.param], ['next_page_token', 'page_token'], id);
       assert.ok(schema.properties.next_page_token, id);
     }
   }
@@ -126,6 +126,7 @@ test('binary downloads and multipart uploads are kept', () => {
     const binary = Object.values(successContent(byId.get(id))).filter((media) => deref(media.schema)?.format === 'binary');
     assert.ok(binary.length > 0, id);
   }
+  assert.deepEqual(Object.keys(successContent(byId.get('PM11'))), ['application/json', 'text/csv']);
   for (const id of MULTIPART) assert.ok(Object.keys(deref(byId.get(id).requestBody).content).includes('multipart/form-data'), id);
 });
 
