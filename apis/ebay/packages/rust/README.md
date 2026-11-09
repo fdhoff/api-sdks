@@ -133,11 +133,13 @@ After `exchange_code` the client uses the new token, and `client.oauth().refresh
 eBay requires sellers domiciled in the EU or UK to sign calls that move money or return financial data, such as those of the Finances API. Create a key pair once with the Key Management API, store its private key, which eBay returns only once, and pass both halves to the client as a `SigningKey`:
 
 ```rust,no_run
+# #[cfg(feature = "signing")]
+# mod example {
 use ebay_sell::finances::SellerFundsGetSummaryParams;
 use ebay_sell::key_management::models::CreateSigningKeyRequest;
 use ebay_sell::{Client, SigningKey};
 
-# async fn example() -> Result<(), Box<dyn std::error::Error>> {
+# pub async fn example() -> Result<(), Box<dyn std::error::Error>> {
 let client = Client::builder()
     .client_id("your-app-id")
     .client_secret("your-cert-id")
@@ -158,6 +160,7 @@ let params = SellerFundsGetSummaryParams { x_ebay_c_marketplace_id: Some("EBAY_G
 let summary = client.finances().seller_funds().get_summary(&params).await?;
 println!("{:?}", summary.and_then(|summary| summary.total_funds));
 # Ok(())
+# }
 # }
 ```
 
