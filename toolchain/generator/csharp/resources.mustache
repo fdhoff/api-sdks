@@ -1,5 +1,37 @@
 {{>partial_header}}
 
+{{#sdkContract}}
+namespace {{packageName}};
+
+using {{packageName}}.{{apiPackage}};
+using {{runtimePackage}}.Runtime;
+
+/// <summary>This API's operations, grouped by resource.</summary>
+public sealed class Resources
+{
+    /// <summary>The contract's name in the conformance cases.</summary>
+    internal const string Contract = "{{.}}";
+
+    internal static readonly Operation[] Operations = [{{#apiInfo}}{{#apis}}.. {{classname}}.Operations, {{/apis}}{{/apiInfo}}];
+
+    internal Resources(Transport transport)
+    {
+{{#apiInfo}}
+{{#apis}}
+        {{baseName}} = new {{classname}}(transport);
+{{/apis}}
+{{/apiInfo}}
+    }
+{{#apiInfo}}
+{{#apis}}
+
+    /// <summary>The {{baseName}} operations.</summary>
+    public {{classname}} {{baseName}} { get; }
+{{/apis}}
+{{/apiInfo}}
+}
+{{/sdkContract}}
+{{^sdkContract}}
 using {{packageName}}.{{apiPackage}};
 using {{packageName}}.Runtime;
 
@@ -29,3 +61,4 @@ public abstract class ClientResources
 {{/apis}}
 {{/apiInfo}}
 }
+{{/sdkContract}}

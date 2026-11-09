@@ -1,7 +1,7 @@
 {{>partial_header}}
 
 using {{packageName}}.{{modelPackage}};
-using {{packageName}}.Runtime;
+using {{#runtimePackage}}{{.}}{{/runtimePackage}}{{^runtimePackage}}{{packageName}}{{/runtimePackage}}.Runtime;
 
 namespace {{packageName}}.{{apiPackage}};
 {{#operations}}
