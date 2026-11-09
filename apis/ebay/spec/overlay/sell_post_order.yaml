@@ -1,0 +1,331 @@
+# Corrections to the pinned sell_post_order contract. See ../../docs/spec-audit.md.
+overlay: 1.0.0
+info:
+  title: Corrections to the eBay sell_post_order contract
+  version: 0.1.0
+actions:
+  - description: P1. eBay decommissioned these nine operations in 2026, but the contract still declares them.
+    target: $.paths['/post-order/v2/cancellation/{cancelId}/confirm']
+    remove: true
+  - description: P1.
+    target: $.paths['/post-order/v2/casemanagement/{caseId}/close']
+    remove: true
+  - description: P1.
+    target: $.paths['/post-order/v2/casemanagement/{caseId}/issue_refund']
+    remove: true
+  - description: P1.
+    target: $.paths['/post-order/v2/casemanagement/{caseId}/provide_shipment_info']
+    remove: true
+  - description: P1.
+    target: $.paths['/post-order/v2/casemanagement/{caseId}/provide_return_address']
+    remove: true
+  - description: P1.
+    target: $.paths['/post-order/v2/inquiry/']
+    remove: true
+  - description: P1.
+    target: $.paths['/post-order/v2/inquiry/{inquiryId}/close']
+    remove: true
+  - description: P1.
+    target: $.paths['/post-order/v2/inquiry/{inquiryId}/confirm_refund']
+    remove: true
+  - description: P1.
+    target: $.paths['/post-order/v2/inquiry/{inquiryId}/provide_refund_info']
+    remove: true
+  - description: P2. Every path already starts with the server's base path, so each call would send it twice.
+    target: $.servers[0].variables
+    remove: true
+  - description: P2.
+    target: $.servers[0]
+    update:
+      url: https://api.ebay.com
+  - description: P3. Most operations inherit an empty security requirement, so they read as anonymous. Every call takes the seller's user token.
+    target: $.paths.*.*.security
+    remove: true
+  - description: P3.
+    target: $.security
+    remove: true
+  - description: P3.
+    target: $
+    update:
+      security:
+        - api_auth: []
+  - description: P3. No operation takes an application token, and none uses the bare bearer scheme.
+    target: $.components.securitySchemes.api_auth.flows.clientCredentials
+    remove: true
+  - description: P3.
+    target: $.components.securitySchemes.bearerAuth
+    remove: true
+  - description: P4. Every call needs the marketplace header, but no operation declares it.
+    target: $.components
+    update:
+      parameters:
+        MarketplaceId:
+          name: X-EBAY-C-MARKETPLACE-ID
+          in: header
+          required: true
+          schema:
+            type: string
+  - description: P4.
+    target: $.paths.*
+    update:
+      parameters:
+        - $ref: '#/components/parameters/MarketplaceId'
+  - description: P5. Eleven path parameters are marked optional, which OpenAPI forbids.
+    target: $.paths.*.*.parameters[?(@.in == 'path')]
+    update:
+      required: true
+  - description: P6. Post-Order sends and accepts JSON only, but 23 operations declare XML bodies.
+    target: $.paths['/post-order/v2/cancellation/check_eligibility'].post.requestBody.content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/OrderEligibilityCheckInfo'
+  - description: P6.
+    target: $.paths['/post-order/v2/cancellation'].post.requestBody.content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/CreateCancelRequest'
+  - description: P6.
+    target: $.paths['/post-order/v2/cancellation/{cancelId}/reject'].post.requestBody.content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/RejectCancelRequest'
+  - description: P6.
+    target: $.paths['/post-order/v2/return/preference'].post.requestBody.content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/SetSellerReturnPreferenceRequest'
+  - description: P6.
+    target: $.paths['/post-order/v2/cancellation/check_eligibility'].post.responses['200'].content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/OrderEligibilityResult'
+  - description: P6.
+    target: $.paths['/post-order/v2/cancellation/{cancelId}'].get.responses['200'].content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/GetCancelDetailResponse'
+  - description: P6.
+    target: $.paths['/post-order/v2/cancellation'].post.responses['200'].content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/CreateCancelResponse'
+  - description: P6.
+    target: $.paths['/post-order/v2/cancellation/search'].get.responses['200'].content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/FindCancelResponse'
+  - description: P6.
+    target: $.paths['/post-order/v2/cancellation/{cancelId}/approve'].post.responses['200'].content
+    update:
+      application/json:
+        schema:
+          type: object
+  - description: P6.
+    target: $.paths['/post-order/v2/cancellation/{cancelId}/reject'].post.responses['200'].content
+    update:
+      application/json:
+        schema:
+          type: object
+  - description: P6.
+    target: $.paths['/post-order/v2/return'].post.responses['200'].content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/CreateReturnResponse'
+  - description: P6.
+    target: $.paths['/post-order/v2/return/{returnId}'].get.responses['200'].content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/GetDetailResponse'
+  - description: P6.
+    target: $.paths['/post-order/v2/return/search'].get.responses['200'].content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/GetSummaryResponse'
+  - description: P6.
+    target: $.paths['/post-order/v2/return/{returnId}/escalate'].post.responses['200'].content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/EscalateResponse'
+  - description: P6.
+    target: $.paths['/post-order/v2/return/{returnId}/decide'].post.responses['200'].content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/DecideReturnResponse'
+  - description: P6.
+    target: $.paths['/post-order/v2/return/{returnId}/mark_as_received'].post.responses['200'].content
+    update:
+      application/json:
+        schema:
+          type: object
+  - description: P6.
+    target: $.paths['/post-order/v2/return/{returnId}/issue_refund'].post.responses['200'].content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/IssueRefundResponse'
+  - description: P6.
+    target: $.paths['/post-order/v2/return/{returnId}/tracking'].get.responses['200'].content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/GetTrackingHistoryResponse'
+  - description: P6.
+    target: $.paths['/post-order/v2/return/{returnId}/send_message'].post.responses['200'].content
+    update:
+      application/json:
+        schema:
+          type: object
+  - description: P6.
+    target: $.paths['/post-order/v2/return/{returnId}/add_shipping_label'].post.responses['200'].content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/ProvideLabelResponse'
+  - description: P6.
+    target: $.paths['/post-order/v2/return/{returnId}/file/upload'].post.responses['200'].content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/UploadFileResponse'
+  - description: P6.
+    target: $.paths['/post-order/v2/return/{returnId}/files'].get.responses['200'].content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/GetFileResponse'
+  - description: P6.
+    target: $.paths['/post-order/v2/return/preference'].get.responses['200'].content
+    update:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/GetSellerReturnPreferenceResponse'
+  - description: P6.
+    target: $.paths['/post-order/v2/return/preference'].post.responses['200'].content
+    update:
+      application/json:
+        schema:
+          type: object
+  - description: P6.
+    target: $.paths.*.*.requestBody.content['application/xml']
+    remove: true
+  - description: P6.
+    target: $.paths.*.*.responses['200'].content['application/xml']
+    remove: true
+  - description: P7. Every enumeration is typed as an object, though its values are strings.
+    target: $.components.schemas[?(@.enum && @.type == 'object')]
+    update:
+      type: string
+  - description: P8. Two schemas are referenced but not defined. Their fields follow eBay's public type reference.
+    target: $.components.schemas
+    update:
+      FilePurposeEnum:
+        type: string
+        enum: [ITEM_RELATED, LABEL_RELATED, REFUND_RELATED, UNKNOWN]
+      ActualRefundDetailType:
+        type: object
+        properties:
+          actualRefund:
+            $ref: '#/components/schemas/RefundDetailType'
+          fundings:
+            type: array
+            items:
+              $ref: '#/components/schemas/RefundFundingType'
+          netChargeAmount:
+            $ref: '#/components/schemas/Amount'
+          outstandingAmount:
+            $ref: '#/components/schemas/Amount'
+          refundInitiationType:
+            $ref: '#/components/schemas/ReturnRefundInitiatorEnum'
+          refundIssuedDate:
+            $ref: '#/components/schemas/DateTime'
+          refundStatus:
+            $ref: '#/components/schemas/Refund_MoneyMovementStatusEnum'
+  - description: P9. Every request body is marked optional, including those a call cannot do without.
+    target: $.paths['/post-order/v2/cancellation/check_eligibility'].post.requestBody
+    update:
+      required: true
+  - description: P9.
+    target: $.paths['/post-order/v2/cancellation'].post.requestBody
+    update:
+      required: true
+  - description: P9.
+    target: $.paths['/post-order/v2/inquiry/{inquiryId}/send_message'].post.requestBody
+    update:
+      required: true
+  - description: P9.
+    target: $.paths['/post-order/v2/inquiry/{inquiryId}/escalate'].post.requestBody
+    update:
+      required: true
+  - description: P9.
+    target: $.paths['/post-order/v2/inquiry/{inquiryId}/provide_shipment_info'].post.requestBody
+    update:
+      required: true
+  - description: P9.
+    target: $.paths['/post-order/v2/return'].post.requestBody
+    update:
+      required: true
+  - description: P9.
+    target: $.paths['/post-order/v2/return/{returnId}/escalate'].post.requestBody
+    update:
+      required: true
+  - description: P9.
+    target: $.paths['/post-order/v2/return/{returnId}/decide'].post.requestBody
+    update:
+      required: true
+  - description: P9.
+    target: $.paths['/post-order/v2/return/{returnId}/issue_refund'].post.requestBody
+    update:
+      required: true
+  - description: P9.
+    target: $.paths['/post-order/v2/return/{returnId}/send_message'].post.requestBody
+    update:
+      required: true
+  - description: P9.
+    target: $.paths['/post-order/v2/return/{returnId}/add_shipping_label'].post.requestBody
+    update:
+      required: true
+  - description: P9.
+    target: $.paths['/post-order/v2/return/{returnId}/file/upload'].post.requestBody
+    update:
+      required: true
+  - description: P9.
+    target: $.paths['/post-order/v2/return/preference'].post.requestBody
+    update:
+      required: true
+  - description: P9. An upload needs the file and its purpose.
+    target: $.components.schemas.UploadFileRequest
+    update:
+      required: [data, filePurpose]
+  - description: P10. EU and UK sellers must sign five of these calls. No operation says so.
+    target: $.paths['/post-order/v2/cancellation'].post
+    update:
+      x-ebay-signature-required: true
+  - description: P10.
+    target: $.paths['/post-order/v2/cancellation/{cancelId}/approve'].post
+    update:
+      x-ebay-signature-required: true
+  - description: P10.
+    target: $.paths['/post-order/v2/inquiry/{inquiryId}/issue_refund'].post
+    update:
+      x-ebay-signature-required: true
+  - description: P10.
+    target: $.paths['/post-order/v2/return/{returnId}/decide'].post
+    update:
+      x-ebay-signature-required: true
+  - description: P10.
+    target: $.paths['/post-order/v2/return/{returnId}/issue_refund'].post
+    update:
+      x-ebay-signature-required: true

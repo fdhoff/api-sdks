@@ -351,6 +351,12 @@ test('contractConfigs gives each contract its own sub-module settings over the p
   assert.throws(() => contractConfigs(config, ['alpha']), /no sub-module for contracts: alpha/);
 });
 
+test('contractConfigs leaves out a contract whose entry sets omit', () => {
+  const contracts = { alpha: { output: 'src/pkg/alpha' }, beta: { omit: 'Not yet.' } };
+  assert.deepEqual(contractConfigs({ output: 'src/pkg', contracts }, ['alpha', 'beta']).map(({ name }) => name), ['alpha']);
+  assert.throws(() => contractConfigs({ output: 'src/pkg', contracts: { alpha: {} } }, ['alpha', 'beta']), /no sub-module for contracts: beta/);
+});
+
 test('mergeConfig merges nested maps and replaces lists', () => {
   assert.deepEqual(mergeConfig({ a: { b: 1, c: 2 }, list: [1] }, { a: { c: 3 }, list: [2] }), { a: { b: 1, c: 3 }, list: [2] });
 });

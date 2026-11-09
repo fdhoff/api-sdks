@@ -427,7 +427,8 @@ export function mergeConfig(base, over = {}) {
 
 // An API built from several contracts generates each one into its own sub-module of the one package, from
 // that contract's own build, so contracts never share a model namespace. `contracts` in generate.yaml gives
-// each contract the settings it overrides, such as `output`, `source`, `operations` and `properties`.
+// each contract the settings it overrides, such as `output`, `source`, `operations` and `properties`. A
+// contract whose entry sets `omit`, to the reason it is left out, is not generated.
 export function contractConfigs(config, names) {
   const { contracts, ...base } = config;
   if (names.length === 1 && names[0] === null) {
@@ -438,7 +439,7 @@ export function contractConfigs(config, names) {
   if (missing.length > 0) throw new Error(`generate.yaml configures no sub-module for contracts: ${missing.join(', ')}`);
   const unknown = Object.keys(contracts).filter((name) => !names.includes(name));
   if (unknown.length > 0) throw new Error(`generate.yaml configures unknown contracts: ${unknown.join(', ')}`);
-  return names.map((name) => ({ name, config: mergeConfig(base, contracts[name] ?? {}) }));
+  return names.filter((name) => !contracts[name]?.omit).map((name) => ({ name, config: mergeConfig(base, contracts[name] ?? {}) }));
 }
 
 // Outputs that sit inside another one are formatted with it.

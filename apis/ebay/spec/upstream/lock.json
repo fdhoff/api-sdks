@@ -97,6 +97,14 @@
       "retrievedOn": "2026-11-08"
     },
     {
+      "name": "sell_post_order",
+      "url": "https://raw.githubusercontent.com/eBay/order-management-dotnet-sdk/9c536e45041ddae4fb2701b9123fca94b2abd530/specs/openapi/post-order-api.json",
+      "sha256": "e68c34d189554050d6cf8241050a207e9edacab20eaa18fb8c5cfcf5c1c0f51c",
+      "infoVersion": "2.10.0",
+      "lastModified": null,
+      "retrievedOn": "2026-11-08"
+    },
+    {
       "name": "commerce_taxonomy",
       "url": "https://developer.ebay.com/api-docs/master/commerce/taxonomy/openapi/3/commerce_taxonomy_v1_oas3.json",
       "sha256": "294c327d8484b172d81c29a23e3ab6c28f4ba679bdb7d7c1dca4df901574a14d",

@@ -235,6 +235,7 @@ contracts:
   sell_negotiation: { output: ebaysell/negotiation, operations: operations/sell_negotiation.yaml, properties: { packageName: negotiation, sdkContract: sell_negotiation } }
   sell_recommendation: { output: ebaysell/recommendation, operations: operations/sell_recommendation.yaml, properties: { packageName: recommendation, sdkContract: sell_recommendation } }
   sell_stores: { output: ebaysell/stores, operations: operations/sell_stores.yaml, properties: { packageName: stores, sdkContract: sell_stores } }
+  sell_post_order: { omit: Added in a later release. }
   commerce_feedback: { output: ebaysell/feedback, operations: operations/commerce_feedback.yaml, properties: { packageName: feedback, sdkContract: commerce_feedback } }
   commerce_identity: { output: ebaysell/identity, operations: operations/commerce_identity.yaml, properties: { packageName: identity, sdkContract: commerce_identity } }
   commerce_media: { output: ebaysell/media, operations: operations/commerce_media.yaml, properties: { packageName: media, sdkContract: commerce_media } }
