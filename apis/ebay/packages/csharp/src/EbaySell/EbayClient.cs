@@ -149,6 +149,7 @@ public sealed class EbayClient : IDisposable
         Negotiation = new(transport);
         Recommendation = new(transport);
         Stores = new(transport);
+        PostOrder = new(transport);
         Feedback = new(transport);
         Identity = new(transport);
         Media = new(transport);
@@ -198,6 +199,9 @@ public sealed class EbayClient : IDisposable
 
     /// <summary>The Stores API.</summary>
     public global::EbaySell.Stores.Resources Stores { get; }
+
+    /// <summary>The Post-Order API: cancellations, returns, item-not-received inquiries and cases.</summary>
+    public global::EbaySell.PostOrder.Resources PostOrder { get; }
 
     /// <summary>The Feedback API.</summary>
     public global::EbaySell.Feedback.Resources Feedback { get; }
