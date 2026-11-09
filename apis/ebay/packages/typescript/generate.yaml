@@ -31,6 +31,7 @@ contracts:
   sell_negotiation: { output: src/negotiation, operations: operations/sell_negotiation.yaml, properties: { sdkModule: negotiation }, supporting_files: { module.mustache: src/negotiation/index.ts } }
   sell_recommendation: { output: src/recommendation, operations: operations/sell_recommendation.yaml, properties: { sdkModule: recommendation }, supporting_files: { module.mustache: src/recommendation/index.ts } }
   sell_stores: { output: src/stores, operations: operations/sell_stores.yaml, properties: { sdkModule: stores }, supporting_files: { module.mustache: src/stores/index.ts } }
+  sell_post_order: { omit: Added in a later release. }
   commerce_feedback: { output: src/feedback, operations: operations/commerce_feedback.yaml, properties: { sdkModule: feedback }, supporting_files: { module.mustache: src/feedback/index.ts } }
   commerce_identity: { output: src/identity, operations: operations/commerce_identity.yaml, properties: { sdkModule: identity }, supporting_files: { module.mustache: src/identity/index.ts } }
   commerce_media: { output: src/media, operations: operations/commerce_media.yaml, properties: { sdkModule: media }, supporting_files: { module.mustache: src/media/index.ts } }
