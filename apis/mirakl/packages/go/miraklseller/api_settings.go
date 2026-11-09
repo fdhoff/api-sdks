@@ -280,7 +280,7 @@ type SettingsListReasonsParams struct {
 	ShopID *int64 `query:"shop_id"`
 }
 
-// ListReasons lists reasons for incidents
+// ListReasons lists reasons for incidents, refunds and other actions (RE01).
 func (r *SettingsResource) ListReasons(ctx context.Context, params *SettingsListReasonsParams) (*RE01Response200, error) {
 	return runtime.Call[*RE01Response200](ctx, r.transport, opRE01, runtime.Input{Params: params})
 }

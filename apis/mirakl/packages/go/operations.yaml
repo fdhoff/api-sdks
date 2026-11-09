@@ -19,7 +19,7 @@ DO01: { resource: Settings, method: ListDocumentTypes, summary: ListDocumentType
 L01: { resource: Settings, method: ListLocales, summary: ListLocales lists locale codes and labels (L01). }
 OF61: { resource: Settings, method: ListOfferConditions, summary: ListOfferConditions lists offer conditions (OF61). }
 PC01: { resource: Settings, method: GetConfiguration, summary: GetConfiguration gets the platform configuration (PC01). }
-RE01: { resource: Settings, method: ListReasons, summary: ListReasons lists reasons for incidents, refunds and other actions (RE01). }
+RE01: { resource: Settings, method: ListReasons, summary: "ListReasons lists reasons for incidents, refunds and other actions (RE01)." }
 SH11: { resource: Settings, method: ListShippingZones, summary: ListShippingZones lists the active shipping zones (SH11). }
 SH12: { resource: Settings, method: ListShippingMethods, summary: ListShippingMethods lists the active shipping methods (SH12). }
 SH21: { resource: Settings, method: ListCarriers, summary: ListCarriers lists carriers (SH21). }
@@ -28,7 +28,7 @@ SH42: { resource: Settings, method: GetShippingConfiguration, summary: GetShippi
 SH52: { resource: Settings, method: GetShippingCharges, summary: GetShippingCharges gets the shipping charges set for the shop (SH52). }
 V01: { resource: Settings, method: Version, summary: Version checks the API is up and gets its version (V01). }
 
-OF01: { resource: Offers, method: Import, summary: Import uploads a file that creates, updates or deletes offers (OF01). }
+OF01: { resource: Offers, method: Import, summary: "Import uploads a file that creates, updates or deletes offers (OF01)." }
 OF02: { resource: Offers, method: GetImport, wait: WaitImport, summary: GetImport gets the status and statistics of an offer import (OF02). }
 OF03: { resource: Offers, method: DownloadImportErrorReport, summary: DownloadImportErrorReport downloads an offer import's error report (OF03). }
 OF04: { resource: Offers, method: ListImports, iterator: IterImports, items: OF04Response200Data, paging: { items: data }, summary: ListImports lists one page of offer imports (OF04). }

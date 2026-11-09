@@ -232,7 +232,7 @@ type OffersImportParams struct {
 	WithProducts   *bool   `form:"with_products"`
 }
 
-// Import uploads a file that creates
+// Import uploads a file that creates, updates or deletes offers (OF01).
 func (r *OffersResource) Import(ctx context.Context, params *OffersImportParams) (*OF01Response201, error) {
 	return runtime.Call[*OF01Response201](ctx, r.transport, opOF01, runtime.Input{Params: params})
 }
