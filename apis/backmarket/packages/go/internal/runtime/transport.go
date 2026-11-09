@@ -637,6 +637,9 @@ func Paginate[T any](ctx context.Context, t *Transport, operation *Operation, in
 				yield(empty, err)
 				return
 			}
+			if answer.status == http.StatusNoContent {
+				return
+			}
 			var page map[string]json.RawMessage
 			if err := json.Unmarshal(answer.body, &page); err != nil || page == nil {
 				yield(empty, t.decodeError("a page is not a JSON object", answer, err))
