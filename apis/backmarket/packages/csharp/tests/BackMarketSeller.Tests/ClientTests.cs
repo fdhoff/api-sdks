@@ -106,6 +106,20 @@ public sealed class ClientTests
         Assert.Equal("https://mock.invalid/ws/orders?page=2&page-size=5", handler.Requests[1].Url);
     }
 
+    [Fact]
+    public async Task AnEmpty204PageEndsIteration()
+    {
+        var handler = new ScriptedHandler(
+            Json(HttpStatusCode.OK, """{"next": "https://mock.invalid/ws/orders?page=2", "results": [{"order_id": 1}]}"""),
+            new HttpResponseMessage(HttpStatusCode.NoContent));
+        using var client = Client(handler);
+
+        var orders = await client.Orders.ListAllAsync(cancellationToken: TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal([1L], orders.Select(order => order.OrderId!.Value));
+        Assert.Equal(2, handler.Requests.Count);
+    }
+
     private static readonly Operation OffsetList = new(
         "list-items", "GET", "/items", "Items", "ListAsync", "ListAllAsync",
         [new("limit", "limit", ParamLocation.Query), new("start", "start", ParamLocation.Query)],

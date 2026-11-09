@@ -23,8 +23,8 @@ public sealed class {{classname}}
 {{#operation}}
 
     /// <summary>{{{vendorExtensions.x-sdk-summary}}}</summary>
-    public {{#vendorExtensions.x-sdk-binary-response}}Task<Download>{{/vendorExtensions.x-sdk-binary-response}}{{^vendorExtensions.x-sdk-binary-response}}{{#returnType}}Task<{{{returnType}}}>{{/returnType}}{{^returnType}}Task{{/returnType}}{{/vendorExtensions.x-sdk-binary-response}} {{vendorExtensions.x-sdk-method}}({{>partial_sdk_args}}) =>
-        transport.{{#vendorExtensions.x-sdk-binary-response}}DownloadAsync{{/vendorExtensions.x-sdk-binary-response}}{{^vendorExtensions.x-sdk-binary-response}}{{#returnType}}CallAsync<{{{returnType}}}>{{/returnType}}{{^returnType}}SendAsync{{/returnType}}{{/vendorExtensions.x-sdk-binary-response}}({{operationId}}Operation, {{>partial_sdk_values}}, cancellationToken);
+    public {{#vendorExtensions.x-sdk-binary-response}}Task<Download>{{/vendorExtensions.x-sdk-binary-response}}{{^vendorExtensions.x-sdk-binary-response}}{{#returnType}}Task<{{{returnType}}}{{#vendorExtensions.x-sdk-no-content}}?{{/vendorExtensions.x-sdk-no-content}}>{{/returnType}}{{^returnType}}Task{{/returnType}}{{/vendorExtensions.x-sdk-binary-response}} {{vendorExtensions.x-sdk-method}}({{>partial_sdk_args}}) =>
+        transport.{{#vendorExtensions.x-sdk-binary-response}}DownloadAsync{{/vendorExtensions.x-sdk-binary-response}}{{^vendorExtensions.x-sdk-binary-response}}{{#returnType}}CallAsync<{{{returnType}}}{{#vendorExtensions.x-sdk-no-content}}?{{/vendorExtensions.x-sdk-no-content}}>{{/returnType}}{{^returnType}}SendAsync{{/returnType}}{{/vendorExtensions.x-sdk-binary-response}}({{operationId}}Operation, {{>partial_sdk_values}}, cancellationToken);
 {{#vendorExtensions.x-sdk-iterator}}
 
     /// <summary>Every item across all pages. Pages are fetched as you iterate.</summary>

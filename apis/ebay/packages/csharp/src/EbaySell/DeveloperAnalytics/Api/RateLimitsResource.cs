@@ -24,10 +24,10 @@ public sealed class RateLimitsResource
     internal RateLimitsResource(Transport transport) => this.transport = transport;
 
     /// <summary>List the app's call limits and current usage.</summary>
-    public Task<RateLimitsResponse> ListAsync(string? apiContext = null, string? apiName = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<RateLimitsResponse>(GetRateLimitsOperation, [apiContext, apiName,], cancellationToken);
+    public Task<RateLimitsResponse?> ListAsync(string? apiContext = null, string? apiName = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<RateLimitsResponse?>(GetRateLimitsOperation, [apiContext, apiName,], cancellationToken);
 
     /// <summary>List the call limits and current usage of the user the token belongs to.</summary>
-    public Task<RateLimitsResponse> ListForUserAsync(string? apiContext = null, string? apiName = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<RateLimitsResponse>(GetUserRateLimitsOperation, [apiContext, apiName,], cancellationToken);
+    public Task<RateLimitsResponse?> ListForUserAsync(string? apiContext = null, string? apiName = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<RateLimitsResponse?>(GetUserRateLimitsOperation, [apiContext, apiName,], cancellationToken);
 }

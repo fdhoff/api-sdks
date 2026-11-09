@@ -28,8 +28,8 @@ public sealed class TransactionsResource
         transport.CallAsync<TransactionSummaryResponse>(GetTransactionSummaryOperation, [filter, marketplaceId,], cancellationToken);
 
     /// <summary>List one page of the seller's monetary transactions.</summary>
-    public Task<Transactions> ListAsync(string? filter = null, string? limit = null, string? offset = null, string? sort = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<Transactions>(GetTransactionsOperation, [filter, limit, offset, sort, marketplaceId,], cancellationToken);
+    public Task<Transactions?> ListAsync(string? filter = null, string? limit = null, string? offset = null, string? sort = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<Transactions?>(GetTransactionsOperation, [filter, limit, offset, sort, marketplaceId,], cancellationToken);
 
     /// <summary>Every item across all pages. Pages are fetched as you iterate.</summary>
     public IAsyncEnumerable<Transaction> ListAllAsync(string? filter = null, string? limit = null, string? offset = null, string? sort = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>

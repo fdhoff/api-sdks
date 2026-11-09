@@ -164,6 +164,10 @@ internal sealed class Transport : IDisposable
         while (current is not null)
         {
             var reply = await FetchAsync(operation, current, cancellationToken).ConfigureAwait(false);
+            if (reply.Status == 204 && reply.Text.Length == 0)
+            {
+                yield break;
+            }
             if (reply.Json is not { ValueKind: JsonValueKind.Object } page)
             {
                 throw new ApiDecodeException("A page is not a JSON object") { Status = reply.Status, RawBody = reply.Clean };

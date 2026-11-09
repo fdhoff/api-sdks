@@ -113,3 +113,23 @@ cases:
         path: /sell/fulfillment/v1/order
     expect:
       error: { kind: decode }
+
+  - name: pagination-empty-204-page-ends-iteration
+    request:
+      operation: sell_fulfillment.getOrders
+      params: { limit: '2' }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { total: 4, limit: 2, offset: 0, next: '/sell/fulfillment/v1/order?limit=2&offset=2', orders: [{ orderId: a }, { orderId: b }] }
+        - status: 204
+    wire:
+      - method: GET
+        path: /sell/fulfillment/v1/order
+        query: { limit: '2' }
+      - method: GET
+        path: /sell/fulfillment/v1/order
+        query: { limit: '2', offset: '2' }
+    expect:
+      result: [{ orderId: a }, { orderId: b }]

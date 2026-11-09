@@ -56,8 +56,8 @@ public sealed class InventoryItemsResource
         transport.CallAsync<BulkPriceQuantityResponse>(BulkUpdatePriceQuantityOperation, [body,], cancellationToken);
 
     /// <summary>Create or replace an inventory item.</summary>
-    public Task<BaseResponse> CreateOrReplaceAsync(string sku, InventoryItem body, string? contentLanguage = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<BaseResponse>(CreateOrReplaceInventoryItemOperation, [sku, body, contentLanguage,], cancellationToken);
+    public Task<BaseResponse?> CreateOrReplaceAsync(string sku, InventoryItem body, string? contentLanguage = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<BaseResponse?>(CreateOrReplaceInventoryItemOperation, [sku, body, contentLanguage,], cancellationToken);
 
     /// <summary>Delete an inventory item and its offers.</summary>
     public Task DeleteAsync(string sku, CancellationToken cancellationToken = default) =>

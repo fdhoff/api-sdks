@@ -45,7 +45,7 @@ using EbaySell;
 using var client = new EbayClient(new EbayClientOptions { ClientId = "your-app-id", ClientSecret = "your-cert-id" });
 
 var tree = await client.Taxonomy.CategoryTrees.GetDefaultIdAsync("EBAY_US");
-Console.WriteLine(tree.CategoryTreeId);
+Console.WriteLine(tree?.CategoryTreeId);
 
 try
 {
@@ -181,7 +181,7 @@ A client is safe for concurrent use.
 * **Errors** derive from `ApiException`. Error responses throw an `HttpException` subclass, such as `NotFoundException` or `ConflictException`, with `Kind`, `Status`, `Code` and `Detail` (the first entry of the body's `errors` list, its `errorId` and `message`), `Errors` (the whole list, as `EbayErrorDetail`s), `RetryAfter` and `RawBody`, with every credential removed.
 * **Logging** holds methods, URLs and statuses, never your credentials or response bodies.
 * **Requests:** JSON bodies are a generated model, and a null property is not sent. eBay declares many numbers as strings, such as `limit` and `offset`, so they are `string` parameters.
-* **Responses** are read tolerantly, because the contracts have not been confirmed against the live API. Every property is nullable. A value that does not fit its property, and any field this version does not know, is kept in the model's `Extra` instead of failing the call. An empty 204 returns `null`.
+* **Responses** are read tolerantly, because the contracts have not been confirmed against the live API. Every property is nullable. A value that does not fit its property, and any field this version does not know, is kept in the model's `Extra` instead of failing the call. Methods whose operations may answer 204 return a nullable type, and an empty 204 returns `null`. An empty 204 page ends a `ListAll…Async` iteration.
 * **Free-form and union values** are `object`, holding a `JsonElement`.
 * **Uploads** take `UploadFile(fileName, bytes)`.
 

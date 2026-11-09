@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* A `ListAll…Async` iterator stops at an empty 204 page instead of throwing `ApiDecodeException` partway through `await foreach`.
 * An empty 204 response returns `null`, even where the spec also declares JSON, instead of throwing `ApiDecodeException`.
 * A 401 that raced an explicit `OAuth.RefreshAsync` could send a second token request with the refresh token just issued. It now waits for that refresh and uses its token.
 * New public `Download` and `RawBody` types, for binary response and request bodies. No operation in this package uses them yet.

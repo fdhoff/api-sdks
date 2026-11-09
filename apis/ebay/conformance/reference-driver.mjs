@@ -248,6 +248,7 @@ async function paginate(client, request, log) {
   const items = [];
   for (;;) {
     const page = await call(client, { ...request, params }, log);
+    if (page === null) return items;
     if (!Array.isArray(page?.[field])) throw new ClientError({ kind: 'decode' });
     items.push(...page[field]);
     if (!page[link]) return items;

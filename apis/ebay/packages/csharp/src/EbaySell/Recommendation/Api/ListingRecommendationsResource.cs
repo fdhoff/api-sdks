@@ -20,8 +20,8 @@ public sealed class ListingRecommendationsResource
     internal ListingRecommendationsResource(Transport transport) => this.transport = transport;
 
     /// <summary>List one page of recommendations for the seller's listings.</summary>
-    public Task<PagedListingRecommendationCollection> FindAsync(string? filter = null, string? limit = null, string? offset = null, FindListingRecommendationRequest? body = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<PagedListingRecommendationCollection>(FindListingRecommendationsOperation, [filter, limit, offset, body, marketplaceId,], cancellationToken);
+    public Task<PagedListingRecommendationCollection?> FindAsync(string? filter = null, string? limit = null, string? offset = null, FindListingRecommendationRequest? body = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<PagedListingRecommendationCollection?>(FindListingRecommendationsOperation, [filter, limit, offset, body, marketplaceId,], cancellationToken);
 
     /// <summary>Every item across all pages. Pages are fetched as you iterate.</summary>
     public IAsyncEnumerable<ListingRecommendation> ListAllAsync(string? filter = null, string? limit = null, string? offset = null, FindListingRecommendationRequest? body = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>

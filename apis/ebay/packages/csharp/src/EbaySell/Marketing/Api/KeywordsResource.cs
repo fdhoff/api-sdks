@@ -64,6 +64,6 @@ public sealed class KeywordsResource
         transport.PaginateAsync<Keyword>(GetKeywordsOperation, [campaignId, adGroupIds, keywordStatus, limit, offset,], cancellationToken);
 
     /// <summary>Change the bid or status of a keyword.</summary>
-    public Task<UpdateKeywordResponse> UpdateAsync(string campaignId, string keywordId, UpdateKeywordRequest body, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<UpdateKeywordResponse>(UpdateKeywordOperation, [campaignId, keywordId, body,], cancellationToken);
+    public Task<UpdateKeywordResponse?> UpdateAsync(string campaignId, string keywordId, UpdateKeywordRequest body, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<UpdateKeywordResponse?>(UpdateKeywordOperation, [campaignId, keywordId, body,], cancellationToken);
 }

@@ -60,30 +60,30 @@ public sealed class CategoryTreesResource
         transport.CallAsync<CategorySubtree>(GetCategorySubtreeOperation, [categoryId, categoryTreeId,], cancellationToken);
 
     /// <summary>Suggest leaf categories for a search phrase.</summary>
-    public Task<CategorySuggestionResponse> GetSuggestionsAsync(string categoryTreeId, string q, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<CategorySuggestionResponse>(GetCategorySuggestionsOperation, [categoryTreeId, q,], cancellationToken);
+    public Task<CategorySuggestionResponse?> GetSuggestionsAsync(string categoryTreeId, string q, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<CategorySuggestionResponse?>(GetCategorySuggestionsOperation, [categoryTreeId, q,], cancellationToken);
 
     /// <summary>Get a whole category tree.</summary>
     public Task<CategoryTree> GetAsync(string categoryTreeId, CancellationToken cancellationToken = default) =>
         transport.CallAsync<CategoryTree>(GetCategoryTreeOperation, [categoryTreeId,], cancellationToken);
 
     /// <summary>List the parts compatibility properties of a category.</summary>
-    public Task<GetCompatibilityMetadataResponse> GetCompatibilityPropertiesAsync(string categoryTreeId, string categoryId, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<GetCompatibilityMetadataResponse>(GetCompatibilityPropertiesOperation, [categoryTreeId, categoryId,], cancellationToken);
+    public Task<GetCompatibilityMetadataResponse?> GetCompatibilityPropertiesAsync(string categoryTreeId, string categoryId, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<GetCompatibilityMetadataResponse?>(GetCompatibilityPropertiesOperation, [categoryTreeId, categoryId,], cancellationToken);
 
     /// <summary>List the values of one parts compatibility property.</summary>
-    public Task<GetCompatibilityPropertyValuesResponse> GetCompatibilityPropertyValuesAsync(string categoryTreeId, string compatibilityProperty, string categoryId, string? filter = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<GetCompatibilityPropertyValuesResponse>(GetCompatibilityPropertyValuesOperation, [categoryTreeId, compatibilityProperty, categoryId, filter,], cancellationToken);
+    public Task<GetCompatibilityPropertyValuesResponse?> GetCompatibilityPropertyValuesAsync(string categoryTreeId, string compatibilityProperty, string categoryId, string? filter = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<GetCompatibilityPropertyValuesResponse?>(GetCompatibilityPropertyValuesOperation, [categoryTreeId, compatibilityProperty, categoryId, filter,], cancellationToken);
 
     /// <summary>Get the ID of a marketplace's default category tree.</summary>
-    public Task<BaseCategoryTree> GetDefaultIdAsync(string marketplaceId, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<BaseCategoryTree>(GetDefaultCategoryTreeIdOperation, [marketplaceId,], cancellationToken);
+    public Task<BaseCategoryTree?> GetDefaultIdAsync(string marketplaceId, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<BaseCategoryTree?>(GetDefaultCategoryTreeIdOperation, [marketplaceId,], cancellationToken);
 
     /// <summary>List the leaf categories that expired and what replaced them.</summary>
-    public Task<ExpiredCategories> GetExpiredCategoriesAsync(string categoryTreeId, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<ExpiredCategories>(GetExpiredCategoriesOperation, [categoryTreeId,], cancellationToken);
+    public Task<ExpiredCategories?> GetExpiredCategoriesAsync(string categoryTreeId, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<ExpiredCategories?>(GetExpiredCategoriesOperation, [categoryTreeId,], cancellationToken);
 
     /// <summary>List the item aspects of one leaf category.</summary>
-    public Task<AspectMetadata> GetItemAspectsAsync(string categoryId, string categoryTreeId, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<AspectMetadata>(GetItemAspectsForCategoryOperation, [categoryId, categoryTreeId,], cancellationToken);
+    public Task<AspectMetadata?> GetItemAspectsAsync(string categoryId, string categoryTreeId, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<AspectMetadata?>(GetItemAspectsForCategoryOperation, [categoryId, categoryTreeId,], cancellationToken);
 }

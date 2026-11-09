@@ -48,8 +48,8 @@ public sealed class SalesTaxesResource
         transport.SendAsync(DeleteSalesTaxOperation, [countryCode, jurisdictionId,], cancellationToken);
 
     /// <summary>Get the seller's sales tax rate for one jurisdiction.</summary>
-    public Task<SalesTax> GetAsync(string countryCode, string jurisdictionId, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<SalesTax>(GetSalesTaxOperation, [countryCode, jurisdictionId,], cancellationToken);
+    public Task<SalesTax?> GetAsync(string countryCode, string jurisdictionId, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<SalesTax?>(GetSalesTaxOperation, [countryCode, jurisdictionId,], cancellationToken);
 
     /// <summary>List the seller's sales tax rates for a country.</summary>
     public Task<SalesTaxes> ListAsync(string countryCode, CancellationToken cancellationToken = default) =>
