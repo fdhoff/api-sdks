@@ -11,7 +11,19 @@ import { runCases, startDriver } from './run.mjs';
 const FIXTURE = fileURLToPath(new URL('./fixtures/driver.mjs', import.meta.url));
 const SIGNING_CASES = fileURLToPath(new URL('./fixtures/signing', import.meta.url));
 const fixtureCases = (style) => fileURLToPath(new URL(`./fixtures/cases/${style}`, import.meta.url));
-const operations = new Set(['list-items', 'list-events', 'create-item', 'create-transfer', 'list-files', 'download-file', 'upload-file', 'get-report']);
+const operations = new Set([
+  'list-items',
+  'list-events',
+  'create-item',
+  'create-transfer',
+  'list-files',
+  'download-file',
+  'upload-file',
+  'get-report',
+  'start-import',
+  'get-import',
+  'get-error-report',
+]);
 
 const baseCase = () => ({
   name: 'lists-items',
@@ -64,6 +76,55 @@ test('validateCase reports each malformed part', () => {
   for (const [override, pattern] of invalid) {
     assert.match(validateCase({ ...baseCase(), ...override }, operations).join('\n'), pattern);
   }
+});
+
+const stepsCase = () => {
+  const { request, expect, ...rest } = baseCase();
+  return { ...rest, mock: { responses: [{ status: 200, body: { id: 1 } }, { status: 200 }] }, wire: [baseCase().wire[0], { method: 'GET', path: '/files/a' }], steps: [{ request, expect }, { request: { download: '{{base_url}}/files/a' }, expect: { result_keys: ['base64'] } }] };
+};
+
+test('validateCase accepts steps, a job wait and a URL download', () => {
+  assert.deepEqual(validateCase(stepsCase(), operations), []);
+  const waiting = { ...baseCase(), request: { operation: 'get-import', params: { id: 1 }, wait: true } };
+  assert.deepEqual(validateCase(waiting, operations), []);
+  const other = { ...baseCase(), request: { download: '{{other_origin}}/files/a' }, wire: [{ method: 'GET', path: '/files/a', cross_origin: true }] };
+  assert.deepEqual(validateCase(other, operations), []);
+});
+
+test('validateCase reports malformed steps, waits and downloads', () => {
+  const { request, expect, ...bare } = baseCase();
+  const invalid = [
+    [{ ...stepsCase(), request }, /either request and expect, or steps/],
+    [{ ...bare, steps: [] }, /steps must be a non-empty list/],
+    [{ ...bare, steps: [{ request, expect, extra: 1 }] }, /unknown key steps\[0\]\.extra/],
+    [{ ...bare, steps: [{ request: { operation: 'missing' }, expect }] }, /steps\[0\]\.unknown operation missing/],
+    [{ ...bare, steps: [{ request, expect: {} }] }, /steps\[0\]\.expect needs exactly one of result/],
+    [{ ...baseCase(), request: { operation: 'get-import', wait: 'yes' } }, /request\.wait must be true/],
+    [{ ...baseCase(), request: { operation: 'get-import', wait: true, paginate: true } }, /wait takes only operation and params/],
+    [{ ...baseCase(), request: { download: 'https://example.com/a' } }, /must start with \{\{base_url\}\}/],
+    [{ ...baseCase(), request: { download: '{{base_url}}/a', operation: 'list-items' } }, /stands alone, without operation/],
+    [{ ...baseCase(), wire: [{ method: 'GET', path: '/items', cross_origin: false }] }, /cross_origin can only be true/],
+  ];
+  for (const [item, pattern] of invalid) assert.match(validateCase(item, operations).join('\n'), pattern);
+});
+
+test('checkCase checks each step against its own outcome', () => {
+  const ok = { result: { id: 1 }, logs: [] };
+  const file = { result: { base64: '' }, logs: [] };
+  const item = stepsCase();
+  const requests = [sent(), sent({ path: '/files/a', headers: {} })];
+  assert.deepEqual(checkCase(item, requests, [ok, file], { token: 't0ken' }), []);
+  assert.match(checkCase(item, requests, [ok, ok], { token: 't0ken' }).join(), /steps\[1\]: result lacks base64/);
+  assert.match(checkCase(item, requests, [ok], { token: 't0ken' }).join(), /1 outcomes for 2 steps/);
+  assert.match(checkCase(item, requests, [ok, { ...file, logs: ['t0ken'] }], { token: 't0ken' }).join(), /token leaked/);
+});
+
+test('checkCase tells a request to the other origin from one to the base URL', () => {
+  const item = { ...baseCase(), wire: [{ ...baseCase().wire[0], cross_origin: true }] };
+  const outcome = { result: { id: 1 }, logs: [] };
+  assert.deepEqual(checkCase(item, [sent({ cross_origin: true })], outcome, { token: 't0ken' }), []);
+  assert.match(checkCase(item, [sent()], outcome, { token: 't0ken' }).join(), /sent to the base URL/);
+  assert.match(checkCase(baseCase(), [sent({ cross_origin: true })], outcome, { token: 't0ken' }).join(), /sent to the other origin/);
 });
 
 test('matches treats objects as subsets and lists as exact in length', () => {
@@ -351,6 +412,17 @@ test('harness records the host key and strips it from the path', async () => {
   assert.equal('host' in plain, false);
 });
 
+test('harness serves a second origin and marks what it records there', async () => {
+  assert.notEqual(new URL(harness.otherUrl).origin, new URL(harness.url).origin);
+  harness.play({ responses: [{ status: 200, body: 'a' }, { status: 200, body: 'b' }] });
+  assert.equal(await (await fetch(`${harness.url}/files/a`)).text(), 'a');
+  assert.equal(await (await fetch(`${harness.otherUrl}/files/b`)).text(), 'b');
+  assert.deepEqual(
+    harness.requests().map(({ path, cross_origin }) => ({ path, cross_origin })),
+    [{ path: '/files/a', cross_origin: undefined }, { path: '/files/b', cross_origin: true }],
+  );
+});
+
 test('harness forwards unscripted requests and reports a dead mock', async () => {
   harness.play({ prism: {} });
   const response = await fetch(`${harness.url}/items`);
@@ -495,4 +567,17 @@ test('idempotency cases fail a driver that retries every write, and one that ret
     'idempotent-write-retries-a-server-error-with-the-same-body',
     'idempotent-write-retries-a-dropped-connection-with-the-same-body',
   ]);
+});
+
+test('job and URL download cases hold for a driver that polls and keeps credentials on its own origin', async () => {
+  const cases = await loadCases(fixtureCases('jobs'), operations);
+  assert.ok(cases.length > 0);
+  assert.deepEqual(await runWith('jobs', cases), []);
+});
+
+test('job cases fail a driver that stops at the first status, and download cases one that sends credentials anywhere', async () => {
+  const cases = await loadCases(fixtureCases('jobs'), operations);
+  const names = async (mode) => (await runWith(mode, cases)).map(({ name }) => name);
+  assert.deepEqual(await names('single-poll'), ['job-wait-polls-until-done', 'job-wait-stops-at-the-deadline']);
+  assert.deepEqual(await names('eager-download'), ['url-download-sends-no-credentials-to-another-origin']);
 });

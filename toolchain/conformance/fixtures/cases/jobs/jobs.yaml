@@ -1,0 +1,93 @@
+# A job that runs in the background, and URLs a response returns. `start-import` starts a job and answers its
+# `id`, `get-import` reports its `state` until it is DONE or FAILED, and `get-error-report` downloads a failed
+# job's report as CSV. Each case runs its steps in order against one script.
+cases:
+  - name: job-wait-polls-until-done
+    client: { poll_interval_ms: 20 }
+    steps:
+      - request: { operation: start-import, body: { file: items.csv } }
+        expect: { result: { id: 7 } }
+      - request: { operation: get-import, params: { id: 7 }, wait: true }
+        expect: { result: { id: 7, state: DONE } }
+    mock:
+      responses:
+        - status: 201
+          body: { id: 7 }
+        - status: 200
+          body: { id: 7, state: RUNNING }
+        - status: 200
+          body: { id: 7, state: DONE }
+    wire:
+      - method: POST
+        path: /imports
+        body: { file: items.csv }
+      - method: GET
+        path: /imports/7
+        headers: { authorization: 'Basic {{token}}' }
+      - method: GET
+        path: /imports/7
+        min_delay_ms: 20
+
+  - name: job-wait-returns-a-failed-job-and-its-report-downloads
+    client: { poll_interval_ms: 0 }
+    steps:
+      - request: { operation: get-import, params: { id: 8 }, wait: true }
+        expect: { result: { id: 8, state: FAILED } }
+      - request: { operation: get-error-report, params: { id: 8 } }
+        expect: { result: { content_type: text/csv, base64: bGluZSxlcnJvcgoxLGJhZAo= } }
+    mock:
+      responses:
+        - status: 200
+          body: { id: 8, state: FAILED }
+        - status: 200
+          headers: { content-type: text/csv }
+          body: "line,error\n1,bad\n"
+    wire:
+      - method: GET
+        path: /imports/8
+      - method: GET
+        path: /imports/8/errors
+
+  - name: job-wait-stops-at-the-deadline
+    client: { poll_timeout_ms: 0 }
+    request: { operation: get-import, params: { id: 9 }, wait: true }
+    mock:
+      responses:
+        - status: 200
+          body: { id: 9, state: RUNNING }
+    wire:
+      - method: GET
+        path: /imports/9
+    expect:
+      error: { kind: job_timeout }
+
+  - name: url-download-sends-credentials-to-its-own-origin
+    request: { download: '{{base_url}}/files/export-1.json' }
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/json }
+          body: '[{"id":1}]'
+    wire:
+      - method: GET
+        path: /files/export-1.json
+        headers: { authorization: 'Basic {{token}}' }
+    expect:
+      result: { content_type: application/json, base64: W3siaWQiOjF9XQ== }
+
+  - name: url-download-sends-no-credentials-to-another-origin
+    request: { download: '{{other_origin}}/files/export-2.json?signature=synthetic-signature' }
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/json }
+          body: '[{"id":2}]'
+    wire:
+      - method: GET
+        path: /files/export-2.json
+        query: { signature: synthetic-signature }
+        cross_origin: true
+        headers_absent: [authorization]
+    expect:
+      result: { content_type: application/json, base64: W3siaWQiOjJ9XQ== }
+      logs_exclude: [synthetic-signature]

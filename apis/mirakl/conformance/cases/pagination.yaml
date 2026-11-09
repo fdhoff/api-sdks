@@ -1,0 +1,121 @@
+# Offset lists advance `offset` by the items received until `total_count` is reached or a page is empty. Seek
+# lists send each page's `next_page_token` back as `page_token` until it is null or absent.
+cases:
+  - name: pagination-offset-advances-to-the-total
+    request:
+      operation: OR11
+      params: { max: 2, order_state_codes: SHIPPED }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { orders: [{ order_id: order-1 }, { order_id: order-2 }], total_count: 3 }
+        - status: 200
+          body: { orders: [{ order_id: order-3 }], total_count: 3 }
+    wire:
+      - method: GET
+        path: /api/orders
+        query: { max: '2', order_state_codes: SHIPPED }
+      - method: GET
+        path: /api/orders
+        query: { max: '2', order_state_codes: SHIPPED, offset: '2' }
+    expect:
+      result: [{ order_id: order-1 }, { order_id: order-2 }, { order_id: order-3 }]
+
+  - name: pagination-offset-keeps-the-callers-start
+    request:
+      operation: OF21
+      params: { max: 1, offset: 10 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { offers: [{ offer_id: 11 }], total_count: 12 }
+        - status: 200
+          body: { offers: [{ offer_id: 12 }], total_count: 12 }
+    wire:
+      - method: GET
+        path: /api/offers
+        query: { max: '1', offset: '10' }
+      - method: GET
+        path: /api/offers
+        query: { max: '1', offset: '11' }
+    expect:
+      result: [{ offer_id: 11 }, { offer_id: 12 }]
+
+  - name: pagination-offset-without-a-total-stops-at-an-empty-page
+    request:
+      operation: P11
+      params: { product_references: 'EAN|0000000000001', max: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { products: [{ product_sku: product-1 }] }
+        - status: 200
+          body: { products: [] }
+    wire:
+      - method: GET
+        path: /api/products/offers
+        query: { product_references: 'EAN|0000000000001', max: '1' }
+      - method: GET
+        path: /api/products/offers
+        query: { product_references: 'EAN|0000000000001', max: '1', offset: '1' }
+    expect:
+      result: [{ product_sku: product-1 }]
+
+  - name: pagination-seek-follows-the-next-page-token
+    request:
+      operation: ST11
+      params: { limit: 2, sort: 'last_updated,ASC' }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { data: [{ id: shipment-1 }, { id: shipment-2 }], next_page_token: token-2 }
+        - status: 200
+          body: { data: [{ id: shipment-3 }], next_page_token: token-3, previous_page_token: token-1 }
+        - status: 200
+          body: { data: [], next_page_token: null, previous_page_token: token-2 }
+    wire:
+      - method: GET
+        path: /api/shipments
+        query: { limit: '2', sort: 'last_updated,ASC' }
+      - method: GET
+        path: /api/shipments
+        query: { limit: '2', sort: 'last_updated,ASC', page_token: token-2 }
+      - method: GET
+        path: /api/shipments
+        query: { limit: '2', sort: 'last_updated,ASC', page_token: token-3 }
+    expect:
+      result: [{ id: shipment-1 }, { id: shipment-2 }, { id: shipment-3 }]
+
+  - name: pagination-seek-a-repeated-token-is-a-decode-error
+    request:
+      operation: PRI02
+      params: { page_token: token-1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { data: [{ import_id: import-1 }], next_page_token: token-1 }
+    wire:
+      - method: GET
+        path: /api/offers/pricing/imports
+        query: { page_token: token-1 }
+    expect:
+      error: { kind: decode }
+
+  - name: pagination-a-page-without-its-list-is-a-decode-error
+    request:
+      operation: OR11
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { total_count: 0 }
+    wire:
+      - method: GET
+        path: /api/orders
+    expect:
+      error: { kind: decode }

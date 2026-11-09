@@ -1,0 +1,126 @@
+# Imports and exports run in the background. A wait polls the job's status operation until its state is done
+# or failed, and returns that status either way; at the deadline it fails with job_timeout.
+cases:
+  - name: jobs-a-stock-import-is-polled-until-complete
+    client: { poll_interval_ms: 20 }
+    steps:
+      - request: { operation: STO01, multipart: { file: 'offer-sku;quantity;sku-1;5' } }
+        expect: { result: { import_id: stock-import-1 } }
+      - request: { operation: STO02, params: { import_id: stock-import-1 }, wait: true }
+        expect: { result: { import_id: stock-import-1, status: COMPLETE, has_error_report: false } }
+    mock:
+      responses:
+        - status: 201
+          body: { import_id: stock-import-1 }
+        - status: 200
+          body: { import_id: stock-import-1, status: RUNNING, has_error_report: false }
+        - status: 200
+          body: { import_id: stock-import-1, status: COMPLETE, has_error_report: false }
+    wire:
+      - method: POST
+        path: /api/offers/stock/imports
+        headers: { authorization: '{{token}}' }
+        headers_match: { content-type: '^multipart/form-data; boundary=' }
+        parts: { file: ['offer-sku;quantity;sku-1;5'] }
+      - method: GET
+        path: /api/offers/stock/imports/stock-import-1/status
+        headers: { authorization: '{{token}}' }
+      - method: GET
+        path: /api/offers/stock/imports/stock-import-1/status
+        min_delay_ms: 20
+
+  - name: jobs-a-failed-offer-import-is-returned-and-its-error-report-downloads
+    client: { poll_interval_ms: 0 }
+    steps:
+      - request: { operation: OF01, multipart: { file: 'sku;product-id;sku-1;0000000000001', import_mode: NORMAL } }
+        expect: { result: { import_id: 41 } }
+      - request: { operation: OF02, params: { import: 41 }, wait: true }
+        expect: { result: { import_id: 41, status: FAILED, has_error_report: true } }
+      - request: { operation: OF03, params: { import: 41 } }
+        expect: { result: { content_type: application/octet-stream, base64: c2t1O2Vycm9yCnNrdS0xO3N5bnRoZXRpYwo= } }
+    mock:
+      responses:
+        - status: 201
+          body: { import_id: 41 }
+        - status: 200
+          body: { import_id: 41, status: QUEUED, has_error_report: false }
+        - status: 200
+          body: { import_id: 41, status: FAILED, has_error_report: true }
+        - status: 200
+          headers: { content-type: application/octet-stream }
+          body_base64: c2t1O2Vycm9yCnNrdS0xO3N5bnRoZXRpYwo=
+    wire:
+      - method: POST
+        path: /api/offers/imports
+        parts: { file: ['sku;product-id;sku-1;0000000000001'], import_mode: [NORMAL] }
+      - method: GET
+        path: /api/offers/imports/41
+      - method: GET
+        path: /api/offers/imports/41
+      - method: GET
+        path: /api/offers/imports/41/error_report
+        headers: { accept: application/octet-stream, authorization: '{{token}}' }
+
+  - name: jobs-a-wait-stops-at-the-deadline
+    client: { poll_timeout_ms: 0 }
+    request: { operation: OR14, params: { tracking_id: tracking-9 }, wait: true }
+    mock:
+      responses:
+        - status: 200
+          body: { status: PENDING }
+    wire:
+      - method: GET
+        path: /api/orders/async-export/status/tracking-9
+    expect:
+      error: { kind: job_timeout }
+
+  - name: jobs-a-wait-keeps-the-shop-id-on-every-poll
+    client: { poll_interval_ms: 0, query_defaults: { shop_id: '2001' } }
+    request: { operation: P42, params: { import: 7 }, wait: true }
+    mock:
+      responses:
+        - status: 200
+          body: { import_id: 7, import_status: RUNNING }
+        - status: 200
+          body: { import_id: 7, import_status: TRANSFORMATION_FAILED }
+    wire:
+      - method: GET
+        path: /api/products/imports/7
+        query: { shop_id: '2001' }
+      - method: GET
+        path: /api/products/imports/7
+        query: { shop_id: '2001' }
+    expect:
+      result: { import_id: 7, import_status: TRANSFORMATION_FAILED }
+
+  - name: jobs-an-offer-export-completes-and-its-file-downloads-with-the-key
+    client: { poll_interval_ms: 0 }
+    steps:
+      - request: { operation: OF52, body: { export_type: application/json } }
+        expect: { result: { tracking_id: tracking-1 } }
+      - request: { operation: OF53, params: { tracking_id: tracking-1 }, wait: true }
+        expect: { result: { status: COMPLETED, urls: ['{{base_url}}/exports/offers-1.json'] } }
+      - request: { download: '{{base_url}}/exports/offers-1.json' }
+        expect: { result: { content_type: application/json, base64: W3sic2t1Ijoic2t1LTEifV0= } }
+    mock:
+      responses:
+        - status: 200
+          body: { tracking_id: tracking-1 }
+        - status: 200
+          body: { status: PENDING }
+        - status: 200
+          body: { status: COMPLETED, urls: ['{{base_url}}/exports/offers-1.json'] }
+        - status: 200
+          headers: { content-type: application/json }
+          body: '[{"sku":"sku-1"}]'
+    wire:
+      - method: POST
+        path: /api/offers/export/async
+        body: { export_type: application/json }
+      - method: GET
+        path: /api/offers/export/async/status/tracking-1
+      - method: GET
+        path: /api/offers/export/async/status/tracking-1
+      - method: GET
+        path: /exports/offers-1.json
+        headers: { authorization: '{{token}}' }

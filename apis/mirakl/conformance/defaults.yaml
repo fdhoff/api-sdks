@@ -1,0 +1,4 @@
+# Synthetic credentials. A shop API key goes in the Authorization header as it is, with no scheme.
+client:
+  token: conformance-synthetic-shop-key
+  retry_base_delay_ms: 1

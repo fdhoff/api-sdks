@@ -78,7 +78,8 @@ export async function startHarness(prismUrl) {
   let script = null;
   let mock = {};
 
-  const server = createServer(async (request, response) => {
+  // The second server is another origin, for URLs a client must fetch without its credentials.
+  const handle = (crossOrigin) => async (request, response) => {
     // Some HTTP stacks silently resend a GET that fails on a reused connection, which would hide a drop.
     response.setHeader('connection', 'close');
     const chunks = [];
@@ -90,6 +91,7 @@ export async function startHarness(prismUrl) {
     requests.push({
       method: request.method,
       ...(host === undefined ? {} : { host }),
+      ...(crossOrigin ? { cross_origin: true } : {}),
       path,
       query: Object.fromEntries(url.searchParams),
       headers: request.headers,
@@ -109,11 +111,14 @@ export async function startHarness(prismUrl) {
     } catch (error) {
       send(response, { status: 500, body: `prism forward failed: ${error.message}` });
     }
-  });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  };
+  const servers = [createServer(handle(false)), createServer(handle(true))];
+  await Promise.all(servers.map((server) => new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))));
+  const [server, other] = servers;
 
   return {
     url: `http://127.0.0.1:${server.address().port}`,
+    otherUrl: `http://127.0.0.1:${other.address().port}`,
     play(next) {
       requests = [];
       mock = next;
@@ -121,9 +126,14 @@ export async function startHarness(prismUrl) {
     },
     requests: () => requests,
     close: () =>
-      new Promise((resolve) => {
-        server.close(resolve);
-        server.closeAllConnections();
-      }),
+      Promise.all(
+        servers.map(
+          (each) =>
+            new Promise((resolve) => {
+              each.close(resolve);
+              each.closeAllConnections();
+            }),
+        ),
+      ),
   };
 }

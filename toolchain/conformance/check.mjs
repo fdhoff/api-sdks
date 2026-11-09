@@ -86,6 +86,9 @@ function checkWire(wire, requests, failures) {
     const label = `wire[${index}]`;
     if (actual.method !== expected.method) failures.push(`${label}: method is ${actual.method}`);
     if (expected.host !== undefined && actual.host !== expected.host) failures.push(`${label}: host is ${actual.host}`);
+    if ((expected.cross_origin ?? false) !== (actual.cross_origin ?? false)) {
+      failures.push(`${label}: sent to ${actual.cross_origin ? 'the other origin' : 'the base URL'}`);
+    }
     if (actual.path !== expected.path) failures.push(`${label}: path is ${actual.path}`);
     if (!isDeepStrictEqual(actual.query, expected.query ?? {})) {
       failures.push(`${label}: query is ${JSON.stringify(actual.query)}`);
@@ -126,12 +129,19 @@ function checkOutcome(expect, outcome, failures) {
 }
 
 // `secrets` maps each secret's name to its value; `{{name}}` expands to it, and none may reach the output.
+// A case with `steps` takes one outcome per step, in order.
 export function checkCase(item, requests, outcome, secrets) {
   const failures = [];
   checkWire(fill(item.wire, secrets), requests, failures);
-  checkOutcome(fill(item.expect, secrets), outcome, failures);
-  const { result, error, logs } = outcome;
-  const output = JSON.stringify({ result, error, logs });
+  const steps = item.steps ?? [{ expect: item.expect }];
+  const outcomes = item.steps ? outcome : [outcome];
+  if (outcomes.length !== steps.length) failures.push(`${outcomes.length} outcomes for ${steps.length} steps`);
+  steps.forEach((step, index) => {
+    const found = [];
+    checkOutcome(fill(step.expect, secrets), outcomes[index] ?? {}, found);
+    failures.push(...found.map((failure) => (item.steps ? `steps[${index}]: ${failure}` : failure)));
+  });
+  const output = JSON.stringify(outcomes.map(({ result, error, logs } = {}) => ({ result, error, logs })));
   for (const [name, value] of Object.entries(secrets)) {
     if (value && output.includes(value)) failures.push(`${name} leaked into the client output`);
   }

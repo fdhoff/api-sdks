@@ -158,6 +158,48 @@ async function writeCall(client, request) {
   }
 }
 
+const JOB = { state: 'state', done: ['DONE'], failed: ['FAILED'] };
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Polls a job as the runtimes' wait does: call at once, return when the state is final, stop at the deadline,
+// and otherwise wait the interval. `single-poll` returns the first status whatever its state.
+async function waitFor(client, url, headers) {
+  const deadline = Date.now() + (client.poll_timeout_ms ?? 60_000);
+  for (;;) {
+    const status = await (await fetch(url, { headers })).json();
+    if (mode === 'single-poll' || [...JOB.done, ...JOB.failed].includes(status[JOB.state])) return { result: status };
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) return { error: { kind: 'job_timeout' } };
+    await sleep(Math.min(client.poll_interval_ms ?? 0, remaining));
+  }
+}
+
+// Gets a URL a response returned, with credentials only on the base URL's origin. `eager-download` sends them
+// anywhere. The log leaves out the query, which may hold a signature.
+async function download(client, target, logs) {
+  const url = new URL(target);
+  const own = url.origin === new URL(client.base_url).origin;
+  const headers = own || mode === 'eager-download' ? { authorization: `Basic ${client.token}` } : {};
+  logs.push(`GET ${url.origin}${url.pathname}`);
+  const response = await fetch(url, { headers: { ...headers, 'accept-encoding': 'identity' } });
+  const bytes = Buffer.from(await response.arrayBuffer());
+  return { result: { content_type: response.headers.get('content-type') ?? '', base64: bytes.toString('base64') } };
+}
+
+async function jobCall(client, request, logs) {
+  if (request.download !== undefined) return download(client, request.download, logs);
+  const headers = { authorization: `Basic ${client.token}` };
+  if (request.operation === 'start-import') {
+    const init = { method: 'POST', headers: { ...headers, 'content-type': 'application/json' }, body: JSON.stringify(request.body) };
+    return { result: await (await fetch(`${client.base_url}/imports`, init)).json() };
+  }
+  const url = `${client.base_url}/imports/${request.params.id}`;
+  if (request.operation === 'get-import') return request.wait ? waitFor(client, url, headers) : { result: await (await fetch(url, { headers })).json() };
+  const response = await fetch(`${url}/errors`, { headers: { ...headers, 'accept-encoding': 'identity' } });
+  const bytes = Buffer.from(await response.arrayBuffer());
+  return { result: { content_type: response.headers.get('content-type') ?? '', base64: bytes.toString('base64') } };
+}
+
 for await (const line of createInterface({ input: process.stdin })) {
   const { client, request } = JSON.parse(line);
   if (mode === 'silent') {
@@ -187,6 +229,11 @@ for await (const line of createInterface({ input: process.stdin })) {
   }
   if (['idempotent', 'retry-writes', 'unretried'].includes(mode)) {
     console.log(JSON.stringify({ ...(await writeCall(client, request)), logs: [] }));
+    continue;
+  }
+  if (['jobs', 'single-poll', 'eager-download'].includes(mode)) {
+    const logs = [];
+    console.log(JSON.stringify({ ...(await jobCall(client, request, logs)), logs }));
     continue;
   }
   if (mode === 'cursor') {

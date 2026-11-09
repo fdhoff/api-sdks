@@ -1,0 +1,165 @@
+# Corrections to the pinned upstream spec, in OpenAPI Overlay 1.0.0 format.
+# Every action must justify itself in ../docs/spec-audit.md, and every action must
+# match something: the build fails on one that no longer applies.
+overlay: 1.0.0
+info:
+  title: Corrections to the Mirakl seller API spec
+  version: 0.1.0
+actions:
+  - description: M1. Deprecated operations, each with a replacement named in the audit.
+    target: $.paths.*[?(@.operationId == 'M01' || @.operationId == 'OF26' || @.operationId == 'OF51' || @.operationId == 'OR12' || @.operationId == 'OR26' || @.operationId == 'OR41' || @.operationId == 'OR42' || @.operationId == 'RE02' || @.operationId == 'RE11' || @.operationId == 'RE12' || @.operationId == 'RE14')]
+    remove: true
+
+  - description: M2. Placeholder paths for URLs that another operation returns.
+    target: $.paths.*[?(@.operationId == 'OF54' || @.operationId == 'OR15' || @.operationId == 'TL05')]
+    remove: true
+
+  - description: M3. A path left with no operation by M1 or M2.
+    target: $.paths[?(!@.get && !@.put && !@.post && !@.delete && !@.patch)]
+    remove: true
+
+  - description: M4. Every operation can answer these errors, but almost none declares them.
+    target: $.components
+    update:
+      responses:
+        BadRequest:
+          description: The request is invalid.
+        Unauthorized:
+          description: The API key is missing or invalid.
+        Forbidden:
+          description: The API key may not use this resource.
+        NotFound:
+          description: The resource does not exist.
+        RateLimited:
+          description: Too many requests.
+          headers:
+            Retry-After:
+              description: Seconds to wait before the next request.
+              schema:
+                type: integer
+        ServerError:
+          description: The server failed.
+  - description: M4. OR04, OR07 and OR32 already declare their own 400.
+    target: $.paths.*[?(!@.responses['400'])].responses
+    update:
+      '400':
+        $ref: '#/components/responses/BadRequest'
+  - description: M4.
+    target: $.paths.*.*.responses
+    update:
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+      '403':
+        $ref: '#/components/responses/Forbidden'
+      '404':
+        $ref: '#/components/responses/NotFound'
+      '429':
+        $ref: '#/components/responses/RateLimited'
+      5XX:
+        $ref: '#/components/responses/ServerError'
+
+  - description: M5. Paging parameters the docs describe but no operation declares.
+    target: $.components
+    update:
+      parameters:
+        Max:
+          name: max
+          in: query
+          description: Items per page.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        Offset:
+          name: offset
+          in: query
+          description: Index of the first item to return.
+          schema:
+            type: integer
+            minimum: 0
+        Sort:
+          name: sort
+          in: query
+          description: Field to sort by.
+          schema:
+            type: string
+        Order:
+          name: order
+          in: query
+          description: Sort direction.
+          schema:
+            type: string
+            enum: [asc, desc]
+        Limit:
+          name: limit
+          in: query
+          description: Items per page.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        PageToken:
+          name: page_token
+          in: query
+          description: The next_page_token or previous_page_token of an earlier page.
+          schema:
+            type: string
+        SeekSort:
+          name: sort
+          in: query
+          description: Field and direction to sort by, as `field,ASC` or `field,DESC`.
+          schema:
+            type: string
+  - description: M5. Offset-paged operations.
+    target: $.paths.*[?(@.operationId == 'IV01' || @.operationId == 'OF21' || @.operationId == 'OR11' || @.operationId == 'P11' || @.operationId == 'P51' || @.operationId == 'PR01')].parameters
+    update:
+      - $ref: '#/components/parameters/Max'
+      - $ref: '#/components/parameters/Offset'
+      - $ref: '#/components/parameters/Sort'
+      - $ref: '#/components/parameters/Order'
+  - description: M5. Seek-paged operations with a sort.
+    target: $.paths.*[?(@.operationId == 'DR11' || @.operationId == 'DR12' || @.operationId == 'OF04' || @.operationId == 'PL11' || @.operationId == 'PRI02' || @.operationId == 'RT11' || @.operationId == 'RT12' || @.operationId == 'RT52' || @.operationId == 'ST11' || @.operationId == 'ST12' || @.operationId == 'ST42' || @.operationId == 'ST52')].parameters
+    update:
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/PageToken'
+      - $ref: '#/components/parameters/SeekSort'
+  - description: M5. M11 is seek-paged with no sort.
+    target: $.paths.*[?(@.operationId == 'M11')].parameters
+    update:
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/PageToken'
+  - description: M5. SBC11 allows up to 1,000 items per page.
+    target: $.paths.*[?(@.operationId == 'SBC11')].parameters
+    update:
+      - name: limit
+        in: query
+        description: Items per page.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 1000
+      - $ref: '#/components/parameters/PageToken'
+      - $ref: '#/components/parameters/SeekSort'
+  - description: M5. TL02 allows up to 2,000 items per page.
+    target: $.paths.*[?(@.operationId == 'TL02')].parameters
+    update:
+      - name: limit
+        in: query
+        description: Items per page.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 2000
+      - $ref: '#/components/parameters/PageToken'
+      - $ref: '#/components/parameters/SeekSort'
+
+  - description: M6. Every request and response example; 71 of them contradict their own schemas.
+    target: $.paths.*.*.requestBody.content.*.examples
+    remove: true
+  - description: M6.
+    target: $.paths.*.*.responses.*.content.*.examples
+    remove: true
+
+  - description: M7. A list parameter whose item default is the whole list as one string, outside its own enum.
+    target: $.paths['/api/seller-billing-cycles'].get.parameters[?(@.name == 'pay_out_state')].schema.items.default
+    remove: true

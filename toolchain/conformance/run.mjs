@@ -57,14 +57,19 @@ export function startDriver(command) {
   };
 }
 
+// `{{base_url}}` and `{{other_origin}}` expand to the harness's two origins anywhere in a case, so a response
+// can hold a URL for the client to fetch. A case with `steps` makes one call per step against one mock.
 export async function runCases({ cases, defaults, secrets = [], driver, harness, report = () => {} }) {
   const failed = [];
-  for (const item of cases) {
+  const origins = { base_url: harness.url, other_origin: harness.otherUrl };
+  for (const original of cases) {
+    const item = fill(original, origins);
     const client = { token: SYNTHETIC_TOKEN, ...defaults, ...item.client, base_url: harness.url };
     const vars = Object.fromEntries(['token', ...secrets].map((name) => [name, client[name]]));
     harness.play(fill(item.mock, vars));
-    const outcome = await driver.call({ case: item.name, client, request: item.request });
-    const failures = checkCase(item, harness.requests(), outcome, vars);
+    const outcomes = [];
+    for (const { request } of item.steps ?? [item]) outcomes.push(await driver.call({ case: item.name, client, request }));
+    const failures = checkCase(item, harness.requests(), item.steps ? outcomes : outcomes[0], vars);
     report(item.name, failures);
     if (failures.length > 0) failed.push({ name: item.name, failures });
   }

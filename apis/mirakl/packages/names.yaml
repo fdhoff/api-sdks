@@ -1,0 +1,14 @@
+# Schema names shared by every package, so a model has the same name in every language. A package's
+# generate.yaml may add names for schemas only it sees, but cannot rename these.
+# The multipart request bodies are inline, so generators would name them after their API code. PRI01 and
+# STO01 send the same one-file body, which generators share under PRI01's name.
+inline_schema_names:
+  DR74_request: AccountingDocumentUpload
+  M12_request: ThreadReply
+  M14_request: ThreadCreation
+  OF01_request: OfferImportUpload
+  OR43_request: OrderThreadCreation
+  OR74_request: OrderDocumentUpload
+  P41_request: ProductImportUpload
+  PRI01_request: CsvImportUpload
+  S32_request: ShopDocumentUpload

@@ -1,0 +1,49 @@
+# Settings every language's package shares.
+
+# Every operator runs its own Mirakl instance, so there are no hosts or environments: the caller always
+# supplies the base URL.
+
+# Every operation takes an optional `shop_id`. A key that covers several shops picks one with it, so it can be
+# set once per client and overridden per call.
+query_defaults: [shop_id]
+
+# Seek paging: each page's `next_page_token` goes back as `page_token` until it is null or absent.
+paging: { style: cursor, next: next_page_token, param: page_token }
+
+# The list each iterated operation's pages hold, and its paging where it is not the default. A package's
+# operations.yaml names the same `items` and `paging` for each.
+iterators:
+  DR11: { items: data }
+  DR12: { items: data }
+  M11: { items: data }
+  OF04: { items: data }
+  PL11: { items: data }
+  PRI02: { items: data }
+  RT11: { items: data }
+  RT12: { items: data }
+  RT52: { items: data }
+  SBC11: { items: data }
+  ST11: { items: data }
+  ST12: { items: data }
+  ST42: { items: data }
+  ST52: { items: data }
+  TL02: { items: data }
+  # Offset paging: `offset` advances by the items received, up to `total_count`. P11 has no total, so it stops
+  # at an empty page.
+  IV01: { items: invoices, paging: { style: offset, total: total_count } }
+  OF21: { items: offers, paging: { style: offset, total: total_count } }
+  OR11: { items: orders, paging: { style: offset, total: total_count } }
+  P11: { items: products, paging: { style: offset, total: total_count } }
+  P51: { items: product_import_trackings, paging: { style: offset, total: total_count } }
+  PR01: { items: promotions, paging: { style: offset, total: total_count } }
+
+# Imports and exports that run in the background. Each start operation's ID is polled through its status
+# operation until the state is final. PRI01 has no job: its status is a list filtered by query, not a GET by
+# ID. See docs/spec-audit.md.
+jobs:
+  OF01: { status: OF02, id: import_id, param: import, state: status, done: [COMPLETE], failed: [FAILED] }
+  P41: { status: P42, id: import_id, param: import, state: import_status, done: [COMPLETE], failed: [TRANSFORMATION_FAILED, CANCELLED, FAILED] }
+  STO01: { status: STO02, id: import_id, param: import_id, state: status, done: [COMPLETE], failed: [FAILED] }
+  OF52: { status: OF53, id: tracking_id, param: tracking_id, state: status, done: [COMPLETED], failed: [FAILED] }
+  OR13: { status: OR14, id: tracking_id, param: tracking_id, state: status, done: [COMPLETED], failed: [FAILED] }
+  TL03: { status: TL04, id: tracking_id, param: tracking_id, state: status, done: [COMPLETED], failed: [FAILED, CANCELED] }

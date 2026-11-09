@@ -33,6 +33,7 @@ cases:
       multipart: { message: hello }    # optional multipart fields, instead of body
       raw_body_base64: JVBERg==        # optional raw request body as base64, instead of body
       paginate: true                   # optional: iterate every page
+      wait: true                       # optional: poll the job this status operation reports until it ends
     mock:                              # exactly one of prism or responses
       responses:                       # one per request, in order
         - status: 500
@@ -58,6 +59,7 @@ cases:
         body_base64: JVBERg==          # the exact body bytes as base64; instead of body
         content_digest: true           # optional: Content-Digest is the SHA-256 of the exact body bytes
         min_delay_ms: 900              # time since the previous request
+        cross_origin: true             # optional: the request went to the other origin
       - method: GET
         path: /items
         query: { page: '2' }
@@ -68,6 +70,10 @@ cases:
 ```
 
 * `mock: { prism: { code: 404 } }` answers from Prism instead, asking for that declared status. Prism ignores a code the operation cannot serve for the client's `Accept` header, so check the mock before relying on one. `prism: {}` takes the first success response.
+* `steps:` replaces `request` and `expect` for a sequence of calls against one mock, such as starting a job, waiting for it and downloading its report. Each step is a `{ request, expect }` mapping; the driver gets one line per step, and `wire` lists every request across them.
+* `wait: true` calls the wait method of the job that `operation`, a status operation, reports, with `params` holding the job ID. It returns the final status, done or failed, and fails with `job_timeout` at the deadline. `poll_interval_ms` and `poll_timeout_ms` set the interval and deadline.
+* `request: { download: <url> }` fetches an absolute URL with the client's URL download helper, and nothing else may be set. The URL starts with `{{base_url}}/` for the client's own origin or `{{other_origin}}/` for another one, which the harness also serves. A wire item with `cross_origin: true` asserts the request went to the other origin; one without it asserts it did not. The result is a binary download's.
+* `{{base_url}}` and `{{other_origin}}` expand anywhere in a case, so a scripted response can return a URL for a later step to fetch.
 * `- drop: true` in `responses` reads the request, records it, then closes the connection with no response. It stands alone, with no `status` or other key.
 * `gzip: true` compresses the body and sets `Content-Encoding: gzip`, but only when the request's `Accept-Encoding` allows gzip, as a server would. `cut` applies to the bytes sent, compressed or not, and `Content-Length` matches them.
 * `{{http_date+2s}}` in a scripted header expands to an HTTP date that many seconds ahead, when the response is sent. HTTP dates are whole seconds, so the moment it names is up to a second sooner.
@@ -101,6 +107,9 @@ Values a case or `defaults.yaml` may set. The runner adds `base_url` and `token`
 | `rate_limit_wait_ms` | Wait after a rate limit with no usable `Retry-After` |
 | `max_retry_wait_ms` | Longest `Retry-After` to wait for |
 | `header_defaults` | Client-level values for header parameters that take one, by header name |
+| `query_defaults` | Client-level values for query parameters that take one, by parameter name |
+| `poll_interval_ms` | Time between a job's status calls |
+| `poll_timeout_ms` | How long a job's wait polls before `job_timeout` |
 | `environment` | A named host map. A driver given one sends each host key's requests to `<base_url>/_host/<hostname>`, the hostname that environment maps the key to, so a wire item's `host` checks the map |
 
 ## Driver protocol
@@ -120,6 +129,6 @@ Output is one of these, with `logs` holding what the client logged at its most v
 {"error": {"kind": "...", "status": 429}, "logs": []}
 ```
 
-A paginated request's `result` is the list of items across all pages. A driver reports any exception the client raised as `error`; one it cannot express makes it exit, which aborts the run. The error kinds are defined by each API's cases.
+A paginated request's `result` is the list of items across all pages, and a wait's is the final status. A driver reports any exception the client raised as `error`; one it cannot express makes it exit, which aborts the run. The error kinds are defined by each API's cases.
 
 TODO: a case cannot yet assert that a call failed before sending anything, such as a `..` path value. That needs `wire: []` with no `mock`, and an `argument` error kind every driver reports for the runtime's own argument error. Until then each runtime's tests cover it.

@@ -1,0 +1,73 @@
+# The docs define no error body, so every error keeps its status and the raw text.
+cases:
+  - name: errors-400-is-bad-request-with-the-raw-body
+    request:
+      operation: OR21
+      params: { order_id: order-1 }
+      body: { order_lines: [{ id: line-1, accepted: true }] }
+    mock:
+      responses:
+        - status: 400
+          body: { message: synthetic bad order line }
+    wire:
+      - method: PUT
+        path: /api/orders/order-1/accept
+        headers_match: { content-type: '^application/json' }
+        body: { order_lines: [{ id: line-1, accepted: true }] }
+    expect:
+      error: { kind: bad_request, status: 400, raw_body: '{"message":"synthetic bad order line"}' }
+
+  - name: errors-403-is-permission
+    request:
+      operation: A01
+    mock:
+      responses:
+        - status: 403
+          body: forbidden
+    wire:
+      - method: GET
+        path: /api/account
+    expect:
+      error: { kind: permission, status: 403, raw_body: forbidden }
+
+  - name: errors-404-is-not-found
+    request:
+      operation: STO02
+      params: { import_id: missing-import }
+    mock:
+      responses:
+        - status: 404
+          body: ''
+    wire:
+      - method: GET
+        path: /api/offers/stock/imports/missing-import/status
+    expect:
+      error: { kind: not_found, status: 404, raw_body: '' }
+
+  - name: errors-405-is-an-api-error
+    request:
+      operation: V01
+    mock:
+      responses:
+        - status: 405
+          body: method not allowed
+    wire:
+      - method: GET
+        path: /api/version
+    expect:
+      error: { kind: api, status: 405, raw_body: method not allowed }
+
+  - name: errors-a-put-is-not-retried-on-503
+    request:
+      operation: OR21
+      params: { order_id: order-2 }
+      body: { order_lines: [{ id: line-2, accepted: false }] }
+    mock:
+      responses:
+        - status: 503
+          body: unavailable
+    wire:
+      - method: PUT
+        path: /api/orders/order-2/accept
+    expect:
+      error: { kind: server, status: 503, raw_body: unavailable }
