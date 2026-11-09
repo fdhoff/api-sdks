@@ -8,7 +8,7 @@ interface WebhookCase {
   header: string;
   body: string;
   now: number;
-  tolerance?: number;
+  tolerance?: number | string;
   error: string | null;
 }
 
@@ -24,7 +24,7 @@ const valid = vectors.cases[0]!;
 for (const c of vectors.cases) {
   test(`webhook vector: ${c.name}`, async () => {
     const verify = verifyWebhook(new TextEncoder().encode(c.body), c.header, secret, {
-      toleranceSeconds: c.tolerance,
+      toleranceSeconds: c.tolerance === undefined ? undefined : Number(c.tolerance),
       now: c.now * 1000,
     });
     if (c.error === null) return await verify;
@@ -47,8 +47,4 @@ test('webhook takes a string body and a byte secret', async () => {
 
 test('webhook without a header is malformed', async () => {
   await assert.rejects(verifyWebhook('{}', undefined, secret), { reason: 'malformed-header' });
-});
-
-test('webhook tolerance must be positive', async () => {
-  await assert.rejects(verifyWebhook(valid.body, valid.header, secret, { toleranceSeconds: 0 }), RangeError);
 });

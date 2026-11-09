@@ -5,13 +5,14 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import math
 import re
 import time
 from typing import Literal
 
 DEFAULT_WEBHOOK_TOLERANCE = 300.0
 
-WebhookFailure = Literal["malformed_header", "too_old", "bad_signature"]
+WebhookFailure = Literal["malformed_header", "too_old", "bad_signature", "invalid_tolerance"]
 
 _TIMESTAMP = re.compile(r"[0-9]{1,12}")
 _SIGNATURE = re.compile(r"[0-9a-fA-F]{64}")
@@ -19,11 +20,13 @@ _MESSAGES: dict[WebhookFailure, str] = {
     "malformed_header": "The webhook signature header is malformed",
     "too_old": "The webhook timestamp is older than the tolerance",
     "bad_signature": "No webhook signature matches the body",
+    "invalid_tolerance": "The webhook tolerance must be finite and greater than zero",
 }
 
 
 class WebhookSignatureError(Exception):
-    """A webhook failed verification. `reason` says why; the message never holds the secret or the body."""
+    """A webhook failed verification, or the tolerance is invalid. `reason` says why; the message never holds the
+    secret or the body."""
 
     def __init__(self, reason: WebhookFailure) -> None:
         super().__init__(_MESSAGES[reason])
@@ -60,12 +63,12 @@ def verify_webhook(
 ) -> None:
     """Checks a webhook's signature header against its raw body, as received and never re-serialised.
 
-    `tolerance` is the oldest timestamp to accept, in seconds, and `now` the time in Unix seconds, by default the
-    clock. Any one matching `v1` value is enough, so a header may carry several while a secret rotates. Raises
-    `WebhookSignatureError`.
+    `tolerance` is the oldest timestamp to accept, in seconds, finite and greater than zero, and `now` the time in Unix
+    seconds, by default the clock. Any one matching `v1` value is enough, so a header may carry several while a secret
+    rotates. Raises `WebhookSignatureError`.
     """
-    if tolerance <= 0:
-        raise ValueError("The webhook tolerance must be positive")
+    if not (math.isfinite(tolerance) and tolerance > 0):
+        raise WebhookSignatureError("invalid_tolerance")
     timestamp, signatures = _parse(header)
     key = secret.encode() if isinstance(secret, str) else secret
     expected = hmac.new(key, timestamp.encode() + b"." + payload, hashlib.sha256).digest()

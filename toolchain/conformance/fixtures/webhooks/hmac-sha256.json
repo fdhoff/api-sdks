@@ -1,5 +1,5 @@
 {
-  "description": "Timestamped HMAC-SHA256 webhook signatures: a header of `t=<unix seconds>,v1=<hex>`, signed over `<t>.<raw body>` with the endpoint secret. `now` is the receiver clock in Unix seconds, and `tolerance` the maximum age in seconds when it is not the default of 300. `error` is null for a valid signature. All data is synthetic.",
+  "description": "Timestamped HMAC-SHA256 webhook signatures: a header of `t=<unix seconds>,v1=<hex>`, signed over `<t>.<raw body>` with the endpoint secret. `now` is the receiver clock in Unix seconds, and `tolerance` the maximum age in seconds when it is not the default of 300. A tolerance must be finite and greater than zero; `\"NaN\"` and `\"Infinity\"` stand for those values, and a language whose tolerance type cannot hold a value skips its case. `error` is null for a valid signature. All data is synthetic.",
   "secret": "synthetic-endpoint-secret",
   "cases": [
     {
@@ -185,6 +185,46 @@
       "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
       "now": 1767225660,
       "error": "malformed_header"
+    },
+    {
+      "name": "zero-tolerance",
+      "header": "t=1767225600,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "tolerance": 0,
+      "error": "invalid_tolerance"
+    },
+    {
+      "name": "negative-tolerance",
+      "header": "t=1767225600,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "tolerance": -60,
+      "error": "invalid_tolerance"
+    },
+    {
+      "name": "nan-tolerance",
+      "header": "t=1767225600,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "tolerance": "NaN",
+      "error": "invalid_tolerance"
+    },
+    {
+      "name": "infinite-tolerance",
+      "header": "t=1767225600,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "tolerance": "Infinity",
+      "error": "invalid_tolerance"
+    },
+    {
+      "name": "tolerance-is-checked-before-the-header",
+      "header": "",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "tolerance": 0,
+      "error": "invalid_tolerance"
     }
   ]
 }

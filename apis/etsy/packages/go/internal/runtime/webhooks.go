@@ -16,9 +16,10 @@ const DefaultWebhookTolerance = 5 * time.Minute
 
 // The reasons [VerifyWebhook] fails. None of them holds the secret or the body.
 var (
-	ErrWebhookMalformedHeader = errors.New("the webhook signature header is malformed")
-	ErrWebhookTooOld          = errors.New("the webhook timestamp is older than the tolerance")
-	ErrWebhookBadSignature    = errors.New("no webhook signature matches the body")
+	ErrWebhookMalformedHeader  = errors.New("the webhook signature header is malformed")
+	ErrWebhookTooOld           = errors.New("the webhook timestamp is older than the tolerance")
+	ErrWebhookBadSignature     = errors.New("no webhook signature matches the body")
+	ErrWebhookInvalidTolerance = errors.New("the webhook tolerance must be greater than zero")
 )
 
 var (
@@ -26,11 +27,23 @@ var (
 	webhookSignature = regexp.MustCompile(`^[0-9a-fA-F]{64}$`)
 )
 
-// WebhookOptions configures [VerifyWebhook]. A zero Tolerance is [DefaultWebhookTolerance], and a
-// zero Now is the clock.
-type WebhookOptions struct {
-	Tolerance time.Duration
-	Now       time.Time
+type webhookOptions struct {
+	tolerance time.Duration
+	now       time.Time
+}
+
+// WebhookOption configures [VerifyWebhook].
+type WebhookOption func(*webhookOptions)
+
+// WithWebhookTolerance sets the oldest timestamp to accept, which must be greater than zero. The
+// default is [DefaultWebhookTolerance].
+func WithWebhookTolerance(tolerance time.Duration) WebhookOption {
+	return func(o *webhookOptions) { o.tolerance = tolerance }
+}
+
+// WithWebhookNow sets the time to check against, for tests. The default is the clock.
+func WithWebhookNow(now time.Time) WebhookOption {
+	return func(o *webhookOptions) { o.now = now }
 }
 
 func parseWebhookHeader(header string) (string, []string, error) {
@@ -60,14 +73,15 @@ func parseWebhookHeader(header string) (string, []string, error) {
 // VerifyWebhook checks a webhook's timestamped HMAC-SHA256 signature header, t=<unix
 // seconds>,v1=<hex> signed over <t>.<raw body>, against the raw body as received, never
 // re-serialised. Any one matching v1 value is enough, so a header may carry several while a secret
-// rotates. It returns [ErrWebhookMalformedHeader], [ErrWebhookTooOld] or [ErrWebhookBadSignature].
-func VerifyWebhook(payload []byte, header, secret string, options WebhookOptions) error {
-	if options.Tolerance < 0 {
-		return errors.New("the webhook tolerance must not be negative")
+// rotates. It returns [ErrWebhookInvalidTolerance], [ErrWebhookMalformedHeader], [ErrWebhookTooOld]
+// or [ErrWebhookBadSignature].
+func VerifyWebhook(payload []byte, header, secret string, opts ...WebhookOption) error {
+	options := webhookOptions{tolerance: DefaultWebhookTolerance}
+	for _, option := range opts {
+		option(&options)
 	}
-	tolerance := options.Tolerance
-	if tolerance == 0 {
-		tolerance = DefaultWebhookTolerance
+	if options.tolerance <= 0 {
+		return ErrWebhookInvalidTolerance
 	}
 	timestamp, signatures, err := parseWebhookHeader(header)
 	if err != nil {
@@ -88,11 +102,11 @@ func VerifyWebhook(payload []byte, header, secret string, options WebhookOptions
 		return ErrWebhookBadSignature
 	}
 	seconds, _ := strconv.ParseInt(timestamp, 10, 64)
-	now := options.Now
+	now := options.now
 	if now.IsZero() {
 		now = time.Now()
 	}
-	if now.Sub(time.Unix(seconds, 0)) > tolerance {
+	if now.Sub(time.Unix(seconds, 0)) > options.tolerance {
 		return ErrWebhookTooOld
 	}
 	return nil
