@@ -191,5 +191,8 @@ test('each release workflow smoke tests what it published, installed from the re
   assert.deepEqual(on.push.tags, ['apis/*/packages/go/v*']);
   assert.equal(on.schedule.length, 1);
   assert.equal(jobs.smoke.steps.at(-1).if, "failure() && github.event_name != 'pull_request' && !matrix.best_effort");
-  assert.equal(jobs.smoke['continue-on-error'], '${{ matrix.best_effort }}');
+  assert.equal(jobs.smoke['continue-on-error'], undefined);
+  const smoke = jobs.smoke.steps.find((step) => step.id === 'smoke');
+  assert.equal(smoke['continue-on-error'], '${{ matrix.best_effort }}');
+  assert.equal(jobs.smoke.steps.at(-2).if, "steps.smoke.outcome == 'failure' && matrix.best_effort");
 });
