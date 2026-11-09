@@ -2,6 +2,10 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
+## 0.1.0-alpha.2 (2026-11-09)
+
+* No code changes. Published through npm trusted publishing, with provenance.
+
 ## 0.1.0-alpha.1 (2026-11-09)
 
 The first alpha.
