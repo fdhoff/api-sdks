@@ -31,7 +31,7 @@ cases:
   - name: pagination-cursor-keeps-the-callers-position-and-filters
     request:
       operation: listTransactions
-      params: { limit: 1, start_after: 00000000-0000-4000-8000-7a4000000000, status: sent, order: asc }
+      params: { limit: 1, start_after: 00000000-0000-4000-8000-7a4000000000, status: [sent], order: asc }
       paginate: true
     mock:
       responses:

@@ -47,7 +47,7 @@ with MercuryClient("secret-token:your-token") as client:
     for account in client.accounts.iter():
         print(account.name, account.available_balance)
 
-    for transaction in client.transactions.iter(limit=100, status="sent"):
+    for transaction in client.transactions.iter(limit=100, status=["sent"]):
         print(transaction.counterparty_name, transaction.amount)
 
     try:
