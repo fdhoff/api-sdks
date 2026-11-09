@@ -41,6 +41,8 @@ RawBody = bytes | Iterable[bytes]
 once and never retried, and credentials see an empty body for it."""
 
 _INTEGER = re.compile(r"[+-]?[0-9]+")
+# The largest integer a JavaScript number holds exactly, so every runtime accepts the same numeric cursors.
+_MAX_SAFE_INTEGER = 2**53 - 1
 # Only gzip is decoded, and httpx would otherwise also ask for deflate, br and zstd.
 _ACCEPT_ENCODING = {"Accept-Encoding": "gzip"}
 # A binary body is passed on as received, so it is asked for uncompressed.
@@ -534,8 +536,13 @@ def _next_cursor(
         value = value.get(key)
     if value is None or value == "":
         return None
-    if isinstance(value, int) and not isinstance(value, bool):
-        value = str(value)
+    if (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and abs(value) <= _MAX_SAFE_INTEGER
+        and value == int(value)
+    ):
+        value = str(int(value))
     if not isinstance(value, str):
         raise DecodeError(f"The `{paging.next}` value of a page is not a string or an integer")
     name = _query_names(operation)[paging.param]

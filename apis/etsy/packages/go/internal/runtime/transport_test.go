@@ -280,15 +280,17 @@ func TestCursorPagingSendsAnIntegerNextValueBackAsItsDigits(t *testing.T) {
 	items, queries, err := walk(t, cursorList, cursorParams{}, served(
 		map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": 0}},
 		map[string]any{"data": numbered(1, 2), "page": map[string]any{"next_page": 7}},
+		map[string]any{"data": numbered(2, 3), "page": map[string]any{"next_page": json.RawMessage("1.0")}},
+		map[string]any{"data": numbered(3, 4), "page": map[string]any{"next_page": 9007199254740991}},
 		map[string]any{"data": []any{}, "page": map[string]any{"next_page": nil}},
 	))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(items, numbered(0, 2)) {
+	if !reflect.DeepEqual(items, numbered(0, 4)) {
 		t.Errorf("items are %v", items)
 	}
-	if want := []string{"", "start_after=0", "start_after=7"}; !reflect.DeepEqual(queries, want) {
+	if want := []string{"", "start_after=0", "start_after=7", "start_after=1", "start_after=9007199254740991"}; !reflect.DeepEqual(queries, want) {
 		t.Errorf("queries are %q, want %q", queries, want)
 	}
 }
@@ -311,6 +313,8 @@ func TestCursorPagingRejectsAMalformedPage(t *testing.T) {
 		map[string]any{"page": map[string]any{"next_page": "b"}},
 		map[string]any{"data": nil},
 		map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": 2.5}},
+		map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": 9007199254740992}},
+		map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": int64(-1 << 63)}},
 		map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": true}},
 		map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": map[string]any{"id": "b"}}},
 		map[string]any{"data": numbered(0, 1), "page": "b"},

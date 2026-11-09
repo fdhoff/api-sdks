@@ -1,5 +1,7 @@
 # Cursor paging with an integer next value. `list-items` sends each page's `cursor` back as its decimal digits
-# in the `cursor` query parameter. A cursor of 0 is a position, not the end.
+# in the `cursor` query parameter. A cursor of 0 is a position, not the end. A number is a cursor when it is whole
+# and no larger in magnitude than 2^53 - 1, the largest integer a JavaScript number holds exactly, so `1.0` is
+# sent as `1` and anything larger is a decode error in every runtime.
 cases:
   - name: cursor-paging-follows-an-integer-cursor-across-several-pages
     request:
@@ -89,6 +91,76 @@ cases:
       responses:
         - status: 200
           body: { results: [{ id: a }], cursor: 1.5 }
+    wire:
+      - method: GET
+        path: /items
+    expect:
+      error: { kind: decode }
+
+  - name: cursor-paging-sends-a-whole-number-cursor-written-with-a-fraction-as-its-digits
+    request:
+      operation: list-items
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/json }
+          # {"results":[{"id":"a"}],"cursor":1.0}
+          body_base64: eyJyZXN1bHRzIjpbeyJpZCI6ImEifV0sImN1cnNvciI6MS4wfQ==
+        - status: 200
+          body: { results: [{ id: b }] }
+    wire:
+      - method: GET
+        path: /items
+      - method: GET
+        path: /items
+        query: { cursor: '1' }
+    expect:
+      result: [{ id: a }, { id: b }]
+
+  - name: cursor-paging-sends-the-largest-safe-integer-cursor
+    request:
+      operation: list-items
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { results: [{ id: a }], cursor: 9007199254740991 }
+        - status: 200
+          body: { results: [{ id: b }] }
+    wire:
+      - method: GET
+        path: /items
+      - method: GET
+        path: /items
+        query: { cursor: '9007199254740991' }
+    expect:
+      result: [{ id: a }, { id: b }]
+
+  - name: cursor-paging-rejects-an-integer-cursor-above-the-safe-range
+    request:
+      operation: list-items
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { results: [{ id: a }], cursor: 9007199254740992 }
+    wire:
+      - method: GET
+        path: /items
+    expect:
+      error: { kind: decode }
+
+  - name: cursor-paging-rejects-a-64-bit-integer-cursor
+    request:
+      operation: list-items
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/json }
+          # {"results":[{"id":"a"}],"cursor":9223372036854775807}
+          body_base64: eyJyZXN1bHRzIjpbeyJpZCI6ImEifV0sImN1cnNvciI6OTIyMzM3MjAzNjg1NDc3NTgwN30=
     wire:
       - method: GET
         path: /items

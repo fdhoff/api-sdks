@@ -14,8 +14,11 @@ const DEFAULT_TOLERANCE_S = 300;
 const sdk = parse(await readFile(new URL('../sdk.yaml', import.meta.url), 'utf8'));
 
 // The timestamped HMAC-SHA256 scheme of `sdk.webhooks.header`, as the runtimes check it: the signature first,
-// then the age. Returns null when the signature holds, or why it does not.
+// then the age. Returns null when the signature holds, or why it does not. A tolerance that is not finite and
+// positive is rejected before the header is read.
 export function verifyWebhook(body, header, secret, { now = Math.floor(Date.now() / 1000), tolerance = DEFAULT_TOLERANCE_S } = {}) {
+  const limit = Number(tolerance);
+  if (!(Number.isFinite(limit) && limit > 0)) return 'invalid_tolerance';
   const entries = (header ?? '').split(',').map((entry) => entry.trim());
   if (entries.some((entry) => !entry.includes('='))) return 'malformed_header';
   const pairs = entries.map((entry) => [entry.slice(0, entry.indexOf('=')), entry.slice(entry.indexOf('=') + 1)]);
@@ -25,7 +28,7 @@ export function verifyWebhook(body, header, secret, { now = Math.floor(Date.now(
   const expected = createHmac('sha256', secret).update(`${stamps[0]}.`).update(body).digest();
   const valid = signatures.some((value) => /^[0-9a-f]{64}$/i.test(value) && timingSafeEqual(Buffer.from(value, 'hex'), expected));
   if (!valid) return 'bad_signature';
-  return now - Number(stamps[0]) > tolerance ? 'too_old' : null;
+  return now - Number(stamps[0]) > limit ? 'too_old' : null;
 }
 
 let operations;

@@ -206,6 +206,8 @@ public sealed class ClientTests
     {
         Assert.Equal(new object?[] { null, "0" }, Next(CursorList, [null, null], """{"data": [{}], "page": {"next_page": 0}}""", 1));
         Assert.Equal(new object?[] { null, "7" }, Next(CursorList, [null, "0"], """{"data": [{}], "page": {"next_page": 7}}""", 1));
+        Assert.Equal(new object?[] { null, "1" }, Next(CursorList, [null, null], """{"data": [{}], "page": {"next_page": 1.0}}""", 1));
+        Assert.Equal(new object?[] { null, "9007199254740991" }, Next(CursorList, [null, null], """{"data": [{}], "page": {"next_page": 9007199254740991}}""", 1));
     }
 
     [Theory]
@@ -221,6 +223,9 @@ public sealed class ClientTests
     [Theory]
     [InlineData("""{"page": {"next_page": "b"}}""")]
     [InlineData("""{"data": [{}], "page": {"next_page": 2.5}}""")]
+    [InlineData("""{"data": [{}], "page": {"next_page": 9007199254740992}}""")]
+    [InlineData("""{"data": [{}], "page": {"next_page": -9223372036854775808}}""")]
+    [InlineData("""{"data": [{}], "page": {"next_page": 1e400}}""")]
     [InlineData("""{"data": [{}], "page": {"next_page": true}}""")]
     [InlineData("""{"data": [{}], "page": {"next_page": {"id": "b"}}}""")]
     [InlineData("""{"data": [{}], "page": "b"}""")]

@@ -57,8 +57,8 @@ const CURSOR_OPERATIONS = {
 };
 
 // Walks cursor pages as the runtimes do: send the value at the `next` path back as `param` until it is null,
-// empty or absent, an integer as its decimal digits. A page without its items list, a value that is neither
-// a string nor an integer, or a value equal to the one just sent is a decode error.
+// empty or absent, a safe integer as its decimal digits. A page without its items list, a value that is neither
+// a string nor a safe integer, or a value equal to the one just sent is a decode error.
 async function cursorPages(client, request) {
   const operation = CURSOR_OPERATIONS[request.operation];
   const items = [];
