@@ -67,9 +67,12 @@ type Operation struct {
 	HeaderParams []string
 	// Host is the key of the host that serves the operation in [Settings.Hosts]. Empty means BaseURL.
 	Host string
-	// ReturnsJSON is set when the spec declares a JSON success body, so an empty one is an error
-	// unless the status is 204.
+	// ReturnsJSON is set when the spec declares a JSON success body, so an empty one is an error.
 	ReturnsJSON bool
+	// BinaryResponse is set when the success body is bytes, returned by [CallDownload] as a stream.
+	BinaryResponse bool
+	// RawBody is the media type of a raw request body, sent unchanged from [Input.Raw].
+	RawBody string
 	// Paging is how Iterator walks pages. Nil means the default [NextLink].
 	Paging Paging
 	// Security lists alternatives: any one requirement authorizes the call.
@@ -188,6 +191,8 @@ type response struct {
 	status int
 	header http.Header
 	body   []byte
+	// stream is a binary success body, still arriving.
+	stream io.ReadCloser
 }
 
 // redact removes every secret as written and as a path or query value escapes it.
@@ -304,6 +309,10 @@ func (t *Transport) authorize(ctx context.Context, built *request, base string) 
 		header[name] = slices.Clone(values)
 	}
 	header.Set("Accept-Encoding", "gzip")
+	if built.operation.BinaryResponse {
+		// A stream is handed on as it arrives, so it is never compressed in transit.
+		header.Set("Accept-Encoding", "identity")
+	}
 	if built.contentType != "" {
 		header.Set("Content-Type", built.contentType)
 	}
@@ -344,10 +353,19 @@ func (t *Transport) refresh(ctx context.Context, auth *AuthRequest, generation u
 	return refreshed, nil
 }
 
-func (t *Transport) attempt(ctx context.Context, auth *AuthRequest) (*response, error) {
+func (t *Transport) attempt(ctx context.Context, auth *AuthRequest, built *request) (*response, error) {
 	attempt, cancel := context.WithTimeout(ctx, t.settings.Timeout)
-	defer cancel()
-	outgoing, err := http.NewRequestWithContext(attempt, auth.Method, auth.URL, bytes.NewReader(auth.Body))
+	streaming := false
+	defer func() {
+		if !streaming {
+			cancel()
+		}
+	}()
+	var payload io.Reader = bytes.NewReader(auth.Body)
+	if built.stream != nil {
+		payload = built.stream
+	}
+	outgoing, err := http.NewRequestWithContext(attempt, auth.Method, auth.URL, payload)
 	if err != nil {
 		return nil, &Error{Kind: KindConnection, Message: "the request could not be built", Cause: t.hide(err)}
 	}
@@ -356,8 +374,14 @@ func (t *Transport) attempt(ctx context.Context, auth *AuthRequest) (*response, 
 	if err != nil {
 		return nil, t.translate(ctx, attempt, err)
 	}
-	defer incoming.Body.Close()
 	success := incoming.StatusCode >= 200 && incoming.StatusCode < 300
+	if success && built.operation.BinaryResponse {
+		streaming = true
+		t.log(ctx, slog.LevelDebug, "response", slog.String("method", auth.Method), slog.Int("status", incoming.StatusCode), slog.String("body", "streamed"))
+		body := &downloadBody{body: incoming.Body, cancel: cancel, ctx: ctx, attempt: attempt, transport: t}
+		return &response{status: incoming.StatusCode, header: incoming.Header, stream: body}, nil
+	}
+	defer incoming.Body.Close()
 	body, err := io.ReadAll(incoming.Body)
 	if err != nil {
 		return nil, t.translate(ctx, attempt, err)
@@ -438,10 +462,14 @@ func (t *Transport) fetch(ctx context.Context, built *request) (*response, error
 		if err != nil {
 			return nil, err
 		}
-		answer, err := t.attempt(ctx, auth)
+		answer, err := t.attempt(ctx, auth, built)
 		var failure *Error
 		if err == nil || !errors.As(err, &failure) {
 			return answer, err
+		}
+		// A streamed body has been read, so it cannot be sent again.
+		if built.stream != nil {
+			return nil, err
 		}
 		// Never for an operation that sends no credentials, such as a token request made during a refresh.
 		if failure.Status == http.StatusUnauthorized && !refreshed && len(built.operation.Security) > 0 {
@@ -474,7 +502,6 @@ func (t *Transport) decodeError(message string, answer *response, cause error) *
 func decode[T any](t *Transport, operation *Operation, answer *response) (T, error) {
 	var result, empty T
 	if len(answer.body) == 0 {
-		// A 204 has no body by definition, whatever the spec declares beside it.
 		if operation.ReturnsJSON && answer.status != http.StatusNoContent {
 			return empty, t.decodeError("the response body is empty", answer, nil)
 		}

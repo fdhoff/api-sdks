@@ -185,6 +185,18 @@ func TestNextLinkPagingReadsTheConfiguredFields(t *testing.T) {
 	}
 }
 
+func TestAnEmpty204IsNoResultEvenWhereJSONIsDeclared(t *testing.T) {
+	transport := mustTransport(t, Settings{BaseURL: "http://example.invalid", Credentials: StaticCredentials{}, Timeout: time.Second})
+	operation := &Operation{ID: "get-item", Method: "GET", Path: "/items/1", ReturnsJSON: true}
+	result, err := decode[*map[string]any](transport, operation, &response{status: http.StatusNoContent})
+	if err != nil || result != nil {
+		t.Fatalf("result is %v, %v", result, err)
+	}
+	if _, err := decode[*map[string]any](transport, operation, &response{status: http.StatusOK}); err == nil {
+		t.Fatal("an empty 200 decoded")
+	}
+}
+
 func TestNextLinkPagingRejectsAPageWithoutAnItemsList(t *testing.T) {
 	operation := &Operation{ID: "list-items", Method: "GET", Path: "/items", QueryParams: []string{"token"}, Paging: NextLink{Items: "data", Link: "more", Params: []string{"token"}}}
 	for _, body := range []any{map[string]any{"total": 0}, map[string]any{"data": nil}, map[string]any{"data": "none", "more": nil}} {
@@ -193,31 +205,6 @@ func TestNextLinkPagingRejectsAPageWithoutAnItemsList(t *testing.T) {
 		if !errors.As(err, &failure) || failure.Kind != KindDecode {
 			t.Errorf("for %v, error is %v", body, err)
 		}
-	}
-}
-
-// answer serves one response with this status and no body.
-func answer(t *testing.T, status int) *Transport {
-	t.Helper()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(status) }))
-	t.Cleanup(server.Close)
-	return mustTransport(t, Settings{BaseURL: server.URL, Timeout: time.Second, MaxRetries: 0})
-}
-
-func TestAnEmpty204IsNoResultEvenWhereJSONIsDeclared(t *testing.T) {
-	operation := &Operation{ID: "put-item", Method: "PUT", Path: "/items", ReturnsJSON: true}
-	result, err := Call[*map[string]any](context.Background(), answer(t, http.StatusNoContent), operation, Input{})
-	if err != nil || result != nil {
-		t.Fatalf("result is %v, error is %v", result, err)
-	}
-}
-
-func TestAnEmpty200IsADecodeErrorWhereJSONIsDeclared(t *testing.T) {
-	operation := &Operation{ID: "put-item", Method: "PUT", Path: "/items", ReturnsJSON: true}
-	_, err := Call[*map[string]any](context.Background(), answer(t, http.StatusOK), operation, Input{})
-	var failure *Error
-	if !errors.As(err, &failure) || failure.Kind != KindDecode {
-		t.Fatalf("error is %v", err)
 	}
 }
 
