@@ -212,10 +212,15 @@ fn form(parts: &[Part]) -> multipart::Form {
             Part::Text { name, value } => form.text(name.clone(), value.clone()),
             Part::File { name, file } => {
                 let filename = file.name.clone().unwrap_or_else(|| name.clone());
-                form.part(
-                    name.clone(),
-                    multipart::Part::bytes(file.content.clone()).file_name(filename),
-                )
+                let mut headers = HeaderMap::new();
+                headers.insert(
+                    CONTENT_TYPE,
+                    HeaderValue::from_static("application/octet-stream"),
+                );
+                let part = multipart::Part::bytes(file.content.clone())
+                    .file_name(filename)
+                    .headers(headers);
+                form.part(name.clone(), part)
             }
         })
 }
@@ -644,21 +649,18 @@ impl Transport {
         answer: &Answer,
         received: usize,
     ) -> Result<Option<Request>, Error> {
+        let items = request.operation.paging().items();
+        if !page.get(items).is_some_and(Value::is_array) {
+            return Err(self.decode_error(
+                &format!("the {items} field of a page is not a list"),
+                answer,
+            ));
+        }
         match request.operation.paging() {
             Paging::NextLink { link, params, .. } => {
                 self.next_link(request, link, params, page, answer)
             }
-            Paging::Offset {
-                items,
-                total,
-                offset,
-            } => {
-                if !page.get(items).is_some_and(Value::is_array) {
-                    return Err(self.decode_error(
-                        &format!("the {items} field of a page is not a list"),
-                        answer,
-                    ));
-                }
+            Paging::Offset { total, offset, .. } => {
                 self.next_offset(request, total, offset, page, answer, received)
             }
         }
@@ -1010,35 +1012,31 @@ mod tests {
     }
 
     #[test]
-    fn offset_paging_rejects_a_page_without_an_items_list() {
-        for page in [
-            serde_json::json!({ "total": 1 }),
-            serde_json::json!({ "data": null }),
-            serde_json::json!({ "data": {} }),
-        ] {
-            assert_eq!(
-                next(&OFFSET_LIST, &[], page, 0).unwrap_err().kind(),
-                ErrorKind::Decode
-            );
+    fn paging_rejects_a_page_without_an_items_list() {
+        for operation in [&OFFSET_LIST, &LINKED_LIST] {
+            for page in [
+                serde_json::json!({ "total": 1 }),
+                serde_json::json!({ "data": null }),
+                serde_json::json!({ "data": {} }),
+            ] {
+                assert_eq!(
+                    next(operation, &[], page, 0).unwrap_err().kind(),
+                    ErrorKind::Decode
+                );
+            }
         }
     }
 
     #[test]
     fn next_link_paging_reads_the_configured_fields() {
-        let page = serde_json::json!({ "more": "/items?token=b", "next": "/items?token=c" });
+        let page =
+            serde_json::json!({ "data": [1], "more": "/items?token=b", "next": "/items?token=c" });
         assert_eq!(
             next_url(&LINKED_LIST, &[], page, 1).as_deref(),
             Some("/items?token=b")
         );
-        assert_eq!(
-            next_url(
-                &LINKED_LIST,
-                &[("token", "b")],
-                serde_json::json!({ "more": null, "next": "/x?token=c" }),
-                1
-            ),
-            None
-        );
+        let last = serde_json::json!({ "data": [1], "more": null, "next": "/x?token=c" });
+        assert_eq!(next_url(&LINKED_LIST, &[("token", "b")], last, 1), None);
         assert_eq!(OFFSET_LIST.paging().items(), "data");
         assert_eq!(
             Operation {
