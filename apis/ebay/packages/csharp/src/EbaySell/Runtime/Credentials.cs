@@ -22,7 +22,9 @@ internal sealed class AuthRequest
 /// Supplies each request's credentials. <see cref="ApplyAsync"/> runs before every attempt, retries included, so it
 /// can sign the final request. <see cref="Secrets"/> lists every value to keep out of logs and errors, and is read
 /// again each time, so it may change. <see cref="RefreshAsync"/> runs after a 401, at most once per call and once at a
-/// time per client, and returns whether to retry.
+/// time per client, and returns whether to retry. <see cref="RefreshGroup"/> names the credential an operation sends,
+/// where there is more than one: a call skips its own refresh only when another call refreshed the same group since it
+/// sent it.
 /// </summary>
 internal interface ICredentialProvider
 {
@@ -31,6 +33,8 @@ internal interface ICredentialProvider
     IReadOnlyCollection<string> Secrets();
 
     ValueTask<bool> RefreshAsync(AuthRequest request, CancellationToken cancellationToken) => ValueTask.FromResult(false);
+
+    string RefreshGroup(Operation operation) => string.Empty;
 }
 
 /// <summary>The same headers on every request.</summary>

@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO.Compression;
 using System.Net;
@@ -44,7 +45,7 @@ internal sealed class Transport : IDisposable
     private readonly HttpClient http;
     private readonly bool ownsClient;
     private readonly SemaphoreSlim refreshing = new(1, 1);
-    private long generation;
+    private readonly ConcurrentDictionary<string, long> generations = new();
 
     /// <remarks>Reads and writes share one pool of connections. <see cref="AttemptAsync"/> shapes each write so the handler never resends it.</remarks>
     /// <exception cref="ArgumentException">Two header defaults have names that differ only by case. A client it owns is disposed.</exception>
@@ -515,7 +516,8 @@ internal sealed class Transport : IDisposable
         for (var tries = 0; ;)
         {
             Log(LogLevel.Debug, $"-> {operation.Method} {url}");
-            var seen = Interlocked.Read(ref generation);
+            var group = settings.Credentials.RefreshGroup(operation);
+            var seen = generations.GetValueOrDefault(group);
             var auth = await AuthorizeAsync(operation, url, content, extra, cancellationToken).ConfigureAwait(false);
             try
             {
@@ -532,7 +534,7 @@ internal sealed class Transport : IDisposable
                 if (error.Status == 401 && !refreshed && operation.Security is { Length: > 0 })
                 {
                     refreshed = true;
-                    if (await RefreshAsync(auth, seen, cancellationToken).ConfigureAwait(false))
+                    if (await RefreshAsync(auth, group, seen, cancellationToken).ConfigureAwait(false))
                     {
                         Log(LogLevel.Information, "retrying after refreshing credentials");
                         continue;
@@ -577,20 +579,23 @@ internal sealed class Transport : IDisposable
         return auth;
     }
 
-    /// <summary>Calls waiting on a refresh share it, and a call whose credentials were refreshed since it sent them retries without another.</summary>
-    private async Task<bool> RefreshAsync(AuthRequest auth, long seen, CancellationToken cancellationToken)
+    /// <summary>
+    /// Calls waiting on a refresh of the same group share it, and a call whose credentials were refreshed since it sent
+    /// them retries without another.
+    /// </summary>
+    private async Task<bool> RefreshAsync(AuthRequest auth, string group, long seen, CancellationToken cancellationToken)
     {
         await refreshing.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (Interlocked.Read(ref generation) != seen)
+            if (generations.GetValueOrDefault(group) != seen)
             {
                 return true;
             }
             var refreshed = await settings.Credentials.RefreshAsync(auth, cancellationToken).ConfigureAwait(false);
             if (refreshed)
             {
-                Interlocked.Increment(ref generation);
+                generations[group] = seen + 1;
             }
             return refreshed;
         }
