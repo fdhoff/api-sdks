@@ -1,5 +1,7 @@
 //! Compiles the generated conformance dispatch against stand-ins for a driver's helpers.
 
+// The fixture has no operation for some helpers, which real packages do use.
+#[allow(unused_imports)]
 mod dispatch;
 
 use futures_util::TryStreamExt;

@@ -97,7 +97,7 @@ jobs:
           dotnet-version: |
             8.0.x
             10.0.x
-      - run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --component rustfmt
+      - run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --component rustfmt,clippy
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
@@ -125,7 +125,7 @@ jobs:
       - name: Rust
         run: |
           node toolchain/pipeline/generate.mjs "$FIXTURE" rust
-          cd "$FIXTURE/packages/rust" && cargo check --locked --lib --examples
+          cd "$FIXTURE/packages/rust" && cargo clippy --locked --lib --examples -- -D warnings
 
   python:
     needs: apis
