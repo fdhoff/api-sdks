@@ -11,7 +11,7 @@ import { runCases, startDriver } from './run.mjs';
 const FIXTURE = fileURLToPath(new URL('./fixtures/driver.mjs', import.meta.url));
 const SIGNING_CASES = fileURLToPath(new URL('./fixtures/signing', import.meta.url));
 const fixtureCases = (style) => fileURLToPath(new URL(`./fixtures/cases/${style}`, import.meta.url));
-const operations = new Set(['list-items', 'create-item', 'create-transfer', 'list-files', 'download-file', 'upload-file', 'get-report']);
+const operations = new Set(['list-items', 'list-events', 'create-item', 'create-transfer', 'list-files', 'download-file', 'upload-file', 'get-report']);
 
 const baseCase = () => ({
   name: 'lists-items',
@@ -376,6 +376,18 @@ test('offset paging cases hold for a driver that walks offsets', async () => {
 
 test('offset paging cases fail a driver that reads only the first page', async () => {
   const cases = await loadCases(fixtureCases('offset'), operations);
+  const failed = await runWith('good', cases);
+  assert.ok(failed.length > 0);
+});
+
+test('cursor paging cases hold for a driver that follows cursors', async () => {
+  const cases = await loadCases(fixtureCases('cursor'), operations);
+  assert.ok(cases.length > 0);
+  assert.deepEqual(await runWith('cursor', cases), []);
+});
+
+test('cursor paging cases fail a driver that reads only the first page', async () => {
+  const cases = await loadCases(fixtureCases('cursor'), operations);
   const failed = await runWith('good', cases);
   assert.ok(failed.length > 0);
 });

@@ -1,0 +1,116 @@
+# Cursor paging. `list-items` uses the toolchain's default field names: the `cursor` value of each page goes
+# back in the `cursor` query parameter. `list-events` reads `page.next_page` and sends it as `start_after`,
+# with its items under `events`. An API that pages this way can copy these cases.
+cases:
+  - name: cursor-paging-follows-the-cursor-across-several-pages
+    request:
+      operation: list-items
+      params: { limit: 2 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { results: [{ id: a }, { id: b }], cursor: c1 }
+        - status: 200
+          body: { results: [{ id: c }, { id: d }], cursor: c2 }
+        - status: 200
+          body: { results: [{ id: e }], cursor: null }
+    wire:
+      - method: GET
+        path: /items
+        query: { limit: '2' }
+      - method: GET
+        path: /items
+        query: { limit: '2', cursor: c1 }
+      - method: GET
+        path: /items
+        query: { limit: '2', cursor: c2 }
+    expect:
+      result: [{ id: a }, { id: b }, { id: c }, { id: d }, { id: e }]
+
+  - name: cursor-paging-reads-a-nested-next-value-from-the-callers-position
+    request:
+      operation: list-events
+      params: { limit: 2, start_after: evt-0 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { events: [{ id: evt-1 }, { id: evt-2 }], page: { next_page: evt-2 } }
+        - status: 200
+          body: { events: [{ id: evt-3 }], page: {} }
+    wire:
+      - method: GET
+        path: /events
+        query: { limit: '2', start_after: evt-0 }
+      - method: GET
+        path: /events
+        query: { limit: '2', start_after: evt-2 }
+    expect:
+      result: [{ id: evt-1 }, { id: evt-2 }, { id: evt-3 }]
+
+  - name: cursor-paging-empty-last-page
+    request:
+      operation: list-events
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { events: [{ id: evt-1 }], page: { next_page: evt-1 } }
+        - status: 200
+          body: { events: [], page: { next_page: null } }
+    wire:
+      - method: GET
+        path: /events
+      - method: GET
+        path: /events
+        query: { start_after: evt-1 }
+    expect:
+      result: [{ id: evt-1 }]
+
+  - name: cursor-paging-empty-first-page-without-a-cursor
+    request:
+      operation: list-items
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { results: [] }
+    wire:
+      - method: GET
+        path: /items
+    expect:
+      result: []
+
+  - name: cursor-paging-repeated-cursor
+    request:
+      operation: list-items
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { results: [{ id: a }], cursor: c1 }
+        - status: 200
+          body: { results: [{ id: b }], cursor: c1 }
+    wire:
+      - method: GET
+        path: /items
+      - method: GET
+        path: /items
+        query: { cursor: c1 }
+    expect:
+      error: { kind: decode }
+
+  - name: cursor-paging-page-without-an-items-list
+    request:
+      operation: list-events
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { page: { next_page: evt-1 } }
+    wire:
+      - method: GET
+        path: /events
+    expect:
+      error: { kind: decode }
