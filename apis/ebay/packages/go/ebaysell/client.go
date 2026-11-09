@@ -26,6 +26,7 @@ import (
 	"github.com/fdhoff/api-sdks/apis/ebay/packages/go/ebaysell/metadata"
 	"github.com/fdhoff/api-sdks/apis/ebay/packages/go/ebaysell/negotiation"
 	"github.com/fdhoff/api-sdks/apis/ebay/packages/go/ebaysell/notification"
+	"github.com/fdhoff/api-sdks/apis/ebay/packages/go/ebaysell/postorder"
 	"github.com/fdhoff/api-sdks/apis/ebay/packages/go/ebaysell/recommendation"
 	"github.com/fdhoff/api-sdks/apis/ebay/packages/go/ebaysell/stores"
 	"github.com/fdhoff/api-sdks/apis/ebay/packages/go/ebaysell/taxonomy"
@@ -198,6 +199,7 @@ type Client struct {
 	Negotiation        negotiation.Resources
 	Recommendation     recommendation.Resources
 	Stores             stores.Resources
+	PostOrder          postorder.Resources
 	Feedback           feedback.Resources
 	Identity           identity.Resources
 	Media              media.Resources
@@ -294,6 +296,7 @@ func NewClient(opts ...Option) (*Client, error) {
 		Negotiation:        negotiation.NewResources(transport),
 		Recommendation:     recommendation.NewResources(transport),
 		Stores:             stores.NewResources(transport),
+		PostOrder:          postorder.NewResources(transport),
 		Feedback:           feedback.NewResources(transport),
 		Identity:           identity.NewResources(transport),
 		Media:              media.NewResources(transport),
