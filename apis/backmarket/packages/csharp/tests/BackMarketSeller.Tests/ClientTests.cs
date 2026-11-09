@@ -283,6 +283,46 @@ public sealed class ClientTests
         Assert.Throws<ApiDecodeException>(() => Next(operation, ["b"], """{"results": [], "more": null}""", 1));
     }
 
+    private static async Task<string[]> RequestsUntilACycle(Operation operation, object?[] values, params string[] pages)
+    {
+        var handler = new ScriptedHandler(pages.Select(page => Json(HttpStatusCode.OK, page)).ToArray());
+        var settings = new Settings
+        {
+            BaseUrl = "https://mock.invalid",
+            Credentials = new StaticCredentials(new Dictionary<string, string>(), [Token]),
+            Headers = new Dictionary<string, string>(),
+            ToError = context => new ApiException($"status {context.Status}"),
+            Logger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance,
+        };
+        using var transport = new Transport(settings, new HttpClient(handler), ownsClient: true);
+
+        var error = await Assert.ThrowsAsync<ApiDecodeException>(async () =>
+            await transport.PaginateAsync<JsonElement>(operation, values, TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken));
+        Assert.Contains("already requested", error.Message);
+        return handler.Requests.Select(request => request.Url).ToArray();
+    }
+
+    [Fact]
+    public async Task PagingRejectsAPositionThatCyclesBack()
+    {
+        var linked = OffsetList with
+        {
+            Params = [new("token", "token", ParamLocation.Query)],
+            Paging = new NextLinkPaging("data", "more", ["token"]),
+        };
+
+        Assert.Equal(
+            ["https://mock.invalid/items", "https://mock.invalid/items?token=b", "https://mock.invalid/items?token=a"],
+            await RequestsUntilACycle(
+                linked, [null],
+                """{"data": [{}], "more": "/items?token=b"}""", """{"data": [{}], "more": "/items?token=a"}""", """{"data": [{}], "more": "/items?token=b"}"""));
+        Assert.Equal(
+            ["https://mock.invalid/items", "https://mock.invalid/items?start_after=a", "https://mock.invalid/items?start_after=b"],
+            await RequestsUntilACycle(
+                CursorList, [null, null],
+                """{"data": [{}], "page": {"next_page": "a"}}""", """{"data": [{}], "page": {"next_page": "b"}}""", """{"data": [{}], "page": {"next_page": "a"}}"""));
+    }
+
     [Fact]
     public async Task ANextLinkThatDoesNotAdvanceIsADecodeError()
     {

@@ -530,6 +530,25 @@ function nextParams(operation: Operation, params: Params, page: unknown, receive
   return nextLink(operation, paging, params, page);
 }
 
+/** The values that say which page a request asks for, or undefined for offset paging, which always advances. */
+function position(operation: Operation, params: Params): string | undefined {
+  const paging = operation.paging ?? NEXT_LINK;
+  if (paging.style === 'offset') return undefined;
+  const wires = paging.style === 'cursor' ? [paging.param] : paging.params;
+  const names = operation.params.filter(({ wire, location }) => location === 'query' && wires.includes(wire));
+  return JSON.stringify(
+    names.map(({ name }) => (params[name] === undefined || params[name] === null ? null : String(params[name]))),
+  );
+}
+
+/** Remember the page a request asks for, and refuse one already asked for: a cycle would never end. */
+function visit(operation: Operation, params: Params, seen: Set<string>): void {
+  const at = position(operation, params);
+  if (at === undefined) return;
+  if (seen.has(at)) throw new DecodeError('The next page is one this iteration already requested');
+  seen.add(at);
+}
+
 function items(operation: Operation, page: unknown): unknown[] {
   const results = isObject(page) ? page[(operation.paging ?? NEXT_LINK).items] : undefined;
   return Array.isArray(results) ? results : [];
@@ -792,7 +811,9 @@ export class Resource {
     options?: RequestOptions,
   ): AsyncGenerator<T, void, undefined> {
     let current: Params | undefined = params;
+    const seen = new Set<string>();
     while (current !== undefined) {
+      visit(operation, current, seen);
       const page: unknown = await this.#transport.fetch(operation, body, current, options);
       // An empty 204 is the only success without a body, and it holds no more items.
       if (page === undefined) return;

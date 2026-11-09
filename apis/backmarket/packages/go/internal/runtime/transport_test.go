@@ -308,6 +308,43 @@ func TestCursorPagingRejectsANextValueEqualToTheOneSent(t *testing.T) {
 	}
 }
 
+func TestPagingRejectsAPositionThatCyclesBack(t *testing.T) {
+	linkList := &Operation{
+		ID: "list-items", Method: "GET", Path: "/items", QueryParams: []string{"token"},
+		Paging: NextLink{Items: "data", Link: "more", Params: []string{"token"}},
+	}
+	cases := []struct {
+		operation *Operation
+		params    any
+		bodies    []any
+		want      []string
+	}{
+		{linkList, pageParams{}, []any{
+			map[string]any{"more": "/items?token=b", "data": numbered(0, 1)},
+			map[string]any{"more": "/items?token=a", "data": numbered(1, 2)},
+			map[string]any{"more": "/items?token=b", "data": numbered(2, 3)},
+		}, []string{"", "token=b", "token=a"}},
+		{cursorList, cursorParams{}, []any{
+			map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": "a"}},
+			map[string]any{"data": numbered(1, 2), "page": map[string]any{"next_page": "b"}},
+			map[string]any{"data": numbered(2, 3), "page": map[string]any{"next_page": "a"}},
+		}, []string{"", "start_after=a", "start_after=b"}},
+	}
+	for _, c := range cases {
+		items, queries, err := walk(t, c.operation, c.params, served(c.bodies...))
+		var failure *Error
+		if !errors.As(err, &failure) || failure.Kind != KindDecode || !strings.Contains(err.Error(), "already requested") {
+			t.Fatalf("for %T, error is %v", c.operation.paging(), err)
+		}
+		if !reflect.DeepEqual(items, numbered(0, 3)) {
+			t.Errorf("items are %v", items)
+		}
+		if !reflect.DeepEqual(queries, c.want) {
+			t.Errorf("queries are %q, want %q", queries, c.want)
+		}
+	}
+}
+
 func TestCursorPagingRejectsAMalformedPage(t *testing.T) {
 	for _, body := range []any{
 		map[string]any{"page": map[string]any{"next_page": "b"}},

@@ -768,3 +768,42 @@ test('next-link paging reads the configured fields', async () => {
   assert.deepEqual(await pages.all(operation), [{ n: 1 }, { n: 2 }]);
   assert.deepEqual(queries, ['', '?token=b']);
 });
+
+const linkList: Operation = {
+  ...offsetList,
+  params: [{ wire: 'token', name: 'token', location: 'query' }],
+  paging: { style: 'next_link', items: 'data', link: 'more', params: ['token'] },
+};
+
+const cycles: [Operation, unknown[], string[]][] = [
+  [
+    linkList,
+    [
+      { more: '/items?token=b', data: [{ n: 1 }] },
+      { more: '/items?token=a', data: [{ n: 2 }] },
+      { more: '/items?token=b', data: [{ n: 3 }] },
+    ],
+    ['', '?token=b', '?token=a'],
+  ],
+  [
+    cursorList,
+    [
+      { data: [{ n: 1 }], page: { next_page: 'a' } },
+      { data: [{ n: 2 }], page: { next_page: 'b' } },
+      { data: [{ n: 3 }], page: { next_page: 'a' } },
+    ],
+    ['', '?start_after=a', '?start_after=b'],
+  ],
+];
+
+for (const [operation, bodies, want] of cycles) {
+  test(`${operation.paging?.style} paging rejects a position that cycles back`, async () => {
+    const { pages, queries } = pagesFor(() => json(bodies.shift()));
+    await assert.rejects(pages.all(operation), (error) => {
+      assert.ok(error instanceof DecodeError);
+      assert.match(error.message, /already requested/);
+      return true;
+    });
+    assert.deepEqual(queries, want);
+  });
+}

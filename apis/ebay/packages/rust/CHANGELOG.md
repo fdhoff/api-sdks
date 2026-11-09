@@ -5,6 +5,7 @@ This crate follows semantic versioning and stays on 0.x until outside users conf
 ## Unreleased
 
 * An empty, `.` or `..` path value is an `ErrorKind::Api` error and nothing is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
+* An iteration whose next link returns to a page it already requested, such as page A, then B, then A again, now yields an error of kind `ErrorKind::Decode` instead of fetching the same pages until the rate limit runs out. Before, only a next link that repeated the one just sent was caught.
 * `ebay_sell::post_order` and `client.post_order()` cover the Post-Order API's 29 remaining operations on cancellations, returns, item-not-received inquiries and cases. They take the seller's user token and the client's marketplace ID. Return files are uploaded as base64 in a JSON body.
 * A PATCH without a body sends `Content-Length: 0`, as the other languages' HTTP libraries do, and `MessageSigner` signs it.
 * Breaking: the 26 Inventory and Marketing operations that answer 204 with no body, such as `inventory_items().delete`, and Marketing's `report_tasks().create`, which answers 202, return `()` instead of `Option<models::Error>`.

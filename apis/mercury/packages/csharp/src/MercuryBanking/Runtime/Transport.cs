@@ -275,8 +275,10 @@ internal sealed class Transport : IDisposable
     {
         var paging = operation.Paging ?? NextLinkPaging.Default;
         object?[]? current = values;
+        var seen = new HashSet<string>();
         while (current is not null)
         {
+            Visit(operation, current, seen);
             var reply = await FetchAsync(operation, current, cancellationToken).ConfigureAwait(false);
             if (reply.Status == 204 && reply.Text.Length == 0)
             {
@@ -296,6 +298,34 @@ internal sealed class Transport : IDisposable
                 }
             }
             current = NextValues(operation, current, page, received);
+        }
+    }
+
+    /// <summary>The values that say which page a request asks for, or null for offset paging, which always advances.</summary>
+    private static string? Position(Operation operation, object?[] values)
+    {
+        string[] wires = (operation.Paging ?? NextLinkPaging.Default) switch
+        {
+            NextLinkPaging link => link.Params,
+            CursorPaging cursor => [cursor.Param],
+            _ => [],
+        };
+        if (wires.Length == 0)
+        {
+            return null;
+        }
+        return string.Concat(operation.Params
+            .Select((param, index) => (param, index))
+            .Where(item => item.param.Location == ParamLocation.Query && wires.Contains(item.param.Wire))
+            .Select(item => TextOrNull(values[item.index]) is { } text ? $"+{text.Length}:{text}" : "-"));
+    }
+
+    /// <summary>Remembers the page a request asks for, and refuses one already asked for: a cycle would never end.</summary>
+    private static void Visit(Operation operation, object?[] values, HashSet<string> seen)
+    {
+        if (Position(operation, values) is { } position && !seen.Add(position))
+        {
+            throw new ApiDecodeException("The next page is one this iteration already requested");
         }
     }
 

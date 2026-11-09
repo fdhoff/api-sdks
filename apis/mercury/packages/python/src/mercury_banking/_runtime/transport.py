@@ -599,6 +599,27 @@ def _next_cursor(
     return {**params, name: value}
 
 
+def _position(operation: Operation[Any], params: Mapping[str, Any]) -> tuple[str | None, ...] | None:
+    """The values that say which page a request asks for. None for offset paging, which always advances."""
+    paging = operation.paging
+    if isinstance(paging, Offset):
+        return None
+    names = _query_names(operation)
+    wires = paging.params if isinstance(paging, NextLink) else (paging.param,)
+    values = (params.get(names[wire]) for wire in wires if wire in names)
+    return tuple(None if value is None else _text(value) for value in values)
+
+
+def _visit(operation: Operation[Any], params: Mapping[str, Any], seen: set[tuple[str | None, ...]]) -> None:
+    """Remember the page a request asks for, and refuse one already asked for: a cycle would never end."""
+    position = _position(operation, params)
+    if position is None:
+        return
+    if position in seen:
+        raise DecodeError("The next page is one this iteration already requested")
+    seen.add(position)
+
+
 def _next_params(operation: Operation[Any], params: dict[str, Any], page: Any, received: int) -> dict[str, Any] | None:
     """The parameters of the page after this one, or None after the last."""
     if not isinstance(page, Mapping):
@@ -1054,7 +1075,9 @@ class Resource:
 
     def _paginate(self, operation: Operation[Any], /, *, _body: Any = None, **params: Any) -> Iterator[Any]:
         current: dict[str, Any] | None = params
+        seen: set[tuple[str | None, ...]] = set()
         while current is not None:
+            _visit(operation, current, seen)
             page = self._transport.fetch(operation, _body, current)
             if page.status == 204:
                 return
@@ -1094,7 +1117,9 @@ class AsyncResource:
 
     async def _paginate(self, operation: Operation[Any], /, *, _body: Any = None, **params: Any) -> AsyncIterator[Any]:
         current: dict[str, Any] | None = params
+        seen: set[tuple[str | None, ...]] = set()
         while current is not None:
+            _visit(operation, current, seen)
             page = await self._transport.fetch(operation, _body, current)
             if page.status == 204:
                 return

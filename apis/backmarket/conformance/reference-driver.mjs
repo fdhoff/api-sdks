@@ -159,6 +159,8 @@ async function call(client, request, log) {
 async function paginate(client, request, log) {
   const params = { ...request.params };
   const items = [];
+  const position = () => JSON.stringify(['page', 'cursor'].map((name) => (params[name] === undefined ? null : String(params[name]))));
+  const seen = new Set([position()]);
   for (;;) {
     const page = await call(client, { ...request, params }, log);
     items.push(...page.results);
@@ -172,6 +174,8 @@ async function paginate(client, request, log) {
     if (['page', 'cursor'].every((name) => String(params[name]) === String(before[name]))) {
       throw new ClientError({ kind: 'decode' });
     }
+    if (seen.has(position())) throw new ClientError({ kind: 'decode' });
+    seen.add(position());
   }
 }
 

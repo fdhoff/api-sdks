@@ -769,6 +769,48 @@ def test_next_link_paging_reads_the_configured_fields() -> None:
     assert queries == ["", "token=b"]
 
 
+LINKED_LIST: Operation[Any] = Operation(
+    id="list-items",
+    method="GET",
+    path="/items",
+    resource="items",
+    name="list",
+    params=(Param("token", "token", "query"),),
+    iterator="iter",
+    item=dict[str, Any],
+    paging=NextLink(items="data", link="more", params=("token",)),
+)
+
+
+@pytest.mark.parametrize(
+    ("operation", "pages", "expected"),
+    [
+        (
+            LINKED_LIST,
+            [{"more": f"/items?token={token}", "data": [{"n": n}]} for n, token in enumerate("bab")],
+            ["", "token=b", "token=a"],
+        ),
+        (
+            CURSOR_LIST,
+            [{"data": [{"n": n}], "page": {"next_page": cursor}} for n, cursor in enumerate("aba")],
+            ["", "start_after=a", "start_after=b"],
+        ),
+    ],
+)
+def test_paging_rejects_a_position_that_cycles_back(
+    operation: Operation[Any], pages: list[Any], expected: list[str]
+) -> None:
+    queries: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        queries.append(request.url.query.decode())
+        return httpx.Response(200, json=pages[len(queries) - 1])
+
+    with pytest.raises(DecodeError, match="already requested"):
+        list(Resource(client_for(handler)._transport)._paginate(operation))
+    assert queries == expected
+
+
 @pytest.mark.parametrize("page", [{"next": None}, {"results": None, "next": None}, {"results": {"id": 1}}])
 def test_next_link_paging_rejects_a_page_without_an_items_list(page: Any) -> None:
     client = client_for(lambda request: httpx.Response(200, json=page))

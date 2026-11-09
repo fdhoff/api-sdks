@@ -5,6 +5,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 ## Unreleased
 
 * An empty, `.` or `..` path value throws `TypeError` before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
+* An iteration whose next link returns to a page it already requested, such as page A, then B, then A again, now throws `DecodeError` instead of fetching the same pages until the rate limit runs out. Before, only a next link that repeated the one just sent was caught.
 * An iterator page without its items list throws `DecodeError`, as in the other languages, instead of ending the iteration with no items.
 * An empty 204 page ends an iteration instead of throwing `DecodeError`.
 * A `Date` in a form field is sent as ISO 8601 text, not as a quoted JSON string.
