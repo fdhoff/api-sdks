@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* A tuple or frozenset passed as an array argument is sent as one value per item, as a list is. Before, it was sent as its Python repr, in query parameters and form fields such as `listings.create_draft`'s `tags`.
 * The package ships a `py.typed` marker, so type checkers read its annotations instead of skipping it.
 * An empty 204 response now returns `None`, and ends an iteration, instead of raising `DecodeError` where the operation also declares a JSON success.
 * Method docstrings show apostrophes as written, not as `&#39;`.

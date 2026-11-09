@@ -91,6 +91,20 @@ def test_each_environment_has_its_own_hosts(environment: str, api: str, vault: s
     assert seen == [f"{api}/organization", f"{vault}/cards/{CARD}/reveal"]
 
 
+@pytest.mark.parametrize("status", [["active", "frozen"], ("active", "frozen")])
+def test_a_list_or_tuple_filter_repeats_the_query_key(status: Any) -> None:
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json={"cards": [], "page": {}})
+
+    kind: Any = frozenset({"virtual"})
+    client_for(handler).cards.list(status=status, kind=kind)
+    assert seen[0].url.params.get_list("status") == ["active", "frozen"]
+    assert seen[0].url.params.get_list("kind") == ["virtual"]
+
+
 def test_the_token_and_environment_are_checked() -> None:
     with pytest.raises(ValueError, match="token"):
         MercuryClient("")
