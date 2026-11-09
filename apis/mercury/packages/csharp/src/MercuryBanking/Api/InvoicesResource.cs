@@ -27,7 +27,7 @@ public sealed class InvoicesResource
 
     internal static readonly Operation GetInvoicePdfOperation = new(
         "getInvoicePdf", "GET", "/ar/invoices/{invoiceId}/pdf", "Invoices", "DownloadPdfAsync", null,
-        [new("invoiceId", "invoiceId", ParamLocation.Path),], Security: [[new("bearerAuth", []),],], Host: "api", ReturnsBinary: true);
+        [new("invoiceId", "invoiceId", ParamLocation.Path),], Security: [[new("bearerAuth", []),],], Host: "api", ReturnsBinary: true, Accept: "application/pdf");
 
     internal static readonly Operation ListInvoiceAttachmentsOperation = new(
         "listInvoiceAttachments", "GET", "/ar/invoices/{invoiceId}/attachments", "Invoices", "ListAttachmentsAsync", null,

@@ -15,7 +15,7 @@ public sealed class SafesResource
 
     internal static readonly Operation GetSafeRequestDocumentOperation = new(
         "getSafeRequestDocument", "GET", "/safes/{safeRequestId}/document", "Safes", "DownloadDocumentAsync", null,
-        [new("safeRequestId", "safeRequestId", ParamLocation.Path),], Security: [[new("bearerAuth", []),],], Host: "api", ReturnsBinary: true);
+        [new("safeRequestId", "safeRequestId", ParamLocation.Path),], Security: [[new("bearerAuth", []),],], Host: "api", ReturnsBinary: true, Accept: "application/pdf");
 
     internal static readonly Operation GetSafeRequestsOperation = new(
         "getSafeRequests", "GET", "/safes", "Safes", "ListAsync", null,

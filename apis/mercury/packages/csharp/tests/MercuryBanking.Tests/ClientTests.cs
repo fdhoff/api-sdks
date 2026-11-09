@@ -83,6 +83,18 @@ public sealed class ClientTests
     }
 
     [Fact]
+    public async Task APdfDownloadAsksForAPdf()
+    {
+        var handler = new Router(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([0x25, 0x50, 0x44, 0x46]) });
+        using var client = Client(handler);
+
+        await using var download = await client.Invoices.DownloadPdfAsync(AccountA, Cancel);
+
+        Assert.Equal("application/pdf", Assert.Single(handler.Sent).Headers["Accept"]);
+        Assert.Equal([0x25, 0x50, 0x44, 0x46], await download.ReadAllBytesAsync(Cancel));
+    }
+
+    [Fact]
     public void RefusesAnEmptyTokenAnUnknownEnvironmentAndPartialHosts()
     {
         Assert.Throws<ArgumentException>(() => new MercuryClient(string.Empty));

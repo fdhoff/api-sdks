@@ -11,7 +11,7 @@ public sealed class StatementsResource
 {
     internal static readonly Operation GetStatementPdfOperation = new(
         "getStatementPdf", "GET", "/statements/{statementId}/pdf", "Statements", "DownloadPdfAsync", null,
-        [new("statementId", "statementId", ParamLocation.Path),], Security: [[new("bearerAuth", []),],], Host: "api", ReturnsBinary: true);
+        [new("statementId", "statementId", ParamLocation.Path),], Security: [[new("bearerAuth", []),],], Host: "api", ReturnsBinary: true, Accept: "application/pdf");
 
     internal static readonly Operation[] Operations = [GetStatementPdfOperation,];
 
