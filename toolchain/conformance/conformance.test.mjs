@@ -11,7 +11,7 @@ import { runCases, startDriver } from './run.mjs';
 const FIXTURE = fileURLToPath(new URL('./fixtures/driver.mjs', import.meta.url));
 const SIGNING_CASES = fileURLToPath(new URL('./fixtures/signing', import.meta.url));
 const fixtureCases = (style) => fileURLToPath(new URL(`./fixtures/cases/${style}`, import.meta.url));
-const operations = new Set(['list-items', 'create-item', 'list-files', 'download-file', 'upload-file', 'get-report']);
+const operations = new Set(['list-items', 'create-item', 'create-transfer', 'list-files', 'download-file', 'upload-file', 'get-report']);
 
 const baseCase = () => ({
   name: 'lists-items',
@@ -450,4 +450,24 @@ test('binary cases fail a driver that decodes bodies as text', async () => {
   const cases = await loadCases(fixtureCases('binary'), operations);
   const failed = (await runWith('binary-as-text', cases)).map(({ name }) => name);
   assert.deepEqual(failed, ['binary-download-returns-the-exact-bytes', 'binary-upload-sends-the-bytes-unchanged']);
+});
+
+test('idempotency cases hold for a driver that retries a write only when its key is set', async () => {
+  const cases = await loadCases(fixtureCases('idempotency'), operations);
+  assert.ok(cases.length > 0);
+  assert.deepEqual(await runWith('idempotent', cases), []);
+});
+
+test('idempotency cases fail a driver that retries every write, and one that retries none', async () => {
+  const cases = await loadCases(fixtureCases('idempotency'), operations);
+  const names = async (mode) => (await runWith(mode, cases)).map(({ name }) => name);
+  assert.deepEqual(await names('retry-writes'), [
+    'unmarked-write-is-not-retried-on-a-server-error',
+    'idempotent-write-with-an-empty-key-is-not-retried',
+    'idempotent-write-without-a-key-is-not-retried',
+  ]);
+  assert.deepEqual(await names('unretried'), [
+    'idempotent-write-retries-a-server-error-with-the-same-body',
+    'idempotent-write-retries-a-dropped-connection-with-the-same-body',
+  ]);
 });

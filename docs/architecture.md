@@ -197,10 +197,12 @@ Python's synchronous client cannot interrupt a blocking read, so it checks the d
 | Failure | Retried for | Delay |
 | --- | --- | --- |
 | 429 | Every method | `Retry-After` if usable, otherwise at least 10 seconds |
-| 5xx, timeout, connection failure | GET only | Exponential backoff |
+| 5xx, timeout, connection failure | GET, and a write whose idempotency key is set | Exponential backoff |
 | Any other response | Never | |
 
-Only GET is retried on 5xx, timeouts and connection failures because the API documents no idempotency key, and a repeated refund could refund twice. A 429 is safe to retry on any method, because the request was refused.
+Other writes are not retried on 5xx, timeouts and connection failures, because a repeated refund could refund twice. A 429 is safe to retry on any method, because the request was refused.
+
+Some APIs deduplicate a write by a key in its JSON body. `idempotency: { body: <field> }` on an operation in its package's `operations.yaml` marks it, and generation fails if the operation's JSON request body has no such field. The runtimes then retry it as they do a GET, sending the same body, and so the same key, on every attempt. They retry it only when the caller set the key: one that is missing, null or empty means a 429 is the only retry. The runtime never invents a key. TODO: an opt-in helper that generates a UUID key, if users ask. `toolchain/conformance/fixtures/cases/idempotency/` has synthetic cases to copy.
 
 `Retry-After` is either whole seconds or an HTTP date, in which case the wait runs until that date. Any other value counts as no header, and so does a date in the past: it says nothing about how long the block lasts, and it can be clock skew, so retrying at once would risk another 429.
 

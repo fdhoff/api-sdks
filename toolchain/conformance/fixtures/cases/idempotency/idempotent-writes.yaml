@@ -1,0 +1,113 @@
+# Writes that carry an idempotency key in the body. `create-transfer` is marked with
+# `idempotency: { body: idempotency_key }`, and `create-item` is not. An API that marks an operation can copy these.
+cases:
+  - name: idempotent-write-retries-a-server-error-with-the-same-body
+    client: { max_retries: 2, retry_base_delay_ms: 1 }
+    request:
+      operation: create-transfer
+      body: { idempotency_key: k-1, amount: 5 }
+    mock:
+      responses:
+        - status: 503
+          body: { error: unavailable }
+        - status: 200
+          body: { id: t-1 }
+    wire:
+      - method: POST
+        path: /transfers
+        body: { idempotency_key: k-1, amount: 5 }
+      - method: POST
+        path: /transfers
+        body: { idempotency_key: k-1, amount: 5 }
+    expect:
+      result: { id: t-1 }
+
+  - name: idempotent-write-retries-a-dropped-connection-with-the-same-body
+    client: { max_retries: 2, retry_base_delay_ms: 1 }
+    request:
+      operation: create-transfer
+      body: { idempotency_key: k-2, amount: 5 }
+    mock:
+      responses:
+        - drop: true
+        - status: 200
+          body: { id: t-2 }
+    wire:
+      - method: POST
+        path: /transfers
+        body: { idempotency_key: k-2, amount: 5 }
+      - method: POST
+        path: /transfers
+        body: { idempotency_key: k-2, amount: 5 }
+    expect:
+      result: { id: t-2 }
+
+  - name: unmarked-write-is-not-retried-on-a-server-error
+    client: { max_retries: 2, retry_base_delay_ms: 1 }
+    request:
+      operation: create-item
+      body: { idempotency_key: k-3, name: widget }
+    mock:
+      responses:
+        - status: 503
+          body: { error: unavailable }
+    wire:
+      - method: POST
+        path: /items
+        body: { idempotency_key: k-3, name: widget }
+    expect:
+      error: { kind: server, status: 503 }
+
+  - name: idempotent-write-with-an-empty-key-is-not-retried
+    client: { max_retries: 2, retry_base_delay_ms: 1 }
+    request:
+      operation: create-transfer
+      body: { idempotency_key: '', amount: 5 }
+    mock:
+      responses:
+        - status: 503
+          body: { error: unavailable }
+    wire:
+      - method: POST
+        path: /transfers
+        body: { idempotency_key: '', amount: 5 }
+    expect:
+      error: { kind: server, status: 503 }
+
+  - name: idempotent-write-without-a-key-is-not-retried
+    client: { max_retries: 2, retry_base_delay_ms: 1 }
+    request:
+      operation: create-transfer
+      body: { amount: 5 }
+    mock:
+      responses:
+        - status: 503
+          body: { error: unavailable }
+    wire:
+      - method: POST
+        path: /transfers
+        body: { amount: 5 }
+    expect:
+      error: { kind: server, status: 503 }
+
+  - name: idempotent-write-without-a-key-is-still-retried-on-a-rate-limit
+    client: { max_retries: 2, retry_base_delay_ms: 1 }
+    request:
+      operation: create-transfer
+      body: { amount: 5 }
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '0' }
+          body: { error: slow down }
+        - status: 200
+          body: { id: t-3 }
+    wire:
+      - method: POST
+        path: /transfers
+        body: { amount: 5 }
+      - method: POST
+        path: /transfers
+        body: { amount: 5 }
+    expect:
+      result: { id: t-3 }
