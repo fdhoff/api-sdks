@@ -118,8 +118,10 @@ func Lookup(key string) (*Operation, bool) {
 
 // Settings configures a Transport.
 type Settings struct {
+	// BaseURL is where an operation with no host key is sent, without a trailing slash.
 	BaseURL string
-	// Hosts maps each host key to its base URL, for operations that name one.
+	// Hosts maps each host key to its base URL, for operations that name one. URLs have no trailing
+	// slash, as [SelectHosts] returns them.
 	Hosts map[string]string
 	// HeaderDefaults holds the value of a header argument that a call leaves unset, matched without
 	// regard to case.

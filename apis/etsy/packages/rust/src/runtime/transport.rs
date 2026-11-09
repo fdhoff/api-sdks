@@ -28,9 +28,10 @@ pub type Items<T> = Pin<Box<dyn Stream<Item = Result<T, Error>> + Send>>;
 
 /// Configures a [`Transport`].
 pub struct Settings {
-    /// Where an operation with no host key is sent.
+    /// Where an operation with no host key is sent, without a trailing slash.
     pub base_url: String,
-    /// The base URL for each host key. A request is never sent to a host that is not here.
+    /// The base URL for each host key, without a trailing slash, as `select_hosts` returns them. A
+    /// request is never sent to a host that is not here.
     pub hosts: HashMap<String, String>,
     pub credentials: Arc<dyn Credentials>,
     pub headers: HeaderMap,

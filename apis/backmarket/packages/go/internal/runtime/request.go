@@ -22,7 +22,7 @@ type File struct {
 
 // Input is one call's arguments: path values in order, a pointer to a struct of fields tagged
 // `query`, `header`, `form` for a multipart part or `urlencoded` for a form-encoded field, and a JSON body.
-// Raw is a raw body for an operation with [Operation.RawBody], sent unchanged.
+// Raw is a raw body for an operation with [Operation.RawBody], sent unchanged and never closed.
 type Input struct {
 	Path   []any
 	Params any
@@ -203,7 +203,7 @@ func (r *request) addParams(params any) error {
 }
 
 // setRaw keeps a body held in memory as bytes, as net/http does, so it can be resent and signed.
-// Any other reader is streamed once.
+// Any other reader is streamed once and left open: the caller closes it.
 func (r *request) setRaw(raw io.Reader) error {
 	r.contentType = r.operation.RawBody
 	if r.contentType == "" {
@@ -217,7 +217,7 @@ func (r *request) setRaw(raw io.Reader) error {
 		}
 		r.body = body
 	default:
-		r.stream = raw
+		r.stream = io.NopCloser(raw)
 	}
 	return nil
 }

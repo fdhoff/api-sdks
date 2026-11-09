@@ -47,11 +47,22 @@ internal sealed class Transport : IDisposable
     private long generation;
 
     /// <remarks>Reads and writes share one pool of connections. <see cref="AttemptAsync"/> shapes each write so the handler never resends it.</remarks>
-    /// <exception cref="ArgumentException">Two header defaults have names that differ only by case.</exception>
+    /// <exception cref="ArgumentException">Two header defaults have names that differ only by case. A client it owns is disposed.</exception>
     public Transport(Settings settings, HttpClient http, bool ownsClient)
     {
         this.settings = settings;
-        headerDefaults = ByName(settings.HeaderDefaults);
+        try
+        {
+            headerDefaults = ByName(settings.HeaderDefaults);
+        }
+        catch
+        {
+            if (ownsClient)
+            {
+                http.Dispose();
+            }
+            throw;
+        }
         this.http = http;
         this.ownsClient = ownsClient;
     }

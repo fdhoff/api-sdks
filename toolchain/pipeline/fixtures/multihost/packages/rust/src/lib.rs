@@ -5,6 +5,8 @@ use std::sync::Arc;
 mod apis;
 pub mod models;
 mod resources;
+// The fixture's operations use only part of the runtime.
+#[allow(dead_code, unused_imports)]
 mod runtime;
 
 pub use apis::*;

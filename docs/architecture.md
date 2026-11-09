@@ -152,7 +152,7 @@ TODO: an opt-in in `generate.yaml` so the generator copies the signer only into 
 
 ### Hosts and environments
 
-An API may serve operations from several hosts. `hosts` in its `sdk.yaml` maps each server URL to a host key, and the generator gives every operation the key of its first server (its own, its path's or the spec's) as `x-sdk-host`, unless the overlay set one. An overlay's `x-sdk-host` must be one of the keys. Without `hosts`, operations carry no key.
+An API may serve operations from several hosts. `hosts` in its `sdk.yaml` maps each server URL to a host key, and the generator gives every operation the key of its first server (its own, its path's or the spec's) as `x-sdk-host`, unless the overlay set one. An overlay's `x-sdk-host` must be one of the keys. Without `hosts`, operations carry no key, and an overlay `x-sdk-host` is an error.
 
 * Settings hold `base_url` and a `hosts` map from host key to base URL. An operation with no key goes to `base_url`; one with a key goes to that key's URL.
 * A key missing from `hosts` is a configuration error, raised before credentials are applied or anything is sent. No request ever goes to a host outside the settings, so credentials never do.
@@ -175,10 +175,10 @@ No API uses `hosts` or `header_defaults` yet, so CI's `templates` job generates 
 
 A body the spec declares as `type: string, format: binary` is bytes, never text. The overlay declares it that way where upstream does not. The generator marks a binary success response `x-sdk-binary-response` and a request body whose one media type is binary, and neither JSON nor a form, `x-sdk-raw-body` with that media type. Generators type neither one.
 
-* **Downloads.** The call returns a download: the response's `Content-Type`, empty if it has none, and the body as a stream of bytes, with a way to read it whole. The caller closes it. The request asks for `Accept-Encoding: identity`, and the body is passed on as received, compressed or not. An empty body is an empty download, not an error.
+* **Downloads.** The call returns a download: the response's `Content-Type`, empty if it has none, and the body as a stream of bytes, with a way to read it whole. The caller closes it. The request asks for `Accept-Encoding: identity`, and the body is passed on as received, compressed or not. TypeScript is the exception: Node's fetch decodes a `gzip`, `deflate` or `br` body whatever was asked for, so its download holds the decoded bytes. An empty body is an empty download, not an error.
 * **Deadline.** The attempt's deadline keeps running while the caller reads the stream, so a timeout must cover the whole transfer. Reading past it fails with `timeout`, and a connection that drops mid-body fails with `connection`.
 * **Retries.** Failures before the download is returned are retried as usual. Nothing is retried once it is, because the caller may have read part of it.
-* **Uploads.** A raw body is a required argument, sent unchanged with the declared media type as `Content-Type`. It is bytes, or a stream in languages that have one. Bytes are retried and refreshed as any body is, and credentials see them. A stream is sent once: a failure that would resend it raises the error instead, and credentials see an empty body, so a signer cannot digest it. TODO: let a signing provider read a replayable stream.
+* **Uploads.** A raw body is a required argument, sent unchanged with the declared media type as `Content-Type`. It is bytes, or a stream in languages that have one. TypeScript takes a web `ReadableStream`; a Node stream goes through `Readable.toWeb`. Bytes are retried and refreshed as any body is, and credentials see them. A stream is sent once: a failure that would resend it raises the error instead, and credentials see an empty body, so a signer cannot digest it. Where the caller keeps the stream, as with a Go `io.ReadCloser` or a .NET `Stream`, the call leaves it open. TODO: let a signing provider read a replayable stream.
 * **Errors and redaction.** A failure response is read whole as text and mapped to its typed error, redacted, as for any other operation. Redaction never runs over a binary body, and logs give no binary content.
 
 A text response that is not JSON, such as `text/plain` or `text/tab-separated-values`, is returned as text, as before.
