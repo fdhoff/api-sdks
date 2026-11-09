@@ -190,6 +190,30 @@ func TestARawBodyStreamIsSentOnceAndNeverResent(t *testing.T) {
 	}
 }
 
+type closeRecorder struct {
+	io.Reader
+	closed bool
+}
+
+func (c *closeRecorder) Close() error {
+	c.closed = true
+	return nil
+}
+
+func TestARawBodyStreamIsLeftOpenForTheCaller(t *testing.T) {
+	transport, seen := binaryServer(t, time.Second, func(w http.ResponseWriter, r *http.Request, _ int) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	})
+	stream := &closeRecorder{Reader: bytes.NewReader(notUTF8)}
+	if _, err := Call[map[string]any](context.Background(), transport, uploadFile, Input{Raw: stream}); err != nil {
+		t.Fatal(err)
+	}
+	if stream.closed || !bytes.Equal(seen()[0].body, notUTF8) {
+		t.Fatalf("closed is %v", stream.closed)
+	}
+}
+
 func TestCredentialsSeeABodyInMemoryButNotAStream(t *testing.T) {
 	var lock sync.Mutex
 	var bodies [][]byte

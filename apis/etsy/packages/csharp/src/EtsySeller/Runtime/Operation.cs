@@ -52,9 +52,10 @@ internal sealed record ErrorContext(int Status, IReadOnlyDictionary<string, stri
 
 internal sealed class Settings
 {
+    /// <summary>Where an operation with no host key is sent, without a trailing slash.</summary>
     public required string BaseUrl { get; init; }
 
-    /// <summary>The base URL for each host key an operation may name.</summary>
+    /// <summary>The base URL for each host key an operation may name, without a trailing slash, as <see cref="HostMap.Select"/> returns them.</summary>
     public IReadOnlyDictionary<string, string> Hosts { get; init; } = new Dictionary<string, string>();
 
     /// <summary>Values for header parameters a call leaves unset, by header name in any case.</summary>
