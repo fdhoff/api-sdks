@@ -152,7 +152,7 @@ TODO: an opt-in in `generate.yaml` so the generator copies the signer only into 
 
 ### Hosts and environments
 
-An API may serve operations from several hosts. `hosts` in its `sdk.yaml` maps each server URL to a host key, and the generator gives every operation the key of its first server (its own, its path's or the spec's) as `x-sdk-host`, unless the overlay set one. An overlay's `x-sdk-host` must be one of the keys. Without `hosts`, operations carry no key.
+An API may serve operations from several hosts. `hosts` in its `sdk.yaml` maps each server URL to a host key, and the generator gives every operation the key of its first server (its own, its path's or the spec's) as `x-sdk-host`, unless the overlay set one. An overlay's `x-sdk-host` must be one of the keys. Without `hosts`, operations carry no key, and an overlay `x-sdk-host` is an error.
 
 * Settings hold `base_url` and a `hosts` map from host key to base URL. An operation with no key goes to `base_url`; one with a key goes to that key's URL.
 * A key missing from `hosts` is a configuration error, raised before credentials are applied or anything is sent. No request ever goes to a host outside the settings, so credentials never do.

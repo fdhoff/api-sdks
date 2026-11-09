@@ -183,9 +183,17 @@ const serverUrl = (server) =>
   server.url.replace(/\{(\w+)\}/g, (match, name) => server.variables?.[name]?.default ?? match).replace(/\/+$/, '');
 
 // `servers` maps each server URL to a host key. An operation goes to the host of its first server, its
-// path's or the spec's, unless the overlay set `x-sdk-host`. Without `servers`, operations carry no key.
+// path's or the spec's, unless the overlay set `x-sdk-host`. Without `servers`, operations carry no key,
+// and an overlay that sets one is rejected.
 export function applyHosts(spec, servers) {
-  if (!servers) return spec;
+  if (!servers) {
+    for (const item of Object.values(spec.paths)) {
+      for (const operation of METHODS.map((method) => item[method]).filter(Boolean)) {
+        if (operation['x-sdk-host']) throw new Error(`${operation.operationId}: x-sdk-host ${operation['x-sdk-host']} is set, but sdk.yaml has no hosts`);
+      }
+    }
+    return spec;
+  }
   const keys = new Map(Object.entries(servers).map(([url, key]) => [url.replace(/\/+$/, ''), key]));
   const known = new Set(keys.values());
   for (const item of Object.values(spec.paths)) {

@@ -187,7 +187,10 @@ test('applyHosts gives each operation the host key of its first server, unless t
     Object.values(paths).map((item) => item.get['x-sdk-host']),
     ['main', 'files', 'files', 'main'],
   );
-  assert.equal(applyHosts(spec(), undefined).paths['/a'].get['x-sdk-host'], undefined);
+  const unrouted = spec();
+  delete unrouted.paths['/d'];
+  assert.equal(applyHosts(unrouted, undefined).paths['/a'].get['x-sdk-host'], undefined);
+  assert.throws(() => applyHosts(spec(), undefined), /d: x-sdk-host main is set, but sdk.yaml has no hosts/);
   assert.throws(() => applyHosts(spec(), { 'https://main.example.test': 'main' }), /b: no host key for server/);
   const typo = spec();
   typo.paths['/d'].get['x-sdk-host'] = 'mian';
