@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyBinary, applyHeaders, applyHosts, applyOperations, checkHeaderDefaults, collapseSingleUnions, omitOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, markMappedEnums, packageNames, relax, renameSchemas, resolveIdempotency, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
+import { applyBinary, applyHeaders, applyHosts, applyJobs, applyOperations, checkHeaderDefaults, checkJobs, collapseSingleUnions, omitOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, markMappedEnums, packageNames, relax, renameSchemas, resolveIdempotency, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -522,6 +522,70 @@ test('resolveIdempotency refuses unknown keys, a missing field and an operation 
   assert.throws(() => resolveIdempotency({}, { operationId: 'op' }, { body: 'key' }), /idempotency field key is not in the JSON request body/);
   const form = { operationId: 'op', requestBody: { content: { 'multipart/form-data': { schema: { properties: { key: {} } } } } } };
   assert.throws(() => resolveIdempotency({}, form, { body: 'key' }), /idempotency field key is not in the JSON request body/);
+});
+
+const jobSpec = () => ({
+  paths: {
+    '/imports': {
+      post: {
+        operationId: 'startImport',
+        responses: { 201: { content: { 'application/json': { schema: { $ref: '#/components/schemas/Started' } } } } },
+      },
+    },
+    '/imports/{import_id}': {
+      parameters: [{ name: 'import_id', in: 'path', required: true, schema: { type: 'integer' } }],
+      get: {
+        operationId: 'getImport',
+        parameters: [{ name: 'shop', in: 'query', schema: { type: 'string' } }],
+        responses: { 200: { content: { 'application/json': { schema: { $ref: '#/components/schemas/Status' } } } } },
+      },
+      delete: { operationId: 'deleteImport', responses: { 204: {} } },
+    },
+  },
+  components: {
+    schemas: {
+      Started: { type: 'object', properties: { job: { type: 'object', properties: { id: { type: 'integer' } } } } },
+      Base: { type: 'object', properties: { progress: { type: 'object', properties: { state: { type: 'string' } } } } },
+      Status: { allOf: [{ $ref: '#/components/schemas/Base' }] },
+    },
+  },
+});
+const JOB = { status: 'getImport', id: 'job.id', param: 'import_id', state: 'progress.state', done: ['COMPLETE'], failed: ['FAILED'] };
+const jobNames = { startImport: { method: 'start' }, getImport: { method: 'get', wait: 'wait' }, deleteImport: { method: 'delete' } };
+
+test('applyJobs marks the status operation of each job with its wait method and states', () => {
+  const status = applyJobs(jobSpec(), { startImport: JOB }, jobNames).paths['/imports/{import_id}'].get;
+  assert.equal(status['x-sdk-wait'], 'wait');
+  assert.deepEqual(status['x-sdk-job'], { start: 'start', id: 'job.id', state: 'progress.state', done: ['COMPLETE'], failed: ['FAILED'] });
+  const plain = applyJobs(jobSpec(), {}, { ...jobNames, getImport: { method: 'get' } }).paths['/imports/{import_id}'].get;
+  assert.equal(plain['x-sdk-job'], undefined);
+});
+
+test('applyJobs refuses a job whose operations, parameter, fields or states do not fit', () => {
+  const refuse = (job, pattern, names = jobNames, spec = jobSpec()) => assert.throws(() => applyJobs(spec, { startImport: { ...JOB, ...job } }, names), pattern);
+  refuse({ every: 1 }, /startImport: unknown job keys: every/);
+  refuse({ status: '' }, /startImport: job needs a status/);
+  refuse({ id: 'job..id' }, /startImport: job id is not a dotted path: job\.\.id/);
+  refuse({ id: 'job.number' }, /startImport: job id job\.number is not in the JSON success response/);
+  refuse({ status: 'getExport' }, /startImport: job status operation getExport is not in the spec/);
+  refuse({ status: 'deleteImport' }, /deleteImport: a job status operation must be a GET/);
+  refuse({ param: 'shop' }, /getImport: job param shop is not a path parameter/);
+  refuse({ state: 'progress.phase' }, /getImport: job state progress\.phase is not in the JSON success response/);
+  refuse({ done: [] }, /startImport: job done needs at least one state/);
+  refuse({ failed: ['COMPLETE'] }, /startImport: job states are both done and failed: COMPLETE/);
+  refuse({}, /getImport: operations.yaml names no wait method for the job startImport starts/, { ...jobNames, getImport: { method: 'get' } });
+  const required = jobSpec();
+  required.paths['/imports/{import_id}'].get.parameters[0].required = true;
+  refuse({}, /getImport: a job status operation may require only import_id/, jobNames, required);
+  assert.throws(() => applyJobs(jobSpec(), {}, jobNames), /getImport: wait is set, but no job in sdk.yaml reports through it/);
+  assert.throws(() => applyJobs(jobSpec(), { startImport: JOB, startExport: JOB }, jobNames), /jobs names unknown operations: startExport/);
+});
+
+test('jobs need only be declared by one of an API\'s contracts', () => {
+  const used = new Set();
+  applyJobs(jobSpec(), { startImport: JOB, startExport: JOB }, jobNames, used);
+  assert.throws(() => checkJobs({ startImport: JOB, startExport: JOB }, used), /jobs names unknown operations: startExport$/);
+  assert.doesNotThrow(() => checkJobs({ startImport: JOB }, used));
 });
 
 test('resolvePaging reads a cursor style that sends a value from each page back as a query parameter', () => {

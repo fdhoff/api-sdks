@@ -2,3 +2,6 @@ getWidget: { resource: widgets, method: get, summary: Get one widget. }
 createWidget: { resource: widgets, method: create, summary: Create a widget., idempotency: { body: idempotency_key } }
 listUploads: { resource: uploads, method: list, summary: List uploads. }
 listGadgets: { resource: gadgets, method: list, iterator: iter, items: Gadget, paging: { style: cursor, items: gadgets, next: page.next_page, param: start_after }, summary: List one page of gadgets. }
+startImport: { resource: imports, method: start, summary: Start an import. }
+getImport: { resource: imports, method: get, wait: wait, summary: Get an import's status. }
+getImportReport: { resource: imports, method: report, summary: Download an import's report. }

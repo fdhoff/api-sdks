@@ -11,6 +11,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * An empty `app_scopes` raises `ValueError` when the client is built, instead of minting with a bare `scope=`.
 * The docs say `on_token` must not call the client, since it runs while the token locks are held.
 * Binary response and request bodies are read and sent as raw bytes where the spec declares them. No operation in this package does yet.
+* The runtime can poll an asynchronous job until it ends, and download a URL a response returns, sending credentials only to the base URL's origin. No operation in this package uses either yet.
 
 ## 0.1.0a1 (2026-11-08)
 

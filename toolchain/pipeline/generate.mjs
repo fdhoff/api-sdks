@@ -346,6 +346,93 @@ export function applyOperations(spec, operations, paging = {}) {
   return spec;
 }
 
+const JOB_KEYS = ['status', 'id', 'param', 'state', 'done', 'failed'];
+const isDotted = (path) => typeof path === 'string' && /^[^.]+(\.[^.]+)*$/.test(path);
+
+function jsonSuccessSchema(spec, operation) {
+  for (const [status, response] of Object.entries(operation.responses ?? {})) {
+    if (!status.startsWith('2')) continue;
+    const media = Object.entries(dereference(spec, response)?.content ?? {}).find(([type]) => isJsonMediaType(type));
+    if (media) return media[1].schema;
+  }
+  return undefined;
+}
+
+function propertySchema(spec, node, key) {
+  const schema = dereference(spec, node);
+  return schema?.properties?.[key] ?? (schema?.allOf ?? []).map((part) => propertySchema(spec, part, key)).find(Boolean);
+}
+
+// True when the dotted path names a property, through references and allOf.
+// TODO: look inside anyOf and oneOf branches once an API's job status needs it.
+export function hasField(spec, schema, path) {
+  return path.split('.').reduce((node, key) => node && propertySchema(spec, node, key), schema) !== undefined;
+}
+
+// `jobs` in sdk.yaml maps an operation that starts an asynchronous job to the GET that reports its progress:
+// `id` is the dotted path of the job's ID in the start response, `param` the status operation's path parameter
+// that takes it, and `state` the dotted path in the status response whose value is in `done` or `failed` once
+// the job ends. The status operation's operations.yaml entry names the `wait` method that polls it, and is
+// marked `x-sdk-wait` and `x-sdk-job`. An API built from several contracts passes one `used` set to every
+// contract and checks it once with checkJobs.
+// TODO: let one status operation serve several jobs, and pass the status operation's optional parameters.
+export function applyJobs(spec, jobs = {}, operations = {}, used) {
+  const found = used ?? new Set();
+  const all = new Map();
+  for (const item of Object.values(spec.paths)) {
+    for (const method of METHODS.filter((method) => item[method])) {
+      const parameters = [...(item.parameters ?? []), ...(item[method].parameters ?? [])].map((parameter) => dereference(spec, parameter));
+      all.set(item[method].operationId, { method, operation: item[method], parameters });
+    }
+  }
+  const polled = new Map();
+  for (const [startId, job] of Object.entries(jobs)) {
+    const start = all.get(startId);
+    if (!start) continue;
+    found.add(startId);
+    const unknown = Object.keys(job).filter((key) => !JOB_KEYS.includes(key));
+    if (unknown.length > 0) throw new Error(`${startId}: unknown job keys: ${unknown.join(', ')}`);
+    for (const key of ['status', 'param']) {
+      if (typeof job[key] !== 'string' || job[key] === '') throw new Error(`${startId}: job needs a ${key}`);
+    }
+    for (const key of ['id', 'state']) {
+      if (!isDotted(job[key])) throw new Error(`${startId}: job ${key} is not a dotted path: ${job[key]}`);
+    }
+    for (const key of ['done', 'failed']) {
+      if (!Array.isArray(job[key]) || job[key].length === 0 || !job[key].every((value) => typeof value === 'string' && value !== '')) {
+        throw new Error(`${startId}: job ${key} needs at least one state`);
+      }
+    }
+    const both = job.done.filter((state) => job.failed.includes(state));
+    if (both.length > 0) throw new Error(`${startId}: job states are both done and failed: ${both.join(', ')}`);
+    if (!hasField(spec, jsonSuccessSchema(spec, start.operation), job.id)) throw new Error(`${startId}: job id ${job.id} is not in the JSON success response`);
+    const status = all.get(job.status);
+    if (!status) throw new Error(`${startId}: job status operation ${job.status} is not in the spec`);
+    if (polled.has(job.status)) throw new Error(`${startId}: ${job.status} already reports the job ${polled.get(job.status)} starts`);
+    polled.set(job.status, startId);
+    if (status.method !== 'get') throw new Error(`${job.status}: a job status operation must be a GET`);
+    const path = status.parameters.filter((parameter) => parameter.in === 'path').map((parameter) => parameter.name);
+    if (!path.includes(job.param)) throw new Error(`${job.status}: job param ${job.param} is not a path parameter`);
+    const others = status.parameters.filter((parameter) => parameter.name !== job.param && (parameter.in === 'path' || parameter.required));
+    if (others.length > 0 || status.operation.requestBody) throw new Error(`${job.status}: a job status operation may require only ${job.param}`);
+    if (!hasField(spec, jsonSuccessSchema(spec, status.operation), job.state)) throw new Error(`${job.status}: job state ${job.state} is not in the JSON success response`);
+    const wait = operations[job.status]?.wait;
+    if (!wait) throw new Error(`${job.status}: operations.yaml names no wait method for the job ${startId} starts`);
+    status.operation['x-sdk-wait'] = wait;
+    status.operation['x-sdk-job'] = { start: operations[startId]?.method, id: job.id, state: job.state, done: job.done, failed: job.failed };
+  }
+  for (const [id, { operation }] of all) {
+    if (operations[id]?.wait && !operation['x-sdk-job']) throw new Error(`${id}: wait is set, but no job in sdk.yaml reports through it`);
+  }
+  if (!used) checkJobs(jobs, found);
+  return spec;
+}
+
+export function checkJobs(jobs = {}, used) {
+  const unused = Object.keys(jobs).filter((id) => !used.has(id));
+  if (unused.length > 0) throw new Error(`jobs names unknown operations: ${unused.join(', ')}`);
+}
+
 const isNullMarker = (node) => node?.nullable === true && Object.keys(node).length === 1;
 
 // For generators whose nullable types do not suit their templates. `properties` maps hold user-chosen keys.
@@ -491,7 +578,7 @@ export function outermost(paths) {
   return unique.filter((path) => !unique.some((other) => other !== path && path.startsWith(`${other}/`)));
 }
 
-async function generateContract({ apiDir, language, packageDir, config, built, shared, sdk, usedHeaders }) {
+async function generateContract({ apiDir, language, packageDir, config, built, shared, sdk, usedHeaders, usedJobs }) {
   Object.assign(config, packageNames(shared, config));
   const operations = parse(await readFile(join(packageDir, config.operations ?? 'operations.yaml'), 'utf8'));
   const output = join(packageDir, config.output);
@@ -499,7 +586,7 @@ async function generateContract({ apiDir, language, packageDir, config, built, s
 
   const parsed = stripProse(parse(await readFile(built, 'utf8')));
   const routed = applyHeaders(applyHosts(markMappedEnums(renameSchemas(relax(parsed, config), config.schema_names), config.enum_name_mappings), sdk?.hosts), sdk?.header_defaults, usedHeaders);
-  const spec = applyOperations(applyBinary(omitOperations(routed, operations)), operations, sdk?.paging);
+  const spec = applyJobs(applyOperations(applyBinary(omitOperations(routed, operations)), operations, sdk?.paging), sdk?.jobs, operations, usedJobs);
   const work = await mkdtemp(join(tmpdir(), 'generate-'));
   try {
     const input = join(work, 'openapi.yaml');
@@ -550,13 +637,15 @@ async function generate(apiDir, language) {
   const sources = lockSources(JSON.parse(await readFile(apiPaths(apiDir).lock, 'utf8')));
   const outputs = [];
   const usedHeaders = new Set();
+  const usedJobs = new Set();
   for (const { name, config: contract } of contractConfigs(config, sources.map((source) => source.name))) {
     const source = sources.find((item) => item.name === name);
     // A contract's shared names sit under its name in names.yaml.
     const names = name === null ? shared : (shared?.[name] ?? {});
-    outputs.push(await generateContract({ apiDir, language, packageDir, config: contract, built: sourcePaths(apiDir, source).build, shared: names, sdk, usedHeaders }));
+    outputs.push(await generateContract({ apiDir, language, packageDir, config: contract, built: sourcePaths(apiDir, source).build, shared: names, sdk, usedHeaders, usedJobs }));
   }
   checkHeaderDefaults(sdk?.header_defaults, usedHeaders);
+  checkJobs(sdk?.jobs, usedJobs);
   const output = join(packageDir, config.output);
   await rm(join(output, config.runtime), { recursive: true, force: true });
   await cp(join(TOOLCHAIN, 'runtime', language), join(output, config.runtime), { recursive: true });

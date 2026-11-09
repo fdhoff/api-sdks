@@ -42,6 +42,16 @@ class ApiConnectionError(ApiError):
     kind = "connection"
 
 
+class JobTimeoutError(ApiError):
+    """A job had not ended by the deadline. `result` holds the last status it reported."""
+
+    kind = "job_timeout"
+
+    def __init__(self, message: str, *, result: Any) -> None:
+        super().__init__(message)
+        self.result = result
+
+
 class DecodeError(ApiError):
     """A success response could not be read as the API declares it."""
 
