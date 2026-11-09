@@ -2,7 +2,7 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
-## Unreleased
+## 0.1.0-alpha.2 (2026-11-09)
 
 * `client.postOrder` and the `ebay-sell/post-order` subpath cover the Post-Order API's 29 remaining operations on cancellations, returns, item-not-received inquiries and cases. They take the seller's user token and the client's `marketplaceId`. Return files are uploaded as base64 in a JSON body.
 * An application token 401 and a user token 401 at the same time each refresh their own token. Before, the second call skipped its refresh and failed.
