@@ -4,6 +4,7 @@ This crate follows semantic versioning and stays on 0.x until outside users conf
 
 ## Unreleased
 
+* An empty, `.` or `..` path value is an `ErrorKind::Api` error and nothing is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
 * A POST, PUT or PATCH without a body sends `Content-Length: 0`, as the other languages' HTTP libraries do.
 * An empty 204 response returns the type's default, even where the spec also declares JSON, instead of an `ErrorKind::Decode` error.
 * Binary response and request bodies are read and sent as raw bytes where the spec declares them. No operation in this package does yet.

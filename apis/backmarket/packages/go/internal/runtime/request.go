@@ -242,8 +242,11 @@ func (r *request) setRaw(raw io.Reader) error {
 func newRequest(operation *Operation, input Input) (*request, error) {
 	path := operation.Path
 	for index, name := range operation.PathParams {
-		value := url.PathEscape(text(reflect.ValueOf(input.Path[index])))
-		path = strings.ReplaceAll(path, "{"+name+"}", value)
+		value := text(reflect.ValueOf(input.Path[index]))
+		if value == "" || value == "." || value == ".." {
+			return nil, fmt.Errorf(`the request cannot be encoded: %s must not be empty, "." or ".."`, name)
+		}
+		path = strings.ReplaceAll(path, "{"+name+"}", url.PathEscape(value))
 	}
 	built := &request{operation: operation, method: operation.Method, path: path, query: url.Values{}, headers: url.Values{}}
 	if err := built.addParams(input.Params); err != nil {

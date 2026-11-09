@@ -471,7 +471,7 @@ impl Transport {
     /// refreshed after a 401 only when it is signed.
     async fn exchange(&self, request: &Request, hop: Option<&Hop<'_>>) -> Result<Reply, Error> {
         if let Some(reason) = &request.invalid {
-            return Err(Error::new(ErrorKind::Api, format!("the request body cannot be encoded: {reason}")));
+            return Err(Error::new(ErrorKind::Api, format!("the request cannot be encoded: {reason}")));
         }
         let method = match hop {
             Some(_) => Method::GET,

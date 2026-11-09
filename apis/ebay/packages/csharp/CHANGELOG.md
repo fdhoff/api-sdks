@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* An empty, `.` or `..` path value throws `ArgumentException`, and a `null` one `ArgumentNullException`, before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`, or with the `{name}` placeholder left in for `null`.
 * **Breaking:** the 45 methods whose operations may answer 204 now return `Task<T?>`, so the compiler warns before a `null` result from an empty 204 is dereferenced. `CreateOrReplaceAsync` on inventory items is one.
 * A `ListAll…Async` iterator stops at an empty 204 page instead of throwing `ApiDecodeException` partway through `await foreach`.
 * `client.PostOrder` and the `EbaySell.PostOrder` namespace cover the Post-Order API's 29 remaining operations on cancellations, returns, item-not-received inquiries and cases. They take the seller's user token and the client's `MarketplaceId`. Return files are uploaded as base64 in a JSON body.

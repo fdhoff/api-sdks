@@ -42,6 +42,26 @@ public sealed class ClientTests
         Assert.Equal("fr-fr", request.Headers["Accept-Language"]);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(".")]
+    [InlineData("..")]
+    public async Task RejectsAnEmptyOrDotPathValueBeforeSending(string value)
+    {
+        var handler = new ScriptedHandler(Json(HttpStatusCode.OK, "{}"));
+        using var client = Client(handler);
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var read = await Assert.ThrowsAsync<ArgumentException>(() => client.Buyback.GetOrderAsync(value, cancellationToken));
+        var write = await Assert.ThrowsAsync<ArgumentException>(() => client.Listings.UpdateAsync(value, new ListingUpdate(), cancellationToken));
+        var missing = await Assert.ThrowsAsync<ArgumentNullException>(() => client.Listings.UpdateAsync(null!, new ListingUpdate(), cancellationToken));
+
+        Assert.Equal("buybackOrderId", read.ParamName);
+        Assert.Equal("listingId", write.ParamName);
+        Assert.Equal("listingId", missing.ParamName);
+        Assert.Empty(handler.Requests);
+    }
+
     [Fact]
     public async Task KeepsValuesThatDoNotFitAndUnknownFieldsInExtra()
     {

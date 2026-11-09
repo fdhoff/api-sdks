@@ -508,6 +508,16 @@ internal sealed class Transport : IDisposable
 
     private static string? TextOrNull(object? value) => value is null ? null : Json.Text(value);
 
+    private static string Segment(string name, object value)
+    {
+        var text = Json.Text(value);
+        if (text is "" or "." or "..")
+        {
+            throw new ArgumentException("The value must not be empty, \".\" or \"..\"", name);
+        }
+        return Uri.EscapeDataString(text);
+    }
+
     private static IEnumerable<object> Items(object value) =>
         value is IEnumerable items and not string and not byte[] ? items.OfType<object>() : [value];
 
@@ -638,12 +648,16 @@ internal sealed class Transport : IDisposable
             }
             if (value is null)
             {
+                if (param.Location == ParamLocation.Path)
+                {
+                    throw new ArgumentNullException(param.Name);
+                }
                 continue;
             }
             switch (param.Location)
             {
                 case ParamLocation.Path:
-                    path = path.Replace($"{{{param.Wire}}}", Uri.EscapeDataString(Json.Text(value)), StringComparison.Ordinal);
+                    path = path.Replace($"{{{param.Wire}}}", Segment(param.Name, value), StringComparison.Ordinal);
                     break;
                 case ParamLocation.Query:
                     query.AddRange(Items(value).Select(item => $"{Uri.EscapeDataString(param.Wire)}={Uri.EscapeDataString(Json.Text(item))}"));

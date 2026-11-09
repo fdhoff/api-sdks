@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use backmarket_seller::models::{
-    Competitor, MarketCode, Order, PostItemTransferCreateRequest, UpdateOrder,
+    Competitor, ListingUpdate, MarketCode, Order, PostItemTransferCreateRequest, UpdateOrder,
 };
 use backmarket_seller::{Client, ClientBuilder, Error, ErrorKind, OrdersListParams};
 use futures_util::StreamExt;
@@ -107,6 +107,24 @@ async fn first_error(client: &Client, page: Option<i64>) -> Error {
     let errors: Vec<_> = items.into_iter().filter_map(Result::err).collect();
     assert_eq!(errors.len(), 1, "the iteration stops at its first error");
     errors.into_iter().next().unwrap()
+}
+
+#[tokio::test]
+async fn an_empty_or_dot_path_value_is_rejected_before_sending() {
+    let (url, count) = serve(|_| json(200, "{}")).await;
+    let client = builder(&url).build().unwrap();
+    for value in ["", ".", ".."] {
+        let error = client.buyback().get_order(value).await.unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::Api);
+        assert!(error.to_string().contains("buybackOrderId"), "{error}");
+        let error = client
+            .listings()
+            .update(value, &ListingUpdate::default())
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("listingId"), "{error}");
+    }
+    assert_eq!(count.load(Ordering::SeqCst), 0);
 }
 
 #[tokio::test]

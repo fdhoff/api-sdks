@@ -230,6 +230,36 @@ def test_parameter_constraints_are_enforced_before_sending() -> None:
     assert [request.url.query for request in sent] == [b"page-size=50"]
 
 
+@pytest.mark.parametrize("value", ["", ".", ".."])
+def test_a_dot_or_empty_path_value_is_rejected_before_sending(value: str) -> None:
+    sent: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(request)
+        return httpx.Response(200, json={})
+
+    client = client_for(handler)
+    with pytest.raises(ValueError, match="buyback_order_id"):
+        client.buyback.get_order(value)
+    with pytest.raises(ValueError, match="listing_id"):
+        client.listings.update(value, {"quantity": 1})
+    assert sent == []
+
+    async def run() -> None:
+        async with AsyncBackMarketClient(
+            TOKEN,
+            user_agent="agent",
+            locale="en-us",
+            base_url="http://mock.invalid",
+            http_transport=httpx.MockTransport(handler),
+        ) as client:
+            with pytest.raises(ValueError, match="buyback_order_id"):
+                await client.buyback.get_order(value)
+
+    asyncio.run(run())
+    assert sent == []
+
+
 def test_parameters_are_checked_but_sent_as_given() -> None:
     queries: list[bytes] = []
 

@@ -60,3 +60,19 @@ func TestURLEncodedAndMultipartFieldsAreRejected(t *testing.T) {
 		t.Fatal("expected an error")
 	}
 }
+
+func TestDotAndEmptyPathValuesAreRejected(t *testing.T) {
+	operation := &Operation{ID: "get", Method: "GET", Path: "/items/{id}", PathParams: []string{"id"}}
+	for _, value := range []string{"", ".", ".."} {
+		if _, err := newRequest(operation, Input{Path: []any{value}}); err == nil {
+			t.Errorf("%q was accepted", value)
+		}
+	}
+	built, err := newRequest(operation, Input{Path: []any{"a.b"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if built.path != "/items/a.b" {
+		t.Errorf("path is %q", built.path)
+	}
+}
