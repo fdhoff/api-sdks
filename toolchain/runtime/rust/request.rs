@@ -188,6 +188,8 @@ pub struct Request {
     pub headers: Vec<(String, Option<String>)>,
     /// Set for a download, whose body is passed on as received.
     pub(super) download: bool,
+    /// The media types a download asks for in `Accept`, instead of the client's default.
+    pub accept: Option<&'static str>,
 }
 
 /// The wire form of a scalar. `None` means the value is not sent.
@@ -364,6 +366,7 @@ impl Request {
             idempotency_key: None,
             headers: Vec::new(),
             download: false,
+            accept: None,
         }
     }
 
@@ -371,6 +374,13 @@ impl Request {
     #[allow(dead_code, reason = "an API may serve every operation from one host")]
     pub fn host(mut self, key: &'static str) -> Self {
         self.host = Some(key);
+        self
+    }
+
+    /// Sets the media types a download asks for in `Accept`.
+    #[allow(dead_code, reason = "an API may have no binary responses")]
+    pub fn accept(mut self, media_types: &'static str) -> Self {
+        self.accept = Some(media_types);
         self
     }
 

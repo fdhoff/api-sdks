@@ -170,6 +170,10 @@ pub struct ErrorContext {
     pub status: u16,
     pub headers: HeaderMap,
     pub text: String,
+    #[allow(
+        dead_code,
+        reason = "an API that declares no error body reads only the text"
+    )]
     pub json: Option<Value>,
 }
 
