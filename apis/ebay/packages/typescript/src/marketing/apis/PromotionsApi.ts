@@ -69,7 +69,6 @@ const pausePromotion: Operation = {
   name: 'pause',
   host: 'api',
   params: [{ wire: 'promotion_id', name: 'promotionId', location: 'path' }],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -81,7 +80,6 @@ const resumePromotion: Operation = {
   name: 'resume',
   host: 'api',
   params: [{ wire: 'promotion_id', name: 'promotionId', location: 'path' }],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -139,12 +137,12 @@ export class PromotionsApi extends Resource {
   }
 
   /** Pause a promotion. */
-  pause(promotionId: string, options?: RequestOptions): Promise<Error | undefined> {
+  pause(promotionId: string, options?: RequestOptions): Promise<void> {
     return this.call(pausePromotion, undefined, { promotionId }, options);
   }
 
   /** Resume a paused promotion. */
-  resume(promotionId: string, options?: RequestOptions): Promise<Error | undefined> {
+  resume(promotionId: string, options?: RequestOptions): Promise<void> {
     return this.call(resumePromotion, undefined, { promotionId }, options);
   }
 }

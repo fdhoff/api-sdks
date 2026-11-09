@@ -28,7 +28,6 @@ const deleteInventoryItemGroup: Operation = {
   name: 'delete',
   host: 'api',
   params: [{ wire: 'inventoryItemGroupKey', name: 'inventoryItemGroupKey', location: 'path' }],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.inventory'] }]],
 };
 
@@ -72,7 +71,7 @@ export class InventoryItemGroupsApi extends Resource {
   }
 
   /** Delete an inventory item group. */
-  delete(inventoryItemGroupKey: string, options?: RequestOptions): Promise<Error | undefined> {
+  delete(inventoryItemGroupKey: string, options?: RequestOptions): Promise<void> {
     return this.call(deleteInventoryItemGroup, undefined, { inventoryItemGroupKey }, options);
   }
 

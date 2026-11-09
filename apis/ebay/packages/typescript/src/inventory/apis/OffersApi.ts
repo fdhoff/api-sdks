@@ -68,7 +68,6 @@ const deleteOffer: Operation = {
   name: 'delete',
   host: 'api',
   params: [{ wire: 'offerId', name: 'offerId', location: 'path' }],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.inventory'] }]],
 };
 
@@ -209,7 +208,6 @@ const withdrawOfferByInventoryItemGroup: Operation = {
   host: 'api',
   params: [],
   hasBody: true,
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.inventory'] }]],
 };
 
@@ -253,7 +251,7 @@ export class OffersApi extends Resource {
   }
 
   /** Delete an offer */
-  delete(offerId: string, options?: RequestOptions): Promise<Error | undefined> {
+  delete(offerId: string, options?: RequestOptions): Promise<void> {
     return this.call(deleteOffer, undefined, { offerId }, options);
   }
 
@@ -312,10 +310,7 @@ export class OffersApi extends Resource {
   }
 
   /** End the multi-variation listing of an inventory item group. */
-  withdrawByInventoryItemGroup(
-    body: WithdrawByInventoryItemGroupRequest,
-    options?: RequestOptions,
-  ): Promise<Error | undefined> {
+  withdrawByInventoryItemGroup(body: WithdrawByInventoryItemGroupRequest, options?: RequestOptions): Promise<void> {
     return this.call(withdrawOfferByInventoryItemGroup, body, {}, options);
   }
 }

@@ -15,4 +15,5 @@ The first alpha.
 * Optional request signing with a Key Management key pair, adding `x-ebay-signature-key`.
 * Typed errors carrying the body's `errors` list.
 * An operation that may answer an empty 204 resolves to `undefined`, and its return type says so.
+* The 26 Inventory and Marketing operations that answer 204 with no body, such as `inventoryItems.delete`, and Marketing's `reportTasks.create`, which answers 202, resolve to `void`.
 * Pagination iterators, retries, rate-limit handling, cancellation and redacted logging.

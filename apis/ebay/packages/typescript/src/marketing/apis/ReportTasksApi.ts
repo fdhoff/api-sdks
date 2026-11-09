@@ -18,7 +18,6 @@ const createReportTask: Operation = {
   host: 'api',
   params: [],
   hasBody: true,
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -30,7 +29,6 @@ const deleteReportTask: Operation = {
   name: 'delete',
   host: 'api',
   params: [{ wire: 'report_task_id', name: 'reportTaskId', location: 'path' }],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -68,12 +66,12 @@ export const OPERATIONS: readonly Operation[] = [createReportTask, deleteReportT
 
 export class ReportTasksApi extends Resource {
   /** Start a task that builds a Promoted Listings report. */
-  create(body: CreateReportTask, options?: RequestOptions): Promise<Error> {
+  create(body: CreateReportTask, options?: RequestOptions): Promise<void> {
     return this.call(createReportTask, body, {}, options);
   }
 
   /** Delete a report task. */
-  delete(reportTaskId: string, options?: RequestOptions): Promise<Error | undefined> {
+  delete(reportTaskId: string, options?: RequestOptions): Promise<void> {
     return this.call(deleteReportTask, undefined, { reportTaskId }, options);
   }
 

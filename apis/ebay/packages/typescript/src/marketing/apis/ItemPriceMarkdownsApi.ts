@@ -25,7 +25,6 @@ const deleteItemPriceMarkdownPromotion: Operation = {
   name: 'delete',
   host: 'api',
   params: [{ wire: 'promotion_id', name: 'promotionId', location: 'path' }],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -68,7 +67,7 @@ export class ItemPriceMarkdownsApi extends Resource {
   }
 
   /** Delete a markdown sale. */
-  delete(promotionId: string, options?: RequestOptions): Promise<Error | undefined> {
+  delete(promotionId: string, options?: RequestOptions): Promise<void> {
     return this.call(deleteItemPriceMarkdownPromotion, undefined, { promotionId }, options);
   }
 

@@ -170,7 +170,6 @@ const deleteAd: Operation = {
     { wire: 'ad_id', name: 'adId', location: 'path' },
     { wire: 'campaign_id', name: 'campaignId', location: 'path' },
   ],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -281,7 +280,6 @@ const updateBid: Operation = {
     { wire: 'campaign_id', name: 'campaignId', location: 'path' },
   ],
   hasBody: true,
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -392,7 +390,7 @@ export class AdsApi extends Resource {
   }
 
   /** Delete an ad. */
-  delete(adId: string, campaignId: string, options?: RequestOptions): Promise<Error | undefined> {
+  delete(adId: string, campaignId: string, options?: RequestOptions): Promise<void> {
     return this.call(deleteAd, undefined, { adId, campaignId }, options);
   }
 
@@ -443,7 +441,7 @@ export class AdsApi extends Resource {
     campaignId: string,
     body: UpdateBidPercentageRequest,
     options?: RequestOptions,
-  ): Promise<Error | undefined> {
+  ): Promise<void> {
     return this.call(updateBid, body, { adId, campaignId }, options);
   }
 }

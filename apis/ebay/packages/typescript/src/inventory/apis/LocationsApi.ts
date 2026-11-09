@@ -19,7 +19,6 @@ const createInventoryLocation: Operation = {
   host: 'api',
   params: [{ wire: 'merchantLocationKey', name: 'merchantLocationKey', location: 'path' }],
   hasBody: true,
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.inventory'] }]],
 };
 
@@ -31,7 +30,6 @@ const deleteInventoryLocation: Operation = {
   name: 'delete',
   host: 'api',
   params: [{ wire: 'merchantLocationKey', name: 'merchantLocationKey', location: 'path' }],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.inventory'] }]],
 };
 
@@ -117,7 +115,6 @@ const updateInventoryLocation: Operation = {
   host: 'api',
   params: [{ wire: 'merchantLocationKey', name: 'merchantLocationKey', location: 'path' }],
   hasBody: true,
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.inventory'] }]],
 };
 
@@ -133,16 +130,12 @@ export const OPERATIONS: readonly Operation[] = [
 
 export class LocationsApi extends Resource {
   /** Create an inventory location. */
-  create(
-    merchantLocationKey: string,
-    body: InventoryLocationFull,
-    options?: RequestOptions,
-  ): Promise<Error | undefined> {
+  create(merchantLocationKey: string, body: InventoryLocationFull, options?: RequestOptions): Promise<void> {
     return this.call(createInventoryLocation, body, { merchantLocationKey }, options);
   }
 
   /** Delete an inventory location. */
-  delete(merchantLocationKey: string, options?: RequestOptions): Promise<Error | undefined> {
+  delete(merchantLocationKey: string, options?: RequestOptions): Promise<void> {
     return this.call(deleteInventoryLocation, undefined, { merchantLocationKey }, options);
   }
 
@@ -175,7 +168,7 @@ export class LocationsApi extends Resource {
   }
 
   /** Update the details of an inventory location. */
-  update(merchantLocationKey: string, body: InventoryLocation, options?: RequestOptions): Promise<Error | undefined> {
+  update(merchantLocationKey: string, body: InventoryLocation, options?: RequestOptions): Promise<void> {
     return this.call(updateInventoryLocation, body, { merchantLocationKey }, options);
   }
 }

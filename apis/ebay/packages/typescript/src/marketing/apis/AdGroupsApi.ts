@@ -125,7 +125,6 @@ const updateAdGroup: Operation = {
     { wire: 'campaign_id', name: 'campaignId', location: 'path' },
   ],
   hasBody: true,
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -188,12 +187,7 @@ export class AdGroupsApi extends Resource {
   }
 
   /** Update an ad group. */
-  update(
-    adGroupId: string,
-    campaignId: string,
-    body: UpdateAdGroupRequest,
-    options?: RequestOptions,
-  ): Promise<Error | undefined> {
+  update(adGroupId: string, campaignId: string, body: UpdateAdGroupRequest, options?: RequestOptions): Promise<void> {
     return this.call(updateAdGroup, body, { adGroupId, campaignId }, options);
   }
 }

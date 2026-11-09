@@ -89,7 +89,6 @@ const deleteInventoryItem: Operation = {
   name: 'delete',
   host: 'api',
   params: [{ wire: 'sku', name: 'sku', location: 'path' }],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.inventory'] }]],
 };
 
@@ -188,7 +187,7 @@ export class InventoryItemsApi extends Resource {
   }
 
   /** Delete an inventory item and its offers. */
-  delete(sku: string, options?: RequestOptions): Promise<Error | undefined> {
+  delete(sku: string, options?: RequestOptions): Promise<void> {
     return this.call(deleteInventoryItem, undefined, { sku }, options);
   }
 

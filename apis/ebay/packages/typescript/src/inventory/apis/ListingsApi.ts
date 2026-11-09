@@ -34,7 +34,6 @@ const createOrReplaceSkuLocationMapping: Operation = {
     { wire: 'sku', name: 'sku', location: 'path' },
   ],
   hasBody: true,
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.inventory'] }]],
 };
 
@@ -49,7 +48,6 @@ const deleteSkuLocationMapping: Operation = {
     { wire: 'listingId', name: 'listingId', location: 'path' },
     { wire: 'sku', name: 'sku', location: 'path' },
   ],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.inventory'] }]],
 };
 
@@ -92,17 +90,12 @@ export class ListingsApi extends Resource {
   }
 
   /** Set the fulfillment locations of a SKU in a listing. */
-  setSkuLocations(
-    listingId: string,
-    sku: string,
-    body: LocationMapping,
-    options?: RequestOptions,
-  ): Promise<Error | undefined> {
+  setSkuLocations(listingId: string, sku: string, body: LocationMapping, options?: RequestOptions): Promise<void> {
     return this.call(createOrReplaceSkuLocationMapping, body, { listingId, sku }, options);
   }
 
   /** Remove the fulfillment locations of a SKU in a listing. */
-  deleteSkuLocations(listingId: string, sku: string, options?: RequestOptions): Promise<Error | undefined> {
+  deleteSkuLocations(listingId: string, sku: string, options?: RequestOptions): Promise<void> {
     return this.call(deleteSkuLocationMapping, undefined, { listingId, sku }, options);
   }
 

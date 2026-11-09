@@ -119,7 +119,6 @@ const updateNegativeKeyword: Operation = {
   host: 'api',
   params: [{ wire: 'negative_keyword_id', name: 'negativeKeywordId', location: 'path' }],
   hasBody: true,
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -188,11 +187,7 @@ export class NegativeKeywordsApi extends Resource {
   }
 
   /** Change the status of a negative keyword. */
-  update(
-    negativeKeywordId: string,
-    body: UpdateNegativeKeywordRequest,
-    options?: RequestOptions,
-  ): Promise<Error | undefined> {
+  update(negativeKeywordId: string, body: UpdateNegativeKeywordRequest, options?: RequestOptions): Promise<void> {
     return this.call(updateNegativeKeyword, body, { negativeKeywordId }, options);
   }
 }

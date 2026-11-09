@@ -30,7 +30,6 @@ const deleteItemPromotion: Operation = {
   name: 'delete',
   host: 'api',
   params: [{ wire: 'promotion_id', name: 'promotionId', location: 'path' }],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -83,7 +82,7 @@ export class ItemPromotionsApi extends Resource {
   }
 
   /** Delete a threshold promotion. */
-  delete(promotionId: string, options?: RequestOptions): Promise<Error | undefined> {
+  delete(promotionId: string, options?: RequestOptions): Promise<void> {
     return this.call(deleteItemPromotion, undefined, { promotionId }, options);
   }
 

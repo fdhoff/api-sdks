@@ -28,7 +28,6 @@ const deleteProductCompatibility: Operation = {
   name: 'delete',
   host: 'api',
   params: [{ wire: 'sku', name: 'sku', location: 'path' }],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.inventory'] }]],
 };
 
@@ -72,7 +71,7 @@ export class ProductCompatibilityApi extends Resource {
   }
 
   /** Remove the vehicle list of an inventory item. */
-  delete(sku: string, options?: RequestOptions): Promise<Error | undefined> {
+  delete(sku: string, options?: RequestOptions): Promise<void> {
     return this.call(deleteProductCompatibility, undefined, { sku }, options);
   }
 

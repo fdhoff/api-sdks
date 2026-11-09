@@ -53,7 +53,6 @@ const deleteCampaign: Operation = {
   name: 'delete',
   host: 'api',
   params: [{ wire: 'campaign_id', name: 'campaignId', location: 'path' }],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -65,7 +64,6 @@ const endCampaign: Operation = {
   name: 'end',
   host: 'api',
   params: [{ wire: 'campaign_id', name: 'campaignId', location: 'path' }],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -181,7 +179,6 @@ const pauseCampaign: Operation = {
   name: 'pause',
   host: 'api',
   params: [{ wire: 'campaign_id', name: 'campaignId', location: 'path' }],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -193,7 +190,6 @@ const resumeCampaign: Operation = {
   name: 'resume',
   host: 'api',
   params: [{ wire: 'campaign_id', name: 'campaignId', location: 'path' }],
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -255,7 +251,6 @@ const updateAdRateStrategy: Operation = {
   host: 'api',
   params: [{ wire: 'campaign_id', name: 'campaignId', location: 'path' }],
   hasBody: true,
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -268,7 +263,6 @@ const updateBiddingStrategy: Operation = {
   host: 'api',
   params: [{ wire: 'campaign_id', name: 'campaignId', location: 'path' }],
   hasBody: true,
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -294,7 +288,6 @@ const updateCampaignIdentification: Operation = {
   host: 'api',
   params: [{ wire: 'campaign_id', name: 'campaignId', location: 'path' }],
   hasBody: true,
-  returnsJson: true,
   security: [[{ scheme: 'api_auth', scopes: ['https://api.ebay.com/oauth/api_scope/sell.marketing'] }]],
 };
 
@@ -330,12 +323,12 @@ export class CampaignsApi extends Resource {
   }
 
   /** Delete a campaign. */
-  delete(campaignId: string, options?: RequestOptions): Promise<Error | undefined> {
+  delete(campaignId: string, options?: RequestOptions): Promise<void> {
     return this.call(deleteCampaign, undefined, { campaignId }, options);
   }
 
   /** End a campaign. */
-  end(campaignId: string, options?: RequestOptions): Promise<Error | undefined> {
+  end(campaignId: string, options?: RequestOptions): Promise<void> {
     return this.call(endCampaign, undefined, { campaignId }, options);
   }
 
@@ -394,12 +387,12 @@ export class CampaignsApi extends Resource {
   }
 
   /** Pause a campaign. */
-  pause(campaignId: string, options?: RequestOptions): Promise<Error | undefined> {
+  pause(campaignId: string, options?: RequestOptions): Promise<void> {
     return this.call(pauseCampaign, undefined, { campaignId }, options);
   }
 
   /** Resume a paused campaign. */
-  resume(campaignId: string, options?: RequestOptions): Promise<Error | undefined> {
+  resume(campaignId: string, options?: RequestOptions): Promise<void> {
     return this.call(resumeCampaign, undefined, { campaignId }, options);
   }
 
@@ -432,11 +425,7 @@ export class CampaignsApi extends Resource {
   }
 
   /** Change how a campaign sets its ad rates. */
-  updateAdRateStrategy(
-    campaignId: string,
-    body: UpdateAdrateStrategyRequest,
-    options?: RequestOptions,
-  ): Promise<Error | undefined> {
+  updateAdRateStrategy(campaignId: string, body: UpdateAdrateStrategyRequest, options?: RequestOptions): Promise<void> {
     return this.call(updateAdRateStrategy, body, { campaignId }, options);
   }
 
@@ -445,7 +434,7 @@ export class CampaignsApi extends Resource {
     campaignId: string,
     body: UpdateBiddingStrategyRequest,
     options?: RequestOptions,
-  ): Promise<Error | undefined> {
+  ): Promise<void> {
     return this.call(updateBiddingStrategy, body, { campaignId }, options);
   }
 
@@ -463,7 +452,7 @@ export class CampaignsApi extends Resource {
     campaignId: string,
     body: UpdateCampaignIdentificationRequest,
     options?: RequestOptions,
-  ): Promise<Error | undefined> {
+  ): Promise<void> {
     return this.call(updateCampaignIdentification, body, { campaignId }, options);
   }
 }
