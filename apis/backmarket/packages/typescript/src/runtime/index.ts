@@ -12,6 +12,7 @@ export type {
   FileContent,
   FileInput,
   Job,
+  LinkHeader,
   Logger,
   NextLink,
   Offset,

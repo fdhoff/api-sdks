@@ -73,6 +73,9 @@ const {{nickname}}: Operation = {
 {{#vendorExtensions.x-sdk-paging.cursor}}
   paging: { style: 'cursor', items: '{{items}}', next: '{{next}}', param: '{{param}}' },
 {{/vendorExtensions.x-sdk-paging.cursor}}
+{{#vendorExtensions.x-sdk-paging.link_header}}
+  paging: { style: 'link_header', items: '{{items}}', rel: '{{rel}}', params: [{{#params}}'{{.}}', {{/params}}] },
+{{/vendorExtensions.x-sdk-paging.link_header}}
 {{#vendorExtensions.x-sdk-job}}
   job: { state: '{{state}}', done: [{{#done}}'{{.}}', {{/done}}], failed: [{{#failed}}'{{.}}', {{/failed}}] },
 {{/vendorExtensions.x-sdk-job}}

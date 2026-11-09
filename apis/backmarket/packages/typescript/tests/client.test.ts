@@ -71,6 +71,7 @@ class Pages extends Resource {
 
 function pagesFor(handler: (url: URL) => Response) {
   const queries: string[] = [];
+  const origins: string[] = [];
   const transport = new Transport({
     baseUrl: BASE,
     credentials: new StaticCredentials({}, [TOKEN]),
@@ -79,6 +80,7 @@ function pagesFor(handler: (url: URL) => Response) {
     fetch: async (input) => {
       const url = new URL(String(input));
       queries.push(url.search);
+      origins.push(url.origin);
       return handler(url);
     },
     timeoutMs: 1000,
@@ -87,7 +89,7 @@ function pagesFor(handler: (url: URL) => Response) {
     rateLimitWaitMs: 1,
     maxRetryWaitMs: 1,
   });
-  return { pages: new Pages(transport), queries };
+  return { pages: new Pages(transport), queries, origins };
 }
 
 const offsetList: Operation = {
@@ -805,5 +807,92 @@ for (const [operation, bodies, want] of cycles) {
       return true;
     });
     assert.deepEqual(queries, want);
+  });
+}
+
+const headerList: Operation = {
+  ...offsetList,
+  params: [
+    { wire: 'page', name: 'page', location: 'query' },
+    { wire: 'limit', name: 'limit', location: 'query' },
+    { wire: 'state', name: 'state', location: 'query' },
+  ],
+  paging: { style: 'link_header', items: '$', rel: 'next', params: ['page', 'limit'] },
+};
+
+const linked = (body: unknown, ...links: string[]): Response => {
+  const headers = new Headers({ 'content-type': 'application/json' });
+  for (const link of links) headers.append('link', link);
+  return new Response(JSON.stringify(body), { headers });
+};
+
+test('link header paging follows the next link across list pages and keeps the other parameters', async () => {
+  const replies = [
+    () => linked([{ n: 1 }, { n: 2 }], '<https://elsewhere.example/api/items?page=2&limit=2&state=x>; rel="next"'),
+    () => linked([{ n: 3 }, { n: 4 }], '<https://elsewhere.example/api/items?page=3&limit=2>; rel="next"'),
+    () => linked([{ n: 5 }], '<https://elsewhere.example/api/items?page=1&limit=2>; rel="first"'),
+  ];
+  const { pages, queries, origins } = pagesFor(() => replies.shift()!());
+  assert.deepEqual(
+    await pages.all(headerList, { limit: 2, state: 'open' }),
+    [1, 2, 3, 4, 5].map((n) => ({ n })),
+  );
+  assert.deepEqual(queries, ['?limit=2&state=open', '?page=2&limit=2&state=open', '?page=3&limit=2&state=open']);
+  assert.deepEqual(new Set(origins), new Set([BASE]));
+});
+
+test('link header paging reads the items field of an object page', async () => {
+  const operation: Operation = {
+    ...headerList,
+    paging: { style: 'link_header', items: 'bins', rel: 'next', params: ['page', 'limit'] },
+  };
+  const replies = [
+    () => linked({ bins: [{ n: 1 }], total_count: 2 }, '</items?page=2>; rel=next'),
+    () => linked({ bins: [{ n: 2 }], total_count: 2 }),
+  ];
+  const { pages, queries } = pagesFor(() => replies.shift()!());
+  assert.deepEqual(await pages.all(operation), [{ n: 1 }, { n: 2 }]);
+  assert.deepEqual(queries, ['', '?page=2']);
+});
+
+test('link header paging picks the next link out of several headers, entries and relation types', async () => {
+  const replies = [
+    () =>
+      linked(
+        [{ n: 1 }],
+        '<https://x.example/items?page=9>; rel="prev first"; title="a, b; c"',
+        '<https://x.example/items?page=%32&limit=2&state=no>; title="next"; REL="Last NEXT", <https://x.example/items?page=7>; rel=next',
+      ),
+    () => linked([{ n: 2 }], '<https://x.example/items?page=1>; rel="first prev"'),
+  ];
+  const { pages, queries } = pagesFor(() => replies.shift()!());
+  assert.deepEqual(await pages.all(headerList, { limit: 5 }), [{ n: 1 }, { n: 2 }]);
+  assert.deepEqual(queries, ['?limit=5', '?page=2&limit=2']);
+});
+
+test('link header paging rejects a next link back to a page already requested', async () => {
+  const replies = [
+    () => linked([{ n: 1 }], '<https://x.example/items?page=2>; rel="next"'),
+    () => linked([{ n: 2 }], '<https://x.example/items?page=1>; rel="next"'),
+    () => linked([{ n: 3 }], '<https://x.example/items?page=2>; rel="next"'),
+  ];
+  const { pages, queries } = pagesFor(() => replies.shift()!());
+  await assert.rejects(pages.all(headerList, { page: 1 }), (error) => {
+    assert.ok(error instanceof DecodeError);
+    assert.match(error.message, /already requested/);
+    return true;
+  });
+  assert.deepEqual(queries, ['?page=1', '?page=2']);
+});
+
+for (const [body, link] of [
+  [{ data: [] }, ''],
+  [[{ n: 1 }], '<https://x.example/items>; rel="next"'],
+  [[{ n: 1 }], '<https://x.example/items?page=>; rel="next"'],
+  [[{ n: 1 }], '<http://[bad>; rel="next"'],
+] as const) {
+  test(`link header paging rejects a malformed page: ${JSON.stringify(body)} ${link}`, async () => {
+    const { pages } = pagesFor(() => linked(body, ...(link ? [link] : [])));
+    await assert.rejects(pages.all(headerList), DecodeError);
   });
 }
