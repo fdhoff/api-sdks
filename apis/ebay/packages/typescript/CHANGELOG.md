@@ -6,6 +6,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 * Releases are published to npm's `latest` tag instead of `alpha`, so `npm install ebay-sell` gets the newest 0.x release.
 * An empty, `.` or `..` path value throws `TypeError` before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
+* An iteration whose next link returns to a page it already requested, such as page A, then B, then A again, now throws `DecodeError` instead of fetching the same pages until the rate limit runs out. Before, only a next link that repeated the one just sent was caught.
 * The runtime can poll an asynchronous job until it ends, and download a URL a response returns, sending credentials only to the base URL's origin. No operation in this package uses either yet.
 
 ## 0.1.0-alpha.2 (2026-11-09)

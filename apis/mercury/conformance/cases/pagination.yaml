@@ -84,6 +84,30 @@ cases:
     expect:
       error: { kind: decode }
 
+  - name: pagination-cursor-that-cycles-back-is-a-decode-error
+    request:
+      operation: getEvents
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { events: [{ id: 00000000-0000-4000-8000-e7e400000001 }], page: { nextPage: 00000000-0000-4000-8000-e7e400000001 } }
+        - status: 200
+          body: { events: [{ id: 00000000-0000-4000-8000-e7e400000002 }], page: { nextPage: 00000000-0000-4000-8000-e7e400000002 } }
+        - status: 200
+          body: { events: [{ id: 00000000-0000-4000-8000-e7e400000001 }], page: { nextPage: 00000000-0000-4000-8000-e7e400000001 } }
+    wire:
+      - method: GET
+        path: /events
+      - method: GET
+        path: /events
+        query: { start_after: 00000000-0000-4000-8000-e7e400000001 }
+      - method: GET
+        path: /events
+        query: { start_after: 00000000-0000-4000-8000-e7e400000002 }
+    expect:
+      error: { kind: decode }
+
   - name: pagination-cursor-page-without-its-items-is-a-decode-error
     request:
       operation: listCards

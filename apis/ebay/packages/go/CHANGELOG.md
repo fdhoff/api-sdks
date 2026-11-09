@@ -5,6 +5,7 @@ This module follows semantic versioning and stays on 0.x until outside users con
 ## Unreleased
 
 * An empty, `.` or `..` path value returns an error before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
+* An iteration whose next link returns to a page it already requested, such as page A, then B, then A again, now yields an error matching `ErrDecode` instead of fetching the same pages until the rate limit runs out. Before, only a next link that repeated the one just sent was caught.
 * The `ebaysell/postorder` sub-package and `client.PostOrder` cover the Post-Order API's 29 remaining operations on cancellations, returns, item-not-received inquiries and cases. They take the seller's user token and the client's marketplace ID. Return files are uploaded as base64 in a JSON body.
 * `MessageSigner` signs `content-length: 0` for a PATCH without a body, as net/http sends it, instead of returning an error.
 * Breaking: the 26 Inventory and Marketing operations that answer 204 with no body, such as `InventoryItems().Delete`, and Marketing's `ReportTasks().Create`, which answers 202, return only an `error` instead of an `*Error` model as well.

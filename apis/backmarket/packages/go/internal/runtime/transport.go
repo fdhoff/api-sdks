@@ -766,6 +766,27 @@ func (t *Transport) nextQuery(operation *Operation, query url.Values, page map[s
 	}
 }
 
+// position is the query values that say which page a request asks for. It is false for offset paging,
+// which always advances.
+func position(paging Paging, query url.Values) (string, bool) {
+	var markers []string
+	switch paging := paging.(type) {
+	case NextLink:
+		markers = paging.Params
+	case Cursor:
+		markers = []string{paging.Param}
+	default:
+		return "", false
+	}
+	at := url.Values{}
+	for _, marker := range markers {
+		if query.Has(marker) {
+			at[marker] = query[marker]
+		}
+	}
+	return at.Encode(), true
+}
+
 // Paginate walks every page of an operation, yielding each item. It stops after yielding an error.
 func Paginate[T any](ctx context.Context, t *Transport, operation *Operation, input Input) iter.Seq2[T, error] {
 	return func(yield func(T, error) bool) {
@@ -774,6 +795,10 @@ func Paginate[T any](ctx context.Context, t *Transport, operation *Operation, in
 		if err != nil {
 			yield(empty, err)
 			return
+		}
+		seen := map[string]bool{}
+		if at, ok := position(operation.paging(), built.query); ok {
+			seen[at] = true
 		}
 		for {
 			answer, err := t.fetch(ctx, built)
@@ -807,6 +832,13 @@ func Paginate[T any](ctx context.Context, t *Transport, operation *Operation, in
 			}
 			if query == nil {
 				return
+			}
+			if at, ok := position(operation.paging(), query); ok {
+				if seen[at] {
+					yield(empty, t.decodeError("the next page is one this iteration already requested", answer, nil))
+					return
+				}
+				seen[at] = true
 			}
 			next := *built
 			next.query = query

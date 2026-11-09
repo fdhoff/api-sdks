@@ -49,7 +49,7 @@ A driver reports these in `error.kind`, with the HTTP `status` where there was o
 | `api` | Any other status, redirects included |
 | `timeout` | No response within `timeout_ms`, after retries |
 | `connection` | The connection failed or dropped before a full response, after retries |
-| `decode` | A success response other than 204 whose declared JSON body is empty or does not parse, or a page without its items list or whose `next` does not advance |
+| `decode` | A success response other than 204 whose declared JSON body is empty or does not parse, or a page without its items list or whose `next` does not advance or returns to a page already requested |
 
 ## Hosts
 

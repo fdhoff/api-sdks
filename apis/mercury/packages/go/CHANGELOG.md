@@ -5,6 +5,7 @@ This module follows semantic versioning and stays on 0.x until outside users con
 ## Unreleased
 
 * An empty, `.` or `..` path value returns an error before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
+* An iteration whose cursor returns to a page it already requested, such as page A, then B, then A again, now yields an error matching `ErrDecode` instead of fetching the same pages until the rate limit runs out. Before, only a cursor that repeated the one just sent was caught.
 * The runtime can poll an asynchronous job until it ends, and download a URL a response returns, sending credentials only to the base URL's origin. A wait that reaches its deadline returns an error matching the new `ErrJobTimeout`, with the last status in `APIError.Result`. No operation in this package uses either yet.
 
 ## 0.1.0-alpha.1 (2026-11-09)

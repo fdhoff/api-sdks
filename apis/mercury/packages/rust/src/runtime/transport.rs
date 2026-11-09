@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::io::Read;
 use std::pin::Pin;
@@ -1030,7 +1030,11 @@ impl Transport {
         Ok(Some(next))
     }
 
-    async fn page(&self, request: &Request) -> Result<(VecDeque<Value>, Option<Request>), Error> {
+    async fn page(
+        &self,
+        request: &Request,
+        seen: &mut HashSet<Vec<Option<String>>>,
+    ) -> Result<(VecDeque<Value>, Option<Request>), Error> {
         let answer = self.fetch(request).await?;
         if answer.status == 204 {
             return Ok((VecDeque::new(), None));
@@ -1044,6 +1048,16 @@ impl Transport {
             _ => VecDeque::new(),
         };
         let next = self.next_request(request, &page, &answer, items.len())?;
+        if next
+            .as_ref()
+            .and_then(position)
+            .is_some_and(|at| !seen.insert(at))
+        {
+            return Err(self.decode_error(
+                "the next page is one this iteration already requested",
+                &answer,
+            ));
+        }
         Ok((items, next))
     }
 
@@ -1056,11 +1070,14 @@ impl Transport {
             transport: Arc<Transport>,
             request: Option<Request>,
             items: VecDeque<Value>,
+            seen: HashSet<Vec<Option<String>>>,
         }
+        let seen = position(&request).into_iter().collect();
         let walk = Walk {
             transport: Arc::clone(transport),
             request: Some(request),
             items: VecDeque::new(),
+            seen,
         };
         Box::pin(futures_util::stream::unfold(walk, |mut walk| async move {
             loop {
@@ -1074,7 +1091,7 @@ impl Transport {
                     return Some((item, walk));
                 }
                 let request = walk.request.take()?;
-                match walk.transport.page(&request).await {
+                match walk.transport.page(&request, &mut walk.seen).await {
                     Ok((items, next)) => {
                         walk.items = items;
                         walk.request = next;
@@ -1084,6 +1101,21 @@ impl Transport {
             }
         }))
     }
+}
+
+/// The query values that say which page a request asks for. `None` for offset paging, which always advances.
+fn position(request: &Request) -> Option<Vec<Option<String>>> {
+    let markers = match request.operation.paging() {
+        Paging::NextLink { params, .. } => *params,
+        Paging::Cursor { param, .. } => std::slice::from_ref(param),
+        Paging::Offset { .. } => return None,
+    };
+    Some(
+        markers
+            .iter()
+            .map(|marker| request.query_value(marker).map(str::to_owned))
+            .collect(),
+    )
 }
 
 /// Whether a request with no body is sent with `Content-Length: 0`, as Go, Python and TypeScript send it.
@@ -1883,6 +1915,56 @@ mod tests {
             .await;
             assert!(items.is_empty());
             assert_eq!(log.lock().unwrap().len(), 1);
+        }
+
+        async fn walk_cycle(
+            operation: &'static Operation,
+            bodies: [&'static [u8]; 3],
+            paths: [&str; 3],
+        ) {
+            let (url, log) = serve(move |number| {
+                reply(200, Some("application/json"), bodies[(number - 1).min(2)])
+            })
+            .await;
+            let transport = Arc::new(quick(&url));
+            let items = futures_util::StreamExt::collect::<Vec<Result<Value, Error>>>(
+                Transport::paginate(&transport, Request::new(operation)),
+            )
+            .await;
+            let error = items.last().unwrap().as_ref().unwrap_err();
+            assert_eq!(error.kind(), ErrorKind::Decode);
+            assert!(error.to_string().contains("already requested"), "{error}");
+            let sent: Vec<String> = log
+                .lock()
+                .unwrap()
+                .iter()
+                .map(|sent| sent.head.lines().next().unwrap().to_owned())
+                .collect();
+            assert_eq!(sent, paths.map(|path| format!("get {path} http/1.1")));
+        }
+
+        #[tokio::test]
+        async fn paging_rejects_a_position_that_cycles_back() {
+            walk_cycle(
+                &LINKED_LIST,
+                [
+                    br#"{"data":[1],"more":"/items?token=b"}"#,
+                    br#"{"data":[2],"more":"/items?token=a"}"#,
+                    br#"{"data":[3],"more":"/items?token=b"}"#,
+                ],
+                ["/items", "/items?token=b", "/items?token=a"],
+            )
+            .await;
+            walk_cycle(
+                &CURSOR_LIST,
+                [
+                    br#"{"data":[1],"page":{"next_page":"a"}}"#,
+                    br#"{"data":[2],"page":{"next_page":"b"}}"#,
+                    br#"{"data":[3],"page":{"next_page":"a"}}"#,
+                ],
+                ["/items", "/items?start_after=a", "/items?start_after=b"],
+            )
+            .await;
         }
 
         #[tokio::test]

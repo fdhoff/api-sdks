@@ -210,6 +210,7 @@ async function paginate(client, request, log) {
   const { items: field, paging } = operations.get(request.operation);
   const params = { ...request.params };
   const items = [];
+  const seen = new Set(params[paging.param] === undefined ? [] : [String(params[paging.param])]);
   for (;;) {
     const page = await call(client, { ...request, params }, log);
     if (!Array.isArray(page?.[field])) throw new ClientError({ kind: 'decode' });
@@ -222,7 +223,8 @@ async function paginate(client, request, log) {
     }
     const next = nextPosition(page, paging.next);
     if (next === null) return items;
-    if (String(params[paging.param]) === next) throw new ClientError({ kind: 'decode' });
+    if (String(params[paging.param]) === next || seen.has(next)) throw new ClientError({ kind: 'decode' });
+    seen.add(next);
     params[paging.param] = next;
   }
 }
