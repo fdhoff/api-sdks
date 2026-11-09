@@ -18,14 +18,14 @@ cases:
   - name: errors-404-is-not-found
     request:
       operation: getCard
-      params: { cardId: crd-0 }
+      params: { cardId: 00000000-0000-4000-8000-ca4d00000000 }
     mock:
       responses:
         - status: 404
           body: ''
     wire:
       - method: GET
-        path: /cards/crd-0
+        path: /cards/00000000-0000-4000-8000-ca4d00000000
     expect:
       error: { kind: not_found, status: 404, raw_body: '' }
 
@@ -79,7 +79,7 @@ cases:
     client: { max_retries: 1, timeout_ms: 100 }
     request:
       operation: getEvent
-      params: { eventId: evt-1 }
+      params: { eventId: 00000000-0000-4000-8000-e7e400000001 }
     mock:
       responses:
         - status: 200
@@ -90,9 +90,9 @@ cases:
           body: {}
     wire:
       - method: GET
-        path: /events/evt-1
+        path: /events/00000000-0000-4000-8000-e7e400000001
       - method: GET
-        path: /events/evt-1
+        path: /events/00000000-0000-4000-8000-e7e400000001
     expect:
       error: { kind: timeout }
 
@@ -113,12 +113,12 @@ cases:
   - name: errors-a-204-has-no-result
     request:
       operation: deleteRecipient
-      params: { recipientId: rcp-1 }
+      params: { recipientId: 00000000-0000-4000-8000-4ec100000001 }
     mock:
       responses:
         - status: 204
     wire:
       - method: DELETE
-        path: /recipient/rcp-1
+        path: /recipient/00000000-0000-4000-8000-4ec100000001
     expect:
       result: null

@@ -3,7 +3,7 @@ cases:
   - name: files-invoice-pdf-keeps-every-byte
     request:
       operation: getInvoicePdf
-      params: { invoiceId: inv-1 }
+      params: { invoiceId: 00000000-0000-4000-8000-1a4000000001 }
     mock:
       responses:
         - status: 200
@@ -11,7 +11,7 @@ cases:
           body_base64: JVBERi0xLjQK/+jV0QoxIDAgb2JqCg==
     wire:
       - method: GET
-        path: /ar/invoices/inv-1/pdf
+        path: /ar/invoices/00000000-0000-4000-8000-1a4000000001/pdf
         headers: { accept: application/pdf, authorization: 'Bearer {{token}}' }
     expect:
       result: { content_type: application/pdf, base64: JVBERi0xLjQK/+jV0QoxIDAgb2JqCg== }
@@ -19,7 +19,7 @@ cases:
   - name: files-statement-pdf-keeps-every-byte
     request:
       operation: getStatementPdf
-      params: { statementId: stm-1 }
+      params: { statementId: 00000000-0000-4000-8000-5e4000000001 }
     mock:
       responses:
         - status: 200
@@ -27,7 +27,7 @@ cases:
           body_base64: JVBERi0xLjcKgICA/w==
     wire:
       - method: GET
-        path: /statements/stm-1/pdf
+        path: /statements/00000000-0000-4000-8000-5e4000000001/pdf
     expect:
       result: { content_type: application/pdf, base64: JVBERi0xLjcKgICA/w== }
 
@@ -47,21 +47,21 @@ cases:
   - name: files-missing-pdf-is-not-found
     request:
       operation: getStatementPdf
-      params: { statementId: stm-0 }
+      params: { statementId: 00000000-0000-4000-8000-5e4000000000 }
     mock:
       responses:
         - status: 404
           body: not found
     wire:
       - method: GET
-        path: /statements/stm-0/pdf
+        path: /statements/00000000-0000-4000-8000-5e4000000000/pdf
     expect:
       error: { kind: not_found, status: 404, raw_body: not found }
 
   - name: files-transaction-attachment-is-one-multipart-file-part
     request:
       operation: uploadTransactionAttachment
-      params: { transactionId: txn-1 }
+      params: { transactionId: 00000000-0000-4000-8000-7a4000000001 }
       multipart: { file: synthetic receipt }
     mock:
       responses:
@@ -69,7 +69,7 @@ cases:
           body: { attachmentId: att-1 }
     wire:
       - method: POST
-        path: /transaction/txn-1/attachments
+        path: /transaction/00000000-0000-4000-8000-7a4000000001/attachments
         headers_match: { content-type: '^multipart/form-data; boundary=' }
         parts: { file: [synthetic receipt] }
     expect:
@@ -78,7 +78,7 @@ cases:
   - name: files-recipient-attachment-is-one-multipart-file-part
     request:
       operation: uploadRecipientAttachment
-      params: { recipientId: rcp-1 }
+      params: { recipientId: 00000000-0000-4000-8000-4ec100000001 }
       multipart: { file: synthetic tax form }
     mock:
       responses:
@@ -86,7 +86,7 @@ cases:
           body: { attachmentId: att-2 }
     wire:
       - method: POST
-        path: /recipient/rcp-1/attachments
+        path: /recipient/00000000-0000-4000-8000-4ec100000001/attachments
         headers_match: { content-type: '^multipart/form-data; boundary=' }
         parts: { file: [synthetic tax form] }
     expect:
@@ -95,7 +95,7 @@ cases:
   - name: files-an-oversized-upload-is-an-api-error
     request:
       operation: uploadTransactionAttachment
-      params: { transactionId: txn-1 }
+      params: { transactionId: 00000000-0000-4000-8000-7a4000000001 }
       multipart: { file: synthetic receipt }
     mock:
       responses:
@@ -103,7 +103,7 @@ cases:
           body: too large
     wire:
       - method: POST
-        path: /transaction/txn-1/attachments
+        path: /transaction/00000000-0000-4000-8000-7a4000000001/attachments
         parts: { file: [synthetic receipt] }
     expect:
       error: { kind: api, status: 413, raw_body: too large }

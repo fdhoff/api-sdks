@@ -32,14 +32,14 @@ cases:
   - name: redaction-revealed-card-details-are-returned-but-never-logged
     request:
       operation: revealCardPan
-      params: { cardId: crd-1 }
+      params: { cardId: 00000000-0000-4000-8000-ca4d00000001 }
     mock:
       responses:
         - status: 200
           body: { cardNumber: '0000111122223333', cvc: '0417', expiration: '2030-01' }
     wire:
       - method: GET
-        path: /cards/crd-1/reveal
+        path: /cards/00000000-0000-4000-8000-ca4d00000001/reveal
     expect:
       result: { cardNumber: '0000111122223333', cvc: '0417' }
       logs_required: true
