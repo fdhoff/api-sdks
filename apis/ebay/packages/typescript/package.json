@@ -1,6 +1,6 @@
 {
   "name": "ebay-sell",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Unofficial TypeScript client for eBay's Sell, Commerce and Developer REST APIs. Not affiliated with, endorsed by or sponsored by eBay Inc.",
   "license": "Apache-2.0",
   "repository": {
