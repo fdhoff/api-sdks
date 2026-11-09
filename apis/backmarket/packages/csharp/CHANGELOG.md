@@ -16,6 +16,8 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * A null item in a list parameter is skipped instead of throwing.
 * An empty 204 response returns `null`, even where the spec also declares JSON, instead of throwing `ApiDecodeException`.
 * New public `Download` and `RawBody` types, for binary response and request bodies. No operation in this package uses them yet.
+* A page whose items field is missing or not a list throws `ApiDecodeException` for link-paged operations too, instead of ending as an empty last page.
+* A file part of a multipart upload is sent with `Content-Type: application/octet-stream`.
 
 ## 0.1.0-alpha.1 (2026-11-07)
 

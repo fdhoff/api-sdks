@@ -435,6 +435,31 @@ public sealed class ClientTests
     }
 
     [Fact]
+    public async Task AFileGoesAsAnOctetStreamPart()
+    {
+        var handler = new Router(_ => Json("""{"fileId": "F-1"}"""));
+        using var client = Client(handler, new() { UserToken = User });
+
+        var evidence = await client.Fulfillment.PaymentDisputes.UploadEvidenceFileAsync("D-1", new UploadFile("evidence.jpg", "synthetic-evidence"u8.ToArray()), Cancel);
+
+        var sent = Assert.Single(handler.Sent);
+        Assert.Equal("F-1", evidence.FileId);
+        Assert.StartsWith("https://apiz.mock.invalid/", sent.Url, StringComparison.Ordinal);
+        Assert.StartsWith("multipart/form-data; boundary=", sent.Headers["Content-Type"], StringComparison.Ordinal);
+        Assert.Contains("Content-Type: application/octet-stream", sent.Body, StringComparison.Ordinal);
+        Assert.Contains("synthetic-evidence", sent.Body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ALinkPageWithoutItsItemsIsADecodeError()
+    {
+        var handler = new Router(_ => Json("""{"total": 0}"""));
+        using var client = Client(handler, new() { UserToken = User });
+
+        await Assert.ThrowsAsync<ApiDecodeException>(async () => await client.Fulfillment.Orders.ListAllAsync(cancellationToken: Cancel).ToListAsync(Cancel));
+    }
+
+    [Fact]
     public async Task ErrorsCarryTheFirstErrorAndTheWholeList()
     {
         var handler = new Router(_ => Json(

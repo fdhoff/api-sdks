@@ -185,6 +185,10 @@ internal sealed class Transport : IDisposable
     /// </summary>
     private static object?[]? NextLink(Operation operation, NextLinkPaging paging, object?[] values, JsonElement page)
     {
+        if (!page.TryGetProperty(paging.Items, out var items) || items.ValueKind != JsonValueKind.Array)
+        {
+            throw new ApiDecodeException($"The `{paging.Items}` field of a page is not a list");
+        }
         if (!page.TryGetProperty(paging.Link, out var next) || next.ValueKind is JsonValueKind.Null or JsonValueKind.False)
         {
             return null;
@@ -482,7 +486,9 @@ internal sealed class Transport : IDisposable
         {
             if (value is UploadFile file)
             {
-                form.Add(new ByteArrayContent(file.Content), Quote(wire), Quote(file.FileName));
+                var bytes = new ByteArrayContent(file.Content);
+                bytes.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                form.Add(bytes, Quote(wire), Quote(file.FileName));
                 continue;
             }
             var text = value is ApiModel or IDictionary ? JsonSerializer.Serialize(value, value.GetType(), Json.Options) : Json.Text(value);
