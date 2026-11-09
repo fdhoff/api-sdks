@@ -164,13 +164,16 @@ impl ClientBuilder {
 
     /// Called with every new user token, from [`OAuth::exchange_code`] and every refresh, so you
     /// can store it. It runs before the call that needed the refresh is retried, so keep it quick:
-    /// send the token to a channel, for example.
+    /// send the token to a channel, for example. It runs while the client holds its token locks,
+    /// so it must not wait on this client: blocking on [`OAuth::refresh`] or a call from it
+    /// deadlocks.
     pub fn on_token(mut self, on_token: impl Fn(&Token) + Send + Sync + 'static) -> Self {
         self.on_token = Some(Arc::new(on_token));
         self
     }
 
-    /// Sets the scopes of minted application tokens. The default is [`API_SCOPE`].
+    /// Sets the scopes of minted application tokens. The default is [`API_SCOPE`]. The client
+    /// fails to build without at least one.
     pub fn app_scopes<S: Into<String>>(mut self, scopes: impl IntoIterator<Item = S>) -> Self {
         self.app_scopes = scopes.into_iter().map(Into::into).collect();
         self
@@ -328,6 +331,9 @@ impl ClientBuilder {
             && refresh_token.is_none()
         {
             return Err(invalid("set client_id and client_secret, or a token"));
+        }
+        if self.app_scopes.iter().all(|scope| scope.trim().is_empty()) {
+            return Err(invalid("app_scopes needs at least one scope"));
         }
         let hosts = self.hosts_map()?;
         let config = Config {
@@ -533,6 +539,15 @@ mod tests {
                 .is_ok()
         );
         assert!(Client::builder().app_token("synthetic-app").build().is_ok());
+    }
+
+    #[test]
+    fn app_scopes_cannot_be_empty() {
+        for scopes in [Vec::new(), vec![""], vec![" "]] {
+            let error = builder().app_scopes(scopes).build().unwrap_err();
+            assert_eq!(error.to_string(), "app_scopes needs at least one scope");
+        }
+        assert!(builder().app_scopes([API_SCOPE]).build().is_ok());
     }
 
     #[test]

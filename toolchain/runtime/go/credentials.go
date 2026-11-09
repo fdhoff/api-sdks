@@ -43,6 +43,13 @@ type Refresher interface {
 	Refresh(ctx context.Context, request *AuthRequest) (bool, error)
 }
 
+// RefreshGrouper is a Refresher that sends more than one credential, such as an application token
+// on some operations and a user token on others. RefreshGroup names the one an operation sends: a
+// call skips its own refresh only when another call refreshed the same group since it sent it.
+type RefreshGrouper interface {
+	RefreshGroup(operation *Operation) string
+}
+
 // StaticCredentials sends the same headers on every request.
 type StaticCredentials struct {
 	Header http.Header

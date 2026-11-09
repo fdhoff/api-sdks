@@ -64,7 +64,7 @@ with EbayClient(
         print(order.order_id)
 ```
 
-A user token lasts two hours and its refresh token about 18 months. When a call is refused with a 401, the client refreshes the user token once, passes it to `on_token`, and retries the call. Concurrent calls share one refresh. If the refresh fails, the call raises the refresh's error, such as a `BadRequestError` for `invalid_grant`, not the 401.
+A user token lasts two hours and its refresh token about 18 months. When a call is refused with a 401, the client refreshes the user token once, passes it to `on_token`, and retries the call. Concurrent calls share one refresh. If the refresh fails, the call raises the refresh's error, such as a `BadRequestError` for `invalid_grant`, not the 401. `on_token` runs while the client holds its token locks, so it must not call `client.oauth.refresh()` or make a call with the client: those wait for it forever. Store the token and return.
 
 The async client has the same methods:
 

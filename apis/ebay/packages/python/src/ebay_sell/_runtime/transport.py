@@ -554,17 +554,17 @@ class SyncTransport:
         self.settings = settings
         self.http = httpx.Client(timeout=settings.timeout, headers=dict(settings.headers), transport=http_transport)
         self._refresh_lock = threading.Lock()
-        self._generation = 0
+        self._generations: dict[str, int] = {}
 
-    def _refresh(self, auth: AuthRequest, generation: int) -> bool:
-        """Calls waiting on a refresh share it, and a call whose credentials were refreshed since it sent
-        them retries without another."""
+    def _refresh(self, auth: AuthRequest, group: str, generation: int) -> bool:
+        """Calls waiting on a refresh of the same group share it, and a call whose credentials were
+        refreshed since it sent them retries without another."""
         with self._refresh_lock:
-            if self._generation != generation:
+            if self._generations.get(group, 0) != generation:
                 return True
             refreshed = bool(_sync(self.settings.credentials.refresh(auth), "refresh"))
             if refreshed:
-                self._generation += 1
+                self._generations[group] = generation + 1
             return refreshed
 
     # TODO: httpx has no deadline of its own and a blocking read cannot be interrupted, so the deadline
@@ -614,7 +614,8 @@ class SyncTransport:
         refreshed = False
         while True:
             _log(settings, logging.DEBUG, f"-> {request['method']} {request['url']}")
-            generation = self._generation
+            group = settings.credentials.refresh_group(operation)
+            generation = self._generations.get(group, 0)
             outgoing = self.http.build_request(**request)
             auth = _auth_request(operation, outgoing, b"" if streamed else outgoing.read())
             _sync(settings.credentials.apply(auth), "apply")
@@ -629,7 +630,7 @@ class SyncTransport:
                     raise
                 if _unauthorized(operation, error, refreshed):
                     refreshed = True
-                    if self._refresh(auth, generation):
+                    if self._refresh(auth, group, generation):
                         _log(settings, logging.INFO, "retrying after refreshing credentials")
                         continue
                 delay = _retry_delay(settings, error, operation.method, tries)
@@ -647,17 +648,17 @@ class AsyncTransport:
             timeout=settings.timeout, headers=dict(settings.headers), transport=http_transport
         )
         self._refresh_lock = asyncio.Lock()
-        self._generation = 0
+        self._generations: dict[str, int] = {}
 
-    async def _refresh(self, auth: AuthRequest, generation: int) -> bool:
-        """Calls waiting on a refresh share it, and a call whose credentials were refreshed since it sent
-        them retries without another."""
+    async def _refresh(self, auth: AuthRequest, group: str, generation: int) -> bool:
+        """Calls waiting on a refresh of the same group share it, and a call whose credentials were
+        refreshed since it sent them retries without another."""
         async with self._refresh_lock:
-            if self._generation != generation:
+            if self._generations.get(group, 0) != generation:
                 return True
             refreshed = bool(await _settle(self.settings.credentials.refresh(auth)))
             if refreshed:
-                self._generation += 1
+                self._generations[group] = generation + 1
             return refreshed
 
     async def _attempt(self, outgoing: httpx.Request) -> httpx.Response:
@@ -718,7 +719,8 @@ class AsyncTransport:
         refreshed = False
         while True:
             _log(settings, logging.DEBUG, f"-> {request['method']} {request['url']}")
-            generation = self._generation
+            group = settings.credentials.refresh_group(operation)
+            generation = self._generations.get(group, 0)
             outgoing = self.http.build_request(**request)
             auth = _auth_request(operation, outgoing, b"" if streamed else await outgoing.aread())
             await _settle(settings.credentials.apply(auth))
@@ -733,7 +735,7 @@ class AsyncTransport:
                     raise
                 if _unauthorized(operation, error, refreshed):
                     refreshed = True
-                    if await self._refresh(auth, generation):
+                    if await self._refresh(auth, group, generation):
                         _log(settings, logging.INFO, "retrying after refreshing credentials")
                         continue
                 delay = _retry_delay(settings, error, operation.method, tries)

@@ -274,6 +274,86 @@ async fn a_401_refreshes_the_user_token_keeps_the_refresh_token_and_retries() {
     assert_eq!(stored[0].refresh_token.as_deref(), Some(REFRESH));
 }
 
+fn token_requests(log: &Log) -> Vec<String> {
+    sent(log)
+        .into_iter()
+        .filter(|sent| sent.path == TOKEN_PATH)
+        .filter_map(|sent| {
+            sent.form()
+                .into_iter()
+                .find(|(key, _)| key == "grant_type")
+                .map(|(_, grant)| grant)
+        })
+        .collect()
+}
+
+#[tokio::test]
+async fn concurrent_first_calls_share_one_minted_token() {
+    let (url, log) = serve(|sent| match sent.path.as_str() {
+        TOKEN_PATH => token(MINTED),
+        _ => ok(),
+    })
+    .await;
+    let client = keyset(&url).build().unwrap();
+    let trees = client.taxonomy().category_trees();
+    let calls = (0..8).map(|_| trees.get("0"));
+    for result in futures_util::future::join_all(calls).await {
+        result.unwrap();
+    }
+    assert_eq!(token_requests(&log), ["client_credentials"]);
+}
+
+#[tokio::test]
+async fn concurrent_401s_share_one_refresh() {
+    let (url, log) = serve(|sent| match sent.path.as_str() {
+        TOKEN_PATH => token(NEW_USER),
+        _ if sent.bearer() == Some(NEW_USER.to_lowercase()) => {
+            (200, r#"{"sku":"SKU-1"}"#.to_owned())
+        }
+        _ => unauthorized(),
+    })
+    .await;
+    let client = keyset(&url)
+        .user_token(USER)
+        .refresh_token(REFRESH)
+        .build()
+        .unwrap();
+    let items = client.inventory().inventory_items();
+    let calls = (0..8).map(|_| items.get("SKU-1"));
+    for result in futures_util::future::join_all(calls).await {
+        result.unwrap();
+    }
+    assert_eq!(token_requests(&log), ["refresh_token"]);
+}
+
+#[tokio::test]
+async fn an_app_401_and_a_user_401_at_once_each_refresh_their_own_token() {
+    let (url, log) = serve(|sent| match sent.path.as_str() {
+        TOKEN_PATH if sent.body.contains("client_credentials") => token(MINTED),
+        TOKEN_PATH => token(NEW_USER),
+        _ if sent.bearer() == Some(MINTED.to_lowercase()) => ok(),
+        _ if sent.bearer() == Some(NEW_USER.to_lowercase()) => {
+            (200, r#"{"sku":"SKU-1"}"#.to_owned())
+        }
+        _ => unauthorized(),
+    })
+    .await;
+    let client = keyset(&url)
+        .app_token(APP)
+        .user_token(USER)
+        .refresh_token(REFRESH)
+        .build()
+        .unwrap();
+    let trees = client.taxonomy().category_trees();
+    let items = client.inventory().inventory_items();
+    let (tree, item) = tokio::join!(trees.get("0"), items.get("SKU-1"));
+    tree.unwrap();
+    item.unwrap();
+    let mut grants = token_requests(&log);
+    grants.sort();
+    assert_eq!(grants, ["client_credentials", "refresh_token"]);
+}
+
 #[tokio::test]
 async fn a_401_without_a_refresh_token_is_final() {
     let (url, log) = serve(|_| unauthorized()).await;

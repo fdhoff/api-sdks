@@ -463,6 +463,11 @@ impl EbayCredentials {
         Ok(self.store_user(token))
     }
 
+    /// Whether a 401 on `operation` replaces the application token rather than the user token.
+    fn refreshes_app(&self, operation: &Operation) -> bool {
+        takes_app_token(operation) && (self.can_mint() || self.read().app.is_some())
+    }
+
     async fn token_for(&self, operation: &'static Operation) -> Result<String, Error> {
         if takes_app_token(operation) {
             let token = match self.fresh_app_token() {
@@ -558,8 +563,7 @@ impl Credentials for EbayCredentials {
     fn refresh<'a>(&'a self, request: &'a AuthRequest) -> BoxFuture<'a, Result<bool, Error>> {
         Box::pin(async move {
             let stale = sent_token(request);
-            let has_app = self.read().app.is_some();
-            if takes_app_token(request.operation) && (self.can_mint() || has_app) {
+            if self.refreshes_app(request.operation) {
                 if !self.can_mint() {
                     return Ok(false);
                 }
@@ -573,11 +577,22 @@ impl Credentials for EbayCredentials {
             Ok(true)
         })
     }
+
+    /// An application token and a user token refresh separately, so a 401 on one never waits out
+    /// a refresh of the other.
+    fn refresh_group(&self, operation: &Operation) -> &'static str {
+        if self.refreshes_app(operation) {
+            "app"
+        } else {
+            "user"
+        }
+    }
 }
 
 /// OAuth 2 for a [`Client`](crate::Client), from [`Client::oauth`](crate::Client::oauth). Tokens it
 /// obtains are used for the client's later calls, and each new user token is passed to the client's
-/// [`on_token`](crate::ClientBuilder::on_token) callback for you to store.
+/// [`on_token`](crate::ClientBuilder::on_token) callback for you to store. That callback runs while
+/// the token locks are held, so it must not block on these methods.
 #[derive(Clone, Debug)]
 pub struct OAuth {
     credentials: Arc<EbayCredentials>,
@@ -651,7 +666,7 @@ impl OAuth {
     }
 
     /// Mints an application token with the client's `app_scopes`, unless the current one is still
-    /// fresh or `force` is false.
+    /// fresh and `force` is false.
     pub async fn app_token(&self, force: bool) -> Result<Token, Error> {
         self.credentials.mint(&self.transport, force, None).await
     }

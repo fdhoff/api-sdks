@@ -4,7 +4,9 @@ import asyncio
 import base64
 import importlib
 import logging
+import threading
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
@@ -120,6 +122,31 @@ class Server:
 
     def calls(self) -> list[httpx.Request]:
         return [request for request in self.requests if request.url.path != TOKEN_PATH]
+
+
+class HeldServer(Server):
+    """Holds each refused call until `parties` calls have been refused, so that every call fails before
+    any refresh."""
+
+    def __init__(self, parties: int, **options: Any) -> None:
+        super().__init__(**options)
+        self.barrier = threading.Barrier(parties, timeout=5)
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        response = super().__call__(request)
+        if response.status_code == 401:
+            self.barrier.wait()
+        return response
+
+
+def at_once(*calls: Callable[[], Any]) -> list[Any]:
+    with ThreadPoolExecutor(len(calls)) as pool:
+        futures = [pool.submit(call) for call in calls]
+        return [future.result() for future in futures]
+
+
+def grants(server: Server) -> list[str]:
+    return sorted(form(request)["grant_type"][0] for request in server.requests if request.url.path == TOKEN_PATH)
 
 
 def private_key_pem() -> str:
@@ -463,6 +490,40 @@ def test_credentials_are_required() -> None:
     with pytest.raises(ValueError):
         EbayClient(client_id=CLIENT_ID)
     assert CLIENT_SECRET not in repr(EbayCredentials(CLIENT_ID, CLIENT_SECRET, None, None, None, None))
+
+
+def test_app_scopes_cannot_be_empty() -> None:
+    for scopes in ((), ("",), (" ",)):
+        for client in (EbayClient, AsyncEbayClient):
+            with pytest.raises(ValueError, match="app_scopes needs at least one scope"):
+                client(client_id=CLIENT_ID, client_secret=CLIENT_SECRET, app_scopes=scopes)
+
+
+def test_concurrent_first_calls_share_one_app_token() -> None:
+    server = Server()
+    with keyed(server) as client:
+        trees = at_once(
+            *(lambda: client.taxonomy.category_trees.get_default_id(marketplace_id="EBAY_US") for _ in range(4))
+        )
+    assert [tree.category_tree_id for tree in trees] == ["0"] * 4
+    assert grants(server) == ["client_credentials"]
+
+
+def test_concurrent_401s_share_one_refresh() -> None:
+    server = HeldServer(3, accepted=(NEW_USER_TOKEN,))
+    with keyed(server, user_token=USER_TOKEN, refresh_token=REFRESH) as client:
+        at_once(*(lambda: client.fulfillment.orders.get("01-00001-00001") for _ in range(3)))
+    assert grants(server) == ["refresh_token"]
+
+
+def test_an_app_401_and_a_user_401_at_once_each_refresh_their_own_token() -> None:
+    server = HeldServer(2, accepted=(APP_TOKEN, NEW_USER_TOKEN))
+    with keyed(server, app_token=STALE_APP_TOKEN, user_token=USER_TOKEN, refresh_token=REFRESH) as client:
+        at_once(
+            lambda: client.taxonomy.category_trees.get_default_id(marketplace_id="EBAY_US"),
+            lambda: client.fulfillment.orders.get("01-00001-00001"),
+        )
+    assert grants(server) == ["client_credentials", "refresh_token"]
 
 
 def test_async_concurrent_calls_share_one_app_token() -> None:

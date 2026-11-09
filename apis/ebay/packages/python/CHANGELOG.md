@@ -6,6 +6,9 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 * `MessageSigner` signs `content-length: 0` for a PATCH without a body, as httpx sends it, instead of raising.
 * Breaking: the 26 Inventory and Marketing operations that answer 204 with no body, such as `inventory_items.delete`, and Marketing's `report_tasks.create`, which answers 202, return `None` instead of being typed as returning `Error`.
+* An application token 401 and a user token 401 at the same time each refresh their own token. Before, the second call skipped its refresh and failed.
+* An empty `app_scopes` raises `ValueError` when the client is built, instead of minting with a bare `scope=`.
+* The docs say `on_token` must not call the client, since it runs while the token locks are held.
 * Binary response and request bodies are read and sent as raw bytes where the spec declares them. No operation in this package does yet.
 
 ## 0.1.0a1 (2026-11-08)

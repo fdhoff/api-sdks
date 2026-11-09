@@ -262,9 +262,17 @@ class EbayCredentials(Credentials):
             self._on_token(kept)
         return kept
 
+    def _refreshes_app(self, operation: Operation[Any]) -> bool:
+        """Whether a 401 on `operation` replaces the application token rather than the user token."""
+        return takes_app_token(operation) and (self.can_mint or self._app_token is not None)
+
+    def refresh_group(self, operation: Operation[Any]) -> str:
+        """An application token and a user token refresh separately, so a 401 on one never waits out a
+        refresh of the other."""
+        return "app" if self._refreshes_app(operation) else "user"
+
     def refresh(self, request: AuthRequest) -> bool | Awaitable[bool]:
-        app = takes_app_token(request.operation) and (self.can_mint or self._app_token is not None)
-        if app:
+        if self._refreshes_app(request.operation):
             if not self.can_mint or self.minter is None:
                 return False
             self._app_expires_at = float("-inf")
@@ -326,7 +334,8 @@ def _client_id(credentials: EbayCredentials) -> str:
 
 class OAuth:
     """OAuth 2 for a synchronous client. Tokens it obtains are used for the client's later calls, and each
-    new user token is passed to the client's `on_token` callback for you to store."""
+    new user token is passed to the client's `on_token` callback for you to store. That callback runs while
+    the token locks are held, so it must not call these methods."""
 
     def __init__(self, credentials: EbayCredentials, transport: SyncTransport, config: _Config) -> None:
         self._credentials = credentials
@@ -363,7 +372,8 @@ class OAuth:
             return self._credentials.store_user(_token(reply.data, reply.status))
 
     def app_token(self, *, force: bool = False) -> Token:
-        """Mint an application token with the client's `app_scopes`, unless the current one is still fresh."""
+        """Mint an application token with the client's `app_scopes`, unless the current one is still fresh
+        and `force` is false."""
         with self._minting:
             current = self._credentials.fresh_app_token()
             if current is not None and not force:

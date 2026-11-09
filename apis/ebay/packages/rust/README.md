@@ -91,7 +91,7 @@ while let Some(order) = orders.try_next().await? {
 # }
 ```
 
-A user token lasts two hours and its refresh token about 18 months. When a call is refused with a 401, the client refreshes the user token once, passes it to `on_token`, and retries the call. Concurrent calls share one refresh. If the refresh fails, the call returns the refresh's error, such as `ErrorKind::BadRequest` for `invalid_grant`, not the 401.
+A user token lasts two hours and its refresh token about 18 months. When a call is refused with a 401, the client refreshes the user token once, passes it to `on_token`, and retries the call. Concurrent calls share one refresh. If the refresh fails, the call returns the refresh's error, such as `ErrorKind::BadRequest` for `invalid_grant`, not the 401. `on_token` runs while the client holds its token locks, so it must not block on `client.oauth().refresh()` or on a call with the client: those wait for it forever. Store the token and return.
 
 Your credentials are read from nowhere and stored nowhere: you pass them in, and the client sends them only to the environment you selected. Cloning a `Client` is cheap and shares its tokens and connection pool.
 
@@ -179,7 +179,7 @@ Set these on `Client::builder()`. Set `client_id` and `client_secret`, a token, 
 | `user_token` | none | A user access token, sent on operations that act for a seller |
 | `refresh_token` | none | Lets the client replace an expired user token itself |
 | `on_token` | none | Called with every new user `Token`, from `exchange_code` and every refresh |
-| `app_scopes` | `API_SCOPE` | The scopes of minted application tokens |
+| `app_scopes` | `API_SCOPE` | The scopes of minted application tokens, at least one |
 | `user_scopes` | none | The scopes to ask for on refresh. eBay keeps the original grant's when this is not given |
 | `environment` | `production` | `production` or `sandbox`. Picks the API hosts and the authorization URL |
 | `hosts` | none | Your own base URL for each of `api`, `apiz` and `apim`, for tests against a mock. Your credentials are sent to them |
