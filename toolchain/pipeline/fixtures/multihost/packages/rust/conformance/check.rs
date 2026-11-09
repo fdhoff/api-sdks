@@ -5,7 +5,7 @@
 mod dispatch;
 
 use futures_util::TryStreamExt;
-use multihost::{Error, Items};
+use multihost::{Download, Error, Items};
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 
@@ -39,6 +39,10 @@ pub fn body<T: DeserializeOwned>(case: &Case) -> T {
 
 pub fn output<T: serde::Serialize>(result: Result<T, Error>) -> Result<Value, Error> {
     result.map(|value| serde_json::to_value(value).expect("results encode as JSON"))
+}
+
+pub async fn download_output(result: Result<Download, Error>) -> Result<Value, Error> {
+    result.map(|download| Value::String(download.content_type().to_owned()))
 }
 
 pub async fn collect<T: serde::Serialize>(items: Items<T>) -> Result<Value, Error> {
