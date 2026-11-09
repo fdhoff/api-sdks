@@ -64,6 +64,7 @@ cases:
     expect:                            # exactly one of result, result_keys or error
       result: []                       # subset match; lists must have the same length
       logs_required: true              # optional: the client must have logged something
+      logs_exclude: ['4111']           # optional: values that must not appear in the logs
 ```
 
 * `mock: { prism: { code: 404 } }` answers from Prism instead, asking for that declared status. Prism ignores a code the operation cannot serve for the client's `Accept` header, so check the mock before relying on one. `prism: {}` takes the first success response.
@@ -78,6 +79,7 @@ cases:
 * A binary download's `result` is `{ content_type, base64 }`: the response's `Content-Type`, empty if it has none, and every byte of the body as base64. `toolchain/conformance/fixtures/cases/binary/` has synthetic cases for downloads, raw uploads and a text response that is not JSON.
 * `result_keys: [id]` asserts that those keys exist, for Prism responses whose values come from spec examples. On a list it checks the first element.
 * `error` is a subset match on the driver's error object.
+* `logs_exclude` lists sensitive response values, such as a card number, that the result may hold but the logs must not.
 * `{{token}}` in `mock`, `wire` and `expect` expands to the case's token, and `{{<name>}}` to each other secret.
 
 Every case also asserts that the token and every other secret appear nowhere in the driver's result, error or logs.

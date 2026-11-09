@@ -1,0 +1,46 @@
+# No token may reach a result, error or log, and no card number or CVC from revealCardPan may reach a log.
+cases:
+  - name: redaction-token-echoed-in-an-error-is-removed
+    request:
+      operation: getAccounts
+    mock:
+      responses:
+        - status: 401
+          body: 'invalid token {{token}}'
+    wire:
+      - method: GET
+        path: /accounts
+    expect:
+      error: { kind: authentication, status: 401, raw_body: 'invalid token ***' }
+      logs_required: true
+
+  - name: redaction-token-echoed-in-a-server-error-is-removed
+    client: { max_retries: 0 }
+    request:
+      operation: getUsers
+    mock:
+      responses:
+        - status: 500
+          body: 'Authorization: Bearer {{token}}'
+    wire:
+      - method: GET
+        path: /users
+    expect:
+      error: { kind: server, status: 500, raw_body: 'Authorization: Bearer ***' }
+      logs_required: true
+
+  - name: redaction-revealed-card-details-are-returned-but-never-logged
+    request:
+      operation: revealCardPan
+      params: { cardId: crd-1 }
+    mock:
+      responses:
+        - status: 200
+          body: { cardNumber: '0000111122223333', cvc: '0417', expiration: '2030-01' }
+    wire:
+      - method: GET
+        path: /cards/crd-1/reveal
+    expect:
+      result: { cardNumber: '0000111122223333', cvc: '0417' }
+      logs_required: true
+      logs_exclude: ['0000111122223333', '0417']

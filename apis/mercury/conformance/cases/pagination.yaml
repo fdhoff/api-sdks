@@ -1,0 +1,182 @@
+# Most lists page by cursor: each page's `page.nextPage` goes back as `start_after` until it is null or absent.
+# listAccountTransactions pages by `offset` up to `total`, and getTreasuryTransactions sends its top-level
+# integer `cursor` back as `cursor`.
+cases:
+  - name: pagination-cursor-follows-next-page-across-several-pages
+    request:
+      operation: getAccounts
+      params: { limit: 2 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { accounts: [{ id: acc-1 }, { id: acc-2 }], page: { nextPage: acc-2, previousPage: null } }
+        - status: 200
+          body: { accounts: [{ id: acc-3 }, { id: acc-4 }], page: { nextPage: acc-4, previousPage: acc-3 } }
+        - status: 200
+          body: { accounts: [{ id: acc-5 }], page: { nextPage: null, previousPage: acc-5 } }
+    wire:
+      - method: GET
+        path: /accounts
+        query: { limit: '2' }
+      - method: GET
+        path: /accounts
+        query: { limit: '2', start_after: acc-2 }
+      - method: GET
+        path: /accounts
+        query: { limit: '2', start_after: acc-4 }
+    expect:
+      result: [{ id: acc-1 }, { id: acc-2 }, { id: acc-3 }, { id: acc-4 }, { id: acc-5 }]
+
+  - name: pagination-cursor-keeps-the-callers-position-and-filters
+    request:
+      operation: listTransactions
+      params: { limit: 1, start_after: txn-0, status: sent, order: asc }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { transactions: [{ id: txn-1 }], page: { nextPage: txn-1 } }
+        - status: 200
+          body: { transactions: [{ id: txn-2 }], page: {} }
+    wire:
+      - method: GET
+        path: /transactions
+        query: { limit: '1', start_after: txn-0, status: sent, order: asc }
+      - method: GET
+        path: /transactions
+        query: { limit: '1', start_after: txn-1, status: sent, order: asc }
+    expect:
+      result: [{ id: txn-1 }, { id: txn-2 }]
+
+  - name: pagination-cursor-stops-after-an-empty-last-page
+    request:
+      operation: listMerchants
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { data: [{ id: mer-1 }], page: { nextPage: mer-1 } }
+        - status: 200
+          body: { data: [], page: { nextPage: null } }
+    wire:
+      - method: GET
+        path: /merchants
+      - method: GET
+        path: /merchants
+        query: { start_after: mer-1 }
+    expect:
+      result: [{ id: mer-1 }]
+
+  - name: pagination-cursor-repeated-is-a-decode-error
+    request:
+      operation: getEvents
+      params: { start_after: evt-1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { events: [{ id: evt-2 }], page: { nextPage: evt-1 } }
+    wire:
+      - method: GET
+        path: /events
+        query: { start_after: evt-1 }
+    expect:
+      error: { kind: decode }
+
+  - name: pagination-cursor-page-without-its-items-is-a-decode-error
+    request:
+      operation: listCards
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { page: { nextPage: null } }
+    wire:
+      - method: GET
+        path: /cards
+    expect:
+      error: { kind: decode }
+
+  - name: pagination-offset-advances-to-the-total
+    request:
+      operation: listAccountTransactions
+      params: { accountId: acc-1, limit: 2 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { total: 3, transactions: [{ id: txn-1 }, { id: txn-2 }] }
+        - status: 200
+          body: { total: 3, transactions: [{ id: txn-3 }] }
+    wire:
+      - method: GET
+        path: /account/acc-1/transactions
+        query: { limit: '2' }
+      - method: GET
+        path: /account/acc-1/transactions
+        query: { limit: '2', offset: '2' }
+    expect:
+      result: [{ id: txn-1 }, { id: txn-2 }, { id: txn-3 }]
+
+  - name: pagination-offset-keeps-the-callers-offset-and-stops-at-an-empty-page
+    request:
+      operation: listAccountTransactions
+      params: { accountId: acc-1, offset: 5 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { total: 100, transactions: [{ id: txn-6 }] }
+        - status: 200
+          body: { total: 100, transactions: [] }
+    wire:
+      - method: GET
+        path: /account/acc-1/transactions
+        query: { offset: '5' }
+      - method: GET
+        path: /account/acc-1/transactions
+        query: { offset: '6' }
+    expect:
+      result: [{ id: txn-6 }]
+
+  - name: pagination-treasury-sends-the-integer-cursor-back
+    request:
+      operation: getTreasuryTransactions
+      params: { treasuryId: tre-1, limit: 2 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { transactions: [{ id: ttx-1 }, { id: ttx-2 }], cursor: 40 }
+        - status: 200
+          body: { transactions: [{ id: ttx-3 }], cursor: 0 }
+        - status: 200
+          body: { transactions: [], cursor: null }
+    wire:
+      - method: GET
+        path: /treasury/tre-1/transactions
+        query: { limit: '2' }
+      - method: GET
+        path: /treasury/tre-1/transactions
+        query: { limit: '2', cursor: '40' }
+      - method: GET
+        path: /treasury/tre-1/transactions
+        query: { limit: '2', cursor: '0' }
+    expect:
+      result: [{ id: ttx-1 }, { id: ttx-2 }, { id: ttx-3 }]
+
+  - name: pagination-treasury-stops-without-a-cursor
+    request:
+      operation: getTreasuryTransactions
+      params: { treasuryId: tre-1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { transactions: [{ id: ttx-1 }] }
+    wire:
+      - method: GET
+        path: /treasury/tre-1/transactions
+    expect:
+      result: [{ id: ttx-1 }]

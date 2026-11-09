@@ -1,0 +1,92 @@
+{
+  "description": "Mercury webhook signatures, in the format of toolchain/conformance/fixtures/webhooks/hmac-sha256.json: the `header` value is what arrives in `Mercury-Signature`, signed over `<t>.<raw body>` with the endpoint secret. `now` is the receiver clock in Unix seconds, and `tolerance` the maximum age in seconds when it is not the default of 300. `error` is null for a valid signature. All data is synthetic.",
+  "header_name": "Mercury-Signature",
+  "secret": "conformance-synthetic-webhook-secret",
+  "cases": [
+    {
+      "name": "valid-signature",
+      "header": "t=1767225600,v1=97bbd003ae9ac8a99f0e8c1cc6cbe6cf56bc224df87e986d25acd614d6e68ebe",
+      "body": "{\"id\":\"evt-synthetic-1\",\"resourceType\":\"transaction\",\"resourceId\":\"txn-synthetic-1\",\"operationType\":\"created\",\"resourceVersion\":1}",
+      "now": 1767225660,
+      "error": null
+    },
+    {
+      "name": "raw-body-bytes-are-signed",
+      "header": "t=1767225600,v1=3751852112b571fb4a3bf1449b13d51f08c185f22bcc193353d92e6749280a99",
+      "body": "{\n  \"id\": \"evt-synthetic-2\",\n  \"resourceType\": \"checkingAccountBalance\",\n  \"operationType\": \"updated\",\n  \"changedFields\": [\"availableBalance\"]\n}\n",
+      "now": 1767225660,
+      "error": null
+    },
+    {
+      "name": "reserialised-body-fails",
+      "header": "t=1767225600,v1=3751852112b571fb4a3bf1449b13d51f08c185f22bcc193353d92e6749280a99",
+      "body": "{\"id\":\"evt-synthetic-2\",\"resourceType\":\"checkingAccountBalance\",\"operationType\":\"updated\",\"changedFields\":[\"availableBalance\"]}",
+      "now": 1767225660,
+      "error": "bad_signature"
+    },
+    {
+      "name": "tampered-body",
+      "header": "t=1767225600,v1=97bbd003ae9ac8a99f0e8c1cc6cbe6cf56bc224df87e986d25acd614d6e68ebe",
+      "body": "{\"id\":\"evt-synthetic-1\",\"resourceType\":\"transaction\",\"resourceId\":\"txn-synthetic-1\",\"operationType\":\"deleted\",\"resourceVersion\":1}",
+      "now": 1767225660,
+      "error": "bad_signature"
+    },
+    {
+      "name": "wrong-secret",
+      "header": "t=1767225600,v1=3df2863e9545b3222acc4b2aa34f8d7b8511123a62dabe5379112366a55193a8",
+      "body": "{\"id\":\"evt-synthetic-1\",\"resourceType\":\"transaction\",\"resourceId\":\"txn-synthetic-1\",\"operationType\":\"created\",\"resourceVersion\":1}",
+      "now": 1767225660,
+      "error": "bad_signature"
+    },
+    {
+      "name": "old-timestamp",
+      "header": "t=1767225600,v1=97bbd003ae9ac8a99f0e8c1cc6cbe6cf56bc224df87e986d25acd614d6e68ebe",
+      "body": "{\"id\":\"evt-synthetic-1\",\"resourceType\":\"transaction\",\"resourceId\":\"txn-synthetic-1\",\"operationType\":\"created\",\"resourceVersion\":1}",
+      "now": 1767225901,
+      "error": "too_old"
+    },
+    {
+      "name": "timestamp-at-the-tolerance",
+      "header": "t=1767225600,v1=97bbd003ae9ac8a99f0e8c1cc6cbe6cf56bc224df87e986d25acd614d6e68ebe",
+      "body": "{\"id\":\"evt-synthetic-1\",\"resourceType\":\"transaction\",\"resourceId\":\"txn-synthetic-1\",\"operationType\":\"created\",\"resourceVersion\":1}",
+      "now": 1767225900,
+      "error": null
+    },
+    {
+      "name": "longer-tolerance",
+      "header": "t=1767225600,v1=97bbd003ae9ac8a99f0e8c1cc6cbe6cf56bc224df87e986d25acd614d6e68ebe",
+      "body": "{\"id\":\"evt-synthetic-1\",\"resourceType\":\"transaction\",\"resourceId\":\"txn-synthetic-1\",\"operationType\":\"created\",\"resourceVersion\":1}",
+      "now": 1767226500,
+      "tolerance": 1200,
+      "error": null
+    },
+    {
+      "name": "several-v1-values-one-matches",
+      "header": "t=1767225600,v1=3df2863e9545b3222acc4b2aa34f8d7b8511123a62dabe5379112366a55193a8,v1=97bbd003ae9ac8a99f0e8c1cc6cbe6cf56bc224df87e986d25acd614d6e68ebe",
+      "body": "{\"id\":\"evt-synthetic-1\",\"resourceType\":\"transaction\",\"resourceId\":\"txn-synthetic-1\",\"operationType\":\"created\",\"resourceVersion\":1}",
+      "now": 1767225660,
+      "error": null
+    },
+    {
+      "name": "several-v1-values-none-match",
+      "header": "t=1767225600,v1=3df2863e9545b3222acc4b2aa34f8d7b8511123a62dabe5379112366a55193a8,v1=23be235b8009a09a840ea9e957aad95d0367725be72f7bbf505b2b0ebb571616",
+      "body": "{\"id\":\"evt-synthetic-1\",\"resourceType\":\"transaction\",\"resourceId\":\"txn-synthetic-1\",\"operationType\":\"created\",\"resourceVersion\":1}",
+      "now": 1767225660,
+      "error": "bad_signature"
+    },
+    {
+      "name": "malformed-header",
+      "header": "v1=97bbd003ae9ac8a99f0e8c1cc6cbe6cf56bc224df87e986d25acd614d6e68ebe",
+      "body": "{\"id\":\"evt-synthetic-1\",\"resourceType\":\"transaction\",\"resourceId\":\"txn-synthetic-1\",\"operationType\":\"created\",\"resourceVersion\":1}",
+      "now": 1767225660,
+      "error": "malformed_header"
+    },
+    {
+      "name": "empty-header",
+      "header": "",
+      "body": "{\"id\":\"evt-synthetic-1\",\"resourceType\":\"transaction\",\"resourceId\":\"txn-synthetic-1\",\"operationType\":\"created\",\"resourceVersion\":1}",
+      "now": 1767225660,
+      "error": "malformed_header"
+    }
+  ]
+}

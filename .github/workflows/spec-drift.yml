@@ -20,6 +20,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       spec: ${{ steps.find.outputs.spec }}
+      checks: ${{ steps.find.outputs.checks }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -30,6 +31,31 @@ jobs:
           shopt -s nullglob
           names() { for path in "$@"; do path="${path#apis/}"; echo "${path%%/*}"; done | jq -Rnc '[inputs]'; }
           echo "spec=$(names apis/*/spec/upstream/lock.json)" | tee -a "$GITHUB_OUTPUT"
+          echo "checks=$(names apis/*/spec/check-upstream.mjs)" | tee -a "$GITHUB_OUTPUT"
+
+  # An API whose pinned URL can go stale while still answering checks it with its own spec/check-upstream.mjs,
+  # which fails when the pin is no longer current.
+  upstream:
+    needs: apis
+    if: needs.apis.outputs.checks != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        api: ${{ fromJSON(needs.apis.outputs.checks) }}
+    env:
+      API: ${{ matrix.api }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: node "apis/$API/spec/check-upstream.mjs"
 
   drift:
     needs: apis

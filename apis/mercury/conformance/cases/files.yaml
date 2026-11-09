@@ -1,0 +1,109 @@
+# The three PDF downloads keep every byte, and the two attachment uploads send one multipart `file` part.
+cases:
+  - name: files-invoice-pdf-keeps-every-byte
+    request:
+      operation: getInvoicePdf
+      params: { invoiceId: inv-1 }
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/pdf }
+          body_base64: JVBERi0xLjQK/+jV0QoxIDAgb2JqCg==
+    wire:
+      - method: GET
+        path: /ar/invoices/inv-1/pdf
+        headers: { accept: application/pdf, authorization: 'Bearer {{token}}' }
+    expect:
+      result: { content_type: application/pdf, base64: JVBERi0xLjQK/+jV0QoxIDAgb2JqCg== }
+
+  - name: files-statement-pdf-keeps-every-byte
+    request:
+      operation: getStatementPdf
+      params: { statementId: stm-1 }
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/pdf }
+          body_base64: JVBERi0xLjcKgICA/w==
+    wire:
+      - method: GET
+        path: /statements/stm-1/pdf
+    expect:
+      result: { content_type: application/pdf, base64: JVBERi0xLjcKgICA/w== }
+
+  - name: files-safe-document-from-the-mock
+    request:
+      operation: getSafeRequestDocument
+      params: { safeRequestId: 00000000-0000-4000-8000-000000000001 }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /safes/00000000-0000-4000-8000-000000000001/document
+        headers: { accept: application/pdf }
+    expect:
+      result_keys: [content_type, base64]
+
+  - name: files-missing-pdf-is-not-found
+    request:
+      operation: getStatementPdf
+      params: { statementId: stm-0 }
+    mock:
+      responses:
+        - status: 404
+          body: not found
+    wire:
+      - method: GET
+        path: /statements/stm-0/pdf
+    expect:
+      error: { kind: not_found, status: 404, raw_body: not found }
+
+  - name: files-transaction-attachment-is-one-multipart-file-part
+    request:
+      operation: uploadTransactionAttachment
+      params: { transactionId: txn-1 }
+      multipart: { file: synthetic receipt }
+    mock:
+      responses:
+        - status: 200
+          body: { attachmentId: att-1 }
+    wire:
+      - method: POST
+        path: /transaction/txn-1/attachments
+        headers_match: { content-type: '^multipart/form-data; boundary=' }
+        parts: { file: [synthetic receipt] }
+    expect:
+      result: { attachmentId: att-1 }
+
+  - name: files-recipient-attachment-is-one-multipart-file-part
+    request:
+      operation: uploadRecipientAttachment
+      params: { recipientId: rcp-1 }
+      multipart: { file: synthetic tax form }
+    mock:
+      responses:
+        - status: 200
+          body: { attachmentId: att-2 }
+    wire:
+      - method: POST
+        path: /recipient/rcp-1/attachments
+        headers_match: { content-type: '^multipart/form-data; boundary=' }
+        parts: { file: [synthetic tax form] }
+    expect:
+      result: { attachmentId: att-2 }
+
+  - name: files-an-oversized-upload-is-an-api-error
+    request:
+      operation: uploadTransactionAttachment
+      params: { transactionId: txn-1 }
+      multipart: { file: synthetic receipt }
+    mock:
+      responses:
+        - status: 413
+          body: too large
+    wire:
+      - method: POST
+        path: /transaction/txn-1/attachments
+        parts: { file: [synthetic receipt] }
+    expect:
+      error: { kind: api, status: 413, raw_body: too large }

@@ -20,7 +20,7 @@ const WIRE_KEYS = [
   'content_digest',
   'min_delay_ms',
 ];
-const EXPECT_KEYS = ['result', 'result_keys', 'error', 'logs_required'];
+const EXPECT_KEYS = ['result', 'result_keys', 'error', 'logs_required', 'logs_exclude'];
 const OUTCOMES = ['result', 'result_keys', 'error'];
 
 export function operationIds(spec) {
@@ -85,6 +85,10 @@ export function validateCase(item, operations) {
     errors.push(`expect needs exactly one of ${OUTCOMES.join(', ')}`);
   }
   if (item.expect?.error !== undefined && !item.expect.error?.kind) errors.push('expect.error needs a kind');
+  const excluded = item.expect?.logs_exclude;
+  if (excluded !== undefined && !(Array.isArray(excluded) && excluded.length > 0 && excluded.every((value) => typeof value === 'string' && value !== ''))) {
+    errors.push('expect.logs_exclude must be a non-empty list of non-empty strings');
+  }
 
   return errors;
 }

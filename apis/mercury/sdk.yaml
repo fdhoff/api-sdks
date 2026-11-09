@@ -1,0 +1,62 @@
+# Settings every language's package shares.
+
+# `cursor` sends each page's `page.nextPage` back as `start_after`, an exclusive ID, until it is null or absent.
+paging: { style: cursor, next: page.nextPage, param: start_after }
+
+# The list each iterated operation's pages hold, and its paging where it is not the default. A package's
+# operations.yaml names the same `items` and `paging` for each.
+# TODO: have generate.mjs read these, so operations.yaml need not repeat them.
+iterators:
+  getAccounts: { items: accounts }
+  getAccountStatements: { items: statements }
+  getAutoTransferRules: { items: rules }
+  getBudgetExpenditures: { items: expenditures }
+  getBudgetMembers: { items: members }
+  getCreditAccountStatements: { items: statements }
+  getEvents: { items: events }
+  getRecipients: { items: recipients }
+  getTreasury: { items: accounts }
+  getTreasuryStatements: { items: statements }
+  getUsers: { items: users }
+  getWebhooks: { items: webhooks }
+  listBudgets: { items: budgets }
+  listCards: { items: cards }
+  listCategories: { items: categories }
+  listCustomers: { items: customers }
+  listInvoices: { items: invoices }
+  listMerchants: { items: data }
+  listReceipts: { items: receipts }
+  listRecipientInvites: { items: invites }
+  listRecipientsAttachments: { items: attachments }
+  listSendMoneyApprovalRequests: { items: requests }
+  listTransactions: { items: transactions }
+  listTransferMoneyApprovalRequests: { items: requests }
+  # Pages by `offset` up to `total`.
+  listAccountTransactions: { items: transactions, paging: { style: offset, total: total } }
+  # Sends each page's top-level `cursor`, an integer, back in the `cursor` query parameter.
+  getTreasuryTransactions: { items: transactions, paging: { style: cursor, next: cursor, param: cursor } }
+
+# Money-moving writes Mercury deduplicates by a key in the JSON body, so they are retried like a GET when it is set.
+idempotency:
+  createInternalTransfer: { body: idempotencyKey }
+  createTransaction: { body: idempotencyKey }
+  requestSendMoney: { body: idempotencyKey }
+  requestTransferMoney: { body: idempotencyKey }
+
+# The header that carries the timestamped HMAC-SHA256 webhook signature.
+webhooks: { header: Mercury-Signature }
+
+# Host key for each server the spec declares. revealCardPan goes to the Vault host; every other operation to `api`.
+hosts:
+  https://api.mercury.com/api/v1: api
+  https://vault-api.mercury.com/api/v1: vault
+
+# A full host map per environment. The spec lists only production, and Mercury documents no sandbox Vault host,
+# so the sandbox sends Vault calls to its own API host. See docs/spec-audit.md.
+environments:
+  production:
+    api: https://api.mercury.com/api/v1
+    vault: https://vault-api.mercury.com/api/v1
+  sandbox:
+    api: https://api-sandbox.mercury.com/api/v1
+    vault: https://api-sandbox.mercury.com/api/v1

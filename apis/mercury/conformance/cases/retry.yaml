@@ -1,0 +1,194 @@
+# A 429 is retried on every method. 5xx, timeouts and dropped connections are retried on GET, and on the four
+# money-moving writes when their `idempotencyKey` is set, with the same body every time.
+cases:
+  - name: retry-send-money-with-a-key-is-retried-on-503-with-the-same-body
+    client: { max_retries: 2 }
+    request:
+      operation: requestSendMoney
+      params: { accountId: acc-1 }
+      body: { recipientId: rcp-1, amount: 12.5, paymentMethod: ach, idempotencyKey: conformance-key-1 }
+    mock:
+      responses:
+        - status: 503
+          body: unavailable
+        - status: 200
+          body: { requestId: req-1, status: pendingApproval }
+    wire:
+      - method: POST
+        path: /account/acc-1/request-send-money
+        headers_match: { content-type: '^application/json' }
+        body: { recipientId: rcp-1, amount: 12.5, paymentMethod: ach, idempotencyKey: conformance-key-1 }
+      - method: POST
+        path: /account/acc-1/request-send-money
+        body: { recipientId: rcp-1, amount: 12.5, paymentMethod: ach, idempotencyKey: conformance-key-1 }
+    expect:
+      result: { requestId: req-1, status: pendingApproval }
+
+  - name: retry-create-transaction-with-a-key-is-retried-on-503
+    client: { max_retries: 1 }
+    request:
+      operation: createTransaction
+      params: { accountId: acc-1 }
+      body: { recipientId: rcp-1, amount: 1, paymentMethod: ach, idempotencyKey: conformance-key-2 }
+    mock:
+      responses:
+        - status: 503
+          body: ''
+        - status: 200
+          body: { id: txn-1, status: pending }
+    wire:
+      - method: POST
+        path: /account/acc-1/transactions
+        body: { recipientId: rcp-1, amount: 1, paymentMethod: ach, idempotencyKey: conformance-key-2 }
+      - method: POST
+        path: /account/acc-1/transactions
+        body: { recipientId: rcp-1, amount: 1, paymentMethod: ach, idempotencyKey: conformance-key-2 }
+    expect:
+      result: { id: txn-1, status: pending }
+
+  - name: retry-transfer-request-with-a-key-is-retried-on-503
+    client: { max_retries: 1 }
+    request:
+      operation: requestTransferMoney
+      body: { sourceAccountId: acc-1, destinationAccountId: acc-2, amount: 5, idempotencyKey: conformance-key-3 }
+    mock:
+      responses:
+        - status: 503
+          body: ''
+        - status: 200
+          body: { requestId: req-2 }
+    wire:
+      - method: POST
+        path: /request-transfer
+        body: { sourceAccountId: acc-1, destinationAccountId: acc-2, amount: 5, idempotencyKey: conformance-key-3 }
+      - method: POST
+        path: /request-transfer
+        body: { sourceAccountId: acc-1, destinationAccountId: acc-2, amount: 5, idempotencyKey: conformance-key-3 }
+    expect:
+      result: { requestId: req-2 }
+
+  - name: retry-internal-transfer-with-a-key-is-retried-after-a-dropped-connection
+    client: { max_retries: 1 }
+    request:
+      operation: createInternalTransfer
+      body: { sourceAccountId: acc-1, destinationAccountId: acc-2, amount: 5, idempotencyKey: conformance-key-4 }
+    mock:
+      responses:
+        - drop: true
+        - status: 200
+          body: { creditTransaction: { id: txn-c }, debitTransaction: { id: txn-d } }
+    wire:
+      - method: POST
+        path: /transfer
+        body: { sourceAccountId: acc-1, destinationAccountId: acc-2, amount: 5, idempotencyKey: conformance-key-4 }
+      - method: POST
+        path: /transfer
+        body: { sourceAccountId: acc-1, destinationAccountId: acc-2, amount: 5, idempotencyKey: conformance-key-4 }
+    expect:
+      result: { creditTransaction: { id: txn-c }, debitTransaction: { id: txn-d } }
+
+  - name: retry-a-write-with-an-empty-key-is-not-retried-on-503
+    client: { max_retries: 2 }
+    request:
+      operation: requestSendMoney
+      params: { accountId: acc-1 }
+      body: { recipientId: rcp-1, amount: 12.5, paymentMethod: ach, idempotencyKey: '' }
+    mock:
+      responses:
+        - status: 503
+          body: unavailable
+    wire:
+      - method: POST
+        path: /account/acc-1/request-send-money
+        body: { recipientId: rcp-1, amount: 12.5, paymentMethod: ach, idempotencyKey: '' }
+    expect:
+      error: { kind: server, status: 503 }
+
+  - name: retry-an-unmarked-write-is-not-retried-on-503
+    client: { max_retries: 2 }
+    request:
+      operation: createCustomer
+      body: { name: Synthetic Customer, email: customer@example.com }
+    mock:
+      responses:
+        - status: 503
+          body: unavailable
+    wire:
+      - method: POST
+        path: /ar/customers
+        body: { name: Synthetic Customer, email: customer@example.com }
+    expect:
+      error: { kind: server, status: 503, raw_body: unavailable }
+
+  - name: retry-a-get-is-retried-on-500
+    client: { max_retries: 1 }
+    request:
+      operation: getUser
+      params: { userId: usr-1 }
+    mock:
+      responses:
+        - status: 500
+          body: ''
+        - status: 200
+          body: { userId: usr-1 }
+    wire:
+      - method: GET
+        path: /users/usr-1
+      - method: GET
+        path: /users/usr-1
+    expect:
+      result: { userId: usr-1 }
+
+  - name: retry-429-on-an-unmarked-write-waits-for-retry-after
+    client: { max_retries: 1 }
+    request:
+      operation: createCustomer
+      body: { name: Synthetic Customer, email: customer@example.com }
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '1' }
+          body: ''
+        - status: 200
+          body: { id: cus-1 }
+    wire:
+      - method: POST
+        path: /ar/customers
+        body: { name: Synthetic Customer, email: customer@example.com }
+      - method: POST
+        path: /ar/customers
+        min_delay_ms: 900
+        body: { name: Synthetic Customer, email: customer@example.com }
+    expect:
+      result: { id: cus-1 }
+
+  - name: retry-429-without-retry-after-waits-the-rate-limit-wait
+    client: { max_retries: 1, rate_limit_wait_ms: 50 }
+    request:
+      operation: getAccounts
+    mock:
+      responses:
+        - status: 429
+          body: ''
+        - status: 200
+          body: { accounts: [], page: {} }
+    wire:
+      - method: GET
+        path: /accounts
+      - method: GET
+        path: /accounts
+        min_delay_ms: 40
+    expect:
+      result: { accounts: [] }
+
+  - name: retry-429-after-retries-is-rate-limited
+    client: { max_retries: 0 }
+    request:
+      operation: getOrganization
+    mock:
+      prism: { code: 429 }
+    wire:
+      - method: GET
+        path: /organization
+    expect:
+      error: { kind: rate_limited, status: 429 }
