@@ -87,7 +87,7 @@ Some vendors publish one OpenAPI file per API rather than one for everything. Su
 | `apis/etsy/` | The same for Etsy's Open API v3, with Python, TypeScript, Go, C# and Rust packages so far |
 | `apis/ebay/` | The same for eBay's Sell, Commerce and Developer APIs, built from 20 contracts, with Python, TypeScript, Go, C# and Rust packages so far |
 | `apis/mercury/` | The same for the Mercury API, with Python, TypeScript, Go, C# and Rust packages so far |
-| `apis/mirakl/` | The same for Mirakl's seller API, with Python and TypeScript packages so far |
+| `apis/mirakl/` | The same for Mirakl's seller API, with Python, TypeScript and Rust packages so far |
 
 `toolchain/` must not name this API or contain its endpoints or schemas. `apis/backmarket/tests/boundary.test.mjs` enforces that. API-specific values the toolchain needs arrive as configuration or case data: the conformance error kinds, for example, are defined by the cases, not by the runner.
 
