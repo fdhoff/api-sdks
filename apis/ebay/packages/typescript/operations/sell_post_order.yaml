@@ -1,0 +1,34 @@
+# Public names for the Post-Order API, keyed by operationId. Summaries are ours, not upstream's.
+checkCancellationEligibility: { resource: cancellations, method: checkEligibility, summary: Check whether an order can be cancelled. }
+createCancellationRequest: { resource: cancellations, method: create, summary: Ask to cancel an order. }
+getCancellation: { resource: cancellations, method: get, summary: Get one cancellation request. }
+searchCancellations: { resource: cancellations, method: search, summary: Search one page of cancellation requests. }
+approveCancellation: { resource: cancellations, method: approve, summary: Approve a buyer's cancellation request. }
+rejectCancellation: { resource: cancellations, method: reject, summary: Reject a buyer's cancellation request. }
+
+getCase: { resource: cases, method: get, summary: Get one case. }
+searchCases: { resource: cases, method: search, summary: Search one page of cases. }
+appealCaseDecision: { resource: cases, method: appeal, summary: Appeal the decision on a case. }
+
+getInquiry: { resource: inquiries, method: get, summary: Get one item-not-received inquiry. }
+searchInquiries: { resource: inquiries, method: search, summary: Search one page of inquiries. }
+sendInquiryMessage: { resource: inquiries, method: sendMessage, summary: Send the buyer a message about an inquiry. }
+provideInquiryShipmentInfo: { resource: inquiries, method: provideShipmentInfo, summary: Give the shipment tracking for an inquiry. }
+issueInquiryRefund: { resource: inquiries, method: issueRefund, summary: Refund the buyer to settle an inquiry. }
+escalateInquiry: { resource: inquiries, method: escalate, summary: Escalate an inquiry to a case. }
+
+createReturnRequest: { resource: returns, method: create, summary: Create a return request. }
+getReturn: { resource: returns, method: get, summary: Get one return request. }
+searchReturns: { resource: returns, method: search, summary: Search one page of return requests. }
+processReturnRequest: { resource: returns, method: decide, summary: "Accept or decline a return request, or offer a partial refund." }
+sendReturnMessage: { resource: returns, method: sendMessage, summary: Send the buyer a message about a return. }
+addShippingLabelInfo: { resource: returns, method: addShippingLabel, summary: "Give the buyer a return shipping label, or say why there is none." }
+getShipmentTrackingInfo: { resource: returns, method: getTracking, summary: Get the tracking of a return shipment. }
+markItemReceived: { resource: returns, method: markReceived, summary: Mark a returned item received. }
+issueReturnRefund: { resource: returns, method: issueRefund, summary: Refund the buyer for a return. }
+escalateReturn: { resource: returns, method: escalate, summary: Escalate a return request to a case. }
+uploadReturnFile: { resource: returns, method: uploadFile, summary: Attach a base64-encoded file to a return request. }
+getReturnFiles: { resource: returns, method: listFiles, summary: List the files attached to a return request. }
+
+getReturnPreferences: { resource: returnPreferences, method: get, summary: Get the seller's return preferences. }
+setReturnPreferences: { resource: returnPreferences, method: set, summary: Set the seller's return preferences. }

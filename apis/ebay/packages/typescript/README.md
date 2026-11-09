@@ -8,7 +8,7 @@ eBay is a trademark of eBay Inc. This project is not affiliated with, endorsed b
 
 ## How it differs from `ebay-api`
 
-[`ebay-api`](https://www.npmjs.com/package/ebay-api) is the established TypeScript client for eBay, and covers far more: the Traditional APIs, the Buy APIs and Post-Order, with years of use against the live API. If you need any of those, or a client that real sellers already rely on, use it.
+[`ebay-api`](https://www.npmjs.com/package/ebay-api) is the established TypeScript client for eBay, and covers far more: the Traditional APIs and the Buy APIs, with years of use against the live API. If you need any of those, or a client that real sellers already rely on, use it.
 
 This package is narrower, and differs in how it is built:
 
@@ -167,7 +167,7 @@ Pass `clientId` and `clientSecret`, a token, or both.
 
 ## Behaviour
 
-* **Methods** are grouped by API and then by resource, such as `client.fulfillment.orders`, `client.inventory.inventoryItems`, `client.account.fulfillmentPolicies` and `client.taxonomy.categoryTrees`. 310 of the 317 operations in the 20 contracts have a method; see Limits. Path parameters come first, then the JSON body if there is one, then an object of query, form and header parameters, then options for that call.
+* **Methods** are grouped by API and then by resource, such as `client.fulfillment.orders`, `client.inventory.inventoryItems`, `client.postOrder.returns`, `client.account.fulfillmentPolicies` and `client.taxonomy.categoryTrees`. 339 of the 346 operations in the 21 contracts have a method; see Limits. Path parameters come first, then the JSON body if there is one, then an object of query, form and header parameters, then options for that call.
 * **Names:** methods, parameters and client options are camelCase. Fields of request and response objects keep the API's own names, because they pass through unchanged.
 * **Tokens:** an operation that accepts an application token's scope gets the application token, and every other operation gets the user token. With no application token and no way to mint one, the user token is sent instead. Basic authentication with your App ID and Cert ID goes only to the token endpoint.
 * **Hosts:** most operations go to `api.ebay.com`. Finances, Identity, Key Management and payment disputes go to `apiz.ebay.com`, and most of Media to `apim.ebay.com`. Each operation goes to its own host in the environment you chose.

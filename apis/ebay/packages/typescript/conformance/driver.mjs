@@ -21,6 +21,7 @@ const CONTRACTS = {
   sell_negotiation: ['negotiation', 'negotiation'],
   sell_recommendation: ['recommendation', 'recommendation'],
   sell_stores: ['stores', 'stores'],
+  sell_post_order: ['post-order', 'postOrder'],
   commerce_feedback: ['feedback', 'feedback'],
   commerce_identity: ['identity', 'identity'],
   commerce_media: ['media', 'media'],
