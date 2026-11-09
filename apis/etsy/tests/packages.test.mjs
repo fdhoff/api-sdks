@@ -29,6 +29,10 @@ test('the Python manifest declares Apache-2.0, the approved name and says it is 
   assert.match(manifest.match(/^description = .*$/m)[0], /Unofficial.*not affiliated with Etsy/i);
 });
 
+test('the Python package is marked as typed', async () => {
+  assert.equal(await readFile(join(PYTHON, 'src/etsy_seller/py.typed'), 'utf8'), '');
+});
+
 test('the Python README says it is unofficial, carries the trademark notice and the terms users must follow', async () => {
   const readme = await unwrapped(join(PYTHON, 'README.md'));
   assert.match(readme, AFFILIATION);

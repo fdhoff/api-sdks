@@ -91,12 +91,13 @@ jobs:
         run: python -m pytest
       - run: npm run conformance:python
       - run: npm run conformance:python:async
-      - name: Build, and check the licence and notice ship
+      - name: Build, and check the licence, notice and type marker ship
         working-directory: apis/${{ matrix.api }}/packages/python
         run: |
           python -m build
           unzip -l dist/*.whl | grep -E 'licenses/LICENSE$'
           unzip -l dist/*.whl | grep -E 'licenses/NOTICE$'
+          unzip -l dist/*.whl | grep -E '/py\.typed$'
           tar tzf dist/*.tar.gz | grep -E '/LICENSE$'
           tar tzf dist/*.tar.gz | grep -E '/NOTICE$'
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

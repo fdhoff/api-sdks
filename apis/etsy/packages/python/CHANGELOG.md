@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* The package ships a `py.typed` marker, so type checkers read its annotations instead of skipping it.
 * An empty 204 response now returns `None`, and ends an iteration, instead of raising `DecodeError` where the operation also declares a JSON success.
 * Method docstrings show apostrophes as written, not as `&#39;`.
 * Binary response and request bodies are read and sent as raw bytes where the spec declares them. No operation in this package does yet.

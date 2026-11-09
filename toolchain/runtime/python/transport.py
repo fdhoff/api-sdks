@@ -55,11 +55,12 @@ _DEFAULT_PORTS = {"http": 80, "https": 443}
 @dataclass(frozen=True)
 class Param:
     """`location` is `path`, `query`, `header`, `form` for a multipart part, or `urlencoded` for a form-encoded
-    field."""
+    field. A `defaulted` query parameter that a call leaves out takes the client's `query_defaults` value."""
 
     wire: str
     name: str
     location: str
+    defaulted: bool = False
 
 
 @dataclass(frozen=True)
@@ -146,6 +147,8 @@ class Settings:
     operation without a key goes to `base_url`."""
     header_defaults: Mapping[str, str] = field(default_factory=dict)
     """Values for header parameters that a call leaves out, by header name in any case."""
+    query_defaults: Mapping[str, str] = field(default_factory=dict)
+    """Values for defaulted query parameters that a call leaves out, by exact query name."""
     _defaults_by_name: dict[str, str] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -251,6 +254,8 @@ def _build_request(
         value = params.get(param.name)
         if value is None and param.location == "header":
             value = _header_default(settings, param.wire)
+        elif value is None and param.defaulted:
+            value = settings.query_defaults.get(param.wire)
         if value is None:
             continue
         if param.location == "header":

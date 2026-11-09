@@ -62,7 +62,8 @@ jobs:
       - run: npm run spec:lint
       - run: npm test
 
-  # Generates a synthetic spec that uses hosts, header defaults and cursor paging in every language, and type-checks the output.
+  # Generates a synthetic spec that uses hosts, header and query defaults and cursor paging in every language, and type-checks the output.
+  # Each language must also mark the defaulted query parameter on both operations that declare it.
   templates:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -108,23 +109,28 @@ jobs:
         run: |
           python -m pip install -e "$FIXTURE/packages/python[dev]"
           node toolchain/pipeline/generate.mjs "$FIXTURE" python
+          test "$(grep -ro 'defaulted=True' "$FIXTURE/packages/python/src/multihost/api" | wc -l)" -eq 2
           cd "$FIXTURE/packages/python" && python -m mypy
       - name: TypeScript
         run: |
           npm ci --ignore-scripts --prefix "$FIXTURE/packages/typescript"
           node toolchain/pipeline/generate.mjs "$FIXTURE" typescript
+          test "$(grep -ro 'defaulted: true' "$FIXTURE/packages/typescript/src/apis" | wc -l)" -eq 2
           cd "$FIXTURE/packages/typescript" && npm run typecheck
       - name: Go
         run: |
           node toolchain/pipeline/generate.mjs "$FIXTURE" go
+          test "$(cat "$FIXTURE"/packages/go/multihost/api_*.go | grep -oE 'QueryDefaults: +\[\]string\{"site"\}' | wc -l)" -eq 2
           cd "$FIXTURE/packages/go" && go vet ./...
       - name: C#
         run: |
           node toolchain/pipeline/generate.mjs "$FIXTURE" csharp
+          test "$(grep -ro 'Defaulted: true' "$FIXTURE/packages/csharp/src/Multihost/Api" | wc -l)" -eq 2
           cd "$FIXTURE/packages/csharp" && dotnet build src/Multihost -c Release
       - name: Rust
         run: |
           node toolchain/pipeline/generate.mjs "$FIXTURE" rust
+          test "$(grep -ro 'query_default("site"' "$FIXTURE/packages/rust/src/apis" | wc -l)" -eq 2
           cd "$FIXTURE/packages/rust" && cargo clippy --locked --lib --examples -- -D warnings
 
   python:
@@ -176,12 +182,13 @@ jobs:
           python -m pytest
       - run: npm run conformance:python
       - run: npm run conformance:python:async
-      - name: Package ships the licence and notice
+      - name: Package ships the licence, notice and type marker
         working-directory: ${{ env.PACKAGE }}
         run: |
           python -m build
           unzip -l dist/*.whl | grep -E 'licenses/LICENSE$'
           unzip -l dist/*.whl | grep -E 'licenses/NOTICE$'
+          unzip -l dist/*.whl | grep -E '/py\.typed$'
           tar tzf dist/*.tar.gz | grep -E '/LICENSE$'
           tar tzf dist/*.tar.gz | grep -E '/NOTICE$'
 

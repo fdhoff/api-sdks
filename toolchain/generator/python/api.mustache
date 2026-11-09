@@ -38,7 +38,7 @@ _{{operationIdSnakeCase}}: Operation[{{{returnType}}}{{^returnType}}None{{/retur
         Param("{{baseName}}", "{{paramName}}", "path"),
 {{/pathParams}}
 {{#queryParams}}
-        Param("{{baseName}}", "{{paramName}}", "query"),
+        Param("{{baseName}}", "{{paramName}}", "query"{{#vendorExtensions.x-sdk-query-default}}, defaulted=True{{/vendorExtensions.x-sdk-query-default}}),
 {{/queryParams}}
 {{#headerParams}}
 {{#vendorExtensions.x-sdk-header-default}}

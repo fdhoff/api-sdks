@@ -43,6 +43,9 @@ var (
 {{#vendorExtensions.x-sdk-has-headers}}
 		HeaderParams: []string{ {{#headerParams}}{{#vendorExtensions.x-sdk-header-default}}"{{baseName}}",{{/vendorExtensions.x-sdk-header-default}}{{/headerParams}} },
 {{/vendorExtensions.x-sdk-has-headers}}
+{{#vendorExtensions.x-sdk-has-query-defaults}}
+		QueryDefaults: []string{ {{#queryParams}}{{#vendorExtensions.x-sdk-query-default}}"{{baseName}}",{{/vendorExtensions.x-sdk-query-default}}{{/queryParams}} },
+{{/vendorExtensions.x-sdk-has-query-defaults}}
 {{#vendorExtensions.x-sdk-host}}
 		Host:        "{{.}}",
 {{/vendorExtensions.x-sdk-host}}
@@ -88,6 +91,9 @@ type {{baseName}}{{vendorExtensions.x-sdk-method}}Params struct {
 {{/hasQueryParams}}
 {{/vendorExtensions.x-sdk-has-headers}}
 {{#queryParams}}
+{{#vendorExtensions.x-sdk-query-default}}
+	// {{nameInPascalCase}} left nil takes the client's default, if it has one.
+{{/vendorExtensions.x-sdk-query-default}}
 	{{nameInPascalCase}} {{^isArray}}*{{/isArray}}{{{dataType}}} `query:"{{baseName}}"`
 {{/queryParams}}
 {{#formParams}}

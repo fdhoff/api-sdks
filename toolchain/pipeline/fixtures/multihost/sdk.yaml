@@ -3,6 +3,7 @@ hosts:
   https://api.example.test/v1: main
   https://uploads.example.test/v1: uploads
 header_defaults: [X-Tenant-Id]
+query_defaults: [site]
 # startImport returns the job's ID, and getImport reports its state until it ends.
 jobs:
   startImport: { status: getImport, id: import_id, param: import_id, state: status, done: [COMPLETE], failed: [FAILED] }

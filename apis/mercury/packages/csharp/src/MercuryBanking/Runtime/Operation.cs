@@ -19,7 +19,8 @@ internal enum ParamLocation
     Raw,
 }
 
-internal sealed record Param(string Wire, string Name, ParamLocation Location);
+/// <remarks>A <see cref="Defaulted"/> query parameter that a call leaves unset takes <see cref="Settings.QueryDefaults"/>.</remarks>
+internal sealed record Param(string Wire, string Name, ParamLocation Location, bool Defaulted = false);
 
 /// <summary>
 /// How an iterator walks pages: a <see cref="NextLinkPaging"/>, an <see cref="OffsetPaging"/> or a <see cref="CursorPaging"/>.
@@ -77,6 +78,9 @@ internal sealed class Settings
 
     /// <summary>Values for header parameters a call leaves unset, by header name in any case.</summary>
     public IReadOnlyDictionary<string, string> HeaderDefaults { get; init; } = new Dictionary<string, string>();
+
+    /// <summary>Values for defaulted query parameters a call leaves unset, by exact query name.</summary>
+    public IReadOnlyDictionary<string, string> QueryDefaults { get; init; } = new Dictionary<string, string>();
 
     public required ICredentialProvider Credentials { get; init; }
 

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyBinary, applyHeaders, applyHosts, applyJobs, applyOperations, checkHeaderDefaults, checkJobs, collapseSingleUnions, omitOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, markMappedEnums, packageNames, relax, renameSchemas, resolveIdempotency, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
+import { applyBinary, applyHeaders, applyHosts, applyJobs, applyOperations, applyQueryDefaults, checkHeaderDefaults, checkJobs, checkQueryDefaults, collapseSingleUnions, omitOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, markMappedEnums, packageNames, relax, renameSchemas, resolveIdempotency, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -251,6 +251,57 @@ test('header defaults need only be declared by one of an API\'s contracts', () =
   assert.equal(second.paths['/x'].get.parameters[0]['x-sdk-header-default'], true);
   checkHeaderDefaults(defaults, used);
   assert.throws(() => checkHeaderDefaults([...defaults, 'X-Tenat'], used), /names no header parameter: x-tenat$/);
+});
+
+test('applyQueryDefaults flags default-able query parameters as optional, matching names exactly', () => {
+  const spec = () => ({
+    paths: {
+      '/x': {
+        parameters: [{ $ref: '#/components/parameters/Shop' }],
+        get: { operationId: 'a', parameters: [{ name: 'limit', in: 'query' }] },
+      },
+      '/y': {
+        get: {
+          operationId: 'b',
+          parameters: [
+            { name: 'shop', in: 'query', required: true },
+            { name: 'Shop', in: 'query' },
+            { name: 'shop', in: 'header' },
+          ],
+        },
+      },
+      '/z': { get: { operationId: 'c', parameters: [{ name: 'limit', in: 'query' }] } },
+    },
+    components: { parameters: { Shop: { name: 'shop', in: 'query', required: true } } },
+  });
+  const built = applyQueryDefaults(spec(), ['shop']);
+  assert.deepEqual(built.components.parameters.Shop, { name: 'shop', in: 'query', required: false, 'x-sdk-query-default': true });
+  assert.deepEqual(built.paths['/y'].get.parameters, [
+    { name: 'shop', in: 'query', required: false, 'x-sdk-query-default': true },
+    { name: 'Shop', in: 'query' },
+    { name: 'shop', in: 'header' },
+  ]);
+  assert.equal(applyQueryDefaults(spec()).components.parameters.Shop['x-sdk-query-default'], undefined);
+  assert.throws(() => applyQueryDefaults(spec(), ['shop', 'SHOP', 'shpo']), /query_defaults names no query parameter: SHOP, shpo$/);
+
+  const names = { a: { resource: 'r', method: 'a', summary: 'A.' }, b: { resource: 'r', method: 'b', summary: 'B.' }, c: { resource: 'r', method: 'c', summary: 'C.' } };
+  const { paths } = applyOperations(built, names);
+  assert.equal(paths['/x'].get['x-sdk-has-query-defaults'], true);
+  assert.equal(paths['/y'].get['x-sdk-has-query-defaults'], true);
+  assert.equal(paths['/y'].get['x-sdk-params-required'], false);
+  assert.equal(paths['/z'].get['x-sdk-has-query-defaults'], false);
+  assert.equal(paths['/x'].get['x-sdk-has-headers'], false);
+});
+
+test('query defaults need only be declared by one of an API\'s contracts', () => {
+  const contract = (name) => ({ paths: { '/x': { get: { operationId: 'a', parameters: [{ name, in: 'query' }] } } } });
+  const used = new Set();
+  const defaults = ['shop', 'locale'];
+  applyQueryDefaults(contract('shop'), defaults, used);
+  const second = applyQueryDefaults(contract('locale'), defaults, used);
+  assert.equal(second.paths['/x'].get.parameters[0]['x-sdk-query-default'], true);
+  checkQueryDefaults(defaults, used);
+  assert.throws(() => checkQueryDefaults([...defaults, 'Locale'], used), /names no query parameter: Locale$/);
 });
 
 test('applyOperations marks operations whose success response declares a JSON body, beside a 204 or not', () => {

@@ -312,6 +312,7 @@ pub(crate) mod tests {
             credentials,
             headers,
             header_defaults: std::collections::HashMap::new(),
+            query_defaults: std::collections::HashMap::new(),
             to_error: |context| {
                 Error::new(ErrorKind::Api, format!("failed: {}", context.text))
                     .with_status(context.status)

@@ -55,6 +55,9 @@ pub struct Settings {
     /// A value for each default-able header, sent by the operations that declare it when the call
     /// gives none. Names match without regard to case.
     pub header_defaults: HashMap<String, String>,
+    /// A value for each default-able query parameter, sent by the operations that declare it when the
+    /// call gives none. Names match exactly.
+    pub query_defaults: HashMap<String, String>,
     pub to_error: fn(ErrorContext) -> Error,
     pub timeout: Duration,
     pub max_retries: u32,
@@ -409,7 +412,7 @@ impl Transport {
         }
         let url = match hop {
             Some(hop) => hop.url.to_string(),
-            None => request.url(self.base_url(request)?),
+            None => request.url(self.base_url(request)?, &self.settings.query_defaults),
         };
         let mut auth = AuthRequest {
             method,
@@ -1150,6 +1153,7 @@ mod tests {
             credentials: Arc::new(StaticCredentials::new(HeaderMap::new(), Vec::new())),
             headers,
             header_defaults: HashMap::new(),
+            query_defaults: HashMap::new(),
             to_error: |context| Error::new(ErrorKind::Api, format!("status {}", context.status)),
             timeout: Duration::from_secs(1),
             max_retries: 0,
@@ -1220,7 +1224,7 @@ mod tests {
         };
         Ok(transport
             .next_request(&request, &page, &answer, received)?
-            .map(|next| next.url("")))
+            .map(|next| next.url("", &HashMap::new())))
     }
 
     fn next_url(
