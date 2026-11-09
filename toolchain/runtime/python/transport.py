@@ -95,6 +95,8 @@ class Operation(Generic[T]):
     """A success body is bytes, returned as a download."""
     raw_body: str = ""
     """The media type of a raw request body, sent unchanged."""
+    idempotency_key: str = ""
+    """The JSON body field the API deduplicates a write by. With it set, the write is retried as a GET is."""
 
 
 @dataclass(frozen=True)
@@ -438,7 +440,16 @@ def _retry_after(value: str | None) -> float | None:
     return wait if wait > 0 else None
 
 
-def _retry_delay(settings: Settings, error: ApiError, method: str, tries: int) -> float | None:
+def _repeatable(operation: Operation[Any], request: Mapping[str, Any]) -> bool:
+    """A GET, or a write whose body carries the key the API deduplicates it by. A key left empty is not one."""
+    if operation.method == "GET":
+        return True
+    body = request.get("json")
+    key = operation.idempotency_key
+    return bool(key) and isinstance(body, Mapping) and body.get(key) not in (None, "")
+
+
+def _retry_delay(settings: Settings, error: ApiError, repeatable: bool, tries: int) -> float | None:
     if tries >= settings.max_retries:
         return None
     if error.status == 429:
@@ -447,7 +458,7 @@ def _retry_delay(settings: Settings, error: ApiError, method: str, tries: int) -
             return settings.rate_limit_wait
         return wait if wait <= settings.max_retry_wait else None
     failed = isinstance(error, (ApiTimeoutError, ApiConnectionError)) or (error.status or 0) >= 500
-    if method == "GET" and failed:
+    if repeatable and failed:
         return float(settings.retry_base_delay * 2**tries)
     return None
 
@@ -610,6 +621,7 @@ class SyncTransport:
         settings = self.settings
         request = _build_request(settings, operation, body, params)
         streamed = _is_stream(operation, body)
+        repeatable = _repeatable(operation, request)
         tries = 0
         refreshed = False
         while True:
@@ -633,7 +645,7 @@ class SyncTransport:
                     if self._refresh(auth, group, generation):
                         _log(settings, logging.INFO, "retrying after refreshing credentials")
                         continue
-                delay = _retry_delay(settings, error, operation.method, tries)
+                delay = _retry_delay(settings, error, repeatable, tries)
                 if delay is None:
                     raise
                 _log(settings, logging.INFO, f"retrying after {delay}s: {error.kind}")
@@ -715,6 +727,7 @@ class AsyncTransport:
         if streamed and not isinstance(body, AsyncIterable):
             body = _async_chunks(body)
         request = _build_request(settings, operation, body, params)
+        repeatable = _repeatable(operation, request)
         tries = 0
         refreshed = False
         while True:
@@ -738,7 +751,7 @@ class AsyncTransport:
                     if await self._refresh(auth, group, generation):
                         _log(settings, logging.INFO, "retrying after refreshing credentials")
                         continue
-                delay = _retry_delay(settings, error, operation.method, tries)
+                delay = _retry_delay(settings, error, repeatable, tries)
                 if delay is None:
                     raise
                 _log(settings, logging.INFO, f"retrying after {delay}s: {error.kind}")

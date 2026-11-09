@@ -67,6 +67,8 @@ export interface Operation {
   returnsBinary?: boolean;
   /** The media type of a raw request body, which the call takes as a {@link RawBody}. */
   rawBody?: string;
+  /** The JSON body field the API deduplicates a write by. With it set, the write is retried as a GET is. */
+  idempotencyKey?: string;
   iterator?: string;
   paging?: Paging;
   /** Any one of these requirements authorizes the call. */
@@ -350,7 +352,18 @@ function retryAfterMs(value: string | undefined): number | undefined {
   return wait > 0 ? wait : undefined;
 }
 
-function retryDelay(settings: Settings, error: ApiError, method: string, tries: number): number | undefined {
+/** A GET, or a write whose JSON body carries the key the API deduplicates it by. A key left empty is not one. */
+function repeatable(operation: Operation, built: Built): boolean {
+  if (operation.method === 'GET') return true;
+  const key = operation.idempotencyKey;
+  if (!key || operation.rawBody !== undefined || typeof built.body !== 'string') return false;
+  const sent: unknown = JSON.parse(built.body);
+  if (!isObject(sent) || Array.isArray(sent)) return false;
+  const value = sent[key];
+  return value !== undefined && value !== null && value !== '';
+}
+
+function retryDelay(settings: Settings, error: ApiError, repeatable: boolean, tries: number): number | undefined {
   if (tries >= settings.maxRetries) return undefined;
   if (error.status === 429) {
     const after = retryAfterMs(error.retryAfter);
@@ -359,7 +372,7 @@ function retryDelay(settings: Settings, error: ApiError, method: string, tries: 
     return wait <= MAX_TIMER_MS ? wait : undefined;
   }
   const failed = error instanceof ApiTimeoutError || error instanceof ApiConnectionError || (error.status ?? 0) >= 500;
-  return method === 'GET' && failed ? settings.retryBaseDelayMs * 2 ** tries : undefined;
+  return repeatable && failed ? settings.retryBaseDelayMs * 2 ** tries : undefined;
 }
 
 /** Read the position out of the link and apply it to our own request. The link is never fetched:
@@ -516,6 +529,7 @@ export class Transport {
     const settings = this.#settings;
     const built = buildRequest(settings, this.#headerDefaults, operation, body, params);
     const encoded = await encode(built.body);
+    const retryable = repeatable(operation, built);
     let refreshed = false;
     for (let tries = 0; ;) {
       const group = settings.credentials.refreshGroup?.(operation) ?? '';
@@ -549,7 +563,7 @@ export class Transport {
             continue;
           }
         }
-        const delay = retryDelay(settings, error, operation.method, tries);
+        const delay = retryDelay(settings, error, retryable, tries);
         if (delay === undefined) throw error;
         this.#log('info', `retrying after ${delay}ms: ${error.kind}`);
         await sleep(delay, signal);

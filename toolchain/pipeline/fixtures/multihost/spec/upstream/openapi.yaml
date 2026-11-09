@@ -24,6 +24,24 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Widget' }
+    post:
+      operationId: createWidget
+      parameters:
+        - name: widget_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WidgetInput' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Widget' }
   /uploads:
     get:
       operationId: listUploads
@@ -50,6 +68,12 @@ components:
       required: [id]
       properties:
         id: { type: string }
+        name: { type: string }
+    WidgetInput:
+      type: object
+      required: [idempotency_key]
+      properties:
+        idempotency_key: { type: string }
         name: { type: string }
     Upload:
       type: object

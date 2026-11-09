@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyBinary, applyHeaders, applyHosts, applyOperations, checkHeaderDefaults, collapseSingleUnions, omitOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
+import { applyBinary, applyHeaders, applyHosts, applyOperations, checkHeaderDefaults, collapseSingleUnions, omitOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, packageNames, relax, renameSchemas, resolveIdempotency, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -473,6 +473,44 @@ test('resolvePaging layers the operation over the API default over the style def
   assert.throws(() => resolvePaging('op', ['page'], { style: 'cursor' }), /op: unknown paging style cursor/);
   assert.throws(() => resolvePaging('op', ['offset'], { style: 'offset', link: 'next' }), /unknown offset paging keys: link/);
   assert.throws(() => resolvePaging('op', ['page'], { style: 'offset' }), /no query parameter holds the offset paging position \(offset\)/);
+});
+
+test('applyOperations marks a write as idempotent only when its JSON body has the named key', () => {
+  const spec = () => ({
+    paths: {
+      '/payments': {
+        post: {
+          operationId: 'create-payment',
+          requestBody: { content: { 'application/json': { schema: { $ref: '#/components/schemas/Payment' } } } },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        Base: { type: 'object', properties: { idempotencyKey: { type: 'string' } } },
+        Payment: { allOf: [{ $ref: '#/components/schemas/Base' }, { type: 'object', properties: { amount: { type: 'number' } } }] },
+      },
+    },
+  });
+  const create = { resource: 'payments', method: 'create', summary: 'Create.' };
+  const marked = applyOperations(spec(), { 'create-payment': { ...create, idempotency: { body: 'idempotencyKey' } } });
+  assert.equal(marked.paths['/payments'].post['x-sdk-idempotency-key'], 'idempotencyKey');
+  const unmarked = applyOperations(spec(), { 'create-payment': create });
+  assert.equal(unmarked.paths['/payments'].post['x-sdk-idempotency-key'], undefined);
+  assert.throws(
+    () => applyOperations(spec(), { 'create-payment': { ...create, idempotency: { body: 'requestId' } } }),
+    /create-payment: idempotency field requestId is not in the JSON request body/,
+  );
+});
+
+test('resolveIdempotency refuses unknown keys, a missing field and an operation without a JSON body', () => {
+  const operation = { operationId: 'op', requestBody: { content: { 'application/json': { schema: { properties: { key: {} } } } } } };
+  assert.equal(resolveIdempotency({}, operation, { body: 'key' }), 'key');
+  assert.throws(() => resolveIdempotency({}, operation, { body: 'key', header: 'Idempotency-Key' }), /op: unknown idempotency keys: header/);
+  assert.throws(() => resolveIdempotency({}, operation, {}), /op: idempotency needs a body field/);
+  assert.throws(() => resolveIdempotency({}, { operationId: 'op' }, { body: 'key' }), /idempotency field key is not in the JSON request body/);
+  const form = { operationId: 'op', requestBody: { content: { 'multipart/form-data': { schema: { properties: { key: {} } } } } } };
+  assert.throws(() => resolveIdempotency({}, form, { body: 'key' }), /idempotency field key is not in the JSON request body/);
 });
 
 const driftSpec = (version, paths, schemas) => ({ info: { version }, paths, components: { schemas } });

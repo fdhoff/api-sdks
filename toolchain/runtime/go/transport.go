@@ -73,6 +73,9 @@ type Operation struct {
 	BinaryResponse bool
 	// RawBody is the media type of a raw request body, sent unchanged from [Input.Raw].
 	RawBody string
+	// IdempotencyKey names the JSON body field the API deduplicates the operation by. A call whose body
+	// sets it is retried after a 5xx, a timeout or a connection failure, as a GET is.
+	IdempotencyKey string
 	// Paging is how Iterator walks pages. Nil means the default [NextLink].
 	Paging Paging
 	// Security lists alternatives: any one requirement authorizes the call.
@@ -437,7 +440,25 @@ func retryAfter(value string, now time.Time) (time.Duration, bool) {
 	return wait, wait > 0
 }
 
-func (t *Transport) retryDelay(failure *Error, method string, tries int) (time.Duration, bool) {
+// repeatable reports whether sending the request again cannot act twice: a GET, or a write whose body
+// sets the key the API deduplicates it by. An empty or null key does not count.
+func (r *request) repeatable() bool {
+	if r.method == http.MethodGet {
+		return true
+	}
+	key := r.operation.IdempotencyKey
+	if key == "" || r.stream != nil {
+		return false
+	}
+	var fields map[string]json.RawMessage
+	if json.Unmarshal(r.body, &fields) != nil {
+		return false
+	}
+	value, ok := fields[key]
+	return ok && string(value) != "null" && string(value) != `""`
+}
+
+func (t *Transport) retryDelay(failure *Error, repeatable bool, tries int) (time.Duration, bool) {
 	settings := t.settings
 	if tries >= settings.MaxRetries {
 		return 0, false
@@ -450,7 +471,7 @@ func (t *Transport) retryDelay(failure *Error, method string, tries int) (time.D
 		return wait, wait <= settings.MaxRetryWait
 	}
 	failed := failure.Kind == KindTimeout || failure.Kind == KindConnection || failure.Status >= 500
-	if method == http.MethodGet && failed {
+	if repeatable && failed {
 		return settings.RetryBaseDelay << min(tries, maxBackoffDoublings), true
 	}
 	return 0, false
@@ -503,7 +524,7 @@ func (t *Transport) fetch(ctx context.Context, built *request) (*response, error
 				continue
 			}
 		}
-		delay, retry := t.retryDelay(failure, built.method, tries)
+		delay, retry := t.retryDelay(failure, built.repeatable(), tries)
 		if !retry {
 			return nil, err
 		}

@@ -101,6 +101,34 @@ async function binaryCall(client, request, text) {
   return { result: { content_type: response.headers.get('content-type') ?? '', base64: bytes.toString('base64') } };
 }
 
+// Synthetic writes for the idempotent mode, and the body field each one is deduplicated by.
+const WRITES = { 'create-transfer': { path: '/transfers', key: 'idempotency_key' }, 'create-item': { path: '/items' } };
+
+// Retries a write after a rate limit, and after a 5xx or a dropped connection only when its key is set, sending the
+// same bytes every time. `retry-writes` retries every write as a GET is, and `unretried` only after a rate limit.
+async function writeCall(client, request) {
+  const write = WRITES[request.operation];
+  const body = JSON.stringify(request.body);
+  const key = write.key === undefined ? undefined : request.body?.[write.key];
+  const keyed = mode === 'retry-writes' || (mode === 'idempotent' && key !== undefined && key !== null && key !== '');
+  const headers = { authorization: `Basic ${client.token}`, 'content-type': 'application/json' };
+  for (let tries = 0; ; tries += 1) {
+    const retry = tries < (client.max_retries ?? 0);
+    let response;
+    try {
+      response = await fetch(`${client.base_url}${write.path}`, { method: 'POST', headers, body });
+    } catch {
+      if (keyed && retry) continue;
+      return { error: { kind: 'connection' } };
+    }
+    if (response.ok) return { result: await response.json() };
+    await response.arrayBuffer();
+    if ((response.status === 429 || (keyed && response.status >= 500)) && retry) continue;
+    const kind = response.status === 429 ? 'rate_limited' : response.status >= 500 ? 'server' : 'api';
+    return { error: { kind, status: response.status } };
+  }
+}
+
 for await (const line of createInterface({ input: process.stdin })) {
   const { client, request } = JSON.parse(line);
   if (mode === 'silent') {
@@ -126,6 +154,10 @@ for await (const line of createInterface({ input: process.stdin })) {
   }
   if (mode === 'binary' || mode === 'binary-as-text') {
     console.log(JSON.stringify({ ...(await binaryCall(client, request, mode === 'binary-as-text')), logs: [] }));
+    continue;
+  }
+  if (['idempotent', 'retry-writes', 'unretried'].includes(mode)) {
+    console.log(JSON.stringify({ ...(await writeCall(client, request)), logs: [] }));
     continue;
   }
   if (mode === 'offset') {

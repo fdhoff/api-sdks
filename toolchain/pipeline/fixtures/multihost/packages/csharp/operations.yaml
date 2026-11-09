@@ -1,2 +1,3 @@
 getWidget: { resource: Widgets, method: GetAsync, summary: Get one widget. }
+createWidget: { resource: Widgets, method: CreateAsync, summary: Create a widget., idempotency: { body: idempotency_key } }
 listUploads: { resource: Uploads, method: ListAsync, summary: List uploads. }

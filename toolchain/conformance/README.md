@@ -73,6 +73,7 @@ cases:
 * `content_digest: true` asserts that `Content-Digest` is `sha-256=:<base64>:` of the exact bytes received. `fixtures/signing` has cases for a signed request, which an API that signs can copy.
 * `parts` lists every part of a multipart body: a list sends one part per item, so two files are two `files` parts.
 * A client whose operations are served from several hosts maps each host key `K` to `<base_url>/_host/K`. The harness records `K` as the request's `host`, removes the prefix, and matches or forwards to Prism the operation's own path. A wire item with `host` asserts the key; one without it does not check. `toolchain/conformance/fixtures/cases/hosts/` has synthetic cases to copy.
+* `toolchain/conformance/fixtures/cases/idempotency/` has synthetic cases for writes marked with an idempotency key in the body: retried with the same body when the key is set, and only after a 429 when it is not.
 * A binary download's `result` is `{ content_type, base64 }`: the response's `Content-Type`, empty if it has none, and every byte of the body as base64. `toolchain/conformance/fixtures/cases/binary/` has synthetic cases for downloads, raw uploads and a text response that is not JSON.
 * `result_keys: [id]` asserts that those keys exist, for Prism responses whose values come from spec examples. On a list it checks the first element.
 * `error` is a subset match on the driver's error object.
