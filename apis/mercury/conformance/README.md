@@ -2,6 +2,8 @@
 
 The cases for this API, in the format described in `toolchain/conformance/README.md`. Fixture values are synthetic.
 
+IDs the spec declares as UUIDs are synthetic UUIDs, so typed clients accept them. The last group starts with the kind: `acc0` accounts, `7a40` transactions, `4ec1` recipients, `ca4d` cards, `e7e4` events, `05e4` users, `1a40` invoices, `5e40` statements, `74e5` treasury accounts and `3e4c` merchants.
+
 `reference-driver.mjs` is a minimal client in plain JavaScript, used to prove that every case can pass before any language package exists. It is test code, not an SDK. Each language gets its own driver beside its package.
 
 ```sh
@@ -49,6 +51,5 @@ The `revealCardPan` cases return a synthetic card number and CVC, and `logs_excl
 ## Limits
 
 * Not every operation has a case yet. TODO: cover each operation once a language package names them.
-* No language runtime passes the treasury paging cases yet: the toolchain's `cursor` style takes only a string next value. See `apis/mercury/docs/spec-audit.md`.
 
 These cases are checked against the mock only. Nothing here has been confirmed against the live API.

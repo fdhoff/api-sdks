@@ -1,0 +1,30 @@
+# coding: utf-8
+
+# Generated code. Do not edit by hand; change the templates, the overlay or the runtime instead.
+
+
+from __future__ import annotations
+
+from datetime import date
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from typing import Any, ClassVar, Dict, List, Optional
+from typing_extensions import Annotated
+from uuid import UUID
+from mercury_banking.models.api_v1_budget_frequency import ApiV1BudgetFrequency
+from mercury_banking.models.api_v1_budget_publish_status import ApiV1BudgetPublishStatus
+from mercury_banking._runtime import ApiModel
+
+
+class ApiV1SpendBudgetResponse(ApiModel):
+    """ApiV1SpendBudgetResponse model."""
+
+    amount_per_user_per_period: Optional[Annotated[float, Field(ge=0)]] = Field(
+        default=None, alias="amountPerUserPerPeriod"
+    )
+    description: Optional[StrictStr] = None
+    end_date: Optional[date] = Field(default=None, alias="endDate")
+    frequency: ApiV1BudgetFrequency
+    id: UUID
+    name: Optional[StrictStr] = None
+    start_date: Optional[date] = Field(default=None, alias="startDate")
+    status: ApiV1BudgetPublishStatus

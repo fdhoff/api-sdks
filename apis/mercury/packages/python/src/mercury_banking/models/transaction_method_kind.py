@@ -1,0 +1,67 @@
+# coding: utf-8
+
+# Generated code. Do not edit by hand; change the templates, the overlay or the runtime instead.
+
+
+from __future__ import annotations
+
+from enum import Enum
+
+
+class TransactionMethodKind(str, Enum):
+    """Allowed values of TransactionMethodKind."""
+
+    OUTGOINGELECTRONICPAYMENT = "outgoingElectronicPayment"
+    OUTGOINGCHECKPAYMENT = "outgoingCheckPayment"
+    ENDOGENOUSOUTGOINGACHTRANSFER = "endogenousOutgoingAchTransfer"
+    ENDOGENOUSINCOMINGACHTRANSFER = "endogenousIncomingAchTransfer"
+    EXOGENOUSOUTGOINGACH = "exogenousOutgoingAch"
+    EXOGENOUSINCOMINGACH = "exogenousIncomingAch"
+    INCOMINGCREDIT = "incomingCredit"
+    OUTGOINGCREDIT = "outgoingCredit"
+    INCOMINGDEBIT = "incomingDebit"
+    OUTGOINGDEBIT = "outgoingDebit"
+    INTERNALTRANSFER = "internalTransfer"
+    INCOMINGCHECK = "incomingCheck"
+    OUTGOINGINTERNATIONALWIRE = "outgoingInternationalWire"
+    INCOMINGINTERNATIONALWIRE = "incomingInternationalWire"
+    OUTGOINGDOMESTICWIRE = "outgoingDomesticWire"
+    INCOMINGDOMESTICWIRE = "incomingDomesticWire"
+    WIREFEE = "wireFee"
+    CONVERSIONFEE = "conversionFee"
+    PERSONALBANKINGSUBSCRIPTIONFEE = "personalBankingSubscriptionFee"
+    BILLINGENGINESUBSCRIPTIONFEE = "billingEngineSubscriptionFee"
+    PHYSICALCARDUPGRADEFEE = "physicalCardUpgradeFee"
+    EXOGENOUSOUTGOINGCHECK = "exogenousOutgoingCheck"
+    EXOGENOUSOUTGOINGWIRE = "exogenousOutgoingWire"
+    TREASURYTRANSFER = "treasuryTransfer"
+    INVESTTRANSFER = "investTransfer"
+    CURRENCYCLOUDRETURN = "currencyCloudReturn"
+    INTERNATIONALWIREPARTNERRETURN = "internationalWirePartnerReturn"
+    INTERNALCREDITACCOUNTPAYMENT = "internalCreditAccountPayment"
+    AUTOROUTINGTRANSFER = "autoRoutingTransfer"
+    VENTUREDEBTFUNDING = "ventureDebtFunding"
+    VENTUREDEBTREPAYMENT = "ventureDebtRepayment"
+    CREDITCASHBACKREWARDSDEPOSIT = "creditCashbackRewardsDeposit"
+    EXTERNALCREDITCASHBACKREWARDSDEPOSIT = "externalCreditCashbackRewardsDeposit"
+    INTERESTPAYMENT = "interestPayment"
+    OUTGOINGPROVISIONALCREDIT = "outgoingProvisionalCredit"
+    INCOMINGPROVISIONALCREDIT = "incomingProvisionalCredit"
+    LINEOFCREDITFUNDING = "lineOfCreditFunding"
+    LINEOFCREDITREPAYMENT = "lineOfCreditRepayment"
+    LINEOFCREDITINTERESTREPAYMENT = "lineOfCreditInterestRepayment"
+    ATMFEEREIMBURSEMENT = "atmFeeReimbursement"
+    ATMFEEREIMBURSEMENTREVERSAL = "atmFeeReimbursementReversal"
+    EXPENSEREIMBURSEMENT = "expenseReimbursement"
+    REQUESTEDPAYMENT = "requestedPayment"
+    EXOGENOUSWIREDRAWDOWN = "exogenousWireDrawdown"
+    INCOMINGCREDITACCOUNTREPAYMENT = "incomingCreditAccountRepayment"
+    CARDINTLTRANSACTIONFEE = "cardIntlTransactionFee"
+    CARDINTLTRANSACTIONFEEREBATE = "cardIntlTransactionFeeRebate"
+    CARDINTLTRANSACTIONFEEREVERSAL = "cardIntlTransactionFeeReversal"
+    CARDINTLTRANSACTIONFEEREBATEREVERSAL = "cardIntlTransactionFeeRebateReversal"
+    EXTERNALCREDITACCOUNTPAYMENT = "externalCreditAccountPayment"
+    REALTIMEPAYMENT = "realtimePayment"
+    OUTGOINGREALTIMEPAYMENT = "outgoingRealTimePayment"
+    BALANCEHOLD = "balanceHold"
+    LINKEDMERCURYACCOUNTTRANSFER = "linkedMercuryAccountTransfer"

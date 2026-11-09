@@ -286,6 +286,7 @@ test('applyBinary marks binary responses and raw request bodies, and drops what 
   const { paths, components } = applyBinary(spec());
   const download = paths['/download'].get;
   assert.equal(download['x-sdk-binary-response'], true);
+  assert.equal(download['x-sdk-accept'], 'application/pdf, application/octet-stream');
   assert.deepEqual(download.responses[200], { description: '' });
   assert.deepEqual(download.responses[206], { description: '' });
   assert.deepEqual(Object.keys(download.responses[404].content), ['application/json']);

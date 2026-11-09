@@ -10,44 +10,44 @@ cases:
     mock:
       responses:
         - status: 200
-          body: { accounts: [{ id: acc-1 }, { id: acc-2 }], page: { nextPage: acc-2, previousPage: null } }
+          body: { accounts: [{ id: 00000000-0000-4000-8000-acc000000001 }, { id: 00000000-0000-4000-8000-acc000000002 }], page: { nextPage: 00000000-0000-4000-8000-acc000000002, previousPage: null } }
         - status: 200
-          body: { accounts: [{ id: acc-3 }, { id: acc-4 }], page: { nextPage: acc-4, previousPage: acc-3 } }
+          body: { accounts: [{ id: 00000000-0000-4000-8000-acc000000003 }, { id: 00000000-0000-4000-8000-acc000000004 }], page: { nextPage: 00000000-0000-4000-8000-acc000000004, previousPage: 00000000-0000-4000-8000-acc000000003 } }
         - status: 200
-          body: { accounts: [{ id: acc-5 }], page: { nextPage: null, previousPage: acc-5 } }
+          body: { accounts: [{ id: 00000000-0000-4000-8000-acc000000005 }], page: { nextPage: null, previousPage: 00000000-0000-4000-8000-acc000000005 } }
     wire:
       - method: GET
         path: /accounts
         query: { limit: '2' }
       - method: GET
         path: /accounts
-        query: { limit: '2', start_after: acc-2 }
+        query: { limit: '2', start_after: 00000000-0000-4000-8000-acc000000002 }
       - method: GET
         path: /accounts
-        query: { limit: '2', start_after: acc-4 }
+        query: { limit: '2', start_after: 00000000-0000-4000-8000-acc000000004 }
     expect:
-      result: [{ id: acc-1 }, { id: acc-2 }, { id: acc-3 }, { id: acc-4 }, { id: acc-5 }]
+      result: [{ id: 00000000-0000-4000-8000-acc000000001 }, { id: 00000000-0000-4000-8000-acc000000002 }, { id: 00000000-0000-4000-8000-acc000000003 }, { id: 00000000-0000-4000-8000-acc000000004 }, { id: 00000000-0000-4000-8000-acc000000005 }]
 
   - name: pagination-cursor-keeps-the-callers-position-and-filters
     request:
       operation: listTransactions
-      params: { limit: 1, start_after: txn-0, status: sent, order: asc }
+      params: { limit: 1, start_after: 00000000-0000-4000-8000-7a4000000000, status: [sent], order: asc }
       paginate: true
     mock:
       responses:
         - status: 200
-          body: { transactions: [{ id: txn-1 }], page: { nextPage: txn-1 } }
+          body: { transactions: [{ id: 00000000-0000-4000-8000-7a4000000001 }], page: { nextPage: 00000000-0000-4000-8000-7a4000000001 } }
         - status: 200
-          body: { transactions: [{ id: txn-2 }], page: {} }
+          body: { transactions: [{ id: 00000000-0000-4000-8000-7a4000000002 }], page: {} }
     wire:
       - method: GET
         path: /transactions
-        query: { limit: '1', start_after: txn-0, status: sent, order: asc }
+        query: { limit: '1', start_after: 00000000-0000-4000-8000-7a4000000000, status: sent, order: asc }
       - method: GET
         path: /transactions
-        query: { limit: '1', start_after: txn-1, status: sent, order: asc }
+        query: { limit: '1', start_after: 00000000-0000-4000-8000-7a4000000001, status: sent, order: asc }
     expect:
-      result: [{ id: txn-1 }, { id: txn-2 }]
+      result: [{ id: 00000000-0000-4000-8000-7a4000000001 }, { id: 00000000-0000-4000-8000-7a4000000002 }]
 
   - name: pagination-cursor-stops-after-an-empty-last-page
     request:
@@ -56,7 +56,7 @@ cases:
     mock:
       responses:
         - status: 200
-          body: { data: [{ id: mer-1 }], page: { nextPage: mer-1 } }
+          body: { data: [{ id: 00000000-0000-4000-8000-3e4c00000001 }], page: { nextPage: 00000000-0000-4000-8000-3e4c00000001 } }
         - status: 200
           body: { data: [], page: { nextPage: null } }
     wire:
@@ -64,23 +64,23 @@ cases:
         path: /merchants
       - method: GET
         path: /merchants
-        query: { start_after: mer-1 }
+        query: { start_after: 00000000-0000-4000-8000-3e4c00000001 }
     expect:
-      result: [{ id: mer-1 }]
+      result: [{ id: 00000000-0000-4000-8000-3e4c00000001 }]
 
   - name: pagination-cursor-repeated-is-a-decode-error
     request:
       operation: getEvents
-      params: { start_after: evt-1 }
+      params: { start_after: 00000000-0000-4000-8000-e7e400000001 }
       paginate: true
     mock:
       responses:
         - status: 200
-          body: { events: [{ id: evt-2 }], page: { nextPage: evt-1 } }
+          body: { events: [{ id: 00000000-0000-4000-8000-e7e400000002 }], page: { nextPage: 00000000-0000-4000-8000-e7e400000001 } }
     wire:
       - method: GET
         path: /events
-        query: { start_after: evt-1 }
+        query: { start_after: 00000000-0000-4000-8000-e7e400000001 }
     expect:
       error: { kind: decode }
 
@@ -101,49 +101,49 @@ cases:
   - name: pagination-offset-advances-to-the-total
     request:
       operation: listAccountTransactions
-      params: { accountId: acc-1, limit: 2 }
+      params: { accountId: 00000000-0000-4000-8000-acc000000001, limit: 2 }
       paginate: true
     mock:
       responses:
         - status: 200
-          body: { total: 3, transactions: [{ id: txn-1 }, { id: txn-2 }] }
+          body: { total: 3, transactions: [{ id: 00000000-0000-4000-8000-7a4000000001 }, { id: 00000000-0000-4000-8000-7a4000000002 }] }
         - status: 200
-          body: { total: 3, transactions: [{ id: txn-3 }] }
+          body: { total: 3, transactions: [{ id: 00000000-0000-4000-8000-7a4000000003 }] }
     wire:
       - method: GET
-        path: /account/acc-1/transactions
+        path: /account/00000000-0000-4000-8000-acc000000001/transactions
         query: { limit: '2' }
       - method: GET
-        path: /account/acc-1/transactions
+        path: /account/00000000-0000-4000-8000-acc000000001/transactions
         query: { limit: '2', offset: '2' }
     expect:
-      result: [{ id: txn-1 }, { id: txn-2 }, { id: txn-3 }]
+      result: [{ id: 00000000-0000-4000-8000-7a4000000001 }, { id: 00000000-0000-4000-8000-7a4000000002 }, { id: 00000000-0000-4000-8000-7a4000000003 }]
 
   - name: pagination-offset-keeps-the-callers-offset-and-stops-at-an-empty-page
     request:
       operation: listAccountTransactions
-      params: { accountId: acc-1, offset: 5 }
+      params: { accountId: 00000000-0000-4000-8000-acc000000001, offset: 5 }
       paginate: true
     mock:
       responses:
         - status: 200
-          body: { total: 100, transactions: [{ id: txn-6 }] }
+          body: { total: 100, transactions: [{ id: 00000000-0000-4000-8000-7a4000000006 }] }
         - status: 200
           body: { total: 100, transactions: [] }
     wire:
       - method: GET
-        path: /account/acc-1/transactions
+        path: /account/00000000-0000-4000-8000-acc000000001/transactions
         query: { offset: '5' }
       - method: GET
-        path: /account/acc-1/transactions
+        path: /account/00000000-0000-4000-8000-acc000000001/transactions
         query: { offset: '6' }
     expect:
-      result: [{ id: txn-6 }]
+      result: [{ id: 00000000-0000-4000-8000-7a4000000006 }]
 
   - name: pagination-treasury-sends-the-integer-cursor-back
     request:
       operation: getTreasuryTransactions
-      params: { treasuryId: tre-1, limit: 2 }
+      params: { treasuryId: 00000000-0000-4000-8000-74e500000001, limit: 2 }
       paginate: true
     mock:
       responses:
@@ -155,13 +155,13 @@ cases:
           body: { transactions: [], cursor: null }
     wire:
       - method: GET
-        path: /treasury/tre-1/transactions
+        path: /treasury/00000000-0000-4000-8000-74e500000001/transactions
         query: { limit: '2' }
       - method: GET
-        path: /treasury/tre-1/transactions
+        path: /treasury/00000000-0000-4000-8000-74e500000001/transactions
         query: { limit: '2', cursor: '40' }
       - method: GET
-        path: /treasury/tre-1/transactions
+        path: /treasury/00000000-0000-4000-8000-74e500000001/transactions
         query: { limit: '2', cursor: '0' }
     expect:
       result: [{ id: ttx-1 }, { id: ttx-2 }, { id: ttx-3 }]
@@ -169,7 +169,7 @@ cases:
   - name: pagination-treasury-stops-without-a-cursor
     request:
       operation: getTreasuryTransactions
-      params: { treasuryId: tre-1 }
+      params: { treasuryId: 00000000-0000-4000-8000-74e500000001 }
       paginate: true
     mock:
       responses:
@@ -177,6 +177,6 @@ cases:
           body: { transactions: [{ id: ttx-1 }] }
     wire:
       - method: GET
-        path: /treasury/tre-1/transactions
+        path: /treasury/00000000-0000-4000-8000-74e500000001/transactions
     expect:
       result: [{ id: ttx-1 }]

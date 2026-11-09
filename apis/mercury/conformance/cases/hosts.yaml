@@ -39,9 +39,9 @@ cases:
     mock:
       responses:
         - status: 200
-          body: { total: 2, recipients: [{ id: rcp-1 }], page: { nextPage: rcp-1 } }
+          body: { total: 2, recipients: [{ id: 00000000-0000-4000-8000-4ec100000001 }], page: { nextPage: 00000000-0000-4000-8000-4ec100000001 } }
         - status: 200
-          body: { total: 2, recipients: [{ id: rcp-2 }], page: { nextPage: null } }
+          body: { total: 2, recipients: [{ id: 00000000-0000-4000-8000-4ec100000002 }], page: { nextPage: null } }
     wire:
       - method: GET
         host: api-sandbox.mercury.com
@@ -50,14 +50,14 @@ cases:
       - method: GET
         host: api-sandbox.mercury.com
         path: /recipients
-        query: { limit: '1', start_after: rcp-1 }
+        query: { limit: '1', start_after: 00000000-0000-4000-8000-4ec100000001 }
     expect:
-      result: [{ id: rcp-1 }, { id: rcp-2 }]
+      result: [{ id: 00000000-0000-4000-8000-4ec100000001 }, { id: 00000000-0000-4000-8000-4ec100000002 }]
 
   - name: hosts-reveal-goes-to-the-vault-host
     request:
       operation: revealCardPan
-      params: { cardId: crd-1 }
+      params: { cardId: 00000000-0000-4000-8000-ca4d00000001 }
     mock:
       responses:
         - status: 200
@@ -65,7 +65,7 @@ cases:
     wire:
       - method: GET
         host: vault
-        path: /cards/crd-1/reveal
+        path: /cards/00000000-0000-4000-8000-ca4d00000001/reveal
         headers: { authorization: 'Bearer {{token}}' }
     expect:
       result: { cardNumber: '0000111122223333' }
@@ -74,7 +74,7 @@ cases:
     client: { environment: production }
     request:
       operation: revealCardPan
-      params: { cardId: crd-1 }
+      params: { cardId: 00000000-0000-4000-8000-ca4d00000001 }
     mock:
       responses:
         - status: 200
@@ -82,7 +82,7 @@ cases:
     wire:
       - method: GET
         host: vault-api.mercury.com
-        path: /cards/crd-1/reveal
+        path: /cards/00000000-0000-4000-8000-ca4d00000001/reveal
     expect:
       result: { cvc: '0417' }
 
@@ -90,7 +90,7 @@ cases:
     client: { environment: sandbox }
     request:
       operation: revealCardPan
-      params: { cardId: crd-1 }
+      params: { cardId: 00000000-0000-4000-8000-ca4d00000001 }
     mock:
       responses:
         - status: 404
@@ -98,6 +98,6 @@ cases:
     wire:
       - method: GET
         host: api-sandbox.mercury.com
-        path: /cards/crd-1/reveal
+        path: /cards/00000000-0000-4000-8000-ca4d00000001/reveal
     expect:
       error: { kind: not_found, status: 404 }

@@ -5,8 +5,8 @@ cases:
     client: { max_retries: 2 }
     request:
       operation: requestSendMoney
-      params: { accountId: acc-1 }
-      body: { recipientId: rcp-1, amount: 12.5, paymentMethod: ach, idempotencyKey: conformance-key-1 }
+      params: { accountId: 00000000-0000-4000-8000-acc000000001 }
+      body: { recipientId: 00000000-0000-4000-8000-4ec100000001, amount: 12.5, paymentMethod: ach, idempotencyKey: conformance-key-1 }
     mock:
       responses:
         - status: 503
@@ -15,12 +15,12 @@ cases:
           body: { requestId: req-1, status: pendingApproval }
     wire:
       - method: POST
-        path: /account/acc-1/request-send-money
+        path: /account/00000000-0000-4000-8000-acc000000001/request-send-money
         headers_match: { content-type: '^application/json' }
-        body: { recipientId: rcp-1, amount: 12.5, paymentMethod: ach, idempotencyKey: conformance-key-1 }
+        body: { recipientId: 00000000-0000-4000-8000-4ec100000001, amount: 12.5, paymentMethod: ach, idempotencyKey: conformance-key-1 }
       - method: POST
-        path: /account/acc-1/request-send-money
-        body: { recipientId: rcp-1, amount: 12.5, paymentMethod: ach, idempotencyKey: conformance-key-1 }
+        path: /account/00000000-0000-4000-8000-acc000000001/request-send-money
+        body: { recipientId: 00000000-0000-4000-8000-4ec100000001, amount: 12.5, paymentMethod: ach, idempotencyKey: conformance-key-1 }
     expect:
       result: { requestId: req-1, status: pendingApproval }
 
@@ -28,29 +28,29 @@ cases:
     client: { max_retries: 1 }
     request:
       operation: createTransaction
-      params: { accountId: acc-1 }
-      body: { recipientId: rcp-1, amount: 1, paymentMethod: ach, idempotencyKey: conformance-key-2 }
+      params: { accountId: 00000000-0000-4000-8000-acc000000001 }
+      body: { recipientId: 00000000-0000-4000-8000-4ec100000001, amount: 1, paymentMethod: ach, idempotencyKey: conformance-key-2 }
     mock:
       responses:
         - status: 503
           body: ''
         - status: 200
-          body: { id: txn-1, status: pending }
+          body: { id: 00000000-0000-4000-8000-7a4000000001, status: pending }
     wire:
       - method: POST
-        path: /account/acc-1/transactions
-        body: { recipientId: rcp-1, amount: 1, paymentMethod: ach, idempotencyKey: conformance-key-2 }
+        path: /account/00000000-0000-4000-8000-acc000000001/transactions
+        body: { recipientId: 00000000-0000-4000-8000-4ec100000001, amount: 1, paymentMethod: ach, idempotencyKey: conformance-key-2 }
       - method: POST
-        path: /account/acc-1/transactions
-        body: { recipientId: rcp-1, amount: 1, paymentMethod: ach, idempotencyKey: conformance-key-2 }
+        path: /account/00000000-0000-4000-8000-acc000000001/transactions
+        body: { recipientId: 00000000-0000-4000-8000-4ec100000001, amount: 1, paymentMethod: ach, idempotencyKey: conformance-key-2 }
     expect:
-      result: { id: txn-1, status: pending }
+      result: { id: 00000000-0000-4000-8000-7a4000000001, status: pending }
 
   - name: retry-transfer-request-with-a-key-is-retried-on-503
     client: { max_retries: 1 }
     request:
       operation: requestTransferMoney
-      body: { sourceAccountId: acc-1, destinationAccountId: acc-2, amount: 5, idempotencyKey: conformance-key-3 }
+      body: { sourceAccountId: 00000000-0000-4000-8000-acc000000001, destinationAccountId: 00000000-0000-4000-8000-acc000000002, amount: 5, idempotencyKey: conformance-key-3 }
     mock:
       responses:
         - status: 503
@@ -60,10 +60,10 @@ cases:
     wire:
       - method: POST
         path: /request-transfer
-        body: { sourceAccountId: acc-1, destinationAccountId: acc-2, amount: 5, idempotencyKey: conformance-key-3 }
+        body: { sourceAccountId: 00000000-0000-4000-8000-acc000000001, destinationAccountId: 00000000-0000-4000-8000-acc000000002, amount: 5, idempotencyKey: conformance-key-3 }
       - method: POST
         path: /request-transfer
-        body: { sourceAccountId: acc-1, destinationAccountId: acc-2, amount: 5, idempotencyKey: conformance-key-3 }
+        body: { sourceAccountId: 00000000-0000-4000-8000-acc000000001, destinationAccountId: 00000000-0000-4000-8000-acc000000002, amount: 5, idempotencyKey: conformance-key-3 }
     expect:
       result: { requestId: req-2 }
 
@@ -71,7 +71,7 @@ cases:
     client: { max_retries: 1 }
     request:
       operation: createInternalTransfer
-      body: { sourceAccountId: acc-1, destinationAccountId: acc-2, amount: 5, idempotencyKey: conformance-key-4 }
+      body: { sourceAccountId: 00000000-0000-4000-8000-acc000000001, destinationAccountId: 00000000-0000-4000-8000-acc000000002, amount: 5, idempotencyKey: conformance-key-4 }
     mock:
       responses:
         - drop: true
@@ -80,10 +80,10 @@ cases:
     wire:
       - method: POST
         path: /transfer
-        body: { sourceAccountId: acc-1, destinationAccountId: acc-2, amount: 5, idempotencyKey: conformance-key-4 }
+        body: { sourceAccountId: 00000000-0000-4000-8000-acc000000001, destinationAccountId: 00000000-0000-4000-8000-acc000000002, amount: 5, idempotencyKey: conformance-key-4 }
       - method: POST
         path: /transfer
-        body: { sourceAccountId: acc-1, destinationAccountId: acc-2, amount: 5, idempotencyKey: conformance-key-4 }
+        body: { sourceAccountId: 00000000-0000-4000-8000-acc000000001, destinationAccountId: 00000000-0000-4000-8000-acc000000002, amount: 5, idempotencyKey: conformance-key-4 }
     expect:
       result: { creditTransaction: { id: txn-c }, debitTransaction: { id: txn-d } }
 
@@ -91,16 +91,16 @@ cases:
     client: { max_retries: 2 }
     request:
       operation: requestSendMoney
-      params: { accountId: acc-1 }
-      body: { recipientId: rcp-1, amount: 12.5, paymentMethod: ach, idempotencyKey: '' }
+      params: { accountId: 00000000-0000-4000-8000-acc000000001 }
+      body: { recipientId: 00000000-0000-4000-8000-4ec100000001, amount: 12.5, paymentMethod: ach, idempotencyKey: '' }
     mock:
       responses:
         - status: 503
           body: unavailable
     wire:
       - method: POST
-        path: /account/acc-1/request-send-money
-        body: { recipientId: rcp-1, amount: 12.5, paymentMethod: ach, idempotencyKey: '' }
+        path: /account/00000000-0000-4000-8000-acc000000001/request-send-money
+        body: { recipientId: 00000000-0000-4000-8000-4ec100000001, amount: 12.5, paymentMethod: ach, idempotencyKey: '' }
     expect:
       error: { kind: server, status: 503 }
 
@@ -124,20 +124,20 @@ cases:
     client: { max_retries: 1 }
     request:
       operation: getUser
-      params: { userId: usr-1 }
+      params: { userId: 00000000-0000-4000-8000-05e400000001 }
     mock:
       responses:
         - status: 500
           body: ''
         - status: 200
-          body: { userId: usr-1 }
+          body: { userId: 00000000-0000-4000-8000-05e400000001 }
     wire:
       - method: GET
-        path: /users/usr-1
+        path: /users/00000000-0000-4000-8000-05e400000001
       - method: GET
-        path: /users/usr-1
+        path: /users/00000000-0000-4000-8000-05e400000001
     expect:
-      result: { userId: usr-1 }
+      result: { userId: 00000000-0000-4000-8000-05e400000001 }
 
   - name: retry-429-on-an-unmarked-write-waits-for-retry-after
     client: { max_retries: 1 }

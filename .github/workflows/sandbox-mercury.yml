@@ -1,0 +1,50 @@
+name: Mercury sandbox
+
+# Read-only calls against Mercury's sandbox, which holds only dummy data, with a read-only sandbox token. Never on pull
+# requests, so the secret cannot reach a fork's code. Skipped with a notice when MERCURY_SANDBOX_TOKEN is not set.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/sandbox-mercury.yml
+      - apis/mercury/packages/python/**
+      - toolchain/runtime/python/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sandbox-mercury
+  cancel-in-progress: true
+
+jobs:
+  python:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      MERCURY_SANDBOX_TOKEN: ${{ secrets.MERCURY_SANDBOX_TOKEN }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - id: token
+        run: |
+          if [ -z "$MERCURY_SANDBOX_TOKEN" ]; then
+            echo "::notice title=Mercury sandbox skipped::MERCURY_SANDBOX_TOKEN is not set."
+            echo "set=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "set=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.token.outputs.set == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - if: steps.token.outputs.set == 'true'
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.14"
+      - if: steps.token.outputs.set == 'true'
+        run: python -m pip install ./apis/mercury/packages/python
+      - if: steps.token.outputs.set == 'true'
+        run: python apis/mercury/packages/python/sandbox/smoke.py

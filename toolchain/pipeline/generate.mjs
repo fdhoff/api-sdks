@@ -115,19 +115,21 @@ const isBinarySchema = (spec, schema) => {
 
 // Bodies declared as `type: string, format: binary` are raw bytes, which generators would each type their
 // own way. A binary success response is marked `x-sdk-binary-response` and loses its content, so it has no
-// generated type. A request body whose one media type is binary, and neither JSON nor a form, becomes
-// `x-sdk-raw-body` with that media type, and loses its requestBody, so templates add their own argument.
+// generated type, and `x-sdk-accept` keeps its media types for the Accept header. A request body whose one
+// media type is binary, and neither JSON nor a form, becomes `x-sdk-raw-body` with that media type, and loses
+// its requestBody, so templates add their own argument.
 export function applyBinary(spec) {
   for (const item of Object.values(spec.paths)) {
     for (const operation of METHODS.map((method) => item[method]).filter(Boolean)) {
       const id = operation.operationId;
       const success = Object.entries(operation.responses ?? {}).filter(([status]) => status.startsWith('2'));
-      const bodies = success.flatMap(([, response]) => Object.values(dereference(spec, response)?.content ?? {}));
-      const binary = bodies.filter((media) => isBinarySchema(spec, media.schema));
+      const bodies = success.flatMap(([, response]) => Object.entries(dereference(spec, response)?.content ?? {}));
+      const binary = bodies.filter(([, media]) => isBinarySchema(spec, media.schema));
       if (binary.length > 0) {
         if (binary.length !== bodies.length) throw new Error(`${id}: a success response mixes binary and other bodies`);
         for (const [status] of success) operation.responses[status] = { description: '' };
         operation['x-sdk-binary-response'] = true;
+        operation['x-sdk-accept'] = [...new Set(binary.map(([type]) => type))].join(', ');
       }
       const content = Object.entries(dereference(spec, operation.requestBody)?.content ?? {});
       const raw = content.filter(([type, media]) => !isJsonMediaType(type) && !FORMS.includes(type) && isBinarySchema(spec, media.schema));
