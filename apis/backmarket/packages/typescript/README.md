@@ -7,7 +7,7 @@ Unofficial TypeScript client for the Back Market Seller API. This project is uno
 ## Install
 
 ```sh
-npm install backmarket-seller@alpha
+npm install backmarket-seller
 ```
 
 Requires Node.js 22 or later. It works from ESM and CommonJS, uses the built-in `fetch`, and has no runtime dependencies.

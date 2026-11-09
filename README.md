@@ -45,7 +45,7 @@ The [Python README](apis/backmarket/packages/python/README.md) covers async use,
 Requires Node 22 or later.
 
 ```sh
-npm install backmarket-seller@alpha
+npm install backmarket-seller
 ```
 
 ```ts
