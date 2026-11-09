@@ -28,7 +28,7 @@ A driver reports these in `error.kind`, with the HTTP `status` where there was o
 | `api` | Any other status, redirects included |
 | `timeout` | No response within `timeout_ms`, after retries |
 | `connection` | The connection failed or dropped before a full response, after retries |
-| `decode` | A success response whose declared JSON body is empty or does not parse, a page with no items list, or a next token that repeats the one sent |
+| `decode` | A success response whose declared JSON body is empty or does not parse, a page with no items list, or a next token that repeats one already sent in the iteration |
 | `job_timeout` | A wait reached `poll_timeout_ms` before the job's state was final |
 
 ## Retries, paging, jobs and downloads
