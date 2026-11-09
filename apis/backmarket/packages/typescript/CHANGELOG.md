@@ -17,6 +17,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * An empty success body where the spec declares JSON throws `DecodeError` instead of resolving to `undefined`. Where the spec declares text, it resolves to `""`.
 * An empty 204 response resolves to `undefined`, even where the spec also declares JSON, instead of throwing `DecodeError`.
 * Binary response and request bodies are read and sent as raw bytes where the spec declares them. No operation in this package does yet.
+* The runtime can poll an asynchronous job until it ends, and download a URL a response returns, sending credentials only to the base URL's origin. No operation in this package uses either yet.
 
 ## 0.1.0-alpha.2 (2026-11-07)
 

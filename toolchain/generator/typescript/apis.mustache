@@ -73,6 +73,9 @@ const {{nickname}}: Operation = {
 {{#vendorExtensions.x-sdk-paging.cursor}}
   paging: { style: 'cursor', items: '{{items}}', next: '{{next}}', param: '{{param}}' },
 {{/vendorExtensions.x-sdk-paging.cursor}}
+{{#vendorExtensions.x-sdk-job}}
+  job: { state: '{{state}}', done: [{{#done}}'{{.}}', {{/done}}], failed: [{{#failed}}'{{.}}', {{/failed}}] },
+{{/vendorExtensions.x-sdk-job}}
   security: [{{#vendorExtensions.x-sdk-security}}[{{#schemes}}{ scheme: '{{scheme}}', scopes: [{{#scopes}}'{{.}}', {{/scopes}}] }, {{/schemes}}], {{/vendorExtensions.x-sdk-security}}],
 };
 
@@ -97,6 +100,15 @@ export class {{classname}} extends Resource {
   }
 
 {{/vendorExtensions.x-sdk-iterator}}
+{{#vendorExtensions.x-sdk-job}}
+  /** Poll every `intervalMs` until the job that `{{start}}` started ends, and return its last status, done or
+   * failed. Pass the `{{id}}` it returned. Throws `JobTimeoutError` once `timeoutMs` pass, and stops when `signal`
+   * aborts. */
+  {{vendorExtensions.x-sdk-wait}}({{#pathParams}}{{paramName}}: {{{dataType}}}, {{/pathParams}}options?: import('../{{#sdkModule}}../{{/sdkModule}}runtime/index.js').WaitOptions): Promise<{{{returnType}}}> {
+    return this.pollJob({{nickname}}, { {{#pathParams}}{{paramName}}, {{/pathParams}}}, options);
+  }
+
+{{/vendorExtensions.x-sdk-job}}
 {{/operation}}
 }
 {{/operations}}

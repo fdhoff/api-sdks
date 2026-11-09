@@ -39,6 +39,17 @@ export class ApiConnectionError extends ApiError {
   override readonly kind = 'connection';
 }
 
+/** A job had not ended by the deadline. `result` holds the last status it reported. */
+export class JobTimeoutError extends ApiError {
+  override readonly kind = 'job_timeout';
+  readonly result: unknown;
+
+  constructor(message: string, result: unknown) {
+    super(message);
+    this.result = result;
+  }
+}
+
 /** A success response could not be read as the API declares it. */
 export class DecodeError extends ApiError {
   override readonly kind = 'decode';
