@@ -85,7 +85,7 @@ Some vendors publish one OpenAPI file per API rather than one for everything. Su
 | `toolchain/` | Pipeline, templates, runtime and conformance runner |
 | `apis/backmarket/` | Spec pin, overlay, package config, conformance cases and spec audit |
 | `apis/etsy/` | The same for Etsy's Open API v3, with Python, TypeScript, Go, C# and Rust packages so far |
-| `apis/ebay/` | The same for eBay's Sell, Commerce and Developer APIs, built from 20 contracts, with Python, Go, C# and Rust packages so far |
+| `apis/ebay/` | The same for eBay's Sell, Commerce and Developer APIs, built from 20 contracts, with Python, TypeScript, Go, C# and Rust packages so far |
 
 `toolchain/` must not name this API or contain its endpoints or schemas. `apis/backmarket/tests/boundary.test.mjs` enforces that. API-specific values the toolchain needs arrive as configuration or case data: the conformance error kinds, for example, are defined by the cases, not by the runner.
 
@@ -129,7 +129,7 @@ Each runtime takes a credential provider instead of a single secret. The provide
 * `apply` runs before every attempt, retries included, and receives the final request: method, absolute URL, headers, body bytes and the operation. It may change only the headers, so it can add a static header, a bearer token or a signature over the whole request. It is asynchronous where the language is.
 * `secrets` lists every value to redact. It is read again each time, so it may change as tokens rotate.
 * `refresh`, optional, runs after a 401. A call refreshes at most once and retries at most once, so a 401 never loops. Calls on one client share one refresh: a call whose credentials were refreshed after it sent them retries without refreshing again.
-* `refresh_group`, optional, names the credential an operation sends when a provider has more than one, such as an application token and a user token. Refreshes are counted per group, so a call skips its own refresh only when the credential it sent was refreshed. TODO: the C# runtime counts one group; add it there once an API in C# has two kinds of credential.
+* `refresh_group`, optional, names the credential an operation sends when a provider has more than one, such as an application token and a user token. Refreshes are counted per group, so a call skips its own refresh only when the credential it sent was refreshed. In C# it is `ICredentialProvider.RefreshGroup`.
 
 Each generated operation carries the spec's security requirements: the alternatives, each listing the scheme names and scopes it needs. A provider reads them to decide what to apply. An API package builds the provider; the runtime holds nothing specific to any scheme.
 
