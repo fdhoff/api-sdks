@@ -147,7 +147,7 @@ mod tests {
                 Some("malformed_header") => Err(WebhookError::MalformedHeader),
                 Some("too_old") => Err(WebhookError::TooOld),
                 Some("bad_signature") => Err(WebhookError::BadSignature),
-            Some("invalid_tolerance") => Err(WebhookError::InvalidTolerance),
+                Some("invalid_tolerance") => Err(WebhookError::InvalidTolerance),
                 Some(other) => panic!("unknown error {other}"),
             };
             assert_eq!(result, expected, "{name}");
