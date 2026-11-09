@@ -3,3 +3,5 @@
 module github.com/fdhoff/api-sdks/apis/backmarket/packages/go
 
 go 1.24.0
+
+retract v0.1.0-alpha.1 // Declares the old module path github.com/fdhoff/backmarket-seller-sdk.
