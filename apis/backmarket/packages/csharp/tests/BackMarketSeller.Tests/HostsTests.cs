@@ -161,10 +161,12 @@ public sealed class HostsTests
     public void HeaderDefaultsThatDifferOnlyByCaseAreRejectedAtConstruction()
     {
         var defaults = new Dictionary<string, string> { ["x-tenant"] = "acme", ["X-Tenant"] = "other", ["X-Other"] = "unused" };
+        var handler = new Handler(_ => Ok("{}"));
 
-        var error = Assert.Throws<ArgumentException>(() => Rig.Create(headerDefaults: defaults));
+        var error = Assert.Throws<ArgumentException>(() => Rig.Create(headerDefaults: defaults, handler: handler));
 
         Assert.StartsWith("HeaderDefaults has names that differ only by case: X-Tenant, x-tenant", error.Message, StringComparison.Ordinal);
+        Assert.True(handler.Disposed);
     }
 
     [Fact]
@@ -195,9 +197,10 @@ public sealed class HostsTests
         public static Rig Create(
             Func<Request, HttpResponseMessage>? respond = null,
             Dictionary<string, string>? headerDefaults = null,
-            Dictionary<string, string>? headers = null)
+            Dictionary<string, string>? headers = null,
+            Handler? handler = null)
         {
-            var handler = new Handler(respond ?? (_ => Ok("""{"count": 0, "results": []}""")));
+            handler ??= new Handler(respond ?? (_ => Ok("""{"count": 0, "results": []}""")));
             var credentials = new Recorder();
             var transport = new Transport(
                 new Settings
@@ -243,12 +246,20 @@ public sealed class HostsTests
 
         public ConcurrentQueue<Request> Sent { get; } = new();
 
+        public bool Disposed { get; private set; }
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var headers = request.Headers.NonValidated.ToDictionary(header => header.Key, header => header.Value.ToString(), StringComparer.OrdinalIgnoreCase);
             var sent = new Request(Interlocked.Increment(ref count), request.RequestUri!.AbsoluteUri, headers);
             Sent.Enqueue(sent);
             return Task.FromResult(respond(sent));
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            Disposed = true;
+            base.Dispose(disposing);
         }
     }
 }
