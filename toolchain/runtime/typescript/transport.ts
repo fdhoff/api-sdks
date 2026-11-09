@@ -7,11 +7,15 @@ export type FileContent = Blob | Uint8Array;
 export type FileInput = FileContent | { filename: string; content: FileContent };
 
 /** A raw request body, sent unchanged. Bytes and a Blob are retried like any body; a stream is sent once,
- * so a failure that would resend it is raised instead, and credentials see an empty body. */
+ * so a failure that would resend it is raised instead, and credentials see an empty body. A Node stream,
+ * such as one from `fs.createReadStream`, is passed as `Readable.toWeb(stream)`; `fs.openAsBlob(path)`
+ * gives a Blob that can be retried. */
 export type RawBody = Uint8Array | Blob | ReadableStream<Uint8Array>;
 
 /** A binary response. The call's deadline keeps running while `body` is read, so a timeout must cover the
- * whole transfer. Read `body` or call `bytes()` once, or cancel `body` to release the connection. */
+ * whole transfer. Read `body` or call `bytes()` once, or cancel `body` to release the connection. The call
+ * asks for no compression, but Node's fetch decodes a compressed body anyway, so `body` holds the decoded
+ * bytes where the other languages pass them on as received. */
 export interface Download {
   /** The response's `Content-Type`, empty if it has none. */
   readonly contentType: string;
