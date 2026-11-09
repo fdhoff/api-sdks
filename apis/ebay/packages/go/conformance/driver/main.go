@@ -97,6 +97,7 @@ var contracts = map[string]string{
 	"sell_negotiation":         "Negotiation",
 	"sell_recommendation":      "Recommendation",
 	"sell_stores":              "Stores",
+	"sell_post_order":          "PostOrder",
 	"commerce_feedback":        "Feedback",
 	"commerce_identity":        "Identity",
 	"commerce_media":           "Media",

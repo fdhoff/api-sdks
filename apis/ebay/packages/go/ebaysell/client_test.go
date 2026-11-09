@@ -31,6 +31,7 @@ import (
 	"github.com/fdhoff/api-sdks/apis/ebay/packages/go/ebaysell/developeranalytics"
 	"github.com/fdhoff/api-sdks/apis/ebay/packages/go/ebaysell/fulfillment"
 	"github.com/fdhoff/api-sdks/apis/ebay/packages/go/ebaysell/inventory"
+	"github.com/fdhoff/api-sdks/apis/ebay/packages/go/ebaysell/postorder"
 	"github.com/fdhoff/api-sdks/apis/ebay/packages/go/ebaysell/taxonomy"
 	"github.com/fdhoff/api-sdks/apis/ebay/packages/go/internal/runtime"
 )
@@ -155,9 +156,9 @@ var contractFields = map[string]string{
 	"sell_account_v1": "Account", "sell_account_v2": "AccountV2", "sell_analytics": "Analytics", "sell_feed": "Feed",
 	"sell_finances": "Finances", "sell_fulfillment": "Fulfillment", "sell_inventory": "Inventory", "sell_marketing": "Marketing",
 	"sell_metadata": "Metadata", "sell_negotiation": "Negotiation", "sell_recommendation": "Recommendation", "sell_stores": "Stores",
-	"commerce_feedback": "Feedback", "commerce_identity": "Identity", "commerce_media": "Media", "commerce_message": "Message",
-	"commerce_notification": "Notification", "commerce_taxonomy": "Taxonomy", "developer_analytics": "DeveloperAnalytics",
-	"developer_key_management": "KeyManagement",
+	"sell_post_order": "PostOrder", "commerce_feedback": "Feedback", "commerce_identity": "Identity", "commerce_media": "Media",
+	"commerce_message": "Message", "commerce_notification": "Notification", "commerce_taxonomy": "Taxonomy",
+	"developer_analytics": "DeveloperAnalytics", "developer_key_management": "KeyManagement",
 }
 
 func TestEveryOperationHasAPublicMethod(t *testing.T) {
@@ -195,7 +196,7 @@ func TestEveryOperationHasAPublicMethod(t *testing.T) {
 			}
 		}
 	}
-	if operations != 310 || iterators != 35 {
+	if operations != 339 || iterators != 35 {
 		t.Errorf("%d operations and %d iterators", operations, iterators)
 	}
 }
@@ -622,6 +623,24 @@ func TestHeaderDefaultsAreSentWhereDeclaredAndACallsOwnValueWins(t *testing.T) {
 	}
 	if requests[0].body != `{"condition":"NEW"}` {
 		t.Errorf("body is %s", requests[0].body)
+	}
+}
+
+func TestAPostOrderUploadSendsTheUserTokenMarketplaceAndAJSONFile(t *testing.T) {
+	client, seen := server(t, accepting, ebaysell.WithUserToken(userToken), ebaysell.WithMarketplaceID("EBAY_GB"))
+	file := &postorder.UploadFileRequest{Data: ebaysell.Ptr("c3ludGhldGlj"), FilePurpose: ebaysell.Ptr(postorder.FilePurposeEnumLabelRelated)}
+	if _, err := client.PostOrder.Returns.UploadFile(context.Background(), "5000000001", file, nil); err != nil {
+		t.Fatal(err)
+	}
+	request := seen.all()[0]
+	if request.host != "api" || request.path != "/post-order/v2/return/5000000001/file/upload" {
+		t.Errorf("sent to %s %s", request.host, request.path)
+	}
+	if request.header.Get("Authorization") != "Bearer "+userToken || request.header.Get("X-EBAY-C-MARKETPLACE-ID") != "EBAY_GB" || request.header.Get("Content-Type") != "application/json" {
+		t.Errorf("headers are %v", request.header)
+	}
+	if request.body != `{"data":"c3ludGhldGlj","filePurpose":"LABEL_RELATED"}` {
+		t.Errorf("body is %s", request.body)
 	}
 }
 

@@ -4,6 +4,7 @@ This module follows semantic versioning and stays on 0.x until outside users con
 
 ## Unreleased
 
+* The `ebaysell/postorder` sub-package and `client.PostOrder` cover the Post-Order API's 29 remaining operations on cancellations, returns, item-not-received inquiries and cases. They take the seller's user token and the client's marketplace ID. Return files are uploaded as base64 in a JSON body.
 * `MessageSigner` signs `content-length: 0` for a PATCH without a body, as net/http sends it, instead of returning an error.
 * Breaking: the 26 Inventory and Marketing operations that answer 204 with no body, such as `InventoryItems().Delete`, and Marketing's `ReportTasks().Create`, which answers 202, return only an `error` instead of an `*Error` model as well.
 * An application token 401 and a user token 401 at the same time each refresh their own token. Before, the second call skipped its refresh and failed.

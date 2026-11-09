@@ -1,0 +1,34 @@
+# Public names for the Post-Order API, keyed by operationId. Summaries are ours, not upstream's.
+checkCancellationEligibility: { resource: Cancellations, method: CheckEligibility, summary: "CheckEligibility checks whether an order can be cancelled." }
+createCancellationRequest: { resource: Cancellations, method: Create, summary: "Create asks to cancel an order." }
+getCancellation: { resource: Cancellations, method: Get, summary: "Get gets one cancellation request." }
+searchCancellations: { resource: Cancellations, method: Search, summary: "Search searches one page of cancellation requests." }
+approveCancellation: { resource: Cancellations, method: Approve, summary: "Approve approves a buyer's cancellation request." }
+rejectCancellation: { resource: Cancellations, method: Reject, summary: "Reject rejects a buyer's cancellation request." }
+
+getCase: { resource: Cases, method: Get, summary: "Get gets one case." }
+searchCases: { resource: Cases, method: Search, summary: "Search searches one page of cases." }
+appealCaseDecision: { resource: Cases, method: Appeal, summary: "Appeal appeals the decision on a case." }
+
+getInquiry: { resource: Inquiries, method: Get, summary: "Get gets one item-not-received inquiry." }
+searchInquiries: { resource: Inquiries, method: Search, summary: "Search searches one page of inquiries." }
+sendInquiryMessage: { resource: Inquiries, method: SendMessage, summary: "SendMessage sends the buyer a message about an inquiry." }
+provideInquiryShipmentInfo: { resource: Inquiries, method: ProvideShipmentInfo, summary: "ProvideShipmentInfo gives the shipment tracking for an inquiry." }
+issueInquiryRefund: { resource: Inquiries, method: IssueRefund, summary: "IssueRefund refunds the buyer to settle an inquiry." }
+escalateInquiry: { resource: Inquiries, method: Escalate, summary: "Escalate escalates an inquiry to a case." }
+
+createReturnRequest: { resource: Returns, method: Create, summary: "Create creates a return request." }
+getReturn: { resource: Returns, method: Get, summary: "Get gets one return request." }
+searchReturns: { resource: Returns, method: Search, summary: "Search searches one page of return requests." }
+processReturnRequest: { resource: Returns, method: Decide, summary: "Decide accepts or declines a return request, or offers a partial refund." }
+sendReturnMessage: { resource: Returns, method: SendMessage, summary: "SendMessage sends the buyer a message about a return." }
+addShippingLabelInfo: { resource: Returns, method: AddShippingLabel, summary: "AddShippingLabel gives the buyer a return shipping label, or says why there is none." }
+getShipmentTrackingInfo: { resource: Returns, method: GetTracking, summary: "GetTracking gets the tracking of a return shipment." }
+markItemReceived: { resource: Returns, method: MarkReceived, summary: "MarkReceived marks a returned item received." }
+issueReturnRefund: { resource: Returns, method: IssueRefund, summary: "IssueRefund refunds the buyer for a return." }
+escalateReturn: { resource: Returns, method: Escalate, summary: "Escalate escalates a return request to a case." }
+uploadReturnFile: { resource: Returns, method: UploadFile, summary: "UploadFile attaches a base64-encoded file to a return request." }
+getReturnFiles: { resource: Returns, method: ListFiles, summary: "ListFiles lists the files attached to a return request." }
+
+getReturnPreferences: { resource: ReturnPreferences, method: Get, summary: "Get gets the seller's return preferences." }
+setReturnPreferences: { resource: ReturnPreferences, method: Set, summary: "Set sets the seller's return preferences." }
