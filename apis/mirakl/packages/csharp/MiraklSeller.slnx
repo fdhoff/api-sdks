@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/MiraklSeller/MiraklSeller.csproj" />
+  <Project Path="tests/MiraklSeller.Tests/MiraklSeller.Tests.csproj" />
+  <Project Path="conformance/Driver/MiraklSeller.Conformance.csproj" />
+</Solution>
