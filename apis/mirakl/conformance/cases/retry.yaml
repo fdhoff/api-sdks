@@ -59,20 +59,20 @@ cases:
   - name: retry-a-get-is-retried-on-503
     client: { max_retries: 1 }
     request:
-      operation: V01
+      operation: L01
     mock:
       responses:
         - status: 503
           body: unavailable
         - status: 200
-          body: { version: 3.0.0 }
+          body: { locales: [{ code: en_US, label: English }] }
     wire:
       - method: GET
-        path: /api/version
+        path: /api/locales
       - method: GET
-        path: /api/version
+        path: /api/locales
     expect:
-      result: { version: 3.0.0 }
+      result: { locales: [{ code: en_US, label: English }] }
 
   - name: retry-a-dropped-connection-on-a-get-is-retried
     client: { max_retries: 1 }
