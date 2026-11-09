@@ -189,6 +189,87 @@ public sealed class ClientTests
     }
 
     [Fact]
+    public async Task AnAppRefusalAndAUserRefusalEachRefreshTheirOwnToken()
+    {
+        var refused = 0;
+        var bothRefused = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new Router(async sent =>
+        {
+            if (sent.Path == TokenPath)
+            {
+                return sent.Body.StartsWith("grant_type=client_credentials", StringComparison.Ordinal)
+                    ? Json($$"""{"access_token": "{{NewApp}}", "expires_in": 7200}""")
+                    : Json($$"""{"access_token": "{{NewUser}}"}""");
+            }
+            if (sent.Headers["Authorization"] is $"Bearer {NewApp}" or $"Bearer {NewUser}")
+            {
+                return Json("""{"categoryTreeId": "0", "orderId": "O-1"}""");
+            }
+            // Both calls are refused before either refreshes, so the second refresh cannot be skipped by accident.
+            if (Interlocked.Increment(ref refused) == 2)
+            {
+                bothRefused.SetResult();
+            }
+            await bothRefused.Task;
+            return Unauthorized();
+        });
+        using var client = Client(handler, new() { ClientId = AppId, ClientSecret = CertId, AppToken = App, UserToken = User, RefreshToken = Refresh });
+
+        await Task.WhenAll(client.Taxonomy.CategoryTrees.GetDefaultIdAsync("EBAY_US", Cancel), client.Fulfillment.Orders.GetAsync("O-1", cancellationToken: Cancel));
+
+        Assert.Equal(2, handler.Sent.Count(item => item.Path == TokenPath));
+    }
+
+    [Fact]
+    public async Task ConcurrentFirstCallsMintOneAppToken()
+    {
+        var handler = new Router(async sent =>
+        {
+            if (sent.Path == TokenPath)
+            {
+                await Task.Delay(50);
+                return Json($$"""{"access_token": "{{App}}", "expires_in": 7200}""");
+            }
+            return Json("""{"categoryTreeId": "0"}""");
+        });
+        using var client = Client(handler, new() { ClientId = AppId, ClientSecret = CertId });
+
+        await Task.WhenAll(Enumerable.Range(0, 5).Select(_ => client.Taxonomy.CategoryTrees.GetDefaultIdAsync("EBAY_US", Cancel)));
+
+        Assert.Single(handler.Sent, item => item.Path == TokenPath);
+    }
+
+    [Fact]
+    public async Task AnExplicitRefreshAndA401ShareOneTokenRequest()
+    {
+        var tokenRequested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var orderRefused = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new Router(async sent =>
+        {
+            if (sent.Path == TokenPath)
+            {
+                tokenRequested.TrySetResult();
+                return Json($$"""{"access_token": "{{NewUser}}"}""");
+            }
+            if (sent.Headers["Authorization"] == $"Bearer {NewUser}")
+            {
+                return Json("""{"orderId": "O-1"}""");
+            }
+            await tokenRequested.Task;
+            orderRefused.TrySetResult();
+            return Unauthorized();
+        });
+        using var client = Client(handler, new() { ClientId = AppId, ClientSecret = CertId, UserToken = User, RefreshToken = Refresh });
+
+        var order = client.Fulfillment.Orders.GetAsync("O-1", cancellationToken: Cancel);
+        await client.OAuth.RefreshAsync(cancellationToken: Cancel);
+        await orderRefused.Task;
+        await order;
+
+        Assert.Single(handler.Sent, item => item.Path == TokenPath);
+    }
+
+    [Fact]
     public async Task AUserOperationWithoutAUserTokenSendsNothing()
     {
         var handler = new Router(_ => Json("{}"));
@@ -304,6 +385,8 @@ public sealed class ClientTests
         Assert.Throws<ArgumentException>(() => new EbayClient(new EbayClientOptions()));
         Assert.Throws<ArgumentException>(() => new EbayClient(new EbayClientOptions { ClientId = AppId }));
         Assert.Throws<ArgumentException>(() => new EbayClient(new EbayClientOptions { UserToken = "bad\ntoken" }));
+        Assert.Throws<ArgumentException>(() => new EbayClient(new EbayClientOptions { ClientId = AppId, ClientSecret = CertId, AppScopes = [] }));
+        Assert.Throws<ArgumentException>(() => new EbayClient(new EbayClientOptions { ClientId = AppId, ClientSecret = CertId, AppScopes = [" "] }));
         Assert.Throws<ArgumentException>(() => new EbayClient(new EbayClientOptions { UserToken = User, Environment = "staging" }));
         Assert.Throws<ArgumentException>(() => new EbayClient(new EbayClientOptions { UserToken = User, Hosts = new Dictionary<string, string> { ["api"] = "https://mock.invalid" } }));
     }

@@ -148,7 +148,7 @@ Each request then carries `x-ebay-signature-key`, `Signature-Input`, `Signature`
 | `UserToken` | None | A user access token, sent on operations that act for a seller |
 | `RefreshToken` | None | Lets the client replace an expired user token itself |
 | `OnToken` | None | Called with every new user `EbayToken`, from `ExchangeCodeAsync` and every refresh |
-| `AppScopes` | `EbayOAuth.ApiScope` | The scopes of minted application tokens |
+| `AppScopes` | `EbayOAuth.ApiScope` | The scopes of minted application tokens, at least one |
 | `UserScopes` | None | The scopes to ask for on refresh. eBay keeps the original grant's when this is empty |
 | `Environment` | `EbayClient.Production` | `EbayClient.Production` or `EbayClient.Sandbox`. Picks the API hosts and the authorization URL |
 | `Hosts` | None | Your own base URL for each of `api`, `apiz` and `apim`, for tests against a mock. Your credentials are sent to them |

@@ -27,11 +27,12 @@ public sealed class EbayClientOptions
 
     /// <summary>
     /// Called with every new user token, from <see cref="EbayOAuth.ExchangeCodeAsync"/> and every refresh, so you can
-    /// store it. The call that obtained the token waits for it to return, so it must not call the client.
+    /// store it. It runs while the client holds its token locks, so it must not call the client: awaiting
+    /// <see cref="EbayOAuth.RefreshAsync"/> from it waits forever.
     /// </summary>
     public Func<EbayToken, CancellationToken, Task>? OnToken { get; init; }
 
-    /// <summary>The scopes of minted application tokens.</summary>
+    /// <summary>The scopes of minted application tokens, at least one.</summary>
     public IReadOnlyList<string> AppScopes { get; init; } = [EbayOAuth.ApiScope];
 
     /// <summary>The scopes to ask for when refreshing a user token. eBay keeps the original grant's when this is empty.</summary>

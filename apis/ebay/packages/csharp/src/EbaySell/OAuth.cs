@@ -120,9 +120,13 @@ public sealed class EbayOAuth
     /// another is under way waits for it and returns its token.
     /// </summary>
     /// <exception cref="InvalidOperationException">There is no refresh token yet.</exception>
-    public Task<EbayToken> RefreshAsync(IEnumerable<string>? scopes = null, CancellationToken cancellationToken = default)
+    public Task<EbayToken> RefreshAsync(IEnumerable<string>? scopes = null, CancellationToken cancellationToken = default) =>
+        RefreshUnlessReplacedAsync(credentials.Current().User, scopes, cancellationToken);
+
+    /// <summary>Returns the current token instead when it is no longer <paramref name="before"/>, the one a request was refused with.</summary>
+    internal Task<EbayToken> RefreshUnlessReplacedAsync(string? before, IEnumerable<string>? scopes, CancellationToken cancellationToken)
     {
-        var (_, before, refreshToken) = credentials.Current();
+        var refreshToken = credentials.Current().Refresh;
         if (string.IsNullOrEmpty(refreshToken))
         {
             throw new InvalidOperationException("There is no refresh token: set RefreshToken, or exchange a code first");
@@ -275,6 +279,10 @@ internal sealed class EbayCredentials : ICredentialProvider, IDisposable
         {
             throw new ArgumentException("Set ClientId and ClientSecret, or a token", nameof(options));
         }
+        if (options.AppScopes is null || !options.AppScopes.Any(scope => !string.IsNullOrWhiteSpace(scope)))
+        {
+            throw new ArgumentException("AppScopes needs at least one scope", nameof(options));
+        }
         if ($"{options.ClientId}{options.ClientSecret}{options.AppToken}{options.UserToken}{options.RefreshToken}{options.SigningKey?.Jwe}".Any(char.IsControl))
         {
             throw new ArgumentException("Credentials must not hold control characters", nameof(options));
@@ -352,7 +360,7 @@ internal sealed class EbayCredentials : ICredentialProvider, IDisposable
         var (app, user, refresh) = Current();
         var header = request.Headers.GetValueOrDefault("Authorization");
         var sent = header?.StartsWith("Bearer ", StringComparison.Ordinal) == true ? header["Bearer ".Length..] : null;
-        if (TakesAppToken(request.Operation) && (CanMint || !string.IsNullOrEmpty(app)))
+        if (RefreshesApp(request.Operation, app))
         {
             if (!CanMint)
             {
@@ -371,9 +379,15 @@ internal sealed class EbayCredentials : ICredentialProvider, IDisposable
         {
             return true;
         }
-        await OAuth!.RefreshAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        await OAuth!.RefreshUnlessReplacedAsync(sent, null, cancellationToken).ConfigureAwait(false);
         return true;
     }
+
+    /// <summary>An application token and a user token refresh separately, so a 401 on one never waits out a refresh of the other.</summary>
+    public string RefreshGroup(Operation operation) => RefreshesApp(operation, Current().App) ? "app" : "user";
+
+    /// <summary>Whether a 401 on the operation replaces the application token rather than the user token.</summary>
+    private bool RefreshesApp(Operation operation, string? app) => TakesAppToken(operation) && (CanMint || !string.IsNullOrEmpty(app));
 
     /// <summary>
     /// Keeps values out of logs and errors from now on, such as a code about to be exchanged. Only the most recent
