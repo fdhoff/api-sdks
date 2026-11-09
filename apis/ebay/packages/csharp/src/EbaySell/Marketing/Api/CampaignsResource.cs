@@ -152,8 +152,8 @@ public sealed class CampaignsResource
         transport.SendAsync(UpdateBiddingStrategyOperation, [campaignId, body,], cancellationToken);
 
     /// <summary>Change the daily budget of a campaign.</summary>
-    public Task<Object> UpdateBudgetAsync(string campaignId, UpdateCampaignBudgetRequest body, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<Object>(UpdateCampaignBudgetOperation, [campaignId, body,], cancellationToken);
+    public Task<Object?> UpdateBudgetAsync(string campaignId, UpdateCampaignBudgetRequest body, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<Object?>(UpdateCampaignBudgetOperation, [campaignId, body,], cancellationToken);
 
     /// <summary>Rename a campaign or change its dates.</summary>
     public Task UpdateIdentificationAsync(string campaignId, UpdateCampaignIdentificationRequest body, CancellationToken cancellationToken = default) =>

@@ -104,8 +104,8 @@ public sealed class OffersResource
         transport.CallAsync<PublishResponse>(PublishOfferByInventoryItemGroupOperation, [body,], cancellationToken);
 
     /// <summary>Replace an offer.</summary>
-    public Task<OfferResponse> UpdateAsync(string offerId, EbayOfferDetailsWithId body, string? contentLanguage = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<OfferResponse>(UpdateOfferOperation, [offerId, body, contentLanguage,], cancellationToken);
+    public Task<OfferResponse?> UpdateAsync(string offerId, EbayOfferDetailsWithId body, string? contentLanguage = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<OfferResponse?>(UpdateOfferOperation, [offerId, body, contentLanguage,], cancellationToken);
 
     /// <summary>End the listing of an offer and keep the offer.</summary>
     public Task<WithdrawResponse> WithdrawAsync(string offerId, CancellationToken cancellationToken = default) =>

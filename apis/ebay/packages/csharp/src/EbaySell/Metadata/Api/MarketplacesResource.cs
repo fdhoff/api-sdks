@@ -80,66 +80,66 @@ public sealed class MarketplacesResource
     internal MarketplacesResource(Transport transport) => this.transport = transport;
 
     /// <summary>List the categories of a marketplace that support parts compatibility.</summary>
-    public Task<AutomotivePartsCompatibilityPolicyResponse> GetAutomotivePartsCompatibilityPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<AutomotivePartsCompatibilityPolicyResponse>(GetAutomotivePartsCompatibilityPoliciesOperation, [marketplaceId, filter,], cancellationToken);
+    public Task<AutomotivePartsCompatibilityPolicyResponse?> GetAutomotivePartsCompatibilityPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<AutomotivePartsCompatibilityPolicyResponse?>(GetAutomotivePartsCompatibilityPoliciesOperation, [marketplaceId, filter,], cancellationToken);
 
     /// <summary>List the listing policies of a marketplace's categories.</summary>
-    public Task<CategoryPolicyResponse> GetCategoryPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<CategoryPolicyResponse>(GetCategoryPoliciesOperation, [marketplaceId, filter,], cancellationToken);
+    public Task<CategoryPolicyResponse?> GetCategoryPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<CategoryPolicyResponse?>(GetCategoryPoliciesOperation, [marketplaceId, filter,], cancellationToken);
 
     /// <summary>List the classified ad policies of a marketplace's categories.</summary>
-    public Task<ClassifiedAdPolicyResponse> GetClassifiedAdPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<ClassifiedAdPolicyResponse>(GetClassifiedAdPoliciesOperation, [marketplaceId, filter,], cancellationToken);
+    public Task<ClassifiedAdPolicyResponse?> GetClassifiedAdPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<ClassifiedAdPolicyResponse?>(GetClassifiedAdPoliciesOperation, [marketplaceId, filter,], cancellationToken);
 
     /// <summary>Get the default currency of a marketplace.</summary>
-    public Task<GetCurrenciesResponse> GetCurrenciesAsync(string marketplaceId, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<GetCurrenciesResponse>(GetCurrenciesOperation, [marketplaceId,], cancellationToken);
+    public Task<GetCurrenciesResponse?> GetCurrenciesAsync(string marketplaceId, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<GetCurrenciesResponse?>(GetCurrenciesOperation, [marketplaceId,], cancellationToken);
 
     /// <summary>List the extended producer responsibility policies of a marketplace's categories.</summary>
-    public Task<ExtendedProducerResponsibilityPolicyResponse> GetExtendedProducerResponsibilityPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<ExtendedProducerResponsibilityPolicyResponse>(GetExtendedProducerResponsibilityPoliciesOperation, [marketplaceId, filter,], cancellationToken);
+    public Task<ExtendedProducerResponsibilityPolicyResponse?> GetExtendedProducerResponsibilityPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<ExtendedProducerResponsibilityPolicyResponse?>(GetExtendedProducerResponsibilityPoliciesOperation, [marketplaceId, filter,], cancellationToken);
 
     /// <summary>List the hazardous materials labels a marketplace accepts.</summary>
-    public Task<HazardousMaterialDetailsResponse> GetHazardousMaterialsLabelsAsync(string marketplaceId, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<HazardousMaterialDetailsResponse>(GetHazardousMaterialsLabelsOperation, [marketplaceId,], cancellationToken);
+    public Task<HazardousMaterialDetailsResponse?> GetHazardousMaterialsLabelsAsync(string marketplaceId, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<HazardousMaterialDetailsResponse?>(GetHazardousMaterialsLabelsOperation, [marketplaceId,], cancellationToken);
 
     /// <summary>List the item conditions a marketplace's categories accept.</summary>
-    public Task<ItemConditionPolicyResponse> GetItemConditionPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<ItemConditionPolicyResponse>(GetItemConditionPoliciesOperation, [marketplaceId, filter,], cancellationToken);
+    public Task<ItemConditionPolicyResponse?> GetItemConditionPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<ItemConditionPolicyResponse?>(GetItemConditionPoliciesOperation, [marketplaceId, filter,], cancellationToken);
 
     /// <summary>List which of a marketplace's categories accept multi-variation listings.</summary>
-    public Task<ListingStructurePolicyResponse> GetListingStructurePoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<ListingStructurePolicyResponse>(GetListingStructurePoliciesOperation, [marketplaceId, filter,], cancellationToken);
+    public Task<ListingStructurePolicyResponse?> GetListingStructurePoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<ListingStructurePolicyResponse?>(GetListingStructurePoliciesOperation, [marketplaceId, filter,], cancellationToken);
 
     /// <summary>List the listing formats and durations of a marketplace's categories.</summary>
-    public Task<ListingTypePoliciesResponse> GetListingTypePoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<ListingTypePoliciesResponse>(GetListingTypePoliciesOperation, [marketplaceId, filter,], cancellationToken);
+    public Task<ListingTypePoliciesResponse?> GetListingTypePoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<ListingTypePoliciesResponse?>(GetListingTypePoliciesOperation, [marketplaceId, filter,], cancellationToken);
 
     /// <summary>List the motors listing policies of a marketplace's categories.</summary>
-    public Task<MotorsListingPoliciesResponse> GetMotorsListingPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<MotorsListingPoliciesResponse>(GetMotorsListingPoliciesOperation, [marketplaceId, filter,], cancellationToken);
+    public Task<MotorsListingPoliciesResponse?> GetMotorsListingPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<MotorsListingPoliciesResponse?>(GetMotorsListingPoliciesOperation, [marketplaceId, filter,], cancellationToken);
 
     /// <summary>List the Best Offer policies of a marketplace's categories.</summary>
-    public Task<NegotiatedPricePolicyResponse> GetNegotiatedPricePoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<NegotiatedPricePolicyResponse>(GetNegotiatedPricePoliciesOperation, [marketplaceId, filter,], cancellationToken);
+    public Task<NegotiatedPricePolicyResponse?> GetNegotiatedPricePoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<NegotiatedPricePolicyResponse?>(GetNegotiatedPricePoliciesOperation, [marketplaceId, filter,], cancellationToken);
 
     /// <summary>List the product safety labels a marketplace accepts.</summary>
-    public Task<ProductSafetyLabelsResponse> GetProductSafetyLabelsAsync(string marketplaceId, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<ProductSafetyLabelsResponse>(GetProductSafetyLabelsOperation, [marketplaceId,], cancellationToken);
+    public Task<ProductSafetyLabelsResponse?> GetProductSafetyLabelsAsync(string marketplaceId, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<ProductSafetyLabelsResponse?>(GetProductSafetyLabelsOperation, [marketplaceId,], cancellationToken);
 
     /// <summary>List the regulatory policies of a marketplace's categories.</summary>
-    public Task<RegulatoryPolicyResponse> GetRegulatoryPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<RegulatoryPolicyResponse>(GetRegulatoryPoliciesOperation, [marketplaceId, filter,], cancellationToken);
+    public Task<RegulatoryPolicyResponse?> GetRegulatoryPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<RegulatoryPolicyResponse?>(GetRegulatoryPoliciesOperation, [marketplaceId, filter,], cancellationToken);
 
     /// <summary>List the return policies of a marketplace's categories.</summary>
-    public Task<ReturnPolicyResponse> GetReturnPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<ReturnPolicyResponse>(GetReturnPoliciesOperation, [marketplaceId, filter,], cancellationToken);
+    public Task<ReturnPolicyResponse?> GetReturnPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<ReturnPolicyResponse?>(GetReturnPoliciesOperation, [marketplaceId, filter,], cancellationToken);
 
     /// <summary>List the shipping policies of a marketplace's categories.</summary>
-    public Task<ShippingPoliciesResponse> GetShippingPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<ShippingPoliciesResponse>(GetShippingPoliciesOperation, [marketplaceId, filter,], cancellationToken);
+    public Task<ShippingPoliciesResponse?> GetShippingPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<ShippingPoliciesResponse?>(GetShippingPoliciesOperation, [marketplaceId, filter,], cancellationToken);
 
     /// <summary>List which of a marketplace's categories show on other marketplaces.</summary>
-    public Task<SiteVisibilityPoliciesResponse> GetSiteVisibilityPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<SiteVisibilityPoliciesResponse>(GetSiteVisibilityPoliciesOperation, [marketplaceId, filter,], cancellationToken);
+    public Task<SiteVisibilityPoliciesResponse?> GetSiteVisibilityPoliciesAsync(string marketplaceId, string? filter = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<SiteVisibilityPoliciesResponse?>(GetSiteVisibilityPoliciesOperation, [marketplaceId, filter,], cancellationToken);
 }

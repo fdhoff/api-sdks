@@ -20,6 +20,6 @@ public sealed class KycResource
     internal KycResource(Transport transport) => this.transport = transport;
 
     /// <summary>List the identity checks eBay needs from the seller.</summary>
-    public Task<KycResponse> GetAsync(CancellationToken cancellationToken = default) =>
-        transport.CallAsync<KycResponse>(GetKYCOperation, [], cancellationToken);
+    public Task<KycResponse?> GetAsync(CancellationToken cancellationToken = default) =>
+        transport.CallAsync<KycResponse?>(GetKYCOperation, [], cancellationToken);
 }

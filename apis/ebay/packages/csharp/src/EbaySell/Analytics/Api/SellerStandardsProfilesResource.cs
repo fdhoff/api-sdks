@@ -28,6 +28,6 @@ public sealed class SellerStandardsProfilesResource
         transport.CallAsync<FindSellerStandardsProfilesResponse>(FindSellerStandardsProfilesOperation, [], cancellationToken);
 
     /// <summary>Get one seller standards profile.</summary>
-    public Task<StandardsProfile> GetAsync(string cycle, string program, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<StandardsProfile>(GetSellerStandardsProfileOperation, [cycle, program,], cancellationToken);
+    public Task<StandardsProfile?> GetAsync(string cycle, string program, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<StandardsProfile?>(GetSellerStandardsProfileOperation, [cycle, program,], cancellationToken);
 }

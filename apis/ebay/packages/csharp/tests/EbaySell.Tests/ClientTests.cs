@@ -84,6 +84,16 @@ public sealed class ClientTests
         Assert.Equal(339, total);
     }
 
+    [Theory]
+    [InlineData(nameof(EbaySell.Inventory.Api.InventoryItemsResource.CreateOrReplaceAsync), NullabilityState.Nullable)]
+    [InlineData(nameof(EbaySell.Inventory.Api.InventoryItemsResource.BulkCreateOrReplaceAsync), NullabilityState.NotNull)]
+    public void AResultIsNullableOnlyWhereTheOperationDeclaresA204(string method, NullabilityState expected)
+    {
+        var returned = new NullabilityInfoContext().Create(typeof(EbaySell.Inventory.Api.InventoryItemsResource).GetMethod(method)!.ReturnParameter);
+
+        Assert.Equal(expected, Assert.Single(returned.GenericTypeArguments).ReadState);
+    }
+
     [Fact]
     public async Task ApplicationOperationsGetTheAppTokenAndSellerOperationsTheUserToken()
     {
@@ -93,7 +103,7 @@ public sealed class ClientTests
         var tree = await client.Taxonomy.CategoryTrees.GetDefaultIdAsync("EBAY_US", Cancel);
         var order = await client.Fulfillment.Orders.GetAsync("O-1", cancellationToken: Cancel);
 
-        Assert.Equal("0", tree.CategoryTreeId);
+        Assert.Equal("0", tree?.CategoryTreeId);
         Assert.Equal("O-1", order.OrderId);
         var sent = handler.Sent.ToArray();
         Assert.Equal($"https://api.mock.invalid{TreePath}?marketplace_id=EBAY_US", sent[0].Url);

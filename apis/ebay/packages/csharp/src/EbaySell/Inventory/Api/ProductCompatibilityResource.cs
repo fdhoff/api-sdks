@@ -28,8 +28,8 @@ public sealed class ProductCompatibilityResource
     internal ProductCompatibilityResource(Transport transport) => this.transport = transport;
 
     /// <summary>Set the vehicles an inventory item fits.</summary>
-    public Task<BaseResponse> CreateOrReplaceAsync(string sku, Compatibility body, string? contentLanguage = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<BaseResponse>(CreateOrReplaceProductCompatibilityOperation, [sku, body, contentLanguage,], cancellationToken);
+    public Task<BaseResponse?> CreateOrReplaceAsync(string sku, Compatibility body, string? contentLanguage = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<BaseResponse?>(CreateOrReplaceProductCompatibilityOperation, [sku, body, contentLanguage,], cancellationToken);
 
     /// <summary>Remove the vehicle list of an inventory item.</summary>
     public Task DeleteAsync(string sku, CancellationToken cancellationToken = default) =>

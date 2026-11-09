@@ -44,6 +44,6 @@ public sealed class ItemPromotionsResource
         transport.CallAsync<ItemPromotionResponse>(GetItemPromotionOperation, [promotionId,], cancellationToken);
 
     /// <summary>Replace a threshold promotion.</summary>
-    public Task<BaseResponse> UpdateAsync(string promotionId, ItemPromotion? body = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<BaseResponse>(UpdateItemPromotionOperation, [promotionId, body,], cancellationToken);
+    public Task<BaseResponse?> UpdateAsync(string promotionId, ItemPromotion? body = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<BaseResponse?>(UpdateItemPromotionOperation, [promotionId, body,], cancellationToken);
 }

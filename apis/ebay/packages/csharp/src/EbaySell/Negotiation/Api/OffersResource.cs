@@ -24,8 +24,8 @@ public sealed class OffersResource
     internal OffersResource(Transport transport) => this.transport = transport;
 
     /// <summary>List one page of the seller's listings with interested buyers.</summary>
-    public Task<PagedEligibleItemCollection> FindEligibleItemsAsync(string? limit = null, string? offset = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<PagedEligibleItemCollection>(FindEligibleItemsOperation, [limit, offset, marketplaceId,], cancellationToken);
+    public Task<PagedEligibleItemCollection?> FindEligibleItemsAsync(string? limit = null, string? offset = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<PagedEligibleItemCollection?>(FindEligibleItemsOperation, [limit, offset, marketplaceId,], cancellationToken);
 
     /// <summary>Every item across all pages. Pages are fetched as you iterate.</summary>
     public IAsyncEnumerable<EligibleItem> ListAllEligibleItemsAsync(string? limit = null, string? offset = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>

@@ -36,22 +36,22 @@ public sealed class CompatibilitiesResource
     internal CompatibilitiesResource(Transport transport) => this.transport = transport;
 
     /// <summary>List the vehicles that match a parts specification.</summary>
-    public Task<SpecificationResponse> GetBySpecificationAsync(SpecificationRequest? body = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<SpecificationResponse>(GetCompatibilitiesBySpecificationOperation, [body, marketplaceId,], cancellationToken);
+    public Task<SpecificationResponse?> GetBySpecificationAsync(SpecificationRequest? body = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<SpecificationResponse?>(GetCompatibilitiesBySpecificationOperation, [body, marketplaceId,], cancellationToken);
 
     /// <summary>List the compatibility property names of a category.</summary>
-    public Task<PropertyNamesResponse> GetPropertyNamesAsync(PropertyNamesRequest? body = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<PropertyNamesResponse>(GetCompatibilityPropertyNamesOperation, [body, marketplaceId,], cancellationToken);
+    public Task<PropertyNamesResponse?> GetPropertyNamesAsync(PropertyNamesRequest? body = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<PropertyNamesResponse?>(GetCompatibilityPropertyNamesOperation, [body, marketplaceId,], cancellationToken);
 
     /// <summary>List the values of one compatibility property.</summary>
-    public Task<PropertyValuesResponse> GetPropertyValuesAsync(PropertyValuesRequest? body = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<PropertyValuesResponse>(GetCompatibilityPropertyValuesOperation, [body, marketplaceId,], cancellationToken);
+    public Task<PropertyValuesResponse?> GetPropertyValuesAsync(PropertyValuesRequest? body = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<PropertyValuesResponse?>(GetCompatibilityPropertyValuesOperation, [body, marketplaceId,], cancellationToken);
 
     /// <summary>List the values of several compatibility properties.</summary>
-    public Task<MultiCompatibilityPropertyValuesResponse> GetMultiPropertyValuesAsync(MultiCompatibilityPropertyValuesRequest? body = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<MultiCompatibilityPropertyValuesResponse>(GetMultiCompatibilityPropertyValuesOperation, [body, marketplaceId,], cancellationToken);
+    public Task<MultiCompatibilityPropertyValuesResponse?> GetMultiPropertyValuesAsync(MultiCompatibilityPropertyValuesRequest? body = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<MultiCompatibilityPropertyValuesResponse?>(GetMultiCompatibilityPropertyValuesOperation, [body, marketplaceId,], cancellationToken);
 
     /// <summary>List the vehicles a product fits.</summary>
-    public Task<ProductResponse> GetProductCompatibilitiesAsync(ProductRequest? body = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<ProductResponse>(GetProductCompatibilitiesOperation, [body, marketplaceId,], cancellationToken);
+    public Task<ProductResponse?> GetProductCompatibilitiesAsync(ProductRequest? body = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<ProductResponse?>(GetProductCompatibilitiesOperation, [body, marketplaceId,], cancellationToken);
 }

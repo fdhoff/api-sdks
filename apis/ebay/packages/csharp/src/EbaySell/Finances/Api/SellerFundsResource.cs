@@ -20,6 +20,6 @@ public sealed class SellerFundsResource
     internal SellerFundsResource(Transport transport) => this.transport = transport;
 
     /// <summary>Get the seller's funds that are not yet paid out.</summary>
-    public Task<SellerFundsSummaryResponse> GetSummaryAsync(string? marketplaceId = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<SellerFundsSummaryResponse>(GetSellerFundsSummaryOperation, [marketplaceId,], cancellationToken);
+    public Task<SellerFundsSummaryResponse?> GetSummaryAsync(string? marketplaceId = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<SellerFundsSummaryResponse?>(GetSellerFundsSummaryOperation, [marketplaceId,], cancellationToken);
 }

@@ -44,6 +44,6 @@ public sealed class ItemPriceMarkdownsResource
         transport.CallAsync<ItemPriceMarkdown>(GetItemPriceMarkdownPromotionOperation, [promotionId,], cancellationToken);
 
     /// <summary>Replace a markdown sale.</summary>
-    public Task<Object> UpdateAsync(string promotionId, ItemPriceMarkdown? body = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<Object>(UpdateItemPriceMarkdownPromotionOperation, [promotionId, body,], cancellationToken);
+    public Task<Object?> UpdateAsync(string promotionId, ItemPriceMarkdown? body = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<Object?>(UpdateItemPriceMarkdownPromotionOperation, [promotionId, body,], cancellationToken);
 }

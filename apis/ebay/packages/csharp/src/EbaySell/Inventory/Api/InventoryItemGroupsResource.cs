@@ -28,8 +28,8 @@ public sealed class InventoryItemGroupsResource
     internal InventoryItemGroupsResource(Transport transport) => this.transport = transport;
 
     /// <summary>Create or replace an inventory item group for a multi-variation listing.</summary>
-    public Task<BaseResponse> CreateOrReplaceAsync(string inventoryItemGroupKey, InventoryItemGroup body, string? contentLanguage = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<BaseResponse>(CreateOrReplaceInventoryItemGroupOperation, [inventoryItemGroupKey, body, contentLanguage,], cancellationToken);
+    public Task<BaseResponse?> CreateOrReplaceAsync(string inventoryItemGroupKey, InventoryItemGroup body, string? contentLanguage = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<BaseResponse?>(CreateOrReplaceInventoryItemGroupOperation, [inventoryItemGroupKey, body, contentLanguage,], cancellationToken);
 
     /// <summary>Delete an inventory item group.</summary>
     public Task DeleteAsync(string inventoryItemGroupKey, CancellationToken cancellationToken = default) =>

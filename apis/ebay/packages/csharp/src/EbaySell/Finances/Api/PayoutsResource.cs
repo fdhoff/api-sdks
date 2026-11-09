@@ -36,8 +36,8 @@ public sealed class PayoutsResource
         transport.CallAsync<PayoutSummaryResponse>(GetPayoutSummaryOperation, [filter, marketplaceId,], cancellationToken);
 
     /// <summary>List one page of the seller's payouts.</summary>
-    public Task<Payouts> ListAsync(string? filter = null, string? limit = null, string? offset = null, string? sort = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
-        transport.CallAsync<Payouts>(GetPayoutsOperation, [filter, limit, offset, sort, marketplaceId,], cancellationToken);
+    public Task<Payouts?> ListAsync(string? filter = null, string? limit = null, string? offset = null, string? sort = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<Payouts?>(GetPayoutsOperation, [filter, limit, offset, sort, marketplaceId,], cancellationToken);
 
     /// <summary>Every item across all pages. Pages are fetched as you iterate.</summary>
     public IAsyncEnumerable<Payout> ListAllAsync(string? filter = null, string? limit = null, string? offset = null, string? sort = null, string? marketplaceId = null, CancellationToken cancellationToken = default) =>
