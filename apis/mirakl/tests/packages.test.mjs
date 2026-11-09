@@ -110,3 +110,37 @@ test('the Python changelog leaves the first alpha unreleased, so no tag can publ
   const changelog = await readFile(new URL('CHANGELOG.md', PYTHON), 'utf8');
   assert.ok(changelog.includes(`## ${version} (unreleased)`));
 });
+
+const CSHARP = new URL('packages/csharp/', API);
+
+test('the C# package ships the Apache-2.0 licence and the same notice', async () => {
+  assert.equal(await readFile(new URL('LICENSE', CSHARP), 'utf8'), await readFile(new URL('LICENSE', ROOT), 'utf8'));
+  assert.equal(await readFile(new URL('NOTICE', CSHARP), 'utf8'), await readFile(new URL('NOTICE', TYPESCRIPT), 'utf8'));
+});
+
+test('the C# project declares Apache-2.0 and MiraklSeller, and its description starts with Unofficial', async () => {
+  const project = await readFile(new URL('src/MiraklSeller/MiraklSeller.csproj', CSHARP), 'utf8');
+  assert.match(project, /<PackageLicenseExpression>Apache-2\.0<\/PackageLicenseExpression>/);
+  assert.match(project, /<PackageId>MiraklSeller<\/PackageId>/);
+  assert.match(project, /<Version>0\./);
+  assert.ok(project.includes(`<Description>Unofficial client for the Mirakl seller API. ${AFFILIATION}</Description>`));
+  const client = await unwrapped(new URL('src/MiraklSeller/MiraklClient.cs', CSHARP));
+  assert.ok(client.replaceAll(' /// ', ' ').includes(AFFILIATION));
+});
+
+test('the C# README says it is unofficial and not affiliated', async () => {
+  const readme = await unwrapped(new URL('README.md', CSHARP));
+  assert.match(readme, /^# MiraklSeller Unofficial /);
+  assert.ok(readme.includes(AFFILIATION));
+  assert.match(readme, /no public sandbox/);
+  assert.match(readme, /Best Buy/);
+  assert.match(readme, /mirakl\/sdk-php-shop/);
+  assert.match(readme, /0\.x/);
+});
+
+test('the C# changelog leaves the first alpha unreleased, so no tag can publish it', async () => {
+  const project = await readFile(new URL('src/MiraklSeller/MiraklSeller.csproj', CSHARP), 'utf8');
+  const version = project.match(/<Version>(.*)<\/Version>/)?.[1];
+  const changelog = await readFile(new URL('CHANGELOG.md', CSHARP), 'utf8');
+  assert.ok(changelog.includes(`## ${version} (unreleased)`));
+});
