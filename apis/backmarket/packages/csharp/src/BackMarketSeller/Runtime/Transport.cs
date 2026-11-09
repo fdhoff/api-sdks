@@ -657,6 +657,9 @@ internal sealed class Transport : IDisposable
         }
     }
 
+    /// <summary>Whether a request with no body still carries empty content, so <c>Content-Length: 0</c>, as every write does.</summary>
+    public static bool SendsEmptyContent(string method) => method != "GET";
+
     private static HttpRequestMessage Message(AuthRequest auth, Stream? stream)
     {
         var method = auth.Method;
@@ -666,7 +669,7 @@ internal sealed class Transport : IDisposable
             request.Content = new StreamBody(stream);
             request.Headers.ExpectContinue = false;
         }
-        else if (auth.Body.Length > 0 || method != "GET")
+        else if (auth.Body.Length > 0 || SendsEmptyContent(method))
         {
             // The HTTP/1.1 handler resends a request when a reused connection closes before any response, but only
             // one with no content or with Expect: 100-continue. A write has neither, so it can reuse connections.

@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* `MessageSigner` signs `content-length: 0` for a PATCH without a body, as httpx sends it, instead of raising.
 * Binary response and request bodies are read and sent as raw bytes where the spec declares them. No operation in this package does yet.
 
 ## 0.1.0a1 (2026-11-08)
