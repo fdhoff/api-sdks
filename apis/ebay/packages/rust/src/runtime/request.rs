@@ -222,7 +222,7 @@ pub struct Request {
     pub path: String,
     pub query: Vec<(String, String)>,
     pub body: Body,
-    /// A body that could not be encoded, reported when the request is sent.
+    /// A path value or body that could not be encoded, reported instead of sending the request.
     pub invalid: Option<String>,
     /// The operation's host key. `None` sends the request to the settings' `base_url`.
     pub host: Option<&'static str>,
@@ -489,6 +489,9 @@ impl Request {
 
     pub fn path(mut self, name: &str, value: &impl Serialize) -> Self {
         let value = text(&param_value(value)).unwrap_or_default();
+        if matches!(value.as_str(), "" | "." | "..") {
+            self.invalid = Some(format!(r#"{name} must not be empty, "." or "..""#));
+        }
         let encoded = utf8_percent_encode(&value, PATH_SEGMENT).to_string();
         self.path = self.path.replace(&format!("{{{name}}}"), &encoded);
         self

@@ -284,7 +284,9 @@ function buildRequest(
       continue;
     }
     if (location === 'path') {
-      path = path.replace(`{${wire}}`, encodeURIComponent(String(value)));
+      const text = String(value);
+      if (text === '' || text === '.' || text === '..') throw new TypeError(`${name} must not be empty, "." or ".."`);
+      path = path.replace(`{${wire}}`, encodeURIComponent(text));
     } else if (location === 'query') {
       for (const item of Array.isArray(value) ? value : [value]) query.append(wire, String(item));
     } else if (location === 'urlencoded') {

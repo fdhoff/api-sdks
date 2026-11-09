@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* An empty, `.` or `..` path value is an `ErrorKind::Api` error and nothing is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
 * A POST, PUT or PATCH without a body sends `Content-Length: 0`, as the other languages' HTTP libraries do.
 * The repository moved to `fdhoff/api-sdks`; the package's repository and documentation links point there.
 * An empty success body where the spec declares JSON is an `ErrorKind::Decode` error instead of a default model.

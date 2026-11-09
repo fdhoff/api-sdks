@@ -121,3 +121,5 @@ Output is one of these, with `logs` holding what the client logged at its most v
 ```
 
 A paginated request's `result` is the list of items across all pages. A driver reports any exception the client raised as `error`; one it cannot express makes it exit, which aborts the run. The error kinds are defined by each API's cases.
+
+TODO: a case cannot yet assert that a call failed before sending anything, such as a `..` path value. That needs `wire: []` with no `mock`, and an `argument` error kind every driver reports for the runtime's own argument error. Until then each runtime's tests cover it.

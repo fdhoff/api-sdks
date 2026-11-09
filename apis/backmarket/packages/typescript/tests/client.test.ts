@@ -211,6 +211,18 @@ test('path values are encoded and required at runtime', async () => {
   await assert.rejects(() => client.orders.get(undefined as never), /orderId is required/);
 });
 
+test('an empty, "." or ".." path value is rejected before sending', async () => {
+  const { client, sent } = clientFor(() => json({}));
+  for (const value of ['', '.', '..']) {
+    await assert.rejects(() => client.buyback.getOrder(value), { name: 'TypeError', message: /buybackOrderId/ });
+    await assert.rejects(() => client.listings.update(value, { quantity: 1 }), {
+      name: 'TypeError',
+      message: /listingId/,
+    });
+  }
+  assert.equal(sent.length, 0);
+});
+
 test('bodies are sent as given, under wire names', async () => {
   const { client, sent } = clientFor(() => json({}));
   await client.orders.update(1, { order_id: 1, new_state: undefined } as never);

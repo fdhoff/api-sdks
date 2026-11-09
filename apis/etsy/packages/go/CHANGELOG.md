@@ -4,6 +4,7 @@ This module follows semantic versioning and stays on 0.x until outside users con
 
 ## Unreleased
 
+* An empty, `.` or `..` path value returns an error before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
 * An iterator that gets an empty 204 page stops there instead of returning an error matching `ErrDecode`.
 * An empty 204 response returns a nil result, even where the spec also declares JSON, instead of an error matching `ErrDecode`.
 * Binary response and request bodies are read and sent as raw bytes where the spec declares them. No operation in this package does yet.

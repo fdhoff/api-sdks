@@ -660,7 +660,7 @@ impl Transport {
         if let Some(reason) = &request.invalid {
             return Err(Error::new(
                 ErrorKind::Api,
-                format!("the request body cannot be encoded: {reason}"),
+                format!("the request cannot be encoded: {reason}"),
             ));
         }
         let method = match hop {

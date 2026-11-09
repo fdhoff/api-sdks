@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* An empty, `.` or `..` path value raises `ValueError` before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
 * A tuple or frozenset passed as an array argument is sent as one value per item, as a list is. Before, a query or form field got its Python repr, and a multipart field such as `buyback.counter_offer`'s `reasons` sent the tuple as a file. A `(filename, bytes)` tuple is still a file.
 * A page without its `results` list now raises `DecodeError` instead of ending the iteration.
 * An empty 204 response now returns `None`, and ends an iteration, instead of raising `DecodeError` where the operation also declares a JSON success.

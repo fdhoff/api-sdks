@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* An empty, `.` or `..` path value raises `ValueError` before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
 * A tuple or frozenset passed as an array argument is sent as one value per item, as a list is. Before, it was sent as its Python repr.
 * `ebay_sell.post_order` and `client.post_order` cover the Post-Order API's 29 remaining operations on cancellations, returns, item-not-received inquiries and cases. They take the seller's user token and the client's `marketplace_id`. Return files are uploaded as base64 in a JSON body.
 * `MessageSigner` signs `content-length: 0` for a PATCH without a body, as httpx sends it, instead of raising.

@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* An empty, `.` or `..` path value throws `TypeError` before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
 * The runtime can poll an asynchronous job until it ends, and download a URL a response returns, sending credentials only to the base URL's origin. No operation in this package uses either yet.
 
 ## 0.1.0-alpha.2 (2026-11-09)

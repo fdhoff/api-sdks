@@ -2,6 +2,10 @@
 
 This module follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
+## Unreleased
+
+* An empty, `.` or `..` path value returns an error before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
+
 ## 0.1.0-alpha.2 (2026-11-09)
 
 * An iterator that gets an empty 204 page stops there instead of returning an error matching `ErrDecode`.

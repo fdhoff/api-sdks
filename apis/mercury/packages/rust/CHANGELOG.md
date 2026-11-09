@@ -4,6 +4,7 @@ This crate follows semantic versioning and stays on 0.x until outside users conf
 
 ## Unreleased
 
+* An empty, `.` or `..` path value is an `ErrorKind::Api` error and nothing is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
 * The runtime can poll an asynchronous job until it ends, and download a URL a response returns, sending credentials only to the base URL's origin. A job still running at the deadline is an `ErrorKind::JobTimeout` error, whose `Error::job_status` holds its last status. No operation in this package uses either yet.
 
 ## 0.1.0-alpha.1 (2026-11-08)

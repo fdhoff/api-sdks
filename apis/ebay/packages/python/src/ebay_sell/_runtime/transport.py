@@ -225,6 +225,13 @@ def _text(value: Any) -> str:
     return str(value)
 
 
+def _segment(name: str, value: Any) -> str:
+    text = _text(value)
+    if text in ("", ".", ".."):
+        raise ValueError(f"{name} must not be empty, '.' or '..'")
+    return quote(text, safe="")
+
+
 def _field(value: Any) -> str:
     if isinstance(value, (Mapping, ApiModel)):
         return json.dumps(to_wire(value), separators=(",", ":"))
@@ -279,7 +286,7 @@ def _build_request(
         if param.location == "header":
             headers[param.wire] = _text(value)
         elif param.location == "path":
-            path = path.replace(f"{{{param.wire}}}", quote(_text(value), safe=""))
+            path = path.replace(f"{{{param.wire}}}", _segment(param.name, value))
         elif param.location == "query":
             query.extend((param.wire, _text(item)) for item in _values(value))
         elif param.location == "urlencoded":
