@@ -1048,8 +1048,10 @@ impl Transport {
             _ => VecDeque::new(),
         };
         let next = self.next_request(request, &page, &answer, items.len())?;
-        if let Some(at) = next.as_ref().and_then(position)
-            && !seen.insert(at)
+        if next
+            .as_ref()
+            .and_then(position)
+            .is_some_and(|at| !seen.insert(at))
         {
             return Err(self.decode_error(
                 "the next page is one this iteration already requested",
