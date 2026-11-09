@@ -27,6 +27,7 @@ The build stays 3.1; there is no down-conversion step. Spectral lints the 3.1 bu
 | M5 | No operation declares its paging parameters. | Shared parameters, added where the docs give an operation a Pagination section; see Pagination. |
 | M6 | Every request and response example is wrong for its own schema or unchecked; 71 of the 168 contradict their schemas, which fails lint and Prism's responses. | Removed. The mock generates from the schemas instead. |
 | M7 | SBC11's `pay_out_state` list gives its item a default of the whole list as one string, which is outside its own enum. | Removed. |
+| M8 | ST01 and ST31 declare a shipment's additional information `value` as an object, while both of its `DATE` and `STRING` kinds declare it a string, so the kinds cannot extend it. | Made a string, as both kinds declare. |
 
 ## Deprecated operations
 
