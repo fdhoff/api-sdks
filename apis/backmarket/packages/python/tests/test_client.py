@@ -680,14 +680,32 @@ def test_cursor_paging_starts_at_the_callers_position_and_stops_without_a_next_v
         assert cursor_pages([page]) == ([], [""])
 
 
-def test_cursor_paging_rejects_a_next_value_equal_to_the_one_sent() -> None:
+def test_cursor_paging_sends_an_integer_next_value_back_as_its_digits() -> None:
+    pages = [
+        {"data": [{"n": 0}], "page": {"next_page": 0}},
+        {"data": [{"n": 1}], "page": {"next_page": 7}},
+        {"data": [], "page": {"next_page": None}},
+    ]
+    items, queries = cursor_pages(pages)
+    assert items == [{"n": 0}, {"n": 1}]
+    assert queries == ["", "start_after=0", "start_after=7"]
+
+
+@pytest.mark.parametrize(("sent", "next_page"), [("a", "a"), ("3", 3), (3, 3)])
+def test_cursor_paging_rejects_a_next_value_equal_to_the_one_sent(sent: Any, next_page: Any) -> None:
     with pytest.raises(DecodeError, match="does not advance the iteration"):
-        cursor_pages([{"data": [{"n": 1}], "page": {"next_page": "a"}}], start_after="a")
+        cursor_pages([{"data": [{"n": 1}], "page": {"next_page": next_page}}], start_after=sent)
 
 
 @pytest.mark.parametrize(
     "page",
-    [{"page": {"next_page": "b"}}, {"data": [{"n": 1}], "page": {"next_page": 2}}, {"data": [{"n": 1}], "page": "b"}],
+    [
+        {"page": {"next_page": "b"}},
+        {"data": [{"n": 1}], "page": {"next_page": 2.5}},
+        {"data": [{"n": 1}], "page": {"next_page": True}},
+        {"data": [{"n": 1}], "page": {"next_page": {"id": "b"}}},
+        {"data": [{"n": 1}], "page": "b"},
+    ],
 )
 def test_cursor_paging_rejects_a_malformed_page(page: Any) -> None:
     with pytest.raises(DecodeError):

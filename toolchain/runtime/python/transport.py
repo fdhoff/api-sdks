@@ -534,8 +534,10 @@ def _next_cursor(
         value = value.get(key)
     if value is None or value == "":
         return None
+    if isinstance(value, int) and not isinstance(value, bool):
+        value = str(value)
     if not isinstance(value, str):
-        raise DecodeError(f"The `{paging.next}` value of a page is not a string")
+        raise DecodeError(f"The `{paging.next}` value of a page is not a string or an integer")
     name = _query_names(operation)[paging.param]
     current = params.get(name)
     if current is not None and _text(current) == value:

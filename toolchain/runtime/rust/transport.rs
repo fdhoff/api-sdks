@@ -557,14 +557,15 @@ impl Transport {
         let position = match value {
             Value::Null => return Ok(None),
             Value::String(position) if position.is_empty() => return Ok(None),
-            Value::String(position) => position,
-            _ => return Err(self.decode_error(&format!("the {path} value of a page is not a string"), answer)),
+            Value::String(position) => position.clone(),
+            Value::Number(position) if position.is_i64() => position.to_string(),
+            _ => return Err(self.decode_error(&format!("the {path} value of a page is not a string or an integer"), answer)),
         };
         if request.query_value(param) == Some(position.as_str()) {
             return Err(self.decode_error(&format!("the {path} value does not advance the iteration"), answer));
         }
         let mut next = request.clone();
-        next.set_query(param, position);
+        next.set_query(param, &position);
         Ok(Some(next))
     }
 
@@ -779,6 +780,14 @@ mod tests {
     }
 
     #[test]
+    fn cursor_paging_sends_an_integer_next_value_back_as_its_digits() {
+        for (position, url) in [(0, "/items?start_after=0"), (7, "/items?start_after=7")] {
+            let page = serde_json::json!({ "data": [1], "page": { "next_page": position } });
+            assert_eq!(next_url(&CURSOR_LIST, &[], page, 1).as_deref(), Some(url));
+        }
+    }
+
+    #[test]
     fn cursor_paging_stops_at_a_null_empty_or_absent_next_value() {
         for page in [
             serde_json::json!({ "data": [], "page": { "next_page": null } }),
@@ -793,16 +802,23 @@ mod tests {
 
     #[test]
     fn cursor_paging_rejects_a_next_value_equal_to_the_one_sent() {
-        let error = next(&CURSOR_LIST, &[("start_after", "a")], serde_json::json!({ "data": [1], "page": { "next_page": "a" } }), 1).unwrap_err();
-        assert_eq!(error.kind(), ErrorKind::Decode);
-        assert!(error.to_string().contains("does not advance the iteration"), "{error}");
+        for (sent, page) in [
+            ("a", serde_json::json!({ "data": [1], "page": { "next_page": "a" } })),
+            ("3", serde_json::json!({ "data": [1], "page": { "next_page": 3 } })),
+        ] {
+            let error = next(&CURSOR_LIST, &[("start_after", sent)], page, 1).unwrap_err();
+            assert_eq!(error.kind(), ErrorKind::Decode);
+            assert!(error.to_string().contains("does not advance the iteration"), "{error}");
+        }
     }
 
     #[test]
     fn cursor_paging_rejects_a_malformed_page() {
         for page in [
             serde_json::json!({ "page": { "next_page": "b" } }),
-            serde_json::json!({ "data": [1], "page": { "next_page": 2 } }),
+            serde_json::json!({ "data": [1], "page": { "next_page": 2.5 } }),
+            serde_json::json!({ "data": [1], "page": { "next_page": true } }),
+            serde_json::json!({ "data": [1], "page": { "next_page": { "id": "b" } } }),
             serde_json::json!({ "data": [1], "page": "b" }),
         ] {
             assert_eq!(next(&CURSOR_LIST, &[], page, 1).unwrap_err().kind(), ErrorKind::Decode);

@@ -1,0 +1,96 @@
+# Cursor paging with an integer next value. `list-items` sends each page's `cursor` back as its decimal digits
+# in the `cursor` query parameter. A cursor of 0 is a position, not the end.
+cases:
+  - name: cursor-paging-follows-an-integer-cursor-across-several-pages
+    request:
+      operation: list-items
+      params: { limit: 2 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { results: [{ id: a }, { id: b }], cursor: 2 }
+        - status: 200
+          body: { results: [{ id: c }, { id: d }], cursor: 4 }
+        - status: 200
+          body: { results: [{ id: e }], cursor: null }
+    wire:
+      - method: GET
+        path: /items
+        query: { limit: '2' }
+      - method: GET
+        path: /items
+        query: { limit: '2', cursor: '2' }
+      - method: GET
+        path: /items
+        query: { limit: '2', cursor: '4' }
+    expect:
+      result: [{ id: a }, { id: b }, { id: c }, { id: d }, { id: e }]
+
+  - name: cursor-paging-sends-an-integer-cursor-of-zero
+    request:
+      operation: list-items
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { results: [{ id: a }], cursor: 0 }
+        - status: 200
+          body: { results: [{ id: b }] }
+    wire:
+      - method: GET
+        path: /items
+      - method: GET
+        path: /items
+        query: { cursor: '0' }
+    expect:
+      result: [{ id: a }, { id: b }]
+
+  - name: cursor-paging-repeated-integer-cursor
+    request:
+      operation: list-items
+      params: { cursor: 3 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { results: [{ id: a }], cursor: 3 }
+    wire:
+      - method: GET
+        path: /items
+        query: { cursor: '3' }
+    expect:
+      error: { kind: decode }
+
+  - name: cursor-paging-repeated-integer-cursor-from-the-server
+    request:
+      operation: list-items
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { results: [{ id: a }], cursor: 1 }
+        - status: 200
+          body: { results: [{ id: b }], cursor: 1 }
+    wire:
+      - method: GET
+        path: /items
+      - method: GET
+        path: /items
+        query: { cursor: '1' }
+    expect:
+      error: { kind: decode }
+
+  - name: cursor-paging-rejects-a-fractional-cursor
+    request:
+      operation: list-items
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { results: [{ id: a }], cursor: 1.5 }
+    wire:
+      - method: GET
+        path: /items
+    expect:
+      error: { kind: decode }

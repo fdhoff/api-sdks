@@ -283,11 +283,19 @@ internal sealed class Transport : IDisposable
         {
             return null;
         }
-        if (value.ValueKind != JsonValueKind.String)
+        string position;
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var integer))
         {
-            throw new ApiDecodeException($"The `{paging.Next}` value of a page is not a string");
+            position = integer.ToString(CultureInfo.InvariantCulture);
         }
-        var position = value.GetString()!;
+        else if (value.ValueKind == JsonValueKind.String)
+        {
+            position = value.GetString()!;
+        }
+        else
+        {
+            throw new ApiDecodeException($"The `{paging.Next}` value of a page is not a string or an integer");
+        }
         if (position.Length == 0)
         {
             return null;

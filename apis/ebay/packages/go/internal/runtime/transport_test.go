@@ -276,15 +276,33 @@ func TestCursorPagingStartsAtTheCallersPositionAndStopsWithoutANextValue(t *test
 	}
 }
 
-func TestCursorPagingRejectsANextValueEqualToTheOneSent(t *testing.T) {
-	after := "a"
-	_, queries, err := walk(t, cursorList, cursorParams{After: &after}, served(map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": "a"}}))
-	var failure *Error
-	if !errors.As(err, &failure) || failure.Kind != KindDecode || !strings.Contains(err.Error(), "does not advance the iteration") {
-		t.Fatalf("error is %v", err)
+func TestCursorPagingSendsAnIntegerNextValueBackAsItsDigits(t *testing.T) {
+	items, queries, err := walk(t, cursorList, cursorParams{}, served(
+		map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": 0}},
+		map[string]any{"data": numbered(1, 2), "page": map[string]any{"next_page": 7}},
+		map[string]any{"data": []any{}, "page": map[string]any{"next_page": nil}},
+	))
+	if err != nil {
+		t.Fatal(err)
 	}
-	if len(queries) != 1 {
-		t.Errorf("queries are %q", queries)
+	if !reflect.DeepEqual(items, numbered(0, 2)) {
+		t.Errorf("items are %v", items)
+	}
+	if want := []string{"", "start_after=0", "start_after=7"}; !reflect.DeepEqual(queries, want) {
+		t.Errorf("queries are %q, want %q", queries, want)
+	}
+}
+
+func TestCursorPagingRejectsANextValueEqualToTheOneSent(t *testing.T) {
+	for sent, next := range map[string]any{"a": "a", "3": 3} {
+		_, queries, err := walk(t, cursorList, cursorParams{After: &sent}, served(map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": next}}))
+		var failure *Error
+		if !errors.As(err, &failure) || failure.Kind != KindDecode || !strings.Contains(err.Error(), "does not advance the iteration") {
+			t.Fatalf("for %v, error is %v", next, err)
+		}
+		if len(queries) != 1 {
+			t.Errorf("queries are %q", queries)
+		}
 	}
 }
 
@@ -292,7 +310,9 @@ func TestCursorPagingRejectsAMalformedPage(t *testing.T) {
 	for _, body := range []any{
 		map[string]any{"page": map[string]any{"next_page": "b"}},
 		map[string]any{"data": nil},
-		map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": 2}},
+		map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": 2.5}},
+		map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": true}},
+		map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": map[string]any{"id": "b"}}},
 		map[string]any{"data": numbered(0, 1), "page": "b"},
 	} {
 		_, _, err := walk(t, cursorList, cursorParams{}, served(body))
