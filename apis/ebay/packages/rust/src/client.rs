@@ -363,6 +363,7 @@ impl ClientBuilder {
             hosts,
             headers: self.headers()?,
             header_defaults: self.header_defaults(),
+            query_defaults: HashMap::new(),
             credentials: credentials.clone(),
             to_error,
             timeout: self.timeout,

@@ -46,6 +46,9 @@ const {{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}: Operat
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct {{>partial_params_name}} {
 {{#queryParams}}
+{{#vendorExtensions.x-sdk-query-default}}
+    /// `None` sends the client's default, if it has one.
+{{/vendorExtensions.x-sdk-query-default}}
     pub {{{paramName}}}: Option<{{>partial_value_type}}>,
 {{/queryParams}}
 {{#formParams}}
@@ -62,7 +65,7 @@ pub struct {{>partial_params_name}} {
 impl Params for {{>partial_params_name}} {
     fn apply(&self, request: &mut Request) {
 {{#queryParams}}
-        request.query("{{baseName}}", &self.{{{paramName}}});
+        request.query{{#vendorExtensions.x-sdk-query-default}}_default{{/vendorExtensions.x-sdk-query-default}}("{{baseName}}", &self.{{{paramName}}});
 {{/queryParams}}
 {{#formParams}}
         request.{{#isMultipart}}form{{/isMultipart}}{{^isMultipart}}urlencoded{{/isMultipart}}("{{baseName}}", &self.{{{paramName}}});

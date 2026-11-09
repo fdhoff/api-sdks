@@ -37,6 +37,9 @@ pub struct Settings {
     /// A value for each default-able header, sent by the operations that declare it when the call
     /// gives none. Names match without regard to case.
     pub header_defaults: HashMap<String, String>,
+    /// A value for each default-able query parameter, sent by the operations that declare it when the
+    /// call gives none. Names match exactly.
+    pub query_defaults: HashMap<String, String>,
     pub to_error: fn(ErrorContext) -> Error,
     pub timeout: Duration,
     pub max_retries: u32,
@@ -272,7 +275,7 @@ impl Transport {
                 .map_err(|error| Error::new(ErrorKind::Api, format!("the {name} header value is not valid")).with_source(error))?;
             headers.insert(name, value);
         }
-        let url = request.url(self.base_url(request)?);
+        let url = request.url(self.base_url(request)?, &self.settings.query_defaults);
         let mut auth = AuthRequest { method, url, headers, body, operation: request.operation };
         let credentials = self.settings.credentials.as_ref();
         credentials.apply(&mut auth).await.map_err(|error| error.map_message(|text| self.redact(text)))?;
@@ -688,6 +691,7 @@ mod tests {
             credentials: Arc::new(StaticCredentials::new(HeaderMap::new(), Vec::new())),
             headers,
             header_defaults: HashMap::new(),
+            query_defaults: HashMap::new(),
             to_error: |context| Error::new(ErrorKind::Api, format!("status {}", context.status)),
             timeout: Duration::from_secs(1),
             max_retries: 0,
@@ -735,7 +739,7 @@ mod tests {
             request.set_query(name, value);
         }
         let answer = Answer { status: 200, headers: HeaderMap::new(), body: Vec::new() };
-        Ok(transport.next_request(&request, &page, &answer, received)?.map(|next| next.url("")))
+        Ok(transport.next_request(&request, &page, &answer, received)?.map(|next| next.url("", &HashMap::new())))
     }
 
     fn next_url(operation: &'static Operation, query: &[(&str, &str)], page: Value, received: usize) -> Option<String> {

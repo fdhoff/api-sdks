@@ -183,7 +183,15 @@ An API may serve operations from several hosts. `hosts` in its `sdk.yaml` maps e
 
 Headers the runtime owns, `Content-Type`, `Content-Length`, `Accept` and `Accept-Encoding`, are never method arguments: the generator drops them from every operation, and `header_defaults` may not name them.
 
-No API uses `hosts` or `header_defaults` yet, so CI's `templates` job generates a synthetic spec in `toolchain/pipeline/fixtures/multihost/` in every language and type-checks the result. It has two hosts with one operation each, and a default header on one operation that has no other parameter. Its generated code is not committed.
+### Default query parameters
+
+`query_defaults` in `sdk.yaml` names query parameters that take a client-level default, such as an account or shop selector most callers set once. Query names are case-sensitive, so they match exactly. The generator marks each with `x-sdk-query-default` and makes it optional; templates flag it in the operation's metadata, and it stays an optional method argument like any other query parameter. Settings hold `query_defaults`, a map from query name to value. A name in `sdk.yaml` that matches no query parameter in any of an API's contracts fails generation.
+
+* A value passed to the call is sent. Otherwise the default for that exact name is sent. Otherwise the parameter is not sent.
+* Only parameters marked in `sdk.yaml` take a default; a default never reaches any other query parameter, even one of the same name.
+* Iterators send the default on every page. Defaults are not secrets, so redaction ignores them.
+
+No API uses `query_defaults` yet, so CI's `templates` job generates a synthetic spec in `toolchain/pipeline/fixtures/multihost/` in every language and type-checks the result. It has two hosts with one operation each, a default header on one operation that has no other parameter, and a default query parameter on two operations, one of them paged. Its generated code is not committed.
 
 ### Binary bodies
 

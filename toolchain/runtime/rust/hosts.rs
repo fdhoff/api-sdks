@@ -103,6 +103,7 @@ mod tests {
             credentials: Arc::new(Tokens::default()),
             headers: HeaderMap::new(),
             header_defaults: map(defaults),
+            query_defaults: HashMap::new(),
             to_error: |context| Error::new(ErrorKind::Api, format!("status {}", context.status)).with_status(context.status),
             timeout: Duration::from_secs(5),
             max_retries: 0,
@@ -234,5 +235,82 @@ mod tests {
         assert_eq!(sent[0].head.matches("x-tenant:").count(), 1);
         assert_eq!(line(&sent[0].head, "x-tenant"), Some("acme"));
         assert_eq!(line(&sent[1].head, "x-tenant"), Some("client-wide"));
+    }
+
+    const GET_SITE_ITEM: Operation = Operation { id: "get-item", path: "/items/{id}", query_params: &["site"], paging: None, ..LIST_ITEMS };
+
+    const LIST_SITE_ITEMS: Operation = Operation {
+        id: "list-items",
+        query_params: &["site", "after"],
+        paging: Some(Paging::Cursor { items: "results", next: "next", param: "after" }),
+        ..LIST_ITEMS
+    };
+
+    struct SiteParams {
+        site: Option<String>,
+    }
+
+    impl Params for SiteParams {
+        fn apply(&self, request: &mut Request) {
+            request.query_default("site", &self.site);
+        }
+    }
+
+    struct PlainSiteParams {
+        site: Option<String>,
+    }
+
+    impl Params for PlainSiteParams {
+        fn apply(&self, request: &mut Request) {
+            request.query("site", &self.site);
+        }
+    }
+
+    fn with_query_defaults(url: &str, defaults: &[(&str, &str)]) -> Arc<Transport> {
+        Arc::new(Transport::new(Settings { query_defaults: map(defaults), ..settings_for(url, HashMap::new(), &[]) }).unwrap())
+    }
+
+    fn request_lines(log: &[super::super::credentials::tests::Sent]) -> Vec<String> {
+        log.iter().map(|sent| sent.head.lines().next().unwrap().to_owned()).collect()
+    }
+
+    #[tokio::test]
+    async fn a_query_default_is_sent_unless_the_call_gives_a_value() {
+        let (url, log) = serve(|_, _| (200, "{}".to_owned())).await;
+        let transport = with_query_defaults(&url, &[("site", "north")]);
+        let call = |site: Option<&str>| Request::new(&GET_SITE_ITEM).path("id", &1).params(&SiteParams { site: site.map(str::to_owned) });
+        transport.call::<Value>(call(None)).await.unwrap();
+        transport.call::<Value>(call(Some("south"))).await.unwrap();
+        assert_eq!(request_lines(&log.lock().unwrap()), ["get /items/1?site=north http/1.1", "get /items/1?site=south http/1.1"]);
+    }
+
+    #[tokio::test]
+    async fn a_query_parameter_with_neither_a_value_nor_a_default_is_not_sent() {
+        let (url, log) = serve(|_, _| (200, "{}".to_owned())).await;
+        let transport = with_query_defaults(&url, &[("Site", "north")]);
+        transport.call::<Value>(Request::new(&GET_SITE_ITEM).path("id", &1).params(&SiteParams { site: None })).await.unwrap();
+        assert_eq!(request_lines(&log.lock().unwrap()), ["get /items/1 http/1.1"]);
+    }
+
+    #[tokio::test]
+    async fn a_query_default_never_reaches_a_parameter_that_does_not_take_one() {
+        let (url, log) = serve(|_, _| (200, "{}".to_owned())).await;
+        let transport = with_query_defaults(&url, &[("site", "north")]);
+        transport.call::<Value>(Request::new(&GET_SITE_ITEM).path("id", &1).params(&PlainSiteParams { site: None })).await.unwrap();
+        assert_eq!(request_lines(&log.lock().unwrap()), ["get /items/1 http/1.1"]);
+    }
+
+    #[tokio::test]
+    async fn an_iterator_sends_the_query_default_on_every_page() {
+        let (url, log) = serve(|number, _| match number {
+            1 => (200, r#"{"results":[1],"next":"b"}"#.to_owned()),
+            _ => (200, r#"{"results":[2],"next":null}"#.to_owned()),
+        })
+        .await;
+        let transport = with_query_defaults(&url, &[("site", "north")]);
+        let request = Request::new(&LIST_SITE_ITEMS).params(&SiteParams { site: None });
+        let items: Vec<i64> = Transport::paginate::<i64>(&transport, request).map(Result::unwrap).collect().await;
+        assert_eq!(items, [1, 2]);
+        assert_eq!(request_lines(&log.lock().unwrap()), ["get /items?site=north http/1.1", "get /items?after=b&site=north http/1.1"]);
     }
 }

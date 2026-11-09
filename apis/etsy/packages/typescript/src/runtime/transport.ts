@@ -30,6 +30,8 @@ export interface Param {
   wire: string;
   name: string;
   location: 'path' | 'query' | 'form' | 'urlencoded' | 'header';
+  /** A query parameter that the call leaves unset takes the client's `queryDefaults` value. */
+  defaulted?: boolean;
 }
 
 /** Pages that link to the next one. Only `params` are read from the link: it is never fetched. */
@@ -105,6 +107,8 @@ export interface Settings {
   hosts?: Readonly<Record<string, string>>;
   /** Values for header parameters that an operation declares and the call leaves unset, by header name. */
   headerDefaults?: Readonly<Record<string, string>>;
+  /** Values for defaulted query parameters that the call leaves unset, by exact query name. */
+  queryDefaults?: Readonly<Record<string, string>>;
   credentials: Credentials;
   headers: Record<string, string>;
   toError: (context: ErrorContext) => ApiError;
@@ -219,8 +223,11 @@ function buildRequest(
   const form = new FormData();
   const fields = new URLSearchParams();
   let hasParts = false;
-  for (const { wire, name, location } of operation.params) {
-    const value = params[name];
+  const queryDefaults = settings.queryDefaults ?? {};
+  for (const { wire, name, location, defaulted } of operation.params) {
+    let value = params[name];
+    if ((value === undefined || value === null) && defaulted && Object.hasOwn(queryDefaults, wire))
+      value = queryDefaults[wire];
     if (location === 'header') {
       const sent = value ?? defaults.get(wire.toLowerCase());
       if (sent !== undefined && sent !== null) declared.push([wire, String(sent)]);

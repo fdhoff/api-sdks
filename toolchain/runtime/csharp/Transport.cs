@@ -37,6 +37,7 @@ internal sealed class Transport : IDisposable
 
     private readonly Settings settings;
     private readonly Dictionary<string, string> headerDefaults;
+    private readonly Dictionary<string, string> queryDefaults;
     private readonly HttpClient http;
     private readonly bool ownsClient;
     private readonly SemaphoreSlim refreshing = new(1, 1);
@@ -50,6 +51,7 @@ internal sealed class Transport : IDisposable
         try
         {
             headerDefaults = ByName(settings.HeaderDefaults);
+            queryDefaults = new Dictionary<string, string>(settings.QueryDefaults, StringComparer.Ordinal);
         }
         catch
         {
@@ -512,6 +514,10 @@ internal sealed class Transport : IDisposable
         {
             var param = operation.Params[index];
             var value = values[index];
+            if (value is null && param.Defaulted && queryDefaults.TryGetValue(param.Wire, out var fallback))
+            {
+                value = fallback;
+            }
             if (value is null)
             {
                 continue;

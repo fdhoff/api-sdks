@@ -3,3 +3,4 @@ hosts:
   https://api.example.test/v1: main
   https://uploads.example.test/v1: uploads
 header_defaults: [X-Tenant-Id]
+query_defaults: [site]

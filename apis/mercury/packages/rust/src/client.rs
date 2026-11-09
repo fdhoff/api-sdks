@@ -214,6 +214,7 @@ impl ClientBuilder {
             hosts,
             headers: self.headers()?,
             header_defaults: HashMap::new(),
+            query_defaults: HashMap::new(),
             credentials: Arc::new(credentials(token)?),
             to_error,
             timeout: self.timeout,

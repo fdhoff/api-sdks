@@ -215,6 +215,7 @@ impl ClientBuilder {
             hosts: HashMap::new(),
             headers: self.headers()?,
             header_defaults: HashMap::new(),
+            query_defaults: HashMap::new(),
             credentials: credentials.clone(),
             to_error,
             timeout: self.timeout,

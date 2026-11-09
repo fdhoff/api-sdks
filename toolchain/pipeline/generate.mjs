@@ -295,6 +295,32 @@ export function checkHeaderDefaults(defaults = [], used) {
 
 const isDefaultHeader = (parameter) => parameter.in === 'header' && parameter['x-sdk-header-default'] === true;
 
+// Query parameters named in `defaults` become optional method arguments that fall back to a client-level
+// value. Query names are case-sensitive, so they match exactly. An API built from several contracts shares
+// `used` across them and checks it once with checkQueryDefaults, as applyHeaders does.
+export function applyQueryDefaults(spec, defaults = [], used) {
+  const named = new Set(defaults);
+  const found = used ?? new Set();
+  for (const item of Object.values(spec.paths)) {
+    const holders = [item, ...METHODS.map((method) => item[method]).filter(Boolean)];
+    for (const parameter of holders.flatMap((holder) => holder.parameters ?? []).map((parameter) => dereference(spec, parameter))) {
+      if (parameter?.in !== 'query' || !named.has(parameter.name)) continue;
+      found.add(parameter.name);
+      parameter.required = false;
+      parameter['x-sdk-query-default'] = true;
+    }
+  }
+  if (!used) checkQueryDefaults(defaults, found);
+  return spec;
+}
+
+export function checkQueryDefaults(defaults = [], used) {
+  const unused = [...new Set(defaults)].filter((name) => !used.has(name));
+  if (unused.length > 0) throw new Error(`query_defaults names no query parameter: ${unused.join(', ')}`);
+}
+
+const isDefaultQuery = (parameter) => parameter.in === 'query' && parameter['x-sdk-query-default'] === true;
+
 // An operation whose operations.yaml entry sets `omit`, to the reason it is left out, is not generated.
 export function omitOperations(spec, operations) {
   const omitted = new Set(Object.keys(operations).filter((id) => operations[id].omit));
@@ -327,6 +353,7 @@ export function applyOperations(spec, operations, paging = {}) {
       operation['x-sdk-no-content'] = mayHaveNoContent(spec, operation);
       operation['x-sdk-security'] = securityOf(spec, operation);
       operation['x-sdk-has-headers'] = [...shared, ...(operation.parameters ?? [])].some((parameter) => isDefaultHeader(dereference(spec, parameter)));
+      operation['x-sdk-has-query-defaults'] = [...shared, ...(operation.parameters ?? [])].some((parameter) => isDefaultQuery(dereference(spec, parameter)));
       if (names.iterator) {
         const parameters = [...shared, ...(operation.parameters ?? [])].map((parameter) => dereference(spec, parameter));
         const queryParams = parameters.filter((parameter) => parameter.in === 'query').map((parameter) => parameter.name);
@@ -491,14 +518,15 @@ export function outermost(paths) {
   return unique.filter((path) => !unique.some((other) => other !== path && path.startsWith(`${other}/`)));
 }
 
-async function generateContract({ apiDir, language, packageDir, config, built, shared, sdk, usedHeaders }) {
+async function generateContract({ apiDir, language, packageDir, config, built, shared, sdk, usedHeaders, usedQueries }) {
   Object.assign(config, packageNames(shared, config));
   const operations = parse(await readFile(join(packageDir, config.operations ?? 'operations.yaml'), 'utf8'));
   const output = join(packageDir, config.output);
   const source = config.source ?? config.properties.packageName.replaceAll('.', '/');
 
   const parsed = stripProse(parse(await readFile(built, 'utf8')));
-  const routed = applyHeaders(applyHosts(markMappedEnums(renameSchemas(relax(parsed, config), config.schema_names), config.enum_name_mappings), sdk?.hosts), sdk?.header_defaults, usedHeaders);
+  const headed = applyHeaders(applyHosts(markMappedEnums(renameSchemas(relax(parsed, config), config.schema_names), config.enum_name_mappings), sdk?.hosts), sdk?.header_defaults, usedHeaders);
+  const routed = applyQueryDefaults(headed, sdk?.query_defaults, usedQueries);
   const spec = applyOperations(applyBinary(omitOperations(routed, operations)), operations, sdk?.paging);
   const work = await mkdtemp(join(tmpdir(), 'generate-'));
   try {
@@ -550,13 +578,15 @@ async function generate(apiDir, language) {
   const sources = lockSources(JSON.parse(await readFile(apiPaths(apiDir).lock, 'utf8')));
   const outputs = [];
   const usedHeaders = new Set();
+  const usedQueries = new Set();
   for (const { name, config: contract } of contractConfigs(config, sources.map((source) => source.name))) {
     const source = sources.find((item) => item.name === name);
     // A contract's shared names sit under its name in names.yaml.
     const names = name === null ? shared : (shared?.[name] ?? {});
-    outputs.push(await generateContract({ apiDir, language, packageDir, config: contract, built: sourcePaths(apiDir, source).build, shared: names, sdk, usedHeaders }));
+    outputs.push(await generateContract({ apiDir, language, packageDir, config: contract, built: sourcePaths(apiDir, source).build, shared: names, sdk, usedHeaders, usedQueries }));
   }
   checkHeaderDefaults(sdk?.header_defaults, usedHeaders);
+  checkQueryDefaults(sdk?.query_defaults, usedQueries);
   const output = join(packageDir, config.output);
   await rm(join(output, config.runtime), { recursive: true, force: true });
   await cp(join(TOOLCHAIN, 'runtime', language), join(output, config.runtime), { recursive: true });
