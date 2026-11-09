@@ -177,6 +177,46 @@ public sealed class ClientTests
         Assert.Equal("https://mock.invalid/items?limit=2&start=2", handler.Requests[1].Url);
     }
 
+    private static readonly Operation CursorList = OffsetList with
+    {
+        Params = [new("limit", "limit", ParamLocation.Query), new("start_after", "startAfter", ParamLocation.Query)],
+        Paging = new CursorPaging("data", "page.next_page", "start_after"),
+    };
+
+    [Fact]
+    public void CursorPagingSendsTheNextValueBackAndKeepsTheCallersParameters()
+    {
+        Assert.Equal(new object?[] { 2L, "b" }, Next(CursorList, [2L, null], """{"data": [{}], "page": {"next_page": "b"}}""", 1));
+        Assert.Equal(new object?[] { 2L, "c" }, Next(CursorList, [2L, "b"], """{"data": [{}], "page": {"next_page": "c"}}""", 1));
+    }
+
+    [Theory]
+    [InlineData("""{"data": [], "page": {"next_page": null}}""")]
+    [InlineData("""{"data": [], "page": {"next_page": ""}}""")]
+    [InlineData("""{"data": [], "page": {}}""")]
+    [InlineData("""{"data": [], "page": null}""")]
+    [InlineData("""{"data": []}""")]
+    public void CursorPagingStopsAtANullEmptyOrAbsentNextValue(string page)
+    {
+        Assert.Null(Next(CursorList, [null, "a"], page, 0));
+    }
+
+    [Fact]
+    public void CursorPagingRejectsANextValueEqualToTheOneSent()
+    {
+        var error = Assert.Throws<ApiDecodeException>(() => Next(CursorList, [null, "a"], """{"data": [{}], "page": {"next_page": "a"}}""", 1));
+        Assert.Contains("does not advance the iteration", error.Message);
+    }
+
+    [Theory]
+    [InlineData("""{"page": {"next_page": "b"}}""")]
+    [InlineData("""{"data": [{}], "page": {"next_page": 2}}""")]
+    [InlineData("""{"data": [{}], "page": "b"}""")]
+    public void CursorPagingRejectsAMalformedPage(string page)
+    {
+        Assert.Throws<ApiDecodeException>(() => Next(CursorList, [null, null], page, 1));
+    }
+
     [Fact]
     public void NextLinkPagingReadsTheConfiguredFields()
     {

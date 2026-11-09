@@ -21,7 +21,9 @@ internal enum ParamLocation
 
 internal sealed record Param(string Wire, string Name, ParamLocation Location);
 
-/// <summary>How an iterator walks pages: a <see cref="NextLinkPaging"/> or an <see cref="OffsetPaging"/>.</summary>
+/// <summary>
+/// How an iterator walks pages: a <see cref="NextLinkPaging"/>, an <see cref="OffsetPaging"/> or a <see cref="CursorPaging"/>.
+/// </summary>
 internal abstract record Paging(string Items);
 
 /// <summary>Pages that link to the next one. Only <see cref="Params"/> are read from the link: it is never fetched.</summary>
@@ -35,6 +37,12 @@ internal sealed record NextLinkPaging(string Items, string Link, string[] Params
 /// or once the offset reaches the page's <see cref="Total"/>.
 /// </summary>
 internal sealed record OffsetPaging(string Items, string Total, string Offset) : Paging(Items);
+
+/// <summary>
+/// Pages that carry the next position as a value at the dotted <see cref="Next"/> path, sent back in the
+/// <see cref="Param"/> query parameter. Iteration ends when that value is null, empty or absent.
+/// </summary>
+internal sealed record CursorPaging(string Items, string Next, string Param) : Paging(Items);
 
 /// <remarks>
 /// Any one requirement in <see cref="Security"/> authorizes the call; each lists schemes that must all be satisfied.

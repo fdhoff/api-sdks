@@ -56,6 +56,22 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Uploads' }
+  /gadgets:
+    get:
+      operationId: listGadgets
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: start_after
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Gadgets' }
 components:
   securitySchemes:
     api_key:
@@ -87,3 +103,18 @@ components:
         results:
           type: array
           items: { $ref: '#/components/schemas/Upload' }
+    Gadget:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string }
+    Gadgets:
+      type: object
+      properties:
+        gadgets:
+          type: array
+          items: { $ref: '#/components/schemas/Gadget' }
+        page:
+          type: object
+          properties:
+            next_page: { type: string, nullable: true }

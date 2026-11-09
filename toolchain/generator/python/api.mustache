@@ -16,6 +16,9 @@ from {{#runtimePackage}}{{runtimePackage}}{{/runtimePackage}}{{^runtimePackage}}
 {{#vendorExtensions.x-sdk-raw-body}}
 from {{#runtimePackage}}{{runtimePackage}}{{/runtimePackage}}{{^runtimePackage}}{{packageName}}{{/runtimePackage}}._runtime import RawBody
 {{/vendorExtensions.x-sdk-raw-body}}
+{{#vendorExtensions.x-sdk-paging.cursor}}
+from {{#runtimePackage}}{{runtimePackage}}{{/runtimePackage}}{{^runtimePackage}}{{packageName}}{{/runtimePackage}}._runtime import Cursor
+{{/vendorExtensions.x-sdk-paging.cursor}}
 {{/operation}}
 {{/operations}}
 
@@ -62,6 +65,9 @@ _{{operationIdSnakeCase}}: Operation[{{{returnType}}}{{^returnType}}None{{/retur
 {{#vendorExtensions.x-sdk-paging.offset}}
     paging=Offset(items="{{items}}", total="{{total}}", offset="{{offset}}"),
 {{/vendorExtensions.x-sdk-paging.offset}}
+{{#vendorExtensions.x-sdk-paging.cursor}}
+    paging=Cursor(items="{{items}}", next="{{next}}", param="{{param}}"),
+{{/vendorExtensions.x-sdk-paging.cursor}}
 {{/vendorExtensions.x-sdk-iterator}}
     security=(
 {{#vendorExtensions.x-sdk-security}}

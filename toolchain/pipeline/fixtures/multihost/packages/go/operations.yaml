@@ -1,3 +1,4 @@
 getWidget: { resource: widgets, method: Get, summary: Get one widget. }
 createWidget: { resource: widgets, method: Create, summary: Create a widget., idempotency: { body: idempotency_key } }
 listUploads: { resource: uploads, method: List, summary: List uploads. }
+listGadgets: { resource: gadgets, method: List, iterator: Iter, items: Gadget, paging: { style: cursor, items: gadgets, next: page.next_page, param: start_after }, summary: List lists one page of gadgets. }

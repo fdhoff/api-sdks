@@ -49,6 +49,9 @@ var (
 {{#vendorExtensions.x-sdk-paging.offset}}
 		Paging:      runtime.Offset{Items: "{{items}}", Total: "{{total}}", Offset: "{{offset}}"},
 {{/vendorExtensions.x-sdk-paging.offset}}
+{{#vendorExtensions.x-sdk-paging.cursor}}
+		Paging:      runtime.Cursor{Items: "{{items}}", Next: "{{next}}", Param: "{{param}}"},
+{{/vendorExtensions.x-sdk-paging.cursor}}
 		Security:    []runtime.Requirement{ {{#vendorExtensions.x-sdk-security}}{ {{#schemes}}{Name: "{{scheme}}", Scopes: []string{ {{#scopes}}"{{.}}",{{/scopes}} }},{{/schemes}} },{{/vendorExtensions.x-sdk-security}} },
 	})
 {{/operation}}

@@ -50,6 +50,33 @@ async function offsetPages(client, params = {}, url = `${client.base_url}/items`
   }
 }
 
+// Synthetic operations for the cursor mode, each with the paging its cases describe.
+const CURSOR_OPERATIONS = {
+  'list-items': { path: '/items', items: 'results', next: 'cursor', param: 'cursor' },
+  'list-events': { path: '/events', items: 'events', next: 'page.next_page', param: 'start_after' },
+};
+
+// Walks cursor pages as the runtimes do: send the value at the `next` path back as `param` until it is null,
+// empty or absent. A page without its items list, or a value equal to the one just sent, is a decode error.
+async function cursorPages(client, request) {
+  const operation = CURSOR_OPERATIONS[request.operation];
+  const items = [];
+  const query = { ...request.params };
+  for (;;) {
+    const search = new URLSearchParams(Object.entries(query).map(([name, value]) => [name, String(value)]));
+    const response = await fetch(`${client.base_url}${operation.path}${search.size > 0 ? `?${search}` : ''}`, {
+      headers: { authorization: `Basic ${client.token}` },
+    });
+    const page = await response.json();
+    if (!Array.isArray(page?.[operation.items])) return { error: { kind: 'decode' } };
+    items.push(...page[operation.items]);
+    const next = operation.next.split('.').reduce((value, key) => value?.[key], page);
+    if (next === null || next === undefined || next === '') return { result: items };
+    if (typeof next !== 'string' || String(query[operation.param]) === next) return { error: { kind: 'decode' } };
+    query[operation.param] = next;
+  }
+}
+
 const { privateKey } = generateKeyPairSync('ed25519');
 const digest = (bytes) => `sha-256=:${createHash('sha256').update(bytes).digest('base64')}:`;
 
@@ -158,6 +185,10 @@ for await (const line of createInterface({ input: process.stdin })) {
   }
   if (['idempotent', 'retry-writes', 'unretried'].includes(mode)) {
     console.log(JSON.stringify({ ...(await writeCall(client, request)), logs: [] }));
+    continue;
+  }
+  if (mode === 'cursor') {
+    console.log(JSON.stringify({ ...(await cursorPages(client, request)), logs: [] }));
     continue;
   }
   if (mode === 'offset') {

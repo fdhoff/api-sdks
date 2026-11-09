@@ -25,11 +25,15 @@ const PROSE = new Set(['description', 'summary', 'example', 'examples', 'externa
 // Runtimes in languages without relative imports write their package name as this.
 const PACKAGE_PLACEHOLDER = 'PackageNamespace';
 // How an iterator walks pages, and the defaults for each style. `next_link` reads the position out of a
-// link in each page. `offset` advances an offset query parameter by the number of items received.
+// link in each page. `offset` advances an offset query parameter by the number of items received. `cursor`
+// sends the value at the dotted `next` path of each page back in the `param` query parameter.
+// TODO: page cursors backward (an `end_before` parameter and a previous-page value) if users ask.
 const PAGING = {
   next_link: { items: 'results', link: 'next', params: ['page', 'cursor'] },
   offset: { items: 'results', total: 'count', offset: 'offset' },
+  cursor: { items: 'results', next: 'cursor', param: 'cursor' },
 };
+const POSITIONS = { next_link: (paging) => paging.params, offset: (paging) => [paging.offset], cursor: (paging) => [paging.param] };
 
 // The upstream spec is not redistributed, so its prose and examples must not reach generated code.
 // Only `properties` maps hold user-chosen keys that can collide with those names.
@@ -164,7 +168,8 @@ export function resolvePaging(operationId, queryParams, override = {}, fallback 
   delete paging.style;
   const unknown = Object.keys(paging).filter((key) => !(key in defaults));
   if (unknown.length > 0) throw new Error(`${operationId}: unknown ${style} paging keys: ${unknown.join(', ')}`);
-  const positions = style === 'offset' ? [paging.offset] : paging.params;
+  if (style === 'cursor' && !/^[^.]+(\.[^.]+)*$/.test(paging.next)) throw new Error(`${operationId}: cursor paging next is not a dotted path: ${paging.next}`);
+  const positions = POSITIONS[style](paging);
   if (!positions.some((name) => queryParams.includes(name))) {
     throw new Error(`${operationId}: no query parameter holds the ${style} paging position (${positions.join(', ')})`);
   }

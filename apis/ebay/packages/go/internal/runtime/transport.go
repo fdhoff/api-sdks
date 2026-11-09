@@ -28,7 +28,7 @@ const redacted = "***"
 // A backoff doubles per retry, and this keeps the shift in range for any retry count.
 const maxBackoffDoublings = 20
 
-// Paging is how an iterator walks pages: a [NextLink] or an [Offset].
+// Paging is how an iterator walks pages: a [NextLink], an [Offset] or a [Cursor].
 type Paging interface{ itemsField() string }
 
 // NextLink pages link to the next one. Only Params are read from the link: it is never fetched.
@@ -46,8 +46,17 @@ type Offset struct {
 	Offset string
 }
 
+// Cursor pages carry the next position as a value at the dotted Next path, sent back in the Param query
+// parameter. Iteration ends when that value is null, empty or absent.
+type Cursor struct {
+	Items string
+	Next  string
+	Param string
+}
+
 func (paging NextLink) itemsField() string { return paging.Items }
 func (paging Offset) itemsField() string   { return paging.Items }
+func (paging Cursor) itemsField() string   { return paging.Items }
 
 var defaultPaging = NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}}
 
@@ -650,6 +659,46 @@ func (t *Transport) nextOffset(paging Offset, query url.Values, page map[string]
 	return updated, nil
 }
 
+// nextCursor sends the page's next value back as the cursor parameter. A nil result means the last page.
+func (t *Transport) nextCursor(paging Cursor, query url.Values, page map[string]json.RawMessage, answer *response) (url.Values, error) {
+	var items []json.RawMessage
+	if err := json.Unmarshal(page[paging.Items], &items); err != nil || items == nil {
+		return nil, t.decodeError(fmt.Sprintf("the %s field of a page is not a list", paging.Items), answer, err)
+	}
+	keys := strings.Split(paging.Next, ".")
+	raw := page[keys[0]]
+	for _, key := range keys[1:] {
+		if raw == nil || string(raw) == "null" {
+			return nil, nil
+		}
+		var object map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &object); err != nil {
+			return nil, t.decodeError(fmt.Sprintf("the %s value of a page is not inside an object", paging.Next), answer, err)
+		}
+		raw = object[key]
+	}
+	var value any
+	if err := json.Unmarshal(raw, &value); raw != nil && err != nil {
+		return nil, t.decodeError(fmt.Sprintf("the %s value of a page is not valid JSON", paging.Next), answer, err)
+	}
+	if value == nil || value == "" {
+		return nil, nil
+	}
+	text, isText := value.(string)
+	if !isText {
+		return nil, t.decodeError(fmt.Sprintf("the %s value of a page is not a string", paging.Next), answer, nil)
+	}
+	if query.Has(paging.Param) && query.Get(paging.Param) == text {
+		return nil, t.decodeError(fmt.Sprintf("the %s value does not advance the iteration", paging.Next), answer, nil)
+	}
+	updated := url.Values{}
+	for name, values := range query {
+		updated[name] = values
+	}
+	updated.Set(paging.Param, text)
+	return updated, nil
+}
+
 // nextQuery is the query of the page after this one. A nil result means the last page.
 func (t *Transport) nextQuery(operation *Operation, query url.Values, page map[string]json.RawMessage, answer *response, received int) (url.Values, error) {
 	switch paging := operation.paging().(type) {
@@ -657,6 +706,8 @@ func (t *Transport) nextQuery(operation *Operation, query url.Values, page map[s
 		return t.nextOffset(paging, query, page, answer, received)
 	case NextLink:
 		return t.nextLink(operation, paging, query, page, answer)
+	case Cursor:
+		return t.nextCursor(paging, query, page, answer)
 	default:
 		return nil, t.decodeError(fmt.Sprintf("unknown paging %T", paging), answer, nil)
 	}

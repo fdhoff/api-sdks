@@ -29,7 +29,7 @@ from backmarket_seller import (
 )
 from backmarket_seller._resources import OPERATIONS
 from backmarket_seller._runtime.model import ApiModel, parse_response
-from backmarket_seller._runtime.transport import NextLink, Offset, Operation, Param, Resource, _retry_after
+from backmarket_seller._runtime.transport import Cursor, NextLink, Offset, Operation, Param, Resource, _retry_after
 from backmarket_seller.models import CategoryTree, Order, OrderPage, UpdateOrder
 
 TOKEN = "synthetic-token"
@@ -634,6 +634,64 @@ def test_offset_paging_rejects_an_offset_that_is_not_an_integer() -> None:
 def test_offset_paging_rejects_a_page_without_an_items_list(page: Any) -> None:
     with pytest.raises(DecodeError):
         offset_pages(lambda request: httpx.Response(200, json=page))
+
+
+CURSOR_LIST: Operation[Any] = Operation(
+    id="list-items",
+    method="GET",
+    path="/items",
+    resource="items",
+    name="list",
+    params=(Param("limit", "limit", "query"), Param("start_after", "start_after", "query")),
+    iterator="iter",
+    item=dict[str, Any],
+    paging=Cursor(items="data", next="page.next_page", param="start_after"),
+)
+
+
+def cursor_pages(pages: list[Any], **params: Any) -> tuple[list[dict[str, Any]], list[str]]:
+    queries: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        queries.append(request.url.query.decode())
+        return httpx.Response(200, json=pages[len(queries) - 1])
+
+    return list(Resource(client_for(handler)._transport)._paginate(CURSOR_LIST, **params)), queries
+
+
+def test_cursor_paging_sends_the_next_value_back_until_it_is_null() -> None:
+    pages = [
+        {"data": [{"n": 0}, {"n": 1}], "page": {"next_page": "b"}},
+        {"data": [{"n": 2}, {"n": 3}], "page": {"next_page": "d"}},
+        {"data": [{"n": 4}], "page": {"next_page": None}},
+    ]
+    items, queries = cursor_pages(pages, limit=2)
+    assert items == [{"n": n} for n in range(5)]
+    assert queries == ["limit=2", "limit=2&start_after=b", "limit=2&start_after=d"]
+
+
+def test_cursor_paging_starts_at_the_callers_position_and_stops_without_a_next_value() -> None:
+    items, queries = cursor_pages(
+        [{"data": [{"n": 1}], "page": {"next_page": "b"}}, {"data": [], "page": {"next_page": ""}}], start_after="a"
+    )
+    assert items == [{"n": 1}]
+    assert queries == ["start_after=a", "start_after=b"]
+    for page in [{"data": []}, {"data": [], "page": None}, {"data": [], "page": {}}]:
+        assert cursor_pages([page]) == ([], [""])
+
+
+def test_cursor_paging_rejects_a_next_value_equal_to_the_one_sent() -> None:
+    with pytest.raises(DecodeError, match="does not advance the iteration"):
+        cursor_pages([{"data": [{"n": 1}], "page": {"next_page": "a"}}], start_after="a")
+
+
+@pytest.mark.parametrize(
+    "page",
+    [{"page": {"next_page": "b"}}, {"data": [{"n": 1}], "page": {"next_page": 2}}, {"data": [{"n": 1}], "page": "b"}],
+)
+def test_cursor_paging_rejects_a_malformed_page(page: Any) -> None:
+    with pytest.raises(DecodeError):
+        cursor_pages([page])
 
 
 def test_next_link_paging_reads_the_configured_fields() -> None:

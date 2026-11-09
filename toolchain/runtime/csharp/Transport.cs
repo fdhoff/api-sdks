@@ -175,6 +175,7 @@ internal sealed class Transport : IDisposable
         operation.Paging switch
         {
             OffsetPaging offset => NextOffset(operation, offset, values, page, received),
+            CursorPaging cursor => NextCursor(operation, cursor, values, page),
             NextLinkPaging link => NextLink(operation, link, values, page),
             _ => NextLink(operation, NextLinkPaging.Default, values, page),
         };
@@ -243,6 +244,51 @@ internal sealed class Transport : IDisposable
         if (page.TryGetProperty(paging.Total, out var total) && total.ValueKind == JsonValueKind.Number && position >= total.GetDouble())
         {
             return null;
+        }
+        var updated = (object?[])values.Clone();
+        updated[index] = position;
+        return updated;
+    }
+
+    private static object?[]? NextCursor(Operation operation, CursorPaging paging, object?[] values, JsonElement page)
+    {
+        if (!page.TryGetProperty(paging.Items, out var items) || items.ValueKind != JsonValueKind.Array)
+        {
+            throw new ApiDecodeException($"The `{paging.Items}` field of a page is not a list");
+        }
+        var value = page;
+        foreach (var key in paging.Next.Split('.'))
+        {
+            if (value.ValueKind == JsonValueKind.Null)
+            {
+                break;
+            }
+            if (value.ValueKind != JsonValueKind.Object)
+            {
+                throw new ApiDecodeException($"The `{paging.Next}` value of a page is not inside an object");
+            }
+            if (!value.TryGetProperty(key, out value))
+            {
+                return null;
+            }
+        }
+        if (value.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+        if (value.ValueKind != JsonValueKind.String)
+        {
+            throw new ApiDecodeException($"The `{paging.Next}` value of a page is not a string");
+        }
+        var position = value.GetString()!;
+        if (position.Length == 0)
+        {
+            return null;
+        }
+        var index = Array.FindIndex(operation.Params, param => param.Location == ParamLocation.Query && param.Wire == paging.Param);
+        if (TextOrNull(values[index]) == position)
+        {
+            throw new ApiDecodeException($"The `{paging.Next}` value does not advance the iteration");
         }
         var updated = (object?[])values.Clone();
         updated[index] = position;

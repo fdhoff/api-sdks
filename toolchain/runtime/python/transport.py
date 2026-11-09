@@ -77,6 +77,16 @@ class Offset:
 
 
 @dataclass(frozen=True)
+class Cursor:
+    """Pages that carry the next position as a value at the dotted `next` path, sent back in the `param`
+    query parameter. Iteration ends when that value is null, empty or absent."""
+
+    items: str = "results"
+    next: str = "cursor"
+    param: str = "cursor"
+
+
+@dataclass(frozen=True)
 class Operation(Generic[T]):
     id: str
     method: str
@@ -88,7 +98,7 @@ class Operation(Generic[T]):
     returns_json: bool = False
     iterator: str | None = None
     item: Any = None
-    paging: NextLink | Offset = NextLink()
+    paging: NextLink | Offset | Cursor = NextLink()
     security: tuple[Requirement, ...] = ()
     host: str = ""
     binary_response: bool = False
@@ -510,6 +520,29 @@ def _next_offset(
     return {**params, name: position}
 
 
+def _next_cursor(
+    operation: Operation[Any], paging: Cursor, params: dict[str, Any], page: Mapping[str, Any]
+) -> dict[str, Any] | None:
+    if not isinstance(page.get(paging.items), list):
+        raise DecodeError(f"The `{paging.items}` field of a page is not a list")
+    value: Any = page
+    for key in paging.next.split("."):
+        if value is None:
+            break
+        if not isinstance(value, Mapping):
+            raise DecodeError(f"The `{paging.next}` value of a page is not inside an object")
+        value = value.get(key)
+    if value is None or value == "":
+        return None
+    if not isinstance(value, str):
+        raise DecodeError(f"The `{paging.next}` value of a page is not a string")
+    name = _query_names(operation)[paging.param]
+    current = params.get(name)
+    if current is not None and _text(current) == value:
+        raise DecodeError(f"The `{paging.next}` value does not advance the iteration")
+    return {**params, name: value}
+
+
 def _next_params(operation: Operation[Any], params: dict[str, Any], page: Any, received: int) -> dict[str, Any] | None:
     """The parameters of the page after this one, or None after the last."""
     if not isinstance(page, Mapping):
@@ -517,6 +550,8 @@ def _next_params(operation: Operation[Any], params: dict[str, Any], page: Any, r
     paging = operation.paging
     if isinstance(paging, Offset):
         return _next_offset(operation, paging, params, page, received)
+    if isinstance(paging, Cursor):
+        return _next_cursor(operation, paging, params, page)
     return _next_link(operation, paging, params, page)
 
 

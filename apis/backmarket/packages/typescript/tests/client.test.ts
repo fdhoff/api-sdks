@@ -656,6 +656,64 @@ for (const body of [[{ n: 1 }], { total: 1 }, { data: null }, { data: { n: 1 } }
   });
 }
 
+const cursorList: Operation = {
+  ...offsetList,
+  params: [
+    { wire: 'limit', name: 'limit', location: 'query' },
+    { wire: 'start_after', name: 'startAfter', location: 'query' },
+  ],
+  paging: { style: 'cursor', items: 'data', next: 'page.next_page', param: 'start_after' },
+};
+
+test('cursor paging sends the next value back until it is null', async () => {
+  const bodies = [
+    { data: [{ n: 0 }, { n: 1 }], page: { next_page: 'b' } },
+    { data: [{ n: 2 }, { n: 3 }], page: { next_page: 'd' } },
+    { data: [{ n: 4 }], page: { next_page: null } },
+  ];
+  const { pages, queries } = pagesFor(() => json(bodies.shift()));
+  assert.deepEqual(
+    await pages.all(cursorList, { limit: 2 }),
+    [0, 1, 2, 3, 4].map((n) => ({ n })),
+  );
+  assert.deepEqual(queries, ['?limit=2', '?limit=2&start_after=b', '?limit=2&start_after=d']);
+});
+
+test("cursor paging starts at the caller's position and stops without a next value", async () => {
+  const bodies = [
+    { data: [{ n: 1 }], page: { next_page: 'b' } },
+    { data: [], page: { next_page: '' } },
+  ];
+  const { pages, queries } = pagesFor(() => json(bodies.shift()));
+  assert.deepEqual(await pages.all(cursorList, { startAfter: 'a' }), [{ n: 1 }]);
+  assert.deepEqual(queries, ['?start_after=a', '?start_after=b']);
+  for (const body of [{ data: [] }, { data: [], page: null }, { data: [], page: {} }]) {
+    const { pages: single } = pagesFor(() => json(body));
+    assert.deepEqual(await single.all(cursorList), []);
+  }
+});
+
+test('cursor paging rejects a next value equal to the one sent', async () => {
+  const { pages, queries } = pagesFor(() => json({ data: [{ n: 1 }], page: { next_page: 'a' } }));
+  await assert.rejects(pages.all(cursorList, { startAfter: 'a' }), (error) => {
+    assert.ok(error instanceof DecodeError);
+    assert.match(error.message, /does not advance the iteration/);
+    return true;
+  });
+  assert.deepEqual(queries, ['?start_after=a']);
+});
+
+for (const body of [
+  { page: { next_page: 'b' } },
+  { data: [{ n: 1 }], page: { next_page: 2 } },
+  { data: [{ n: 1 }], page: 'b' },
+]) {
+  test(`cursor paging rejects a malformed page: ${JSON.stringify(body)}`, async () => {
+    const { pages } = pagesFor(() => json(body));
+    await assert.rejects(pages.all(cursorList), DecodeError);
+  });
+}
+
 test('next-link paging rejects a page that is an array', async () => {
   const operation: Operation = {
     ...offsetList,

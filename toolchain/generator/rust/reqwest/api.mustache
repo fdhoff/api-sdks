@@ -30,6 +30,9 @@ const {{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}: Operat
 {{#vendorExtensions.x-sdk-paging.offset}}
     paging: Some(Paging::Offset { items: "{{items}}", total: "{{total}}", offset: "{{offset}}" }),
 {{/vendorExtensions.x-sdk-paging.offset}}
+{{#vendorExtensions.x-sdk-paging.cursor}}
+    paging: Some(Paging::Cursor { items: "{{items}}", next: "{{next}}", param: "{{param}}" }),
+{{/vendorExtensions.x-sdk-paging.cursor}}
 {{^vendorExtensions.x-sdk-paging}}
     paging: None,
 {{/vendorExtensions.x-sdk-paging}}
