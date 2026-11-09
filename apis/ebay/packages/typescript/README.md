@@ -78,7 +78,7 @@ for await (const order of client.fulfillment.orders.iter({ filter: 'orderfulfill
 }
 ```
 
-A user token lasts two hours and its refresh token about 18 months. When a call is refused with a 401, the client refreshes the user token once, waits for `onToken`, and retries the call. Concurrent calls share one refresh. If the refresh fails, the call rejects with the refresh's error, such as a `BadRequestError` for `invalid_grant`, not the 401.
+A user token lasts two hours and its refresh token about 18 months. When a call is refused with a 401, the client refreshes the user token once, waits for `onToken`, and retries the call. Concurrent calls share one refresh. If the refresh fails, the call rejects with the refresh's error, such as a `BadRequestError` for `invalid_grant`, not the 401. The refresh waits for `onToken`, so it must not call `client.oauth.refresh()` or make a call with the client: those never settle. Store the token and return.
 
 Each API's types are in its own subpath:
 
@@ -149,7 +149,7 @@ Pass `clientId` and `clientSecret`, a token, or both.
 | `userToken` | None | A user access token, sent on operations that act for a seller |
 | `refreshToken` | None | Lets the client replace an expired user token itself |
 | `onToken` | None | Called with every new user `Token`, from `exchangeCode` and every refresh. May return a promise |
-| `appScopes` | `[API_SCOPE]` | The scopes of minted application tokens |
+| `appScopes` | `[API_SCOPE]` | The scopes of minted application tokens, at least one |
 | `userScopes` | None | The scopes to ask for on refresh. eBay keeps the original grant's when this is not given |
 | `environment` | `'production'` | `'production'` or `'sandbox'`. Picks the API hosts and the authorization URL |
 | `hosts` | None | Your own base URL for each of `api`, `apiz` and `apim`, for tests against a mock. Your credentials are sent to them |

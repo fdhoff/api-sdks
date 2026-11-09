@@ -252,8 +252,19 @@ export class EbayCredentials implements Credentials {
     return kept;
   }
 
+  /** Whether a 401 on `operation` replaces the application token rather than the user token. */
+  #refreshesApp(operation: Operation): boolean {
+    return takesAppToken(operation) && (this.canMint || this.#appToken !== undefined);
+  }
+
+  /** An application token and a user token refresh separately, so a 401 on one never waits out a refresh of the
+   * other. */
+  refreshGroup(operation: Operation): string {
+    return this.#refreshesApp(operation) ? 'app' : 'user';
+  }
+
   async refresh({ operation }: AuthRequest): Promise<boolean> {
-    if (takesAppToken(operation) && (this.canMint || this.#appToken !== undefined)) {
+    if (this.#refreshesApp(operation)) {
       if (!this.canMint || !this.minter) return false;
       this.#appExpiresAt = -Infinity;
       await this.minter();
@@ -273,7 +284,8 @@ export interface OAuthConfig {
 }
 
 /** OAuth 2 for a client. Tokens it obtains are used for the client's later calls, and each new user token is passed
- * to the client's `onToken` callback for you to store. */
+ * to the client's `onToken` callback for you to store. A refresh waits for that callback, so it must not call these
+ * methods. */
 export class OAuth {
   readonly #credentials: EbayCredentials;
   readonly #transport: Transport;

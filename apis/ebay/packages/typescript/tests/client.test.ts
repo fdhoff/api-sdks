@@ -166,6 +166,15 @@ test('credentials are checked', () => {
   );
 });
 
+test('appScopes cannot be empty', () => {
+  for (const appScopes of [[], [''], [' ']]) {
+    assert.throws(() => new EbayClient({ clientId: CLIENT_ID, clientSecret: CLIENT_SECRET, appScopes }), {
+      name: 'TypeError',
+      message: 'appScopes needs at least one scope',
+    });
+  }
+});
+
 test('a 401 refreshes the user token once, keeps the refresh token and retries', async () => {
   const fresh = 'synthetic-new-user-token';
   const { client, sent, tokens } = clientFor(
@@ -206,6 +215,38 @@ test('concurrent 401s share one refresh', async () => {
   );
   await Promise.all([1, 2, 3].map(() => client.fulfillment.orders.list()));
   assert.equal(toTokenEndpoint(sent).length, 1);
+});
+
+test('an application 401 and a user 401 at once each refresh their own token', async () => {
+  const fresh = 'synthetic-new-user-token';
+  let release!: () => void;
+  const allRefused = new Promise<void>((resolve) => (release = resolve));
+  let refused = 0;
+  const { client, sent } = clientFor(
+    async (url, request) => {
+      if (url.pathname === TOKEN_PATH) {
+        return json({ access_token: form(request).grant_type === 'client_credentials' ? APP : fresh });
+      }
+      if ([`Bearer ${APP}`, `Bearer ${fresh}`].includes(request.headers.get('authorization') ?? '')) {
+        return json(orders());
+      }
+      refused += 1;
+      if (refused === 2) release();
+      await allRefused;
+      return json({}, 401);
+    },
+    { appToken: 'synthetic-stale-app-token', userToken: USER, refreshToken: REFRESH },
+  );
+  await Promise.all([
+    client.taxonomy.categoryTrees.getDefaultId({ marketplaceId: 'EBAY_US' }),
+    client.fulfillment.orders.list(),
+  ]);
+  assert.deepEqual(
+    toTokenEndpoint(sent)
+      .map((request) => form(request)['grant_type'])
+      .sort(),
+    ['client_credentials', 'refresh_token'],
+  );
 });
 
 test('a 401 on an application call mints a new application token', async () => {
