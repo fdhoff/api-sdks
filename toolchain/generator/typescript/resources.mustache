@@ -4,7 +4,7 @@
 import { {{classname}}, OPERATIONS as {{classname}}Operations } from './apis/{{classFilename}}.js';
 {{/apis}}
 {{/apiInfo}}
-import type { Operation, Transport } from './runtime/index.js';
+import type { Operation, Transport } from '{{#sdkModule}}../{{/sdkModule}}{{^sdkModule}}./{{/sdkModule}}runtime/index.js';
 
 export const OPERATIONS: ReadonlyMap<string, Operation> = new Map(
   [

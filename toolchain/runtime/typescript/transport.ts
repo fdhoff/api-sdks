@@ -397,8 +397,6 @@ function nextOffset(
   page: Record<string, unknown>,
   received: number,
 ): Params | undefined {
-  if (!Array.isArray(page[paging.items]))
-    throw new DecodeError(`The \`${paging.items}\` field of a page is not a list`);
   if (received === 0) return undefined;
   const param = operation.params.find(({ wire, location }) => location === 'query' && wire === paging.offset);
   if (param === undefined) throw new DecodeError(`The operation has no \`${paging.offset}\` parameter`);
@@ -414,6 +412,7 @@ function nextOffset(
 function nextParams(operation: Operation, params: Params, page: unknown, received: number): Params | undefined {
   if (!isObject(page) || Array.isArray(page)) throw new DecodeError('A page is not a JSON object');
   const paging = operation.paging ?? NEXT_LINK;
+  if (!Array.isArray(page[paging.items])) throw new DecodeError(`The \`${paging.items}\` field of a page is not a list`);
   return paging.style === 'offset'
     ? nextOffset(operation, paging, params, page, received)
     : nextLink(operation, paging, params, page);
@@ -571,6 +570,8 @@ export class Resource {
     let current: Params | undefined = params;
     while (current !== undefined) {
       const page: unknown = await this.#transport.fetch(operation, body, current, options);
+      // An empty 204 is the only success without a body, and it holds no more items.
+      if (page === undefined) return;
       const received = items(operation, page) as T[];
       yield* received;
       current = nextParams(operation, current, page, received.length);

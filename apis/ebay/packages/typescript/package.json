@@ -1,0 +1,249 @@
+{
+  "name": "ebay-sell",
+  "version": "0.1.0-alpha.1",
+  "description": "Unofficial TypeScript client for eBay's Sell, Commerce and Developer REST APIs. Not affiliated with, endorsed by or sponsored by eBay Inc.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fdhoff/api-sdks.git",
+    "directory": "apis/ebay/packages/typescript"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "sideEffects": false,
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./account": {
+      "import": {
+        "types": "./dist/esm/account/index.d.ts",
+        "default": "./dist/esm/account/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/account/index.d.ts",
+        "default": "./dist/cjs/account/index.js"
+      }
+    },
+    "./account-v2": {
+      "import": {
+        "types": "./dist/esm/account-v2/index.d.ts",
+        "default": "./dist/esm/account-v2/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/account-v2/index.d.ts",
+        "default": "./dist/cjs/account-v2/index.js"
+      }
+    },
+    "./analytics": {
+      "import": {
+        "types": "./dist/esm/analytics/index.d.ts",
+        "default": "./dist/esm/analytics/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/analytics/index.d.ts",
+        "default": "./dist/cjs/analytics/index.js"
+      }
+    },
+    "./feed": {
+      "import": {
+        "types": "./dist/esm/feed/index.d.ts",
+        "default": "./dist/esm/feed/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/feed/index.d.ts",
+        "default": "./dist/cjs/feed/index.js"
+      }
+    },
+    "./finances": {
+      "import": {
+        "types": "./dist/esm/finances/index.d.ts",
+        "default": "./dist/esm/finances/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/finances/index.d.ts",
+        "default": "./dist/cjs/finances/index.js"
+      }
+    },
+    "./fulfillment": {
+      "import": {
+        "types": "./dist/esm/fulfillment/index.d.ts",
+        "default": "./dist/esm/fulfillment/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/fulfillment/index.d.ts",
+        "default": "./dist/cjs/fulfillment/index.js"
+      }
+    },
+    "./inventory": {
+      "import": {
+        "types": "./dist/esm/inventory/index.d.ts",
+        "default": "./dist/esm/inventory/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/inventory/index.d.ts",
+        "default": "./dist/cjs/inventory/index.js"
+      }
+    },
+    "./marketing": {
+      "import": {
+        "types": "./dist/esm/marketing/index.d.ts",
+        "default": "./dist/esm/marketing/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/marketing/index.d.ts",
+        "default": "./dist/cjs/marketing/index.js"
+      }
+    },
+    "./metadata": {
+      "import": {
+        "types": "./dist/esm/metadata/index.d.ts",
+        "default": "./dist/esm/metadata/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/metadata/index.d.ts",
+        "default": "./dist/cjs/metadata/index.js"
+      }
+    },
+    "./negotiation": {
+      "import": {
+        "types": "./dist/esm/negotiation/index.d.ts",
+        "default": "./dist/esm/negotiation/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/negotiation/index.d.ts",
+        "default": "./dist/cjs/negotiation/index.js"
+      }
+    },
+    "./recommendation": {
+      "import": {
+        "types": "./dist/esm/recommendation/index.d.ts",
+        "default": "./dist/esm/recommendation/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/recommendation/index.d.ts",
+        "default": "./dist/cjs/recommendation/index.js"
+      }
+    },
+    "./stores": {
+      "import": {
+        "types": "./dist/esm/stores/index.d.ts",
+        "default": "./dist/esm/stores/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/stores/index.d.ts",
+        "default": "./dist/cjs/stores/index.js"
+      }
+    },
+    "./feedback": {
+      "import": {
+        "types": "./dist/esm/feedback/index.d.ts",
+        "default": "./dist/esm/feedback/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/feedback/index.d.ts",
+        "default": "./dist/cjs/feedback/index.js"
+      }
+    },
+    "./identity": {
+      "import": {
+        "types": "./dist/esm/identity/index.d.ts",
+        "default": "./dist/esm/identity/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/identity/index.d.ts",
+        "default": "./dist/cjs/identity/index.js"
+      }
+    },
+    "./media": {
+      "import": {
+        "types": "./dist/esm/media/index.d.ts",
+        "default": "./dist/esm/media/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/media/index.d.ts",
+        "default": "./dist/cjs/media/index.js"
+      }
+    },
+    "./message": {
+      "import": {
+        "types": "./dist/esm/message/index.d.ts",
+        "default": "./dist/esm/message/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/message/index.d.ts",
+        "default": "./dist/cjs/message/index.js"
+      }
+    },
+    "./notification": {
+      "import": {
+        "types": "./dist/esm/notification/index.d.ts",
+        "default": "./dist/esm/notification/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/notification/index.d.ts",
+        "default": "./dist/cjs/notification/index.js"
+      }
+    },
+    "./taxonomy": {
+      "import": {
+        "types": "./dist/esm/taxonomy/index.d.ts",
+        "default": "./dist/esm/taxonomy/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/taxonomy/index.d.ts",
+        "default": "./dist/cjs/taxonomy/index.js"
+      }
+    },
+    "./developer-analytics": {
+      "import": {
+        "types": "./dist/esm/developer-analytics/index.d.ts",
+        "default": "./dist/esm/developer-analytics/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/developer-analytics/index.d.ts",
+        "default": "./dist/cjs/developer-analytics/index.js"
+      }
+    },
+    "./key-management": {
+      "import": {
+        "types": "./dist/esm/key-management/index.d.ts",
+        "default": "./dist/esm/key-management/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/key-management/index.d.ts",
+        "default": "./dist/cjs/key-management/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json && node scripts/mark-formats.mjs",
+    "format": "prettier --check .",
+    "test": "node --test tests/*.test.ts tests/*.test.cjs",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "prettier": "3.9.10",
+    "typescript": "7.0.2"
+  }
+}

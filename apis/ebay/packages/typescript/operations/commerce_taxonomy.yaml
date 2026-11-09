@@ -1,0 +1,10 @@
+# Public names for the Taxonomy API, keyed by operationId. Summaries are ours, not upstream's.
+getDefaultCategoryTreeId: { resource: categoryTrees, method: getDefaultId, summary: Get the ID of a marketplace's default category tree. }
+getCategoryTree: { resource: categoryTrees, method: get, summary: Get a whole category tree. }
+getCategorySubtree: { resource: categoryTrees, method: getSubtree, summary: Get the part of a category tree under one category. }
+getCategorySuggestions: { resource: categoryTrees, method: getSuggestions, summary: Suggest leaf categories for a search phrase. }
+getItemAspectsForCategory: { resource: categoryTrees, method: getItemAspects, summary: List the item aspects of one leaf category. }
+fetchItemAspects: { resource: categoryTrees, method: fetchItemAspects, summary: Get the item aspects of every leaf category in a tree, as a compressed file. }
+getCompatibilityProperties: { resource: categoryTrees, method: getCompatibilityProperties, summary: List the parts compatibility properties of a category. }
+getCompatibilityPropertyValues: { resource: categoryTrees, method: getCompatibilityPropertyValues, summary: List the values of one parts compatibility property. }
+getExpiredCategories: { resource: categoryTrees, method: getExpiredCategories, summary: List the leaf categories that expired and what replaced them. }

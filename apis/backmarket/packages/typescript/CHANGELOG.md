@@ -4,6 +4,8 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* An iterator page without its items list throws `DecodeError`, as in the other languages, instead of ending the iteration with no items.
+* An empty 204 page ends an iteration instead of throwing `DecodeError`.
 * A `Date` in a form field is sent as ISO 8601 text, not as a quoted JSON string.
 * Method doc comments show apostrophes as written, not as `&#39;`.
 * An iterator page that is a JSON array throws `DecodeError`, as in the other languages, instead of ending the iteration with no items.
