@@ -81,7 +81,7 @@ public sealed class ClientTests
             }
             total += operations.Length;
         }
-        Assert.Equal(310, total);
+        Assert.Equal(339, total);
     }
 
     [Fact]
@@ -448,6 +448,25 @@ public sealed class ClientTests
         Assert.StartsWith("multipart/form-data; boundary=", sent.Headers["Content-Type"], StringComparison.Ordinal);
         Assert.Contains("Content-Type: application/octet-stream", sent.Body, StringComparison.Ordinal);
         Assert.Contains("synthetic-evidence", sent.Body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task APostOrderUploadSendsTheUserTokenTheMarketplaceAndAJsonFile()
+    {
+        var handler = new Router(_ => Json("""{"fileId": "F-1"}"""));
+        using var client = Client(handler, new() { AppToken = App, UserToken = User, MarketplaceId = "EBAY_GB" });
+
+        var file = await client.PostOrder.Returns.UploadFileAsync("5000000001", new PostOrder.Models.UploadFileRequest { Data = "c3ludGhldGlj", FilePurpose = PostOrder.Models.FilePurposeEnum.LabelRelated }, cancellationToken: Cancel);
+
+        var sent = Assert.Single(handler.Sent);
+        Assert.Equal("F-1", file.FileId);
+        Assert.Equal("https://api.mock.invalid/post-order/v2/return/5000000001/file/upload", sent.Url);
+        Assert.Equal($"Bearer {User}", sent.Headers["Authorization"]);
+        Assert.Equal("EBAY_GB", sent.Headers["X-EBAY-C-MARKETPLACE-ID"]);
+        Assert.StartsWith("application/json", sent.Headers["Content-Type"], StringComparison.Ordinal);
+        using var body = System.Text.Json.JsonDocument.Parse(sent.Body);
+        Assert.Equal("c3ludGhldGlj", body.RootElement.GetProperty("data").GetString());
+        Assert.Equal("LABEL_RELATED", body.RootElement.GetProperty("filePurpose").GetString());
     }
 
     [Fact]

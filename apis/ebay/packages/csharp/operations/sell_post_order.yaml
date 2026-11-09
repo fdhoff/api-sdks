@@ -1,0 +1,34 @@
+# Public names for the Post-Order API, keyed by operationId. Summaries are ours, not upstream's.
+checkCancellationEligibility: { resource: Cancellations, method: CheckEligibilityAsync, summary: Check whether an order can be cancelled. }
+createCancellationRequest: { resource: Cancellations, method: CreateAsync, summary: Ask to cancel an order. }
+getCancellation: { resource: Cancellations, method: GetAsync, summary: Get one cancellation request. }
+searchCancellations: { resource: Cancellations, method: SearchAsync, summary: Search one page of cancellation requests. }
+approveCancellation: { resource: Cancellations, method: ApproveAsync, summary: "Approve a buyer's cancellation request." }
+rejectCancellation: { resource: Cancellations, method: RejectAsync, summary: "Reject a buyer's cancellation request." }
+
+getCase: { resource: Cases, method: GetAsync, summary: Get one case. }
+searchCases: { resource: Cases, method: SearchAsync, summary: Search one page of cases. }
+appealCaseDecision: { resource: Cases, method: AppealAsync, summary: Appeal the decision on a case. }
+
+getInquiry: { resource: Inquiries, method: GetAsync, summary: Get one item-not-received inquiry. }
+searchInquiries: { resource: Inquiries, method: SearchAsync, summary: Search one page of inquiries. }
+sendInquiryMessage: { resource: Inquiries, method: SendMessageAsync, summary: Send the buyer a message about an inquiry. }
+provideInquiryShipmentInfo: { resource: Inquiries, method: ProvideShipmentInfoAsync, summary: Give the shipment tracking for an inquiry. }
+issueInquiryRefund: { resource: Inquiries, method: IssueRefundAsync, summary: Refund the buyer to settle an inquiry. }
+escalateInquiry: { resource: Inquiries, method: EscalateAsync, summary: Escalate an inquiry to a case. }
+
+createReturnRequest: { resource: Returns, method: CreateAsync, summary: Create a return request. }
+getReturn: { resource: Returns, method: GetAsync, summary: Get one return request. }
+searchReturns: { resource: Returns, method: SearchAsync, summary: Search one page of return requests. }
+processReturnRequest: { resource: Returns, method: DecideAsync, summary: "Accept or decline a return request, or offer a partial refund." }
+sendReturnMessage: { resource: Returns, method: SendMessageAsync, summary: Send the buyer a message about a return. }
+addShippingLabelInfo: { resource: Returns, method: AddShippingLabelAsync, summary: "Give the buyer a return shipping label, or say why there is none." }
+getShipmentTrackingInfo: { resource: Returns, method: GetTrackingAsync, summary: Get the tracking of a return shipment. }
+markItemReceived: { resource: Returns, method: MarkReceivedAsync, summary: Mark a returned item received. }
+issueReturnRefund: { resource: Returns, method: IssueRefundAsync, summary: Refund the buyer for a return. }
+escalateReturn: { resource: Returns, method: EscalateAsync, summary: Escalate a return request to a case. }
+uploadReturnFile: { resource: Returns, method: UploadFileAsync, summary: Attach a base64-encoded file to a return request. }
+getReturnFiles: { resource: Returns, method: ListFilesAsync, summary: List the files attached to a return request. }
+
+getReturnPreferences: { resource: ReturnPreferences, method: GetAsync, summary: "Get the seller's return preferences." }
+setReturnPreferences: { resource: ReturnPreferences, method: SetAsync, summary: "Set the seller's return preferences." }
