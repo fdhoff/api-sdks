@@ -317,8 +317,6 @@ func errorOutput(failure *mercurybanking.APIError) map[string]any {
 	output := map[string]any{"kind": failure.Kind}
 	if failure.Status != 0 {
 		output["status"] = failure.Status
-	}
-	if failure.RawBody != "" {
 		output["raw_body"] = failure.RawBody
 	}
 	return output
