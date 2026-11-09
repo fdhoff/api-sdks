@@ -23,7 +23,7 @@ eBay publishes its own .NET SDKs, generated with Kiota, as source on GitHub. Thi
 
 * **One package:** every contract this project covers is in one package, `EbaySell`, with one client, instead of a project per API.
 * **NuGet:** it is meant to be installed from NuGet, once published, rather than built from source.
-* **Conformance-tested:** the same language-neutral conformance cases run against it as against this project's Python, Go and Rust packages, on every change.
+* **Conformance-tested:** the same language-neutral conformance cases run against it as against this project's Python, TypeScript, Go and Rust packages, on every change.
 * **Signer included:** request signing for EU and UK sellers is built in, as an option, rather than left to you.
 * **Tokens included:** the client mints application tokens, refreshes user tokens and picks the right one for each operation.
 
