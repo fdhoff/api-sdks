@@ -142,3 +142,15 @@ jobs:
         run: cargo publish --locked
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+  # Installs what was just published from the registry, as a user would, and makes one call against the mock.
+  published:
+    needs: [target, publish]
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/published.yml
+    with:
+      api: ${{ needs.target.outputs.api }}
+      language: rust
+      version: ${{ needs.target.outputs.version }}

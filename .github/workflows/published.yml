@@ -1,0 +1,156 @@
+name: Published packages
+
+# Installs published packages from their public registries, as a user would, into an empty project outside the
+# checkout, checks the version each reports, and makes one call against the Prism mock. The checkout only serves the
+# mock. Each release workflow calls this after it publishes, and a Go module tag runs it directly. A weekly run, a manual
+# run and a pull request check the latest published version of every package. A failure, except on a pull request,
+# opens an issue; published versions are never yanked. See toolchain/published/README.md.
+on:
+  workflow_call:
+    inputs:
+      api:
+        type: string
+        required: true
+      language:
+        type: string
+        required: true
+      version:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      api:
+        description: Only this API, such as etsy. Empty for every API.
+        type: string
+      language:
+        description: Only this language, such as python. Empty for every language.
+        type: string
+      version:
+        description: This version instead of the latest. Needs an API and a language.
+        type: string
+  schedule:
+    - cron: "23 7 * * 1"
+  push:
+    tags: ["apis/*/packages/go/v*"]
+  pull_request:
+    paths:
+      - .github/workflows/published.yml
+      - toolchain/published/**
+      - apis/*/packages/*/published/**
+
+permissions:
+  contents: read
+
+jobs:
+  target:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.target.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - id: target
+        env:
+          API: ${{ inputs.api }}
+          LANGUAGE: ${{ inputs.language }}
+          VERSION: ${{ inputs.version }}
+          TAG: ${{ github.event_name == 'push' && github.ref_name || '' }}
+        run: |
+          node toolchain/published/targets.mjs --api "$API" --language "$LANGUAGE" --version "$VERSION" --tag "$TAG" \
+            | tee -a "$GITHUB_OUTPUT"
+
+  smoke:
+    needs: target
+    if: needs.target.outputs.matrix != '[]'
+    name: ${{ matrix.package }} ${{ matrix.version }} (${{ matrix.language }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.target.outputs.matrix) }}
+    permissions:
+      contents: read
+      issues: write
+    env:
+      SCARF_ANALYTICS: "false"
+      API: ${{ matrix.api }}
+      LANGUAGE: ${{ matrix.language }}
+      PACKAGE: ${{ matrix.package }}
+      VERSION: ${{ matrix.version }}
+      SMOKE_BASE_URL: http://127.0.0.1:4010
+      RUSTUP_TOOLCHAIN: "1.99"
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/upstream-spec
+        with:
+          api: ${{ matrix.api }}
+      - run: npm run spec:build
+      - name: Start the mock
+        run: |
+          nohup node_modules/.bin/prism mock "apis/$API/build/openapi.yaml" --port 4010 > "$RUNNER_TEMP/prism.log" 2>&1 &
+          for _ in $(seq 60); do
+            curl -s -o /dev/null "$SMOKE_BASE_URL" && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/prism.log"
+          exit 1
+      - if: matrix.language == 'python'
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.14"
+      - if: matrix.language == 'go'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.24"
+          cache: false
+      - if: matrix.language == 'csharp'
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - if: matrix.language == 'rust'
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
+      - name: Install from the registry and smoke it
+        run: |
+          bash toolchain/published/smoke.sh "$LANGUAGE" "$PACKAGE" "$VERSION" "apis/$API/packages/$LANGUAGE/published" 2>&1 \
+            | tee "$RUNNER_TEMP/smoke.log"
+      - name: Open an issue, or comment on the open one
+        if: failure() && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Published package check failed: $PACKAGE $VERSION ($LANGUAGE)"
+          {
+            echo "Installing \`$PACKAGE\` $VERSION ($LANGUAGE) from its registry and calling the mock failed: $RUN_URL"
+            echo
+            echo "The published version was left as it is. The last lines of the log:"
+            echo
+            echo '```text'
+            tail -n 60 "$RUNNER_TEMP/smoke.log" 2>/dev/null || echo "No smoke log: an earlier step failed."
+            echo '```'
+          } > "$RUNNER_TEMP/issue.md"
+          open=$(TITLE="$title" gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" \
+            --json number,title --jq 'map(select(.title == env.TITLE)) | .[0].number // empty' || true)
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/issue.md"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body-file "$RUNNER_TEMP/issue.md"
+          fi
