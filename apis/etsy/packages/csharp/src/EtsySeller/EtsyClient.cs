@@ -91,7 +91,7 @@ public sealed class EtsyClient : ClientResources, IDisposable
             ownsClient: httpClient is null))
     {
         OAuth = new EtsyOAuth(credentials, Transport);
-        credentials.Refresher = cancellationToken => OAuth.RefreshAsync(cancellationToken);
+        credentials.Refresher = OAuth.RefreshAsync;
     }
 
     /// <summary>The OAuth 2 flow: authorization requests, code exchange and refresh.</summary>

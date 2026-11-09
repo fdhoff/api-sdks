@@ -123,6 +123,12 @@ public sealed partial class EtsyOAuth
     {
         var refreshToken = credentials.RefreshToken
             ?? throw new InvalidOperationException("There is no refresh token: set RefreshToken, or exchange a code first");
+        return RefreshAsync(refreshToken, cancellationToken);
+    }
+
+    /// <summary>Trades <paramref name="refreshToken"/>, unless another refresh already replaced it.</summary>
+    internal Task<EtsyToken> RefreshAsync(string refreshToken, CancellationToken cancellationToken)
+    {
         // TODO: hand a waiter the error of the refresh it waited on. Re-sending the same refresh token after a timeout
         // that Etsy already acted on gets invalid_grant instead.
         return OneAtATimeAsync(
@@ -237,8 +243,8 @@ internal sealed class EtsyCredentials : ICredentialProvider
         }
     }
 
-    /// <summary>Set by the client: replaces the token pair.</summary>
-    public Func<CancellationToken, Task<EtsyToken>>? Refresher { get; set; }
+    /// <summary>Set by the client: trades the given refresh token, unless another refresh already replaced it.</summary>
+    public Func<string, CancellationToken, Task<EtsyToken>>? Refresher { get; set; }
 
     public ValueTask ApplyAsync(AuthRequest request, CancellationToken cancellationToken)
     {
@@ -268,19 +274,26 @@ internal sealed class EtsyCredentials : ICredentialProvider
 
     public async ValueTask<bool> RefreshAsync(AuthRequest request, CancellationToken cancellationToken)
     {
-        if (Refresher is not { } refresher || string.IsNullOrEmpty(RefreshToken) || !Needs(request.Operation, "oauth2"))
+        if (Refresher is not { } refresher || !Needs(request.Operation, "oauth2"))
         {
             return false;
         }
+        string paired;
         lock (gate)
         {
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return false;
+            }
             // Another refresh replaced the token this request sent, so retry with the new one.
             if (request.Headers.GetValueOrDefault("Authorization") != (string.IsNullOrEmpty(accessToken) ? null : $"Bearer {accessToken}"))
             {
                 return true;
             }
+            // Read with the access token, so a refresh stored after this check is found and not repeated.
+            paired = refreshToken;
         }
-        await refresher(cancellationToken).ConfigureAwait(false);
+        await refresher(paired, cancellationToken).ConfigureAwait(false);
         return true;
     }
 

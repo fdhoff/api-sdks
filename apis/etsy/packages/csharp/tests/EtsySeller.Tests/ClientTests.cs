@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using EtsySeller.Api;
 using EtsySeller.Runtime;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -271,28 +272,59 @@ public sealed class ClientTests
     [Fact]
     public async Task AnExplicitRefreshAndA401ShareOneTokenRequest()
     {
-        var tokens = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var handler = new Router(request =>
+        // The race is narrow, so it runs many times.
+        for (var run = 0; run < 50; run++)
         {
-            if (request.Path == TokenPath)
+            var rejected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var handler = new Router(async request =>
             {
-                return tokens.Task;
-            }
-            if (request.Headers.GetValueOrDefault("Authorization") == $"Bearer {Access}")
-            {
-                tokens.TrySetResult(Tokens());
-            }
-            return Task.FromResult(Accepts(request, NewAccess));
-        });
-        using var client = Client(handler, new() { AccessToken = Access, RefreshToken = Refresh });
+                if (request.Path == TokenPath)
+                {
+                    await rejected.Task;
+                    return Tokens();
+                }
+                if (request.Headers.GetValueOrDefault("Authorization") == $"Bearer {Access}")
+                {
+                    rejected.TrySetResult();
+                }
+                return Accepts(request, NewAccess);
+            });
+            using var client = Client(handler, new() { AccessToken = Access, RefreshToken = Refresh });
 
-        var refresh = client.OAuth.RefreshAsync(Cancel);
-        var me = await client.Users.GetMeAsync(Cancel);
+            var refresh = client.OAuth.RefreshAsync(Cancel);
+            var me = await client.Users.GetMeAsync(Cancel);
 
-        Assert.Equal(NewAccess, (await refresh).AccessToken);
-        Assert.Equal(1, me.ShopId);
-        var requests = handler.Sent.Where(sent => sent.Path == TokenPath).Select(sent => sent.Body);
-        Assert.Equal([$"grant_type=refresh_token&client_id={Key}&refresh_token={Uri.EscapeDataString(Refresh)}"], requests);
+            Assert.Equal(NewAccess, (await refresh).AccessToken);
+            Assert.Equal(1, me.ShopId);
+            var requests = handler.Sent.Where(sent => sent.Path == TokenPath).Select(sent => sent.Body);
+            Assert.Equal([$"grant_type=refresh_token&client_id={Key}&refresh_token={Uri.EscapeDataString(Refresh)}"], requests);
+        }
+    }
+
+    [Fact]
+    public async Task A401RefreshesWithTheRefreshTokenPairedWithTheRejectedAccessToken()
+    {
+        var credentials = new EtsyCredentials(Key, Shared, new EtsyClientOptions { AccessToken = Access, RefreshToken = Refresh });
+        var concurrent = new EtsyToken(NewAccess, NewRefresh);
+        string? traded = null;
+        credentials.Refresher = async (refreshToken, cancellationToken) =>
+        {
+            // Another refresh is stored after the 401 was checked against the current access token.
+            await credentials.StoreAsync(concurrent, cancellationToken);
+            traded = refreshToken;
+            return credentials.Replaced(refreshToken) ?? throw new InvalidOperationException("A second token request");
+        };
+        var request = new AuthRequest
+        {
+            Method = "GET",
+            Url = new Uri($"https://mock.invalid{MePath}"),
+            Headers = new() { ["Authorization"] = $"Bearer {Access}" },
+            Body = ReadOnlyMemory<byte>.Empty,
+            Operation = UsersResource.Operations.Single(operation => operation.Path == MePath),
+        };
+
+        Assert.True(await credentials.RefreshAsync(request, Cancel));
+        Assert.Equal(Refresh, traded);
     }
 
     [Fact]
