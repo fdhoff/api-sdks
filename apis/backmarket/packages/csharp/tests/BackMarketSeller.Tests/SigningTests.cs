@@ -231,7 +231,9 @@ public sealed class SigningTests
     [Theory]
     [InlineData("POST")]
     [InlineData("PUT")]
-    public void APostOrPutWithoutABodySignsAZeroContentLength(string method)
+    [InlineData("PATCH")]
+    [InlineData("DELETE")]
+    public void AWriteWithoutABodySignsAZeroContentLength(string method)
     {
         var (pem, publicKey) = FreshKey();
         using var signer = new MessageSigner(pem, ["content-length"]);
@@ -246,10 +248,42 @@ public sealed class SigningTests
     [Theory]
     [InlineData("POST")]
     [InlineData("PUT")]
-    public async Task APostOrPutWithoutABodySendsTheZeroContentLengthItSigns(string method)
+    [InlineData("PATCH")]
+    [InlineData("DELETE")]
+    public async Task AWriteWithoutABodySendsTheZeroContentLengthItSigns(string method)
     {
         var (pem, publicKey) = FreshKey();
         using var signer = new MessageSigner(pem, ["content-length", "@method"], clock: new Clock(1700000000));
+
+        var (url, headers) = await SendAsync(signer, method);
+
+        Assert.Equal("0", headers["content-length"]);
+        VerifyBase(publicKey, Request(method, url, headers, []), ["\"content-length\": 0", $"\"@method\": {method}"]);
+    }
+
+    [Fact]
+    public void AGetWithoutABodyHasNoContentLengthToSign()
+    {
+        var (pem, _) = FreshKey();
+        using var signer = new MessageSigner(pem, ["content-length"]);
+        var error = Assert.Throws<InvalidOperationException>(() => signer.Sign(Request("GET", "https://example.com/items", [], [])));
+        Assert.Contains("content-length", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AGetWithoutABodySendsNoContentLength()
+    {
+        var (pem, _) = FreshKey();
+        using var signer = new MessageSigner(pem, ["@method"]);
+
+        var (_, headers) = await SendAsync(signer, "GET");
+
+        Assert.False(headers.ContainsKey("content-length"));
+    }
+
+    /// <summary>Sends one bodiless call through the transport, and returns the server's URL and the headers it received.</summary>
+    private static async Task<(string Url, Dictionary<string, string> Headers)> SendAsync(MessageSigner signer, string method)
+    {
         await using var server = new ConnectionTests.LoopbackServer("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}");
         var settings = new Settings
         {
@@ -268,20 +302,7 @@ public sealed class SigningTests
         var headers = Assert.Single(server.Requests).Head.Split("\r\n").Skip(1).Where(line => line.Length > 0)
             .Select(line => line.Split(':', 2))
             .ToDictionary(field => field[0], field => field[1].Trim(), StringComparer.OrdinalIgnoreCase);
-        Assert.Equal("0", headers["content-length"]);
-        VerifyBase(publicKey, Request(method, server.Url.ToString(), headers, []), ["\"content-length\": 0", $"\"@method\": {method}"]);
-    }
-
-    [Theory]
-    [InlineData("GET")]
-    [InlineData("DELETE")]
-    [InlineData("PATCH")]
-    public void OtherMethodsWithoutABodyHaveNoContentLengthToSign(string method)
-    {
-        var (pem, _) = FreshKey();
-        using var signer = new MessageSigner(pem, ["content-length"]);
-        var error = Assert.Throws<InvalidOperationException>(() => signer.Sign(Request(method, "https://example.com/items", [], [])));
-        Assert.Contains("content-length", error.Message, StringComparison.Ordinal);
+        return (server.Url.ToString(), headers);
     }
 
     [Fact]

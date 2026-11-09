@@ -14,8 +14,8 @@ namespace PackageNamespace.Runtime;
 /// Signs each attempt's request with an HTTP message signature (RFC 9421): a <c>Content-Digest</c> (RFC 9530) of the
 /// body when there is one, then <c>Signature-Input</c> and <c>Signature</c> over the covered components, with a fresh
 /// <c>created</c> time. <c>content-digest</c> is left out of a request with no body. A request without
-/// <c>content-length</c> or <c>host</c> uses the body's length, <c>0</c> for a POST or PUT without one, or the URL's
-/// authority, which <see cref="HttpClient"/> sends; any other field the request lacks is an error, and so is a value that is not ASCII. Call <see cref="Sign"/>
+/// <c>content-length</c> or <c>host</c> uses the body's length, <c>0</c> for any method but GET without one, or the URL's
+/// authority, which <see cref="Transport"/> sends; any other field the request lacks is an error, and so is a value that is not ASCII. Call <see cref="Sign"/>
 /// from <see cref="ICredentialProvider.ApplyAsync"/>.
 /// </summary>
 /// <remarks>
@@ -183,7 +183,7 @@ internal sealed partial class MessageSigner : IDisposable
             return name switch
             {
                 "content-length" when !request.Body.IsEmpty => request.Body.Length.ToString(CultureInfo.InvariantCulture),
-                "content-length" when request.Method.ToUpperInvariant() is "POST" or "PUT" => "0",
+                "content-length" when Transport.SendsEmptyContent(request.Method) => "0",
                 "host" => url.Authority.ToLowerInvariant(),
                 _ => throw new InvalidOperationException($"The request has no {name} field to sign"),
             };
