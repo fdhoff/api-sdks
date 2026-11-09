@@ -37,7 +37,7 @@ cases:
     mock:                              # exactly one of prism or responses
       responses:                       # one per request, in order
         - status: 500
-          headers: { retry-after: '1' }
+          headers: { retry-after: '1' }  # a list of values sends the header once per value
           body: { error: nope }        # a mapping or list is sent as JSON, a string verbatim
           body_base64: JVBERg==        # optional: exact body bytes as base64, instead of body
           delay_ms: 0

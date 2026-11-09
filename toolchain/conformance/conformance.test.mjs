@@ -14,6 +14,7 @@ const fixtureCases = (style) => fileURLToPath(new URL(`./fixtures/cases/${style}
 const operations = new Set([
   'list-items',
   'list-events',
+  'list-bins',
   'create-item',
   'create-transfer',
   'list-files',
@@ -475,6 +476,25 @@ test('cursor paging cases fail a driver that reads only the first page', async (
   const cases = await loadCases(fixtureCases('cursor'), operations);
   const failed = await runWith('good', cases);
   assert.ok(failed.length > 0);
+});
+
+test('link header paging cases hold for a driver that follows next links', async () => {
+  const cases = await loadCases(fixtureCases('link_header'), operations);
+  assert.ok(cases.length > 0);
+  assert.deepEqual(await runWith('link', cases), []);
+});
+
+test('link header paging cases fail a driver that reads only the first page', async () => {
+  const cases = await loadCases(fixtureCases('link_header'), operations);
+  const failed = await runWith('good', cases);
+  assert.ok(failed.length > 0);
+});
+
+test('validateCase accepts a list of values for a scripted header, and refuses an empty one', () => {
+  const responses = (headers) => ({ ...baseCase(), mock: { responses: [{ status: 200, headers }] } });
+  assert.deepEqual(validateCase(responses({ link: ['<a>; rel=next', '<b>; rel=last'], 'retry-after': 1 }), operations), []);
+  assert.match(validateCase(responses({ link: [] }), operations).join(), /headers\.link must be a string or a number/);
+  assert.match(validateCase(responses({ link: { rel: 'next' } }), operations).join(), /headers\.link must be/);
 });
 
 test('signing cases hold for a driver that signs each attempt', async () => {

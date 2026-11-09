@@ -5,15 +5,12 @@ import { gzipSync } from 'node:zlib';
 
 const HOP_BY_HOP = ['host', 'connection', 'content-length', 'transfer-encoding', 'prefer'];
 
+const expandDate = (value) =>
+  String(value).replace(/\{\{http_date\+(\d+)s\}\}/g, (_, seconds) => new Date(Date.now() + Number(seconds) * 1000).toUTCString());
+
+// A list of values sends the header once per value.
 const expandDates = (headers) =>
-  Object.fromEntries(
-    Object.entries(headers).map(([name, value]) => [
-      name,
-      String(value).replace(/\{\{http_date\+(\d+)s\}\}/g, (_, seconds) =>
-        new Date(Date.now() + Number(seconds) * 1000).toUTCString(),
-      ),
-    ]),
-  );
+  Object.fromEntries(Object.entries(headers).map(([name, value]) => [name, Array.isArray(value) ? value.map(expandDate) : expandDate(value)]));
 
 // A server compresses only for a client that accepts it.
 const acceptsGzip = (header = '') =>

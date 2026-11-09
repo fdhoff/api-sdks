@@ -75,6 +75,12 @@ export function validateCase(item, operations) {
     } else if (response.drop !== true || Object.keys(response).length > 1) {
       errors.push('mock.responses[].drop must be true and alone');
     }
+    for (const [name, value] of Object.entries(response.headers ?? {})) {
+      const values = Array.isArray(value) ? value : [value];
+      if (values.length === 0 || !values.every((item) => ['string', 'number'].includes(typeof item))) {
+        errors.push(`mock.responses[].headers.${name} must be a string or a number, or a non-empty list of them`);
+      }
+    }
     if (response.gzip !== undefined && response.gzip !== true) errors.push('mock.responses[].gzip must be true');
     if (response.cut !== undefined && !Number.isInteger(response.cut)) errors.push('mock.responses[].cut must be an integer');
     if (response.body !== undefined && response.body_base64 !== undefined) {
