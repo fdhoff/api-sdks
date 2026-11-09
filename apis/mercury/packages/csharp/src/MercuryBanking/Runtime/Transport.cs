@@ -514,7 +514,7 @@ internal sealed class Transport : IDisposable
     private static IEnumerable<object> Items(object value) =>
         value is IEnumerable items and not string and not byte[]? items.OfType<object>() : [value];
 
-    private static string Quote(string text) => $"\"{text.Replace("\"", "\\\"")}\"";
+    private static string Quote(string text) => $"\"{text.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
 
     /// <summary>
     /// A GET may be sent again after a 5xx, a timeout or a dropped connection, and so may a write whose JSON body sets
@@ -699,7 +699,8 @@ internal sealed class Transport : IDisposable
             {
                 var bytes = new ByteArrayContent(file.Content);
                 bytes.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-                form.Add(bytes, Quote(wire), Quote(file.FileName));
+                bytes.Headers.ContentDisposition = Disposition(wire, file.FileName);
+                form.Add(bytes);
                 continue;
             }
             var text = value is ApiModel or IDictionary ? JsonSerializer.Serialize(value, value.GetType(), Json.Options) : Json.Text(value);
@@ -708,6 +709,27 @@ internal sealed class Transport : IDisposable
             form.Add(part, Quote(wire));
         }
         return form;
+    }
+
+    /// <summary>
+    /// Sets <c>filename*</c> only for a name that is not ASCII, with <c>filename</c> as the fallback for servers that
+    /// ignore it. The name is set as a parameter because the property setter rejects a quote mark inside it.
+    /// </summary>
+    private static ContentDispositionHeaderValue Disposition(string wire, string fileName)
+    {
+        if (fileName.Length == 0 || fileName.Any(char.IsControl))
+        {
+            throw new ArgumentException("A file name must be non-empty and contain no control characters", nameof(UploadFile.FileName));
+        }
+        var disposition = new ContentDispositionHeaderValue("form-data") { Name = Quote(wire) };
+        var ascii = Ascii.IsValid(fileName);
+        var fallback = ascii ? fileName : $"=?utf-8?B?{Convert.ToBase64String(Encoding.UTF8.GetBytes(fileName))}?=";
+        disposition.Parameters.Add(new NameValueHeaderValue("filename", Quote(fallback)));
+        if (!ascii)
+        {
+            disposition.FileNameStar = fileName;
+        }
+        return disposition;
     }
 
     private Task<Reply> FetchAsync(Operation operation, object?[] values, CancellationToken cancellationToken) =>

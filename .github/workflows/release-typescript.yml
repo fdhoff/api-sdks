@@ -140,3 +140,15 @@ jobs:
           else
             npm publish ./"$PACKAGE"-*.tgz --access public --provenance --tag alpha
           fi
+
+  # Installs what was just published from the registry, as a user would, and makes one call against the mock.
+  published:
+    needs: [target, publish]
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/published.yml
+    with:
+      api: ${{ needs.target.outputs.api }}
+      language: typescript
+      version: ${{ needs.target.outputs.version }}
