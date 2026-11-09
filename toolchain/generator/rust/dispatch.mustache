@@ -29,6 +29,15 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
 {{#apis}}
 {{#operations}}
 {{#operation}}
+{{! A package with jobs defines Case::wait and wait_options in its driver. }}
+{{#vendorExtensions.x-sdk-job}}
+        ("{{operationIdOriginal}}", false) if case.wait => {
+{{#pathParams}}
+            let {{{paramName}}}: {{>partial_path_owned}} = arg(&case.params, "{{baseName}}");
+{{/pathParams}}
+            output(client.{{#sdkModule}}{{.}}().{{/sdkModule}}{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}().{{vendorExtensions.x-sdk-wait}}({{#pathParams}}{{#isString}}&{{/isString}}{{{paramName}}}, {{/pathParams}}crate::wait_options()).await)
+        }
+{{/vendorExtensions.x-sdk-job}}
         ("{{operationIdOriginal}}", false) => {
 {{>partial_dispatch_inputs}}
 {{! A package with binary bodies defines raw_body and download_output in its driver. }}
