@@ -143,6 +143,17 @@ The key is an unencrypted PKCS #8 PEM, Ed25519 (`ed25519`) or RSA (`rsa-v1_5-sha
 
 TODO: an opt-in in `generate.yaml` so the generator copies the signer only into packages that sign, once a second API signs. Until then each C# package that does not sign needs `<Compile Remove="Runtime/MessageSigner.cs" />`.
 
+### Webhook signatures
+
+Each runtime can check the common timestamped HMAC scheme for webhooks: a header of `t=<unix seconds>,v1=<hex>`, where `v1` is HMAC-SHA256 over `<t>.<raw body>` keyed with the endpoint's secret. The function is `verify_webhook` in Python and Rust, `verifyWebhook` in TypeScript (asynchronous, through Web Crypto), `VerifyWebhook` in Go and `WebhookVerifier.Verify` in C#. It takes the raw body bytes as received, never re-serialised JSON, the header's value and the secret. The header's name belongs to the API, so the API's package exports the function with it in its docs.
+
+* The header is a comma-separated list of `key=value` entries, with spaces or tabs around each ignored. It must have exactly one `t` of 1 to 12 ASCII digits and at least one `v1`. Unknown keys are ignored. Anything else, or no header, fails as a malformed header.
+* Any one `v1` that matches is enough, so a sender can list several while a secret rotates. A `v1` that is not 64 hex digits matches nothing. Each comparison is constant time.
+* The signature is checked before the timestamp, so an old forged request fails as a bad signature. Then a timestamp older than the tolerance fails as too old, which stops replays. The tolerance defaults to 5 minutes and is configurable, and the clock can be set for tests. A timestamp ahead of the clock is accepted, as the sender signed it.
+* The typed error says which of the three failed: Python's `WebhookSignatureError.reason`, TypeScript's `WebhookSignatureError.reason`, C#'s `WebhookSignatureException.Reason`, Rust's `WebhookError` and Go's `ErrWebhookMalformedHeader`, `ErrWebhookTooOld` and `ErrWebhookBadSignature`. Its message never holds the secret or the body, and the verifier logs nothing.
+
+Shared vectors in `toolchain/conformance/fixtures/webhooks/hmac-sha256.json` cover a valid signature, raw and re-serialised bodies, a tampered body, a wrong secret, old timestamps, tolerances, several `v1` values and malformed headers. Each language's runtime tests read them, and a toolchain test checks that each vector signs what it claims. The verifier needs no dependency beyond what the runtime has. A package whose API does not sign webhooks leaves it out as it does the message signer: C# removes `Runtime/Webhooks.cs` from its build, and Rust builds it only under a `webhooks` feature, which brings in `aws-lc-rs`, or in tests.
+
 ### Authentication and headers
 
 * Back Market uses a static provider that sends `Authorization: Basic <token>` with the token verbatim: no username and no base64. Generated Basic-auth helpers must not be used.

@@ -22,6 +22,9 @@
   <ItemGroup>
     <!-- The package leaves out the runtime's message signer, so its tests compile it here. -->
     <Compile Include="../../src/BackMarketSeller/Runtime/MessageSigner.cs" Link="Runtime/MessageSigner.cs" />
+    <!-- The same for the webhook verifier, which runs the shared vectors. -->
+    <Compile Include="../../src/BackMarketSeller/Runtime/Webhooks.cs" Link="Runtime/Webhooks.cs" />
+    <None Include="../../../../../../toolchain/conformance/fixtures/webhooks/hmac-sha256.json" Link="webhooks/hmac-sha256.json" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../src/BackMarketSeller/BackMarketSeller.csproj" />
   </ItemGroup>
 

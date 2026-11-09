@@ -34,6 +34,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- eBay sends no signed webhooks, so the package leaves out the runtime's webhook verifier. -->
+    <Compile Remove="Runtime/Webhooks.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- The message signer needs Ed25519, which .NET does not have. -->
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />

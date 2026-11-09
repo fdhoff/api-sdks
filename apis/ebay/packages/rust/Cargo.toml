@@ -43,6 +43,11 @@ serde = { version = "1.0", features = ["derive"] }
 futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
 tokio = { version = "1.43", features = ["io-util", "macros", "net", "rt"] }
 
+# The runtime's webhook verifier builds only under a `webhooks` feature, which this package does not
+# need. Its tests still build it, with the dev-dependencies above.
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("webhooks"))'] }
+
 [[example]]
 name = "conformance-driver"
 path = "conformance/driver.rs"

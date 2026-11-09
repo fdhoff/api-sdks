@@ -39,10 +39,11 @@ serde = { version = "1.0", features = ["derive"] }
 futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
 tokio = { version = "1.43", features = ["io-util", "macros", "net", "rt"] }
 
-# The runtime's message signer builds only under a `signing` feature, which this package does not
-# need. Its tests still build it, with the dev-dependencies below.
+# The runtime's message signer and webhook verifier build only under `signing` and `webhooks`
+# features, which this package does not need. Their tests still build them, with the dev-dependencies
+# above.
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("signing"))'] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("signing", "webhooks"))'] }
 
 [[example]]
 name = "conformance-driver"
