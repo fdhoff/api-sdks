@@ -1918,7 +1918,7 @@ mod tests {
                         .unwrap_or_default();
                     let links: String = links
                         .iter()
-                        .map(|link| format!("link: {link}\r\n"))
+                        .map(|link| ["link: ", *link, "\r\n"].concat())
                         .collect();
                     let head = format!(
                         "HTTP/1.1 {status} Status\r\n{content_type}{links}content-length: {length}\r\nconnection: close\r\n\r\n"
