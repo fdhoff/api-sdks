@@ -125,9 +125,11 @@ class {{classname}}(Resource):
     @checked
     def {{vendorExtensions.x-sdk-wait}}(
         self,
-{{#pathParams}}
+{{#allParams}}
+{{#isPathParam}}
         {{paramName}}: {{{vendorExtensions.x-py-typing}}},
-{{/pathParams}}
+{{/isPathParam}}
+{{/allParams}}
         *,
         interval: float = 60.0,
         timeout: float = 3600.0,
@@ -172,9 +174,11 @@ class Async{{classname}}(AsyncResource):
     @checked
     async def {{vendorExtensions.x-sdk-wait}}(
         self,
-{{#pathParams}}
+{{#allParams}}
+{{#isPathParam}}
         {{paramName}}: {{{vendorExtensions.x-py-typing}}},
-{{/pathParams}}
+{{/isPathParam}}
+{{/allParams}}
         *,
         interval: float = 60.0,
         timeout: float = 3600.0,
