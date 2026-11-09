@@ -53,7 +53,7 @@ exclude = ["src/ebay_sell/*/models/*"]
 [tool.mypy]
 python_version = "3.10"
 strict = true
-files = ["src", "conformance", "tests"]
+files = ["src", "conformance", "sandbox", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

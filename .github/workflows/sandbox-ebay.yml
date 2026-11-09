@@ -1,0 +1,53 @@
+name: eBay sandbox
+
+# Read-only calls against eBay's sandbox with an application token minted from a sandbox keyset. Never on pull
+# requests, so the secrets cannot reach a fork's code. Skipped with a notice when either secret is not set.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 6 * * 1"
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/sandbox-ebay.yml
+      - apis/ebay/packages/python/**
+      - toolchain/runtime/python/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sandbox-ebay
+  cancel-in-progress: true
+
+jobs:
+  python:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      EBAY_SANDBOX_CLIENT_ID: ${{ secrets.EBAY_SANDBOX_CLIENT_ID }}
+      EBAY_SANDBOX_CLIENT_SECRET: ${{ secrets.EBAY_SANDBOX_CLIENT_SECRET }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - id: keys
+        run: |
+          if [ -z "$EBAY_SANDBOX_CLIENT_ID" ] || [ -z "$EBAY_SANDBOX_CLIENT_SECRET" ]; then
+            echo "::notice title=eBay sandbox skipped::EBAY_SANDBOX_CLIENT_ID or EBAY_SANDBOX_CLIENT_SECRET is not set."
+            echo "set=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "set=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.keys.outputs.set == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - if: steps.keys.outputs.set == 'true'
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.14"
+      - if: steps.keys.outputs.set == 'true'
+        run: python -m pip install ./apis/ebay/packages/python
+      - if: steps.keys.outputs.set == 'true'
+        run: python apis/ebay/packages/python/sandbox/smoke.py

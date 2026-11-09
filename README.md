@@ -150,7 +150,7 @@ The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see 
 
 ## eBay APIs
 
-The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see [`apis/ebay/packages/python/`](apis/ebay/packages/python/README.md), [`apis/ebay/packages/typescript/`](apis/ebay/packages/typescript/README.md), [`apis/ebay/packages/go/`](apis/ebay/packages/go/README.md), [`apis/ebay/packages/csharp/`](apis/ebay/packages/csharp/README.md) and [`apis/ebay/packages/rust/`](apis/ebay/packages/rust/README.md). `apis/ebay/` pins 20 of eBay's OpenAPI contracts, corrects them, and checks the conformance cases against a reference driver. eBay is a trademark of eBay Inc. This project is not affiliated with, endorsed by or sponsored by eBay Inc.
+The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see [`apis/ebay/packages/python/`](apis/ebay/packages/python/README.md), [`apis/ebay/packages/typescript/`](apis/ebay/packages/typescript/README.md), [`apis/ebay/packages/go/`](apis/ebay/packages/go/README.md), [`apis/ebay/packages/csharp/`](apis/ebay/packages/csharp/README.md) and [`apis/ebay/packages/rust/`](apis/ebay/packages/rust/README.md). `apis/ebay/` pins 20 of eBay's OpenAPI contracts, corrects them, and checks the conformance cases against a reference driver. The eBay sandbox workflow makes read-only calls to eBay's sandbox with an application token when `EBAY_SANDBOX_CLIENT_ID` and `EBAY_SANDBOX_CLIENT_SECRET` secrets are set; it never runs on pull requests. eBay is a trademark of eBay Inc. This project is not affiliated with, endorsed by or sponsored by eBay Inc.
 
 ## Mercury API
 

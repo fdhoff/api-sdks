@@ -2,8 +2,11 @@ name: Mercury sandbox
 
 # Read-only calls against Mercury's sandbox, which holds only dummy data, with a read-only sandbox token. Never on pull
 # requests, so the secret cannot reach a fork's code. Skipped with a notice when MERCURY_SANDBOX_TOKEN is not set.
+# Weekly as well, because Mercury deletes tokens that go unused for 45 days.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "41 6 * * 1"
   push:
     branches: [main]
     paths:
