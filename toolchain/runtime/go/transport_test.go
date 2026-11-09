@@ -217,6 +217,92 @@ func TestNextLinkPagingReadsTheConfiguredFields(t *testing.T) {
 	}
 }
 
+type cursorParams struct {
+	Limit *int    `query:"limit"`
+	After *string `query:"start_after"`
+}
+
+var cursorList = &Operation{
+	ID: "list-items", Method: "GET", Path: "/items", QueryParams: []string{"limit", "start_after"},
+	Paging: Cursor{Items: "data", Next: "page.next_page", Param: "start_after"},
+}
+
+// served answers with the bodies in order.
+func served(bodies ...any) func(url.Values) any {
+	return func(url.Values) any {
+		body := bodies[0]
+		bodies = bodies[1:]
+		return body
+	}
+}
+
+func TestCursorPagingSendsTheNextValueBackUntilItIsNull(t *testing.T) {
+	limit := 2
+	items, queries, err := walk(t, cursorList, cursorParams{Limit: &limit}, served(
+		map[string]any{"data": numbered(0, 2), "page": map[string]any{"next_page": "b"}},
+		map[string]any{"data": numbered(2, 4), "page": map[string]any{"next_page": "d"}},
+		map[string]any{"data": numbered(4, 5), "page": map[string]any{"next_page": nil}},
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(items, numbered(0, 5)) {
+		t.Errorf("items are %v", items)
+	}
+	if want := []string{"limit=2", "limit=2&start_after=b", "limit=2&start_after=d"}; !reflect.DeepEqual(queries, want) {
+		t.Errorf("queries are %q, want %q", queries, want)
+	}
+}
+
+func TestCursorPagingStartsAtTheCallersPositionAndStopsWithoutANextValue(t *testing.T) {
+	after := "a"
+	items, queries, err := walk(t, cursorList, cursorParams{After: &after}, served(
+		map[string]any{"data": numbered(1, 2), "page": map[string]any{"next_page": "b"}},
+		map[string]any{"data": []any{}, "page": map[string]any{"next_page": ""}},
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(items, numbered(1, 2)) {
+		t.Errorf("items are %v", items)
+	}
+	if want := []string{"start_after=a", "start_after=b"}; !reflect.DeepEqual(queries, want) {
+		t.Errorf("queries are %q, want %q", queries, want)
+	}
+	for _, body := range []any{map[string]any{"data": []any{}}, map[string]any{"data": []any{}, "page": nil}} {
+		if _, _, err := walk(t, cursorList, cursorParams{}, served(body)); err != nil {
+			t.Errorf("for %v, error is %v", body, err)
+		}
+	}
+}
+
+func TestCursorPagingRejectsANextValueEqualToTheOneSent(t *testing.T) {
+	after := "a"
+	_, queries, err := walk(t, cursorList, cursorParams{After: &after}, served(map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": "a"}}))
+	var failure *Error
+	if !errors.As(err, &failure) || failure.Kind != KindDecode || !strings.Contains(err.Error(), "does not advance the iteration") {
+		t.Fatalf("error is %v", err)
+	}
+	if len(queries) != 1 {
+		t.Errorf("queries are %q", queries)
+	}
+}
+
+func TestCursorPagingRejectsAMalformedPage(t *testing.T) {
+	for _, body := range []any{
+		map[string]any{"page": map[string]any{"next_page": "b"}},
+		map[string]any{"data": nil},
+		map[string]any{"data": numbered(0, 1), "page": map[string]any{"next_page": 2}},
+		map[string]any{"data": numbered(0, 1), "page": "b"},
+	} {
+		_, _, err := walk(t, cursorList, cursorParams{}, served(body))
+		var failure *Error
+		if !errors.As(err, &failure) || failure.Kind != KindDecode {
+			t.Errorf("for %v, error is %v", body, err)
+		}
+	}
+}
+
 func TestAnEmpty204IsNoResultEvenWhereJSONIsDeclared(t *testing.T) {
 	transport := mustTransport(t, Settings{BaseURL: "http://example.invalid", Credentials: StaticCredentials{}, Timeout: time.Second})
 	operation := &Operation{ID: "get-item", Method: "GET", Path: "/items/1", ReturnsJSON: true}

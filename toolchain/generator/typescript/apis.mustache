@@ -67,6 +67,9 @@ const {{nickname}}: Operation = {
 {{#vendorExtensions.x-sdk-paging.offset}}
   paging: { style: 'offset', items: '{{items}}', total: '{{total}}', offset: '{{offset}}' },
 {{/vendorExtensions.x-sdk-paging.offset}}
+{{#vendorExtensions.x-sdk-paging.cursor}}
+  paging: { style: 'cursor', items: '{{items}}', next: '{{next}}', param: '{{param}}' },
+{{/vendorExtensions.x-sdk-paging.cursor}}
   security: [{{#vendorExtensions.x-sdk-security}}[{{#schemes}}{ scheme: '{{scheme}}', scopes: [{{#scopes}}'{{.}}', {{/scopes}}] }, {{/schemes}}], {{/vendorExtensions.x-sdk-security}}],
 };
 

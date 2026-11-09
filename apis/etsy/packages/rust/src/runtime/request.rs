@@ -33,6 +33,14 @@ pub enum Paging {
         total: &'static str,
         offset: &'static str,
     },
+    /// Pages that carry the next position as a value at the dotted `next` path, sent back in the `param`
+    /// query parameter. Iteration ends when that value is null, empty or absent.
+    #[allow(dead_code, reason = "an API may page only by link or offset")]
+    Cursor {
+        items: &'static str,
+        next: &'static str,
+        param: &'static str,
+    },
 }
 
 impl Paging {
@@ -44,7 +52,9 @@ impl Paging {
 
     pub fn items(&self) -> &'static str {
         match self {
-            Self::NextLink { items, .. } | Self::Offset { items, .. } => items,
+            Self::NextLink { items, .. }
+            | Self::Offset { items, .. }
+            | Self::Cursor { items, .. } => items,
         }
     }
 }

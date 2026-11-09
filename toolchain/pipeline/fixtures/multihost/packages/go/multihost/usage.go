@@ -1,6 +1,12 @@
 package multihost
 
-import "context"
+import (
+	"context"
+	"iter"
+)
+
+// Seq is the iterator type a package's client defines.
+type Seq[T any] = iter.Seq2[T, error]
 
 func use(ctx context.Context, resources Resources) error {
 	tenant := "t1"

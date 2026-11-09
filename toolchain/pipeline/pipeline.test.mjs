@@ -470,7 +470,7 @@ test('resolvePaging layers the operation over the API default over the style def
   assert.deepEqual(resolvePaging('op', ['offset'], { style: 'offset' }, { style: 'next_link', link: 'more' }), {
     offset: { items: 'results', total: 'count', offset: 'offset' },
   });
-  assert.throws(() => resolvePaging('op', ['page'], { style: 'cursor' }), /op: unknown paging style cursor/);
+  assert.throws(() => resolvePaging('op', ['page'], { style: 'keyset' }), /op: unknown paging style keyset/);
   assert.throws(() => resolvePaging('op', ['offset'], { style: 'offset', link: 'next' }), /unknown offset paging keys: link/);
   assert.throws(() => resolvePaging('op', ['page'], { style: 'offset' }), /no query parameter holds the offset paging position \(offset\)/);
 });
@@ -511,6 +511,16 @@ test('resolveIdempotency refuses unknown keys, a missing field and an operation 
   assert.throws(() => resolveIdempotency({}, { operationId: 'op' }, { body: 'key' }), /idempotency field key is not in the JSON request body/);
   const form = { operationId: 'op', requestBody: { content: { 'multipart/form-data': { schema: { properties: { key: {} } } } } } };
   assert.throws(() => resolveIdempotency({}, form, { body: 'key' }), /idempotency field key is not in the JSON request body/);
+});
+
+test('resolvePaging reads a cursor style that sends a value from each page back as a query parameter', () => {
+  assert.deepEqual(resolvePaging('op', ['cursor'], { style: 'cursor' }), { cursor: { items: 'results', next: 'cursor', param: 'cursor' } });
+  assert.deepEqual(resolvePaging('op', ['limit', 'start_after'], { items: 'gadgets', next: 'page.next_page', param: 'start_after' }, { style: 'cursor' }), {
+    cursor: { items: 'gadgets', next: 'page.next_page', param: 'start_after' },
+  });
+  assert.throws(() => resolvePaging('op', ['cursor'], { style: 'cursor', link: 'next' }), /unknown cursor paging keys: link/);
+  assert.throws(() => resolvePaging('op', ['limit'], { style: 'cursor', param: 'start_after' }), /no query parameter holds the cursor paging position \(start_after\)/);
+  assert.throws(() => resolvePaging('op', ['cursor'], { style: 'cursor', next: 'page..next' }), /cursor paging next is not a dotted path: page\.\.next/);
 });
 
 const driftSpec = (version, paths, schemas) => ({ info: { version }, paths, components: { schemas } });

@@ -62,7 +62,7 @@ jobs:
       - run: npm run spec:lint
       - run: npm test
 
-  # Generates a synthetic spec that uses hosts and header defaults in every language, and type-checks the output.
+  # Generates a synthetic spec that uses hosts, header defaults and cursor paging in every language, and type-checks the output.
   templates:
     runs-on: ubuntu-24.04
     timeout-minutes: 20

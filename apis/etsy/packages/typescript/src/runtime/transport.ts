@@ -49,7 +49,16 @@ export interface Offset {
   offset: string;
 }
 
-export type Paging = NextLink | Offset;
+/** Pages that carry the next position as a value at the dotted `next` path, sent back in the `param` query
+ * parameter. Iteration ends when that value is null, empty or absent. */
+export interface Cursor {
+  style: 'cursor';
+  items: string;
+  next: string;
+  param: string;
+}
+
+export type Paging = NextLink | Offset | Cursor;
 
 export interface Operation {
   id: string;
@@ -421,15 +430,40 @@ function nextOffset(
   return { ...params, [param.name]: position };
 }
 
+function nextCursor(
+  operation: Operation,
+  paging: Cursor,
+  params: Params,
+  page: Record<string, unknown>,
+): Params | undefined {
+  let value: unknown = page;
+  for (const key of paging.next.split('.')) {
+    if (value === null || value === undefined) break;
+    if (!isObject(value) || Array.isArray(value)) {
+      throw new DecodeError(`The \`${paging.next}\` value of a page is not inside an object`);
+    }
+    value = value[key];
+  }
+  if (value === null || value === undefined || value === '') return undefined;
+  if (typeof value !== 'string') throw new DecodeError(`The \`${paging.next}\` value of a page is not a string`);
+  const param = operation.params.find(({ wire, location }) => location === 'query' && wire === paging.param);
+  if (param === undefined) throw new DecodeError(`The operation has no \`${paging.param}\` parameter`);
+  const current = params[param.name];
+  if (current !== undefined && current !== null && String(current) === value) {
+    throw new DecodeError(`The \`${paging.next}\` value does not advance the iteration`);
+  }
+  return { ...params, [param.name]: value };
+}
+
 /** The parameters of the page after this one, or undefined after the last. */
 function nextParams(operation: Operation, params: Params, page: unknown, received: number): Params | undefined {
   if (!isObject(page) || Array.isArray(page)) throw new DecodeError('A page is not a JSON object');
   const paging = operation.paging ?? NEXT_LINK;
   if (!Array.isArray(page[paging.items]))
     throw new DecodeError(`The \`${paging.items}\` field of a page is not a list`);
-  return paging.style === 'offset'
-    ? nextOffset(operation, paging, params, page, received)
-    : nextLink(operation, paging, params, page);
+  if (paging.style === 'offset') return nextOffset(operation, paging, params, page, received);
+  if (paging.style === 'cursor') return nextCursor(operation, paging, params, page);
+  return nextLink(operation, paging, params, page);
 }
 
 function items(operation: Operation, page: unknown): unknown[] {
