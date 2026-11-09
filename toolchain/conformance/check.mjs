@@ -121,6 +121,8 @@ function checkOutcome(expect, outcome, failures) {
     failures.push(`outcome is ${shown}`);
   }
   if (expect.logs_required && !(outcome.logs?.length > 0)) failures.push('client logged nothing');
+  const logs = JSON.stringify(outcome.logs ?? []);
+  for (const value of expect.logs_exclude ?? []) if (logs.includes(value)) failures.push(`logs contain ${value}`);
 }
 
 // `secrets` maps each secret's name to its value; `{{name}}` expands to it, and none may reach the output.

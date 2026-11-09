@@ -195,6 +195,19 @@ test('checkCase compares outcomes', () => {
   assert.match(checkCase(item, [sent()], { result: { id: 1 }, logs: [] }, { token: 't0ken' }).join(), /logged nothing/);
 });
 
+test('checkCase fails logs holding an excluded value, which the result may hold', () => {
+  const item = { ...baseCase(), expect: { result: { pan: '4000' }, logs_exclude: ['4000'] } };
+  assert.deepEqual(checkCase(item, [sent()], { result: { pan: '4000' }, logs: ['<- 200 (13 chars)'] }, { token: 't0ken' }), []);
+  assert.match(checkCase(item, [sent()], { result: { pan: '4000' }, logs: ['<- {"pan":"4000"}'] }, { token: 't0ken' }).join(), /logs contain 4000/);
+});
+
+test('validateCase accepts only a list of strings for logs_exclude', () => {
+  for (const logs_exclude of [[], '4000', [''], [4000]]) {
+    const errors = validateCase({ ...baseCase(), expect: { result: {}, logs_exclude } }, operations);
+    assert.ok(errors.includes('expect.logs_exclude must be a non-empty list of non-empty strings'), JSON.stringify(logs_exclude));
+  }
+});
+
 test('checkCase fails any output containing the token', () => {
   const leaks = [
     { result: { id: 1 }, logs: ['Authorization: Basic t0ken'] },
