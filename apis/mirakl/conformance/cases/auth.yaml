@@ -15,17 +15,17 @@ cases:
   - name: auth-a-key-of-another-shape-is-sent-unchanged
     client: { token: 00000000-0000-4000-8000-5e11e4000001 }
     request:
-      operation: V01
+      operation: A01
     mock:
       responses:
         - status: 200
-          body: { version: 3.0.0 }
+          body: { shop_id: 2001, shop_name: Synthetic shop }
     wire:
       - method: GET
-        path: /api/version
+        path: /api/account
         headers: { authorization: 00000000-0000-4000-8000-5e11e4000001 }
     expect:
-      result: { version: 3.0.0 }
+      result: { shop_id: 2001, shop_name: Synthetic shop }
 
   - name: auth-a-refused-key-is-an-authentication-error-without-the-key
     request:

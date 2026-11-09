@@ -1,0 +1,23 @@
+# coding: utf-8
+
+# Generated code. Do not edit by hand; change the templates, the overlay or the runtime instead.
+
+
+from __future__ import annotations
+
+from pydantic import BaseModel, ConfigDict, StrictStr
+from typing import Any, ClassVar, Dict, List, Optional
+from mirakl_seller._runtime import ApiModel
+
+
+class RT51RequestReturnLabelsShippingFrom(ApiModel):
+    """RT51RequestReturnLabelsShippingFrom model."""
+
+    city: StrictStr
+    contact_name: StrictStr
+    contact_phone: StrictStr
+    country_iso_code: StrictStr
+    state: Optional[StrictStr] = None
+    street_1: StrictStr
+    street_2: Optional[StrictStr] = None
+    zip_code: Optional[StrictStr] = None

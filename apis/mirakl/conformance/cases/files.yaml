@@ -35,7 +35,7 @@ cases:
   - name: files-an-invoice-keeps-every-byte
     request:
       operation: IV02
-      params: { accounting_document_id: invoice-1 }
+      params: { accounting_document_id: 1001 }
     mock:
       responses:
         - status: 200
@@ -43,7 +43,7 @@ cases:
           body_base64: JVBERi0xLjQK/+jV0QoxIDAgb2JqCg==
     wire:
       - method: GET
-        path: /api/invoices/invoice-1
+        path: /api/invoices/1001
         headers: { accept: application/octet-stream }
     expect:
       result: { content_type: application/pdf, base64: JVBERi0xLjQK/+jV0QoxIDAgb2JqCg== }

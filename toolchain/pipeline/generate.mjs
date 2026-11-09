@@ -214,10 +214,11 @@ export function resolveIdempotency(spec, operation, setting) {
 }
 
 // The requirements an operation's request must meet: any one of them, each naming its schemes and their scopes.
-// An operation without its own `security` inherits the spec's, and an empty list means none.
+// An operation without its own `security` inherits the spec's, and an empty list means none. Scopes are copied:
+// a list shared with `security` would be written as a YAML alias, and the generator's parser refuses more than 50.
 export function securityOf(spec, operation) {
   return (operation.security ?? spec.security ?? []).map((requirement) => ({
-    schemes: Object.entries(requirement).map(([scheme, scopes]) => ({ scheme, scopes: scopes ?? [] })),
+    schemes: Object.entries(requirement).map(([scheme, scopes]) => ({ scheme, scopes: [...(scopes ?? [])] })),
   }));
 }
 
