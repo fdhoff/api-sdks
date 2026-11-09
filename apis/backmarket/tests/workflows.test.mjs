@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -33,6 +33,26 @@ async function releaseTarget(language, event, tag = '') {
     });
     const lines = (await readFile(output, 'utf8').catch(() => '')).split('\n').filter(Boolean);
     return { status, outputs: Object.fromEntries(lines.map((line) => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)])) };
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+// Runs the npm publish step with a stub npm, and returns the arguments of each npm publish it ran.
+async function npmPublish(version, published = '') {
+  const { jobs } = parse(await readFile(join(WORKFLOWS, 'release-typescript.yml'), 'utf8'));
+  const step = jobs.publish.steps.find((item) => /npm publish/.test(item.run ?? ''));
+  const dir = await mkdtemp(join(tmpdir(), 'npm-publish-'));
+  try {
+    const log = join(dir, 'log');
+    await writeFile(join(dir, 'npm'), '#!/bin/sh\nif [ "$1" = view ]; then echo "$PUBLISHED"; else echo "$@" >> "$NPM_LOG"; fi\n', { mode: 0o755 });
+    const { status } = spawnSync('bash', ['-e', '-c', step.run], {
+      cwd: dir,
+      env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, PACKAGE: 'pkg', VERSION: version, PUBLISHED: published, NPM_LOG: log },
+      stdio: 'ignore',
+    });
+    assert.equal(status, 0);
+    return (await readFile(log, 'utf8').catch(() => '')).split('\n').filter(Boolean);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -119,11 +139,20 @@ test('every publish step can be rerun after it succeeded', async () => {
   const pypi = publishing['release-python.yml'].find((step) => step.uses?.startsWith('pypa/gh-action-pypi-publish@'));
   assert.equal(pypi.with?.['skip-existing'], true);
 
-  assert.match(run('release-typescript.yml', /npm publish/).run, /npm view [\s\S]*else\s+npm publish/);
+  assert.deepEqual(await npmPublish('0.1.0-alpha.3', '0.1.0-alpha.3'), []);
+  assert.equal((await npmPublish('0.1.0-alpha.3', '0.1.0-alpha.2')).length, 1);
 
   const cargo = run('release-rust.yml', /cargo publish/);
   assert.equal(cargo.if, "steps.published.outputs.skip != 'true'");
   assert.ok(publishing['release-rust.yml'].some((step) => step.id === 'published'));
+});
+
+test('npm publishes 0.x releases and stable releases to latest, and later prereleases to next', async () => {
+  const tags = {};
+  for (const version of ['0.1.0-alpha.3', '0.2.0', '1.1.0-rc.1', '1.0.0']) {
+    tags[version] = (await npmPublish(version)).map((args) => args.match(/--tag (\S+)/)?.[1]);
+  }
+  assert.deepEqual(tags, { '0.1.0-alpha.3': ['latest'], '0.2.0': ['latest'], '1.1.0-rc.1': ['next'], '1.0.0': ['latest'] });
 });
 
 test('each release workflow takes the API from its tag and builds every API on a pull request', async () => {

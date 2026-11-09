@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* Releases are published to npm's `latest` tag instead of `alpha`, so `npm install backmarket-seller` gets the newest 0.x release.
 * An empty, `.` or `..` path value throws `TypeError` before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
 * An iterator page without its items list throws `DecodeError`, as in the other languages, instead of ending the iteration with no items.
 * An empty 204 page ends an iteration instead of throwing `DecodeError`.

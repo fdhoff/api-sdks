@@ -138,7 +138,13 @@ jobs:
           if [ "$(npm view "$PACKAGE@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
             echo "$PACKAGE@$VERSION is already published."
           else
-            npm publish ./"$PACKAGE"-*.tgz --access public --provenance --tag alpha
+            # While 0.x every release is a prerelease, so it goes to latest; otherwise a bare install gets an old alpha.
+            case "$VERSION" in
+              0.*) TAG=latest ;;
+              *-*) TAG=next ;;
+              *) TAG=latest ;;
+            esac
+            npm publish ./"$PACKAGE"-*.tgz --access public --provenance --tag "$TAG"
           fi
 
   # Installs what was just published from the registry, as a user would, and makes one call against the mock.
