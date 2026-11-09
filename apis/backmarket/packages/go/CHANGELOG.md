@@ -4,6 +4,7 @@ This module follows semantic versioning and stays on 0.x until outside users con
 
 ## Unreleased
 
+* An iterator that gets an empty 204 page stops there instead of returning an error matching `ErrDecode`.
 * An iterator page without a `results` list returns an error matching `ErrDecode`.
 * Breaking: `Task` is `BackgroundTask`, as in every other language.
 * Breaking: the module path is now `github.com/fdhoff/api-sdks/apis/backmarket/packages/go`, following the repository rename. Update imports from `github.com/fdhoff/backmarket-seller-sdk/apis/backmarket/packages/go`. `0.1.0-alpha.1` stays at the old path.

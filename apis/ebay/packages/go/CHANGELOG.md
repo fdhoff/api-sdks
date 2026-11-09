@@ -4,6 +4,8 @@ This module follows semantic versioning and stays on 0.x until outside users con
 
 ## Unreleased
 
+* An iterator that gets an empty 204 page stops there instead of returning an error matching `ErrDecode`.
+
 ## 0.1.0-alpha.1 (2026-11-08)
 
 The first alpha.

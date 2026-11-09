@@ -41,6 +41,9 @@ type pageParams struct {
 	Token *string `query:"token"`
 }
 
+// bodiless is a page answered with this status and no body.
+type bodiless int
+
 // walk serves the bodies in order and returns every item and the query of every request.
 func walk(t *testing.T, operation *Operation, params any, serve func(query url.Values) any) ([]map[string]any, []string, error) {
 	t.Helper()
@@ -50,8 +53,13 @@ func walk(t *testing.T, operation *Operation, params any, serve func(query url.V
 		lock.Lock()
 		defer lock.Unlock()
 		queries = append(queries, r.URL.RawQuery)
+		body := serve(r.URL.Query())
+		if status, ok := body.(bodiless); ok {
+			w.WriteHeader(int(status))
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(serve(r.URL.Query()))
+		_ = json.NewEncoder(w).Encode(body)
 	}))
 	t.Cleanup(server.Close)
 	transport := mustTransport(t, Settings{BaseURL: server.URL, Timeout: time.Second})
@@ -115,6 +123,29 @@ func TestOffsetPagingStartsAtTheCallersOffsetAndStopsAtAnEmptyPage(t *testing.T)
 	}
 	if want := []string{"start=3", "start=4"}; !reflect.DeepEqual(queries, want) {
 		t.Errorf("queries are %q, want %q", queries, want)
+	}
+}
+
+func TestPagingStopsAtAnEmpty204Page(t *testing.T) {
+	limit := 2
+	bodies := []any{map[string]any{"data": numbered(0, 2)}, bodiless(http.StatusNoContent)}
+	items, queries, err := walk(t, offsetList, pageParams{Limit: &limit}, func(url.Values) any {
+		body := bodies[0]
+		bodies = bodies[1:]
+		return body
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(items, numbered(0, 2)) {
+		t.Errorf("items are %v", items)
+	}
+	if want := []string{"limit=2", "limit=2&start=2"}; !reflect.DeepEqual(queries, want) {
+		t.Errorf("queries are %q, want %q", queries, want)
+	}
+	items, _, err = walk(t, offsetList, pageParams{}, func(url.Values) any { return bodiless(http.StatusNoContent) })
+	if err != nil || len(items) != 0 {
+		t.Errorf("a first page of 204 gives %v, %v", items, err)
 	}
 }
 
