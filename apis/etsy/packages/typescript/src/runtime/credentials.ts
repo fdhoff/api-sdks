@@ -23,12 +23,15 @@ export interface AuthRequest {
  *
  * `apply` runs before every attempt, retries included, so it can sign the final request. `secrets` lists every
  * value to keep out of logs and errors, and is read again each time, so it may change. `refresh` runs after a
- * 401, at most once per call and once at a time per client, and resolves to whether to retry.
+ * 401, at most once per call and once at a time per client, and resolves to whether to retry. `refreshGroup` names
+ * the credential an operation sends, where there is more than one: a call skips its own refresh only when another
+ * call refreshed the same group since it sent it.
  */
 export interface Credentials {
   apply(request: AuthRequest): void | Promise<void>;
   secrets(): readonly string[];
   refresh?(request: AuthRequest): boolean | Promise<boolean>;
+  refreshGroup?(operation: Operation): string;
 }
 
 /** The same headers on every request. */

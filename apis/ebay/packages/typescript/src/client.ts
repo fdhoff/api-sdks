@@ -50,9 +50,10 @@ export interface ClientOptions {
   /** Lets the client replace an expired user token by itself, once per call. */
   refreshToken?: string;
   /** Called with every new user token, from `oauth.exchangeCode` and every refresh, so you can store it. The call
-   * that caused the refresh waits for it. */
+   * that caused the refresh waits for it, so it must not call `oauth` or make calls with this client, which would
+   * never settle. */
   onToken?: TokenCallback;
-  /** The scopes of minted application tokens. Defaults to `[API_SCOPE]`. */
+  /** The scopes of minted application tokens, at least one. Defaults to `[API_SCOPE]`. */
   appScopes?: readonly string[];
   /** The scopes to ask for when refreshing a user token. eBay keeps the original grant's when this is not given. */
   userScopes?: readonly string[];
@@ -141,6 +142,8 @@ export class EbayClient {
 
   constructor(options: ClientOptions) {
     const environment = options.environment ?? 'production';
+    const appScopes = options.appScopes ?? [API_SCOPE];
+    if (!appScopes.some((scope) => scope.trim())) throw new TypeError('appScopes needs at least one scope');
     const credentials = new EbayCredentials(options);
     const shared = transport(options, credentials, environment);
     this.account = new Account(shared);
@@ -165,7 +168,7 @@ export class EbayClient {
     this.keyManagement = new KeyManagement(shared);
     this.oauth = new OAuth(credentials, shared, {
       ruName: options.ruName,
-      appScopes: options.appScopes ?? [API_SCOPE],
+      appScopes,
       userScopes: options.userScopes,
       environment,
     });

@@ -4,6 +4,10 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* An application token 401 and a user token 401 at the same time each refresh their own token. Before, the second call skipped its refresh and failed.
+* An empty or blank `appScopes` throws a `TypeError` when the client is built, instead of minting with a bare `scope=`.
+* The docs say `onToken` must not call the client, since the refresh that called it waits for it.
+
 ## 0.1.0-alpha.1 (2026-11-08)
 
 The first alpha.

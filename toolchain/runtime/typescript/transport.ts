@@ -426,8 +426,9 @@ function items(operation: Operation, page: unknown): unknown[] {
 export class Transport {
   readonly #settings: Settings;
   readonly #headerDefaults: ReadonlyMap<string, string>;
-  #generation = 0;
-  #refreshing: Promise<boolean> | undefined;
+  readonly #generations = new Map<string, number>();
+  readonly #refreshing = new Map<string, Promise<boolean>>();
+  #lastRefresh: Promise<unknown> = Promise.resolve();
 
   constructor(settings: Settings) {
     this.#settings = settings;
@@ -438,22 +439,27 @@ export class Transport {
     this.#settings.logger?.[level](redact(this.#settings.credentials, message));
   }
 
-  /** Calls waiting on a refresh share it, and a call whose credentials were refreshed since it sent them
-   * retries without another. */
-  #refresh(request: AuthRequest, generation: number): Promise<boolean> {
+  /** Calls waiting on a refresh of the same group share it, and a call whose credentials were refreshed since it
+   * sent them retries without another. Refreshes run one at a time. */
+  #refresh(request: AuthRequest, group: string, generation: number): Promise<boolean> {
     const { credentials } = this.#settings;
-    if (this.#generation !== generation) return Promise.resolve(true);
+    if ((this.#generations.get(group) ?? 0) !== generation) return Promise.resolve(true);
     if (credentials.refresh === undefined) return Promise.resolve(false);
-    this.#refreshing ??= (async () => {
-      try {
-        const refreshed = await credentials.refresh!(request);
-        if (refreshed) this.#generation += 1;
-        return refreshed;
-      } finally {
-        this.#refreshing = undefined;
-      }
-    })();
-    return this.#refreshing;
+    let refreshing = this.#refreshing.get(group);
+    if (refreshing === undefined) {
+      refreshing = this.#lastRefresh.then(async () => {
+        try {
+          const refreshed = await credentials.refresh!(request);
+          if (refreshed) this.#generations.set(group, generation + 1);
+          return refreshed;
+        } finally {
+          this.#refreshing.delete(group);
+        }
+      });
+      this.#refreshing.set(group, refreshing);
+      this.#lastRefresh = refreshing.catch(() => undefined);
+    }
+    return refreshing;
   }
 
   async #attempt(
@@ -510,7 +516,8 @@ export class Transport {
     const encoded = await encode(built.body);
     let refreshed = false;
     for (let tries = 0; ;) {
-      const generation = this.#generation;
+      const group = settings.credentials.refreshGroup?.(operation) ?? '';
+      const generation = this.#generations.get(group) ?? 0;
       const headers = new Headers(built.headers);
       if (encoded.contentType !== undefined) headers.set('Content-Type', encoded.contentType);
       const auth: AuthRequest = { method: operation.method, url: built.url, headers, body: encoded.bytes, operation };
@@ -535,7 +542,7 @@ export class Transport {
         // Never for an operation that sends no credentials, such as a token request made during a refresh.
         if (error.status === 401 && !refreshed && (operation.security?.length ?? 0) > 0) {
           refreshed = true;
-          if (await this.#refresh(auth, generation)) {
+          if (await this.#refresh(auth, group, generation)) {
             this.#log('info', 'retrying after refreshing credentials');
             continue;
           }
