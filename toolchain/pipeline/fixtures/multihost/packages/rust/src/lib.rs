@@ -19,6 +19,7 @@ pub enum ErrorKind {
     Timeout,
     Connection,
     Decode,
+    JobTimeout,
 }
 
 pub struct Client {

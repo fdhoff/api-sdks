@@ -20,6 +20,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * A file in a multipart body is sent with `Content-Type: application/octet-stream`, as the other languages' HTTP libraries do.
 * A page whose items field is missing or not a list is an `ErrorKind::Decode` error for link-paged operations too, instead of an empty last page.
 * A pagination stream ends at an empty 204 page instead of failing with an `ErrorKind::Decode` error, as in Python.
+* The runtime can poll an asynchronous job until it ends, and download a URL a response returns, sending credentials only to the base URL's origin. A job still running at the deadline is an `ErrorKind::JobTimeout` error, whose `Error::job_status` holds its last status. No operation in this package uses either yet.
 
 ## 0.1.0-alpha.1 (2026-11-07)
 

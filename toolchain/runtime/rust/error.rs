@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::fmt;
 
 use reqwest::header::HeaderMap;
@@ -24,6 +25,7 @@ struct Inner {
     retry_after: Option<String>,
     cf_ray: Option<String>,
     source: Option<Source>,
+    job_status: Option<Box<dyn Any + Send + Sync>>,
 }
 
 impl Error {
@@ -40,6 +42,7 @@ impl Error {
                 retry_after: None,
                 cf_ray: None,
                 source: None,
+                job_status: None,
             }),
         }
     }
@@ -93,6 +96,12 @@ impl Error {
         self
     }
 
+    #[allow(dead_code, reason = "an API may have no jobs")]
+    pub(crate) fn with_job_status(mut self, status: impl Any + Send + Sync) -> Self {
+        self.inner.job_status = Some(Box::new(status));
+        self
+    }
+
     /// The class of failure.
     pub fn kind(&self) -> ErrorKind {
         self.inner.kind
@@ -131,6 +140,12 @@ impl Error {
     /// The `cf-ray` header, as sent.
     pub fn cf_ray(&self) -> Option<&str> {
         self.inner.cf_ray.as_deref()
+    }
+
+    /// The last status of a job that had not ended by the deadline, when the kind is `JobTimeout`
+    /// and `T` is the status's type, which is what the wait method returns.
+    pub fn job_status<T: Any>(&self) -> Option<&T> {
+        self.inner.job_status.as_deref()?.downcast_ref()
     }
 }
 

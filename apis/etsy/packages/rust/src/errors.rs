@@ -31,6 +31,8 @@ pub enum ErrorKind {
     Connection,
     /// A success response that could not be read as the API declares it.
     Decode,
+    /// A job that had not ended by the deadline. [`Error::job_status`] holds its last status.
+    JobTimeout,
     /// A call the client refuses before sending anything, such as a refresh with no refresh token.
     InvalidInput,
     /// The system could not provide what the call needs, such as random bytes.
@@ -53,6 +55,7 @@ impl ErrorKind {
             Self::Timeout => "timeout",
             Self::Connection => "connection",
             Self::Decode => "decode",
+            Self::JobTimeout => "job_timeout",
             Self::InvalidInput => "invalid_input",
             Self::System => "system",
         }

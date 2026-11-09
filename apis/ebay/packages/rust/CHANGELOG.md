@@ -10,6 +10,7 @@ This crate follows semantic versioning and stays on 0.x until outside users conf
 * An application token 401 and a user token 401 at the same time each refresh their own token. Before, the second call skipped its refresh and failed.
 * `build` returns an error when `app_scopes` has no scope, instead of minting with a bare `scope=`.
 * The docs say `on_token` must not block on the client, since it runs while the token locks are held.
+* The runtime can poll an asynchronous job until it ends, and download a URL a response returns, sending credentials only to the base URL's origin. A job still running at the deadline is an `ErrorKind::JobTimeout` error, whose `Error::job_status` holds its last status. No operation in this package uses either yet.
 
 ## 0.1.0-alpha.1 (2026-11-08)
 
