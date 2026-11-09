@@ -141,6 +141,28 @@ def test_form_bodies_are_url_encoded_with_repeated_fields() -> None:
     assert "shipping_profile_id" not in fields
 
 
+@pytest.mark.parametrize("tags", [("one", "two"), frozenset({"one"})])
+def test_a_tuple_or_set_form_field_is_repeated(tags: Any) -> None:
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(201, json={"listing_id": 1})
+
+    client_for(handler, access_token=ACCESS).listings.create_draft(
+        1,
+        quantity=1,
+        title="Synthetic listing",
+        description="Synthetic description",
+        price=1.5,
+        who_made="i_did",
+        when_made="made_to_order",
+        taxonomy_id=1,
+        tags=tags,
+    )
+    assert form(seen[0])["tags"] == sorted(tags)
+
+
 def test_offset_iterator_walks_every_page() -> None:
     offsets: list[str | None] = []
 

@@ -9,6 +9,7 @@ import threading
 import time
 import zlib
 from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable, Iterable, Iterator, Mapping, Sequence
+from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -230,15 +231,32 @@ def _field(value: Any) -> str:
     return _text(value)
 
 
+def _is_array(value: Any) -> bool:
+    return isinstance(value, (Sequence, AbstractSet)) and not isinstance(value, (str, bytes, bytearray, memoryview))
+
+
+def _items(value: Any) -> list[Any]:
+    return list(value) if _is_array(value) else [value]
+
+
+def _is_file(value: Any) -> bool:
+    return (
+        isinstance(value, tuple)
+        and len(value) == 2
+        and isinstance(value[0], str)
+        and isinstance(value[1], (bytes, bytearray))
+    )
+
+
 def _multipart(wire: str, value: Any) -> list[tuple[str, Any]]:
-    if isinstance(value, (list, set)):
-        return [part for item in value for part in _multipart(wire, item)]
-    if isinstance(value, tuple):
-        return [(wire, value)]
+    if _is_file(value):
+        return [(wire, (value[0], bytes(value[1])))]
     if isinstance(value, (bytes, bytearray)):
         return [(wire, (wire, bytes(value)))]
     if isinstance(value, Mapping):
         return [(wire, (None, json.dumps(to_wire(value))))]
+    if _is_array(value):
+        return [part for item in value for part in _multipart(wire, item)]
     return [(wire, (None, _text(value)))]
 
 
@@ -263,11 +281,9 @@ def _build_request(
         elif param.location == "path":
             path = path.replace(f"{{{param.wire}}}", quote(_text(value), safe=""))
         elif param.location == "query":
-            items = value if isinstance(value, (list, set)) else [value]
-            query.extend((param.wire, _text(item)) for item in items)
+            query.extend((param.wire, _text(item)) for item in _items(value))
         elif param.location == "urlencoded":
-            items = value if isinstance(value, (list, set)) else [value]
-            fields.setdefault(param.wire, []).extend(_field(item) for item in items)
+            fields.setdefault(param.wire, []).extend(_field(item) for item in _items(value))
         else:
             parts.extend(_multipart(param.wire, value))
     search = f"?{urlencode(query)}" if query else ""

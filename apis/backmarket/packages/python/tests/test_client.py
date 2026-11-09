@@ -765,6 +765,57 @@ def test_an_object_in_a_form_encoded_field_is_sent_as_json() -> None:
     assert parse_qs(bodies[0]) == {"meta": ['{"n":1,"s":"a b"}'], "tags": ["x", "y"]}
 
 
+@pytest.mark.parametrize("tags", [["x"], ("x",), frozenset({"x"})])
+def test_a_tuple_or_set_array_repeats_the_query_and_form_field(tags: Any) -> None:
+    operation: Operation[None] = Operation(
+        id="tag-item",
+        method="POST",
+        path="/items",
+        resource="items",
+        name="tag",
+        params=(Param("q", "q", "query"), Param("tags", "tags", "urlencoded")),
+    )
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(204)
+
+    Resource(client_for(handler)._transport)._call(operation, q=(*tags, "y"), tags=tags)
+    assert seen[0].url.params.get_list("q") == [*tags, "y"]
+    assert parse_qs(seen[0].content.decode()) == {"tags": ["x"]}
+
+
+def multipart(request: httpx.Request) -> list[tuple[str, str | None, bytes]]:
+    boundary = request.headers["content-type"].split("boundary=")[1].encode()
+    parts = []
+    for chunk in request.content.split(b"--" + boundary)[1:-1]:
+        head, _, body = chunk.strip(b"\r\n").partition(b"\r\n\r\n")
+        disposition = head.decode().split("\r\n")[0]
+        name = disposition.split('name="')[1].split('"')[0]
+        filename = disposition.split('filename="')[1].split('"')[0] if "filename=" in disposition else None
+        parts.append((name, filename, body))
+    return parts
+
+
+def test_a_tuple_of_strings_in_a_multipart_field_is_sent_as_form_values() -> None:
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(204)
+
+    client_for(handler).buyback.counter_offer(
+        "synthetic-order", price=1.5, reasons=("SCREEN", "BATTERY"), files=(("a.pdf", b"%PDF"),)
+    )
+    assert multipart(seen[0]) == [
+        ("price", None, b"1.5"),
+        ("reasons", None, b"SCREEN"),
+        ("reasons", None, b"BATTERY"),
+        ("files", "a.pdf", b"%PDF"),
+    ]
+
+
 def test_only_gzip_is_accepted_in_sync_and_async() -> None:
     seen: list[str | None] = []
 

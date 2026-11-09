@@ -5,6 +5,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 ## Unreleased
 
 * The runtime can poll an asynchronous job until it ends, and download a URL a response returns, sending credentials only to the base URL's origin. No operation in this package uses either yet.
+* A tuple or frozenset passed as an array argument is sent as one value per item, as a list is. Before, it was sent as its Python repr, so a filter such as `cards.list(status=("active", "frozen"))` matched nothing it should.
 
 ## 0.1.0a1 (2026-11-08)
 
