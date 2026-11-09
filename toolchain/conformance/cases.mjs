@@ -3,8 +3,12 @@ import { join } from 'node:path';
 import { parse } from 'yaml';
 
 const METHODS = ['get', 'put', 'post', 'delete', 'patch'];
-const CASE_KEYS = ['name', 'client', 'request', 'mock', 'wire', 'expect'];
-const REQUEST_KEYS = ['operation', 'params', 'body', 'multipart', 'raw_body_base64', 'paginate'];
+const CASE_KEYS = ['name', 'client', 'request', 'mock', 'wire', 'expect', 'steps'];
+const STEP_KEYS = ['request', 'expect'];
+const REQUEST_KEYS = ['operation', 'params', 'body', 'multipart', 'raw_body_base64', 'paginate', 'wait', 'download'];
+const BODIES = ['body', 'multipart', 'raw_body_base64'];
+// A download URL names the harness's own origin or the other one, which the runner fills in.
+const DOWNLOAD_URL = /^\{\{(base_url|other_origin)\}\}\//;
 const RESPONSE_KEYS = ['status', 'headers', 'body', 'body_base64', 'delay_ms', 'drop', 'trickle_ms', 'gzip', 'cut'];
 const WIRE_KEYS = [
   'method',
@@ -19,6 +23,7 @@ const WIRE_KEYS = [
   'parts',
   'content_digest',
   'min_delay_ms',
+  'cross_origin',
 ];
 const EXPECT_KEYS = ['result', 'result_keys', 'error', 'logs_required', 'logs_exclude'];
 const OUTCOMES = ['result', 'result_keys', 'error'];
@@ -42,10 +47,20 @@ export function validateCase(item, operations) {
   unknown('case', item, CASE_KEYS);
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(item.name ?? '')) errors.push('name must be kebab-case');
 
-  unknown('request', item.request, REQUEST_KEYS);
-  if (!operations.has(item.request?.operation)) errors.push(`unknown operation ${item.request?.operation}`);
-  if (['body', 'multipart', 'raw_body_base64'].filter((key) => item.request?.[key] !== undefined).length > 1) {
-    errors.push('request needs at most one of body, multipart or raw_body_base64');
+  if (item.steps === undefined) {
+    validateRequest(item.request, operations, '', errors);
+    validateExpect(item.expect, '', errors);
+  } else if (item.request !== undefined || item.expect !== undefined) {
+    errors.push('a case needs either request and expect, or steps');
+  } else if (!(Array.isArray(item.steps) && item.steps.length > 0)) {
+    errors.push('steps must be a non-empty list');
+  } else {
+    item.steps.forEach((step, index) => {
+      const where = `steps[${index}].`;
+      for (const key of unknownKeys(step, STEP_KEYS)) errors.push(`unknown key ${where.slice(0, -1)}.${key}`);
+      validateRequest(step?.request, operations, where, errors);
+      validateExpect(step?.expect, where, errors);
+    });
   }
 
   const { prism, responses } = item.mock ?? {};
@@ -75,22 +90,48 @@ export function validateCase(item, operations) {
       errors.push('wire[] needs at most one of body, body_base64 or parts');
     }
     if (![undefined, true].includes(request.content_digest)) errors.push('wire[].content_digest can only be true');
+    if (![undefined, true].includes(request.cross_origin)) errors.push('wire[].cross_origin can only be true');
   }
   if (Array.isArray(responses) && Array.isArray(item.wire) && responses.length !== item.wire.length) {
     errors.push(`${responses.length} scripted responses but ${item.wire.length} wire requests`);
   }
 
-  unknown('expect', item.expect, EXPECT_KEYS);
-  if (OUTCOMES.filter((key) => item.expect?.[key] !== undefined).length !== 1) {
-    errors.push(`expect needs exactly one of ${OUTCOMES.join(', ')}`);
-  }
-  if (item.expect?.error !== undefined && !item.expect.error?.kind) errors.push('expect.error needs a kind');
-  const excluded = item.expect?.logs_exclude;
-  if (excluded !== undefined && !(Array.isArray(excluded) && excluded.length > 0 && excluded.every((value) => typeof value === 'string' && value !== ''))) {
-    errors.push('expect.logs_exclude must be a non-empty list of non-empty strings');
-  }
-
   return errors;
+}
+
+// `where` prefixes each message with the step it is in, if any.
+function validateRequest(request, operations, where, errors) {
+  for (const key of unknownKeys(request, REQUEST_KEYS)) errors.push(`unknown key ${where}request.${key}`);
+  if (BODIES.filter((key) => request?.[key] !== undefined).length > 1) {
+    errors.push(`${where}request needs at most one of body, multipart or raw_body_base64`);
+  }
+  if (request?.download !== undefined) {
+    if (typeof request.download !== 'string' || !DOWNLOAD_URL.test(request.download)) {
+      errors.push(`${where}request.download must start with {{base_url}}/ or {{other_origin}}/`);
+    }
+    const others = Object.keys(request).filter((key) => key !== 'download');
+    if (others.length > 0) errors.push(`${where}request.download stands alone, without ${others.join(', ')}`);
+    return;
+  }
+  if (!operations.has(request?.operation)) errors.push(`${where}unknown operation ${request?.operation}`);
+  if (request?.wait !== undefined) {
+    if (request.wait !== true) errors.push(`${where}request.wait must be true`);
+    if (request.paginate !== undefined || BODIES.some((key) => request[key] !== undefined)) {
+      errors.push(`${where}request.wait takes only operation and params`);
+    }
+  }
+}
+
+function validateExpect(expect, where, errors) {
+  for (const key of unknownKeys(expect, EXPECT_KEYS)) errors.push(`unknown key ${where}expect.${key}`);
+  if (OUTCOMES.filter((key) => expect?.[key] !== undefined).length !== 1) {
+    errors.push(`${where}expect needs exactly one of ${OUTCOMES.join(', ')}`);
+  }
+  if (expect?.error !== undefined && !expect.error?.kind) errors.push(`${where}expect.error needs a kind`);
+  const excluded = expect?.logs_exclude;
+  if (excluded !== undefined && !(Array.isArray(excluded) && excluded.length > 0 && excluded.every((value) => typeof value === 'string' && value !== ''))) {
+    errors.push(`${where}expect.logs_exclude must be a non-empty list of non-empty strings`);
+  }
 }
 
 export async function loadCases(dir, operations) {
