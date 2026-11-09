@@ -1,0 +1,14 @@
+# How `npm run generate:python` builds this package. Public method names are in operations.yaml.
+generator: python
+output: src/mercury_banking
+generated: [api, models]
+resources: _resources.py
+runtime: _runtime
+# Ruff's lint fixes drop the duplicate and unused imports the generator writes, then the formatter runs.
+format: [sh, -c, 'python -m ruff check --fix-only --quiet "$1" && python -m ruff format --quiet "$1"', --]
+properties:
+  packageName: mercury_banking
+  generateSourceCodeOnly: true
+  disallowAdditionalPropertiesIfNotPresent: false
+  mapNumberTo: float
+collapse_single_unions: true
