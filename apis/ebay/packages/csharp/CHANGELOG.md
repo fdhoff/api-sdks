@@ -5,6 +5,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 ## Unreleased
 
 * `client.PostOrder` and the `EbaySell.PostOrder` namespace cover the Post-Order API's 29 remaining operations on cancellations, returns, item-not-received inquiries and cases. They take the seller's user token and the client's `MarketplaceId`. Return files are uploaded as base64 in a JSON body.
+* A multipart file part sends `filename*` only when the name is not ASCII, and never with quote marks inside it. It used to send the quoted name, so servers that read `filename*` first, such as ASP.NET Core, Django and Werkzeug, kept the quote marks as part of the file name. A `"` or `\` in the name is escaped. An empty name, or one with a control character such as CR or LF, throws `ArgumentException` before anything is sent.
 
 ## 0.1.0-alpha.1 (2026-11-08)
 

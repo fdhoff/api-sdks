@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using BackMarketSeller.Models;
 using BackMarketSeller.Runtime;
 using Microsoft.Extensions.Logging;
@@ -466,6 +467,48 @@ public sealed class ClientTests
         Assert.StartsWith("multipart/form-data", request.Headers["Content-Type"]);
         Assert.Contains("name=\"message\"", request.Body);
         Assert.Contains("filename=\"note.txt\"", request.Body);
+        Assert.DoesNotContain("filename*", request.Body);
+    }
+
+    [Fact]
+    public async Task MultipartNonAsciiFileNameIsSentAsFileNameStar()
+    {
+        var handler = new ScriptedHandler(Json(HttpStatusCode.Created, """{"id": 1}"""));
+        using var client = Client(handler);
+
+        await client.Care.SendMessageAsync(1, "hello", [new UploadFile("été.pdf", "body"u8.ToArray())], TestContext.Current.CancellationToken);
+
+        var match = Regex.Match(Assert.Single(handler.Requests).Body, "filename\\*=utf-8''([^;\\r\\n]+)");
+        Assert.True(match.Success);
+        Assert.Equal("été.pdf", Uri.UnescapeDataString(match.Groups[1].Value));
+    }
+
+    [Fact]
+    public async Task MultipartFileNameQuoteIsEscaped()
+    {
+        var handler = new ScriptedHandler(Json(HttpStatusCode.Created, """{"id": 1}"""));
+        using var client = Client(handler);
+
+        await client.Care.SendMessageAsync(1, "hello", [new UploadFile("a\"b\\c.txt", "body"u8.ToArray())], TestContext.Current.CancellationToken);
+
+        var body = Assert.Single(handler.Requests).Body;
+        Assert.Contains("filename=\"a\\\"b\\\\c.txt\"", body);
+        Assert.DoesNotContain("filename*", body);
+    }
+
+    [Theory]
+    [InlineData("a\r\nb.txt")]
+    [InlineData("")]
+    public async Task MultipartFileNameThatCannotBeAHeaderFailsBeforeSending(string name)
+    {
+        var handler = new ScriptedHandler(Json(HttpStatusCode.Created, """{"id": 1}"""));
+        using var client = Client(handler);
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(
+            () => client.Care.SendMessageAsync(1, "hello", [new UploadFile(name, "body"u8.ToArray())], TestContext.Current.CancellationToken));
+
+        Assert.Equal("FileName", error.ParamName);
+        Assert.Empty(handler.Requests);
     }
 
     [Theory]
