@@ -1,0 +1,69 @@
+# Post-Order, from the corrections in spec/overlay/sell_post_order.yaml: one base path, the user token and
+# the marketplace header on every call, required path parameters, a base64 upload in a JSON body, and
+# signing for EU and UK sellers.
+cases:
+  - name: post-order-search-sends-the-user-token-and-marketplace
+    request:
+      operation: sell_post_order.searchReturns
+      params: { limit: '10' }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        host: api
+        path: /post-order/v2/return/search
+        query: { limit: '10' }
+        headers: { authorization: 'Bearer {{user_token}}', x-ebay-c-marketplace-id: EBAY_US }
+    expect:
+      result_keys: [members]
+
+  - name: post-order-path-parameter-is-sent-in-the-path
+    request:
+      operation: sell_post_order.getCase
+      params: { caseId: '5000000001' }
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /post-order/v2/casemanagement/5000000001
+        headers: { authorization: 'Bearer {{user_token}}', x-ebay-c-marketplace-id: EBAY_US }
+    expect:
+      result_keys: [caseId]
+
+  - name: post-order-return-file-is-base64-in-a-json-body
+    request:
+      operation: sell_post_order.uploadReturnFile
+      params: { returnId: '5000000002' }
+      body: { data: c3ludGhldGljLWxhYmVs, fileName: label.png, filePurpose: LABEL_RELATED }
+    mock:
+      prism: {}
+    wire:
+      - method: POST
+        path: /post-order/v2/return/5000000002/file/upload
+        headers: { x-ebay-c-marketplace-id: EBAY_US }
+        headers_match: { content-type: '^application/json' }
+        body: { data: c3ludGhldGljLWxhYmVs, fileName: label.png, filePurpose: LABEL_RELATED }
+    expect:
+      result_keys: [fileId]
+
+  - name: post-order-return-refund-is-signed-over-its-digest
+    client: { signature_key: conformance-synthetic-public-key-jwe }
+    request:
+      operation: sell_post_order.issueReturnRefund
+      params: { returnId: '5000000002', X-EBAY-C-MARKETPLACE-ID: EBAY_GB }
+      body: { refundDetail: { itemizedRefundDetail: [{ refundAmount: { value: 10, currency: GBP }, refundFeeType: PURCHASE_PRICE }] } }
+    mock:
+      responses:
+        - status: 200
+          body: { refundStatus: SUCCESS }
+    wire:
+      - method: POST
+        path: /post-order/v2/return/5000000002/issue_refund
+        headers: { x-ebay-signature-key: conformance-synthetic-public-key-jwe, x-ebay-c-marketplace-id: EBAY_GB }
+        headers_match:
+          signature-input: '^sig1=\("content-digest" "x-ebay-signature-key" "@method" "@path" "@authority"\);created=\d+$'
+          signature: '^sig1=:[A-Za-z0-9+/]+={0,2}:$'
+        content_digest: true
+        body: { refundDetail: { itemizedRefundDetail: [{ refundAmount: { value: 10, currency: GBP }, refundFeeType: PURCHASE_PRICE }] } }
+    expect:
+      result: { refundStatus: SUCCESS }
