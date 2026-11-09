@@ -464,6 +464,11 @@ impl Client {
         crate::stores::Resources::new(self.transport.clone())
     }
 
+    /// The Post-Order API: cancellations, returns, item-not-received inquiries and cases.
+    pub fn post_order(&self) -> crate::post_order::Resources {
+        crate::post_order::Resources::new(self.transport.clone())
+    }
+
     /// The Feedback API.
     pub fn feedback(&self) -> crate::feedback::Resources {
         crate::feedback::Resources::new(self.transport.clone())
