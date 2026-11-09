@@ -269,6 +269,7 @@ internal sealed class Transport : IDisposable
         var paging = operation.Paging ?? NextLinkPaging.Default;
         object?[]? current = values;
         var seen = new HashSet<string>();
+        JsonElement results = default;
         while (current is not null)
         {
             Visit(operation, current, seen);
@@ -277,20 +278,21 @@ internal sealed class Transport : IDisposable
             {
                 yield break;
             }
-            if (reply.Json is not { ValueKind: JsonValueKind.Object } page)
+            var root = paging.Items == Paging.Root;
+            if (reply.Json is not { } page || page.ValueKind != (root ? JsonValueKind.Array : JsonValueKind.Object))
             {
-                throw new ApiDecodeException("A page is not a JSON object") { Status = reply.Status, RawBody = reply.Clean };
+                throw new ApiDecodeException(root ? "A page is not a JSON list" : "A page is not a JSON object") { Status = reply.Status, RawBody = reply.Clean };
             }
             var received = 0;
-            if (page.TryGetProperty(paging.Items, out var results) && results.ValueKind == JsonValueKind.Array)
+            if (root || (page.TryGetProperty(paging.Items, out results) && results.ValueKind == JsonValueKind.Array))
             {
-                foreach (var item in results.EnumerateArray())
+                foreach (var item in (root ? page : results).EnumerateArray())
                 {
                     received++;
                     yield return Json.Read<T>(item, reply.Status, reply.Clean);
                 }
             }
-            current = NextValues(operation, current, page, received);
+            current = NextValues(operation, current, page, received, reply.Headers);
         }
     }
 
@@ -301,6 +303,7 @@ internal sealed class Transport : IDisposable
         {
             NextLinkPaging link => link.Params,
             CursorPaging cursor => [cursor.Param],
+            LinkHeaderPaging header => header.Params,
             _ => [],
         };
         if (wires.Length == 0)
@@ -322,15 +325,31 @@ internal sealed class Transport : IDisposable
         }
     }
 
-    /// <summary>The values of the page after this one, or null after the last.</summary>
-    internal static object?[]? NextValues(Operation operation, object?[] values, JsonElement page, int received) =>
+    /// <summary>The values of the page after this one, or null after the last. <paramref name="headers"/> are the page's response headers.</summary>
+    internal static object?[]? NextValues(Operation operation, object?[] values, JsonElement page, int received, IReadOnlyDictionary<string, string>? headers = null) =>
         operation.Paging switch
         {
             OffsetPaging offset => NextOffset(operation, offset, values, page, received),
             CursorPaging cursor => NextCursor(operation, cursor, values, page),
             NextLinkPaging link => NextLink(operation, link, values, page),
+            LinkHeaderPaging header => NextLinkHeader(operation, header, values, page, headers),
             _ => NextLink(operation, NextLinkPaging.Default, values, page),
         };
+
+    private static void RequireItems(Paging paging, JsonElement page)
+    {
+        if (paging.Items == Paging.Root)
+        {
+            if (page.ValueKind != JsonValueKind.Array)
+            {
+                throw new ApiDecodeException("A page is not a JSON list");
+            }
+        }
+        else if (page.ValueKind != JsonValueKind.Object || !page.TryGetProperty(paging.Items, out var items) || items.ValueKind != JsonValueKind.Array)
+        {
+            throw new ApiDecodeException($"The `{paging.Items}` field of a page is not a list");
+        }
+    }
 
     /// <summary>
     /// Reads the position out of the link and applies it to our own request. The link is never fetched:
@@ -338,11 +357,8 @@ internal sealed class Transport : IDisposable
     /// </summary>
     private static object?[]? NextLink(Operation operation, NextLinkPaging paging, object?[] values, JsonElement page)
     {
-        if (!page.TryGetProperty(paging.Items, out var items) || items.ValueKind != JsonValueKind.Array)
-        {
-            throw new ApiDecodeException($"The `{paging.Items}` field of a page is not a list");
-        }
-        if (!page.TryGetProperty(paging.Link, out var next) || next.ValueKind is JsonValueKind.Null or JsonValueKind.False)
+        RequireItems(paging, page);
+        if (page.ValueKind != JsonValueKind.Object || !page.TryGetProperty(paging.Link, out var next) || next.ValueKind is JsonValueKind.Null or JsonValueKind.False)
         {
             return null;
         }
@@ -355,12 +371,37 @@ internal sealed class Transport : IDisposable
         {
             throw new ApiDecodeException($"The `{paging.Link}` link is not a valid URL");
         }
+        return Advance(operation, paging.Params, values, link, $"The `{paging.Link}` link does not advance the iteration");
+    }
+
+    /// <summary>
+    /// Reads the position out of the <c>Link</c> header's link of the configured relation type. The link is never
+    /// fetched: its host is the server's own idea of its URL, which may not be the client's.
+    /// </summary>
+    private static object?[]? NextLinkHeader(Operation operation, LinkHeaderPaging paging, object?[] values, JsonElement page, IReadOnlyDictionary<string, string>? headers)
+    {
+        RequireItems(paging, page);
+        var header = headers?.FirstOrDefault(pair => pair.Key.Equals("Link", StringComparison.OrdinalIgnoreCase)).Value;
+        if (header is null || LinkOf(header, paging.Rel) is not { } link)
+        {
+            return null;
+        }
+        if (!Uri.TryCreate(link, UriKind.RelativeOrAbsolute, out _))
+        {
+            throw new ApiDecodeException($"The `{paging.Rel}` Link is not a valid URL");
+        }
+        return Advance(operation, paging.Params, values, link, $"The `{paging.Rel}` Link does not advance the iteration");
+    }
+
+    /// <summary>Applies the <paramref name="wires"/> in the link's query to a copy of the values, and refuses a copy that is unchanged.</summary>
+    private static object?[] Advance(Operation operation, string[] wires, object?[] values, string link, string unchanged)
+    {
         var position = QueryOf(link);
         var updated = (object?[])values.Clone();
         for (var index = 0; index < operation.Params.Length; index++)
         {
             var param = operation.Params[index];
-            if (param.Location == ParamLocation.Query && paging.Params.Contains(param.Wire) && position.TryGetValue(param.Wire, out var value))
+            if (param.Location == ParamLocation.Query && wires.Contains(param.Wire) && position.TryGetValue(param.Wire, out var value))
             {
                 updated[index] = value;
             }
@@ -371,17 +412,139 @@ internal sealed class Transport : IDisposable
             .All(item => TextOrNull(updated[item.index]) == TextOrNull(values[item.index]));
         if (same)
         {
-            throw new ApiDecodeException($"The `{paging.Link}` link does not advance the iteration");
+            throw new ApiDecodeException(unchanged);
         }
         return updated;
     }
 
+    /// <summary>
+    /// The target of the first link in an RFC 8288 <c>Link</c> header value whose first <c>rel</c> parameter lists
+    /// <paramref name="rel"/>, compared without ASCII case, or null. A link-value that is not <c>&lt;URI&gt;</c> is skipped.
+    /// </summary>
+    internal static string? LinkOf(string header, string rel)
+    {
+        foreach (var entry in SplitLinks(header))
+        {
+            var value = entry.Trim();
+            var close = value.IndexOf('>');
+            if (!value.StartsWith('<') || close < 0)
+            {
+                continue;
+            }
+            var types = RelOf(value[(close + 1)..])?.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries) ?? [];
+            if (types.Any(type => AsciiEquals(type, rel)))
+            {
+                return value[1..close];
+            }
+        }
+        return null;
+    }
+
+    /// <summary>Splits a header value on the commas outside a URI reference and outside a quoted string.</summary>
+    private static IEnumerable<string> SplitLinks(string header)
+    {
+        var start = 0;
+        var angle = false;
+        var quoted = false;
+        for (var index = 0; index < header.Length; index++)
+        {
+            var c = header[index];
+            if (quoted)
+            {
+                if (c == '\\')
+                {
+                    index++;
+                }
+                else if (c == '"')
+                {
+                    quoted = false;
+                }
+            }
+            else if (angle)
+            {
+                angle = c != '>';
+            }
+            else if (c == '<')
+            {
+                angle = true;
+            }
+            else if (c == '"')
+            {
+                quoted = true;
+            }
+            else if (c == ',')
+            {
+                yield return header[start..index];
+                start = index + 1;
+            }
+        }
+        yield return header[start..];
+    }
+
+    /// <summary>The value of the first <c>rel</c> parameter in a link-value's parameters, unquoted, or null.</summary>
+    private static string? RelOf(string parameters)
+    {
+        var index = 0;
+        while (index < parameters.Length)
+        {
+            var end = index;
+            while (end < parameters.Length && parameters[end] is not ('=' or ';'))
+            {
+                end++;
+            }
+            var name = parameters[index..end].Trim(' ', '\t', ';');
+            string? value = null;
+            index = end;
+            if (index < parameters.Length && parameters[index] == '=')
+            {
+                index++;
+                while (index < parameters.Length && parameters[index] is ' ' or '\t')
+                {
+                    index++;
+                }
+                var text = new StringBuilder();
+                if (index < parameters.Length && parameters[index] == '"')
+                {
+                    for (index++; index < parameters.Length && parameters[index] != '"'; index++)
+                    {
+                        if (parameters[index] == '\\' && index + 1 < parameters.Length)
+                        {
+                            index++;
+                        }
+                        text.Append(parameters[index]);
+                    }
+                    index++;
+                    while (index < parameters.Length && parameters[index] != ';')
+                    {
+                        index++;
+                    }
+                }
+                else
+                {
+                    for (; index < parameters.Length && parameters[index] != ';'; index++)
+                    {
+                        text.Append(parameters[index]);
+                    }
+                }
+                value = text.ToString().Trim();
+            }
+            index++;
+            if (AsciiEquals(name, "rel"))
+            {
+                return value ?? string.Empty;
+            }
+        }
+        return null;
+    }
+
+    private static bool AsciiEquals(string left, string right) =>
+        left.Length == right.Length && left.Zip(right).All(pair => AsciiLower(pair.First) == AsciiLower(pair.Second));
+
+    private static char AsciiLower(char c) => c is >= 'A' and <= 'Z' ? (char)(c + 32) : c;
+
     private static object?[]? NextOffset(Operation operation, OffsetPaging paging, object?[] values, JsonElement page, int received)
     {
-        if (!page.TryGetProperty(paging.Items, out var items) || items.ValueKind != JsonValueKind.Array)
-        {
-            throw new ApiDecodeException($"The `{paging.Items}` field of a page is not a list");
-        }
+        RequireItems(paging, page);
         if (received == 0)
         {
             return null;
@@ -393,7 +556,7 @@ internal sealed class Transport : IDisposable
             throw new ApiDecodeException($"The `{paging.Offset}` parameter is not an integer");
         }
         var position = start + received;
-        if (page.TryGetProperty(paging.Total, out var total) && total.ValueKind == JsonValueKind.Number && position >= total.GetDouble())
+        if (page.ValueKind == JsonValueKind.Object && page.TryGetProperty(paging.Total, out var total) && total.ValueKind == JsonValueKind.Number && position >= total.GetDouble())
         {
             return null;
         }
@@ -404,10 +567,7 @@ internal sealed class Transport : IDisposable
 
     private static object?[]? NextCursor(Operation operation, CursorPaging paging, object?[] values, JsonElement page)
     {
-        if (!page.TryGetProperty(paging.Items, out var items) || items.ValueKind != JsonValueKind.Array)
-        {
-            throw new ApiDecodeException($"The `{paging.Items}` field of a page is not a list");
-        }
+        RequireItems(paging, page);
         var value = page;
         foreach (var key in paging.Next.Split('.'))
         {
@@ -1054,9 +1214,9 @@ internal sealed class Transport : IDisposable
         }
         if (text.Length == 0 || !(raw.Headers.TryGetValue("Content-Type", out var type) && type.Contains("json", StringComparison.OrdinalIgnoreCase)))
         {
-            return new Reply(raw.Status, text, Redact(text), null);
+            return new Reply(raw.Status, text, Redact(text), null, raw.Headers);
         }
-        return new Reply(raw.Status, text, Redact(text), Json.TryParse(text) ?? throw new ApiDecodeException("The response body is not valid JSON") { Status = raw.Status });
+        return new Reply(raw.Status, text, Redact(text), Json.TryParse(text) ?? throw new ApiDecodeException("The response body is not valid JSON") { Status = raw.Status }, raw.Headers);
     }
 
     /// <summary>
@@ -1103,5 +1263,5 @@ internal sealed class Transport : IDisposable
     private sealed record Opened(Download? Download, Uri? Location);
 
     // Text is returned as it is. Clean has the token removed, for exceptions.
-    private sealed record Reply(int Status, string Text, string Clean, JsonElement? Json);
+    private sealed record Reply(int Status, string Text, string Clean, JsonElement? Json, Dictionary<string, string> Headers);
 }

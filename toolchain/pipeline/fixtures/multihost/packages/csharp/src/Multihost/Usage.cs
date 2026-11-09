@@ -9,6 +9,9 @@ internal static class Usage
          await resources.Uploads.ListAsync(),
          await resources.Uploads.ListAsync(xTenantId: "t1"));
 
+    internal static (IAsyncEnumerable<Part>, IAsyncEnumerable<Bin>) Pages(ClientResources resources) =>
+        (resources.Parts.ListAllAsync(limit: 50), resources.Bins.ListAllAsync(zone: "a"));
+
     internal static Task<ImportStatus> WaitAsync(ClientResources resources, CancellationToken cancellationToken) =>
         resources.Imports.WaitAsync(7, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1), cancellationToken);
 }

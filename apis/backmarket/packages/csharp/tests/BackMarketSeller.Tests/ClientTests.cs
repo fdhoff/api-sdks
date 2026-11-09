@@ -323,6 +323,142 @@ public sealed class ClientTests
                 """{"data": [{}], "page": {"next_page": "a"}}""", """{"data": [{}], "page": {"next_page": "b"}}""", """{"data": [{}], "page": {"next_page": "a"}}"""));
     }
 
+    private static readonly Operation LinkedList = OffsetList with
+    {
+        Params = [new("page", "page", ParamLocation.Query), new("limit", "limit", ParamLocation.Query), new("zone", "zone", ParamLocation.Query)],
+        Paging = new LinkHeaderPaging("$", "next", ["page", "limit"]),
+    };
+
+    private static HttpResponseMessage Linked(string body, params string[] links)
+    {
+        var response = Json(HttpStatusCode.OK, body);
+        foreach (var link in links)
+        {
+            response.Headers.TryAddWithoutValidation("Link", link);
+        }
+        return response;
+    }
+
+    private static Transport Bare(ScriptedHandler handler) => new(
+        new Settings
+        {
+            BaseUrl = "https://mock.invalid",
+            Credentials = new StaticCredentials(new Dictionary<string, string>(), [Token]),
+            Headers = new Dictionary<string, string>(),
+            ToError = context => new ApiException($"status {context.Status}"),
+            Logger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance,
+        },
+        new HttpClient(handler),
+        ownsClient: true);
+
+    private static async Task<List<int>> Numbers(Transport transport, Operation operation, object?[] values) =>
+        (await transport.PaginateAsync<JsonElement>(operation, values, TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken))
+            .Select(item => item.GetProperty("n").GetInt32()).ToList();
+
+    [Fact]
+    public async Task LinkHeaderPagingWalksListPagesUntilNoNextLinkAndKeepsTheCallersParameters()
+    {
+        var handler = new ScriptedHandler(
+            Linked("""[{"n": 0}, {"n": 1}]""", "<https://mock.invalid/items?page=2&limit=2>; rel=\"next\", <https://mock.invalid/items?page=3&limit=2>; rel=\"last\""),
+            Linked("""[{"n": 2}, {"n": 3}]""", "<https://mock.invalid/items?page=3&limit=2>; rel=\"next\", <https://mock.invalid/items?page=1&limit=2>; rel=\"prev\""),
+            Linked("""[{"n": 4}]""", "<https://mock.invalid/items?page=1&limit=2>; rel=\"first\""));
+        using var transport = Bare(handler);
+
+        Assert.Equal([0, 1, 2, 3, 4], await Numbers(transport, LinkedList, [null, 2L, "a"]));
+        Assert.Equal(
+            ["https://mock.invalid/items?limit=2&zone=a", "https://mock.invalid/items?page=2&limit=2&zone=a", "https://mock.invalid/items?page=3&limit=2&zone=a"],
+            handler.Requests.Select(request => request.Url));
+    }
+
+    [Fact]
+    public async Task LinkHeaderPagingReadsItemsFromTheConfiguredField()
+    {
+        var handler = new ScriptedHandler(
+            Linked("""{"total_count": 3, "bins": [{"n": 0}, {"n": 1}]}""", "<https://mock.invalid/bins?page=2>; rel=next"),
+            Linked("""{"bins": [{"n": 2}]}"""));
+        using var transport = Bare(handler);
+
+        Assert.Equal([0, 1, 2], await Numbers(transport, LinkedList with { Paging = new LinkHeaderPaging("bins", "next", ["page", "limit"]) }, [null, null, null]));
+        Assert.Equal(["https://mock.invalid/items", "https://mock.invalid/items?page=2"], handler.Requests.Select(request => request.Url));
+    }
+
+    [Theory]
+    [InlineData("$", """{"results": []}""", "not a JSON list")]
+    [InlineData("bins", """[]""", "not a JSON object")]
+    public async Task LinkHeaderPagingRejectsAPageOfTheWrongShape(string items, string page, string message)
+    {
+        using var transport = Bare(new ScriptedHandler(Linked(page)));
+
+        var error = await Assert.ThrowsAsync<ApiDecodeException>(() =>
+            Numbers(transport, LinkedList with { Paging = new LinkHeaderPaging(items, "next", ["page", "limit"]) }, [null, null, null]));
+        Assert.Contains(message, error.Message);
+    }
+
+    [Fact]
+    public async Task LinkHeaderPagingNeverFetchesANextLinkOnAnotherHost()
+    {
+        var handler = new ScriptedHandler(
+            Linked("""[{"n": 0}]""", "<https://elsewhere.example/api/items?page=2&limit=1>; rel=\"next\""),
+            Linked("""[{"n": 1}]"""));
+        using var transport = Bare(handler);
+
+        Assert.Equal([0, 1], await Numbers(transport, LinkedList, [null, 1L, null]));
+        Assert.Equal(["https://mock.invalid/items?limit=1", "https://mock.invalid/items?page=2&limit=1"], handler.Requests.Select(request => request.Url));
+    }
+
+    [Fact]
+    public async Task LinkHeaderPagingRejectsAPositionAlreadyRequested()
+    {
+        var handler = new ScriptedHandler(
+            Linked("""[{"n": 0}]""", "<https://mock.invalid/items?page=2>; rel=next"),
+            Linked("""[{"n": 1}]""", "<https://mock.invalid/items?page=3>; rel=next"),
+            Linked("""[{"n": 2}]""", "<https://mock.invalid/items?page=2>; rel=next"));
+        using var transport = Bare(handler);
+
+        var error = await Assert.ThrowsAsync<ApiDecodeException>(() => Numbers(transport, LinkedList, ["1", null, null]));
+        Assert.Contains("already requested", error.Message);
+        Assert.Equal(3, handler.Requests.Count);
+    }
+
+    [Fact]
+    public async Task LinkHeaderPagingReadsSeveralHeadersEntriesAndRels()
+    {
+        var handler = new ScriptedHandler(
+            Linked(
+                """[{"n": 0}]""",
+                "<https://mock.invalid/items?page=9>; rel=\"prev first\"",
+                "<https://mock.invalid/a,b?page=8>; title=\"x, <y>; rel=next\"; rel=prev, <https://mock.invalid/items?page=%32&limit=2>; REL=\"Last NEXT\""),
+            Linked("""[{"n": 1}]"""));
+        using var transport = Bare(handler);
+
+        Assert.Equal([0, 1], await Numbers(transport, LinkedList, [null, 2L, null]));
+        Assert.Equal("https://mock.invalid/items?page=2&limit=2", handler.Requests[1].Url);
+    }
+
+    [Theory]
+    [InlineData("<https://x.example/items?page=2>; rel=next", "https://x.example/items?page=2")]
+    [InlineData("<https://x.example/items?page=1>; rel=\"prev first\", <https://x.example/items?page=2>; REL=\"Last NEXT\"", "https://x.example/items?page=2")]
+    [InlineData("<https://x.example/?page=7>; title=\"say \\\"hi\\\", rel=next\"; rel=next", "https://x.example/?page=7")]
+    [InlineData("garbage; rel=next, <https://x.example/?page=6> ; rel = next", "https://x.example/?page=6")]
+    [InlineData("<https://x.example/?page=5>; rel=prev; rel=next", null)]
+    [InlineData("<https://x.example/?page=5>; rel=nextpage", null)]
+    [InlineData("<https://x.example/?page=5>; title=next", null)]
+    [InlineData("", null)]
+    public void LinkOfFindsTheFirstLinkWithTheRelationType(string header, string? expected)
+    {
+        Assert.Equal(expected, Transport.LinkOf(header, "next"));
+    }
+
+    [Fact]
+    public void LinkHeaderPagingTreatsAnEmptyValueAsAbsentAndRefusesALinkThatDoesNotAdvance()
+    {
+        var headers = new Dictionary<string, string> { ["link"] = "<https://mock.invalid/items?page=&limit=2>; rel=next" };
+        var error = Assert.Throws<ApiDecodeException>(() =>
+            Transport.NextValues(LinkedList, ["1", 2L, null], JsonDocument.Parse("[]").RootElement, 0, headers));
+        Assert.Contains("does not advance the iteration", error.Message);
+        Assert.Null(Transport.NextValues(LinkedList, ["1", 2L, null], JsonDocument.Parse("[]").RootElement, 0, new Dictionary<string, string>()));
+    }
+
     [Fact]
     public async Task ANextLinkThatDoesNotAdvanceIsADecodeError()
     {
