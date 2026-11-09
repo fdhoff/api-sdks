@@ -83,6 +83,24 @@ async function signedCall(client, request) {
   }
 }
 
+// Synthetic operations for the binary mode. `text` decodes every body as UTF-8 text, as a client without
+// binary support would, which loses bytes that are not valid UTF-8.
+async function binaryCall(client, request, text) {
+  const headers = { authorization: `Basic ${client.token}` };
+  if (request.operation === 'upload-file') {
+    const bytes = Buffer.from(request.raw_body_base64, 'base64');
+    headers['content-type'] = 'application/octet-stream';
+    const body = text ? bytes.toString() : bytes;
+    const response = await fetch(`${client.base_url}/upload`, { method: 'POST', headers, body });
+    return { result: await response.json() };
+  }
+  if (request.operation === 'get-report') return { result: await (await fetch(`${client.base_url}/report`, { headers })).text() };
+  const response = await fetch(`${client.base_url}/download`, { headers: { ...headers, 'accept-encoding': 'identity' } });
+  if (response.status === 404) return { error: { kind: 'not_found', status: 404 } };
+  const bytes = text ? Buffer.from(await response.text()) : Buffer.from(await response.arrayBuffer());
+  return { result: { content_type: response.headers.get('content-type') ?? '', base64: bytes.toString('base64') } };
+}
+
 for await (const line of createInterface({ input: process.stdin })) {
   const { client, request } = JSON.parse(line);
   if (mode === 'silent') {
@@ -104,6 +122,10 @@ for await (const line of createInterface({ input: process.stdin })) {
       headers: { ...headers, authorization: `Basic ${client.token}` },
     });
     console.log(JSON.stringify({ result: await response.json(), logs: [] }));
+    continue;
+  }
+  if (mode === 'binary' || mode === 'binary-as-text') {
+    console.log(JSON.stringify({ ...(await binaryCall(client, request, mode === 'binary-as-text')), logs: [] }));
     continue;
   }
   if (mode === 'offset') {

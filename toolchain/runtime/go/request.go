@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/url"
 	"reflect"
@@ -21,10 +22,12 @@ type File struct {
 
 // Input is one call's arguments: path values in order, a pointer to a struct of fields tagged
 // `query`, `header`, `form` for a multipart part or `urlencoded` for a form-encoded field, and a JSON body.
+// Raw is a raw body for an operation with [Operation.RawBody], sent unchanged.
 type Input struct {
 	Path   []any
 	Params any
 	Body   any
+	Raw    io.Reader
 }
 
 type request struct {
@@ -36,6 +39,8 @@ type request struct {
 	headers     url.Values
 	body        []byte
 	contentType string
+	// stream is a raw body that can be read only once, so it is never resent.
+	stream io.Reader
 }
 
 func (r *request) url(base string) string {
@@ -197,6 +202,26 @@ func (r *request) addParams(params any) error {
 	return nil
 }
 
+// setRaw keeps a body held in memory as bytes, as net/http does, so it can be resent and signed.
+// Any other reader is streamed once.
+func (r *request) setRaw(raw io.Reader) error {
+	r.contentType = r.operation.RawBody
+	if r.contentType == "" {
+		r.contentType = "application/octet-stream"
+	}
+	switch raw.(type) {
+	case *bytes.Reader, *bytes.Buffer, *strings.Reader:
+		body, err := io.ReadAll(raw)
+		if err != nil {
+			return fmt.Errorf("the request body cannot be read: %w", err)
+		}
+		r.body = body
+	default:
+		r.stream = raw
+	}
+	return nil
+}
+
 func newRequest(operation *Operation, input Input) (*request, error) {
 	path := operation.Path
 	for index, name := range operation.PathParams {
@@ -206,6 +231,9 @@ func newRequest(operation *Operation, input Input) (*request, error) {
 	built := &request{operation: operation, method: operation.Method, path: path, query: url.Values{}, headers: url.Values{}}
 	if err := built.addParams(input.Params); err != nil {
 		return nil, fmt.Errorf("the request cannot be encoded: %w", err)
+	}
+	if input.Raw != nil && !isNil(reflect.ValueOf(input.Raw)) {
+		return built, built.setRaw(input.Raw)
 	}
 	if input.Body == nil || isNil(reflect.ValueOf(input.Body)) {
 		return built, nil

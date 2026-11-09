@@ -6,6 +6,20 @@ export type FileContent = Blob | Uint8Array;
 /** A file to upload: its content, or its name and content. */
 export type FileInput = FileContent | { filename: string; content: FileContent };
 
+/** A raw request body, sent unchanged. Bytes and a Blob are retried like any body; a stream is sent once,
+ * so a failure that would resend it is raised instead, and credentials see an empty body. */
+export type RawBody = Uint8Array | Blob | ReadableStream<Uint8Array>;
+
+/** A binary response. The call's deadline keeps running while `body` is read, so a timeout must cover the
+ * whole transfer. Read `body` or call `bytes()` once, or cancel `body` to release the connection. */
+export interface Download {
+  /** The response's `Content-Type`, empty if it has none. */
+  readonly contentType: string;
+  readonly body: ReadableStream<Uint8Array>;
+  /** Reads the whole body. */
+  bytes(): Promise<Uint8Array>;
+}
+
 /** `form` is a multipart part, `urlencoded` a field of a form-encoded body, and `header` a header that
  * falls back to the client's default for it. */
 export interface Param {
@@ -45,6 +59,10 @@ export interface Operation {
   hasBody?: boolean;
   returnsJson?: boolean;
   returnsText?: boolean;
+  /** The success body is bytes, returned as a {@link Download}. */
+  returnsBinary?: boolean;
+  /** The media type of a raw request body, which the call takes as a {@link RawBody}. */
+  rawBody?: string;
   iterator?: string;
   paging?: Paging;
   /** Any one of these requirements authorizes the call. */
@@ -86,12 +104,14 @@ type Params = Record<string, unknown>;
 interface Built {
   url: string;
   headers: Record<string, string>;
-  body: string | FormData | URLSearchParams | undefined;
+  body: string | FormData | URLSearchParams | RawBody | undefined;
 }
 
 interface Encoded {
   bytes: Uint8Array;
   contentType?: string;
+  /** The body is a stream, which can be sent only once. */
+  streamed?: boolean;
 }
 const NEXT_LINK: NextLink = { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] };
 const HTTP_DATE = /^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/;
@@ -211,7 +231,11 @@ function buildRequest(
     headers[wire] = value;
   }
   let encoded: Built['body'];
-  if (hasParts) {
+  if (operation.rawBody !== undefined) {
+    if (body === undefined || body === null) throw new TypeError('body is required');
+    encoded = body as RawBody;
+    headers['Content-Type'] = operation.rawBody;
+  } else if (hasParts) {
     encoded = form;
   } else if (fields.size > 0) {
     encoded = fields;
@@ -227,6 +251,9 @@ function buildRequest(
 async function encode(body: Built['body']): Promise<Encoded> {
   if (body === undefined) return { bytes: new Uint8Array() };
   if (typeof body === 'string') return { bytes: new TextEncoder().encode(body) };
+  if (body instanceof Uint8Array) return { bytes: body };
+  if (body instanceof Blob) return { bytes: new Uint8Array(await body.arrayBuffer()) };
+  if (body instanceof ReadableStream) return { bytes: new Uint8Array(), streamed: true };
   const draft = new Request('http://body.invalid/', { method: 'POST', body });
   return {
     bytes: new Uint8Array(await draft.arrayBuffer()),
@@ -252,6 +279,46 @@ function translate(error: unknown): ApiError {
   const name = error instanceof Error ? error.name : 'Error';
   if (name === 'TimeoutError') return new ApiTimeoutError('The request timed out');
   return new ApiConnectionError(`The connection failed: ${causeCode(error) || name}`);
+}
+
+/** Passes a download's bytes on, reporting a failure mid-body as the API error it is, or as the caller's own
+ * abort reason. */
+function downloadBody(
+  source: ReadableStream<Uint8Array> | null,
+  signal: AbortSignal | undefined,
+): ReadableStream<Uint8Array> {
+  if (source === null) return new ReadableStream<Uint8Array>({ start: (controller) => controller.close() });
+  const reader = source.getReader();
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        if (done) controller.close();
+        else controller.enqueue(value);
+      } catch (error) {
+        controller.error(signal?.aborted ? signal.reason : translate(error));
+      }
+    },
+    cancel: (reason) => reader.cancel(reason),
+  });
+}
+
+async function readAll(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
+  const chunks: Uint8Array[] = [];
+  const reader = stream.getReader();
+  for (let next = await reader.read(); !next.done; next = await reader.read()) chunks.push(next.value);
+  const whole = new Uint8Array(chunks.reduce((total, chunk) => total + chunk.length, 0));
+  let offset = 0;
+  for (const chunk of chunks) {
+    whole.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return whole;
+}
+
+function download(response: Response, signal: AbortSignal | undefined): Download {
+  const body = downloadBody(response.body, signal);
+  return { contentType: response.headers.get('content-type') ?? '', body, bytes: () => readAll(body) };
 }
 
 function sleep(ms: number, signal: AbortSignal | undefined): Promise<void> {
@@ -386,7 +453,7 @@ export class Transport {
   }
 
   async #attempt(
-    { method, returnsJson, returnsText }: Operation,
+    { method, returnsJson, returnsText, returnsBinary }: Operation,
     url: string,
     init: RequestInit,
     signal: AbortSignal | undefined,
@@ -401,6 +468,10 @@ export class Transport {
     } catch (error) {
       signal?.throwIfAborted();
       throw translate(error);
+    }
+    if (returnsBinary && response.ok) {
+      this.#log('debug', `<- ${method} ${response.status} (streamed)`);
+      return download(response, signal);
     }
     const text = await response.text().catch((error: unknown) => {
       signal?.throwIfAborted();
@@ -419,7 +490,8 @@ export class Transport {
       });
     }
     if (text === '') {
-      if (returnsJson) throw new DecodeError('The response body is empty', { status: response.status });
+      if (returnsJson && response.status !== 204)
+        throw new DecodeError('The response body is empty', { status: response.status });
       return returnsText ? '' : undefined;
     }
     if (!response.headers.get('content-type')?.includes('json')) return text;
@@ -447,13 +519,16 @@ export class Transport {
         method: operation.method,
         headers,
         redirect: 'manual',
-        body: sent as RequestInit['body'],
+        body: (encoded.streamed ? built.body : sent) as RequestInit['body'],
+        ...(encoded.streamed ? { duplex: 'half' } : {}),
       };
       try {
         return await this.#attempt(operation, built.url, init, signal);
       } catch (error) {
         signal?.throwIfAborted();
         if (!(error instanceof ApiError)) throw error;
+        // A stream was consumed by the attempt, so it cannot be sent again.
+        if (encoded.streamed) throw error;
         // Never for an operation that sends no credentials, such as a token request made during a refresh.
         if (error.status === 401 && !refreshed && (operation.security?.length ?? 0) > 0) {
           refreshed = true;

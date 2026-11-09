@@ -2,7 +2,8 @@
 //! badly. It holds nothing specific to any one API.
 //!
 //! The crate must define `ErrorKind` with at least `Api`, `Timeout`, `Connection` and `Decode`. A
-//! crate that signs requests has a `signing` feature that brings in `aws-lc-rs` and `base64`.
+//! crate that signs requests has a `signing` feature that brings in `aws-lc-rs` and `base64`. A
+//! crate with binary bodies re-exports `Download` and `RawBody`.
 
 mod credentials;
 mod error;
@@ -34,10 +35,14 @@ pub(crate) use hosts::{Environments, select_hosts};
 pub(crate) use model::open_enum;
 pub(crate) use model::{Fields, FormValue, text_part, tolerant_model};
 pub use request::File;
+#[allow(unused_imports, reason = "an API may send no raw bodies")]
+pub use request::RawBody;
 pub(crate) use request::{Operation, Paging, Params, Part, Request};
 #[cfg(any(test, feature = "signing"))]
 #[allow(unused_imports, reason = "only an API that signs requests uses it")]
 pub(crate) use signing::{
     ED25519, MessageSigner, RSA_V1_5_SHA256, SignerOptions, SigningError, content_digest,
 };
+#[allow(unused_imports, reason = "an API may have no binary responses")]
+pub use transport::Download;
 pub use transport::{Items, Settings, Transport};

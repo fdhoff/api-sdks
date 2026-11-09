@@ -93,6 +93,9 @@ function checkWire(wire, requests, failures) {
     checkHeaders(expected, actual, label, failures);
     checkBody(expected.body, actual.body, label, failures);
     checkParts(expected.parts, actual, label, failures);
+    if (expected.body_base64 !== undefined && actual.base64 !== expected.body_base64) {
+      failures.push(`${label}: body is base64 ${actual.base64}, expected ${expected.body_base64}`);
+    }
     const digest = `sha-256=:${actual.sha256}:`;
     if (expected.content_digest && actual.headers['content-digest'] !== digest) {
       failures.push(`${label}: Content-Digest is ${actual.headers['content-digest']}, expected ${digest}`);

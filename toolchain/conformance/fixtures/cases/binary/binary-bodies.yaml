@@ -1,0 +1,74 @@
+# Bodies that are bytes, not text. `download-file` declares a binary success response, `upload-file` a raw
+# application/octet-stream request body, and `get-report` a text response that is not JSON. The bytes here
+# are not valid UTF-8, so a client that decodes them as text cannot give them back unchanged.
+cases:
+  - name: binary-download-returns-the-exact-bytes
+    request:
+      operation: download-file
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/pdf }
+          body_base64: JVBERgD//oAKwyg=
+    wire:
+      - method: GET
+        path: /download
+        headers: { authorization: 'Basic {{token}}', accept-encoding: identity }
+    expect:
+      result: { content_type: application/pdf, base64: JVBERgD//oAKwyg= }
+
+  - name: binary-download-of-an-empty-body-is-empty
+    request:
+      operation: download-file
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/octet-stream }
+    wire:
+      - method: GET
+        path: /download
+    expect:
+      result: { content_type: application/octet-stream, base64: '' }
+
+  - name: binary-download-failure-is-a-typed-error
+    request:
+      operation: download-file
+    mock:
+      responses:
+        - status: 404
+          body: { message: not found }
+    wire:
+      - method: GET
+        path: /download
+    expect:
+      error: { kind: not_found, status: 404 }
+
+  - name: binary-upload-sends-the-bytes-unchanged
+    request:
+      operation: upload-file
+      raw_body_base64: JVBERgD//oAKwyg=
+    mock:
+      responses:
+        - status: 200
+          body: { id: 1 }
+    wire:
+      - method: POST
+        path: /upload
+        headers: { authorization: 'Basic {{token}}', content-type: application/octet-stream }
+        body_base64: JVBERgD//oAKwyg=
+    expect:
+      result: { id: 1 }
+
+  - name: binary-text-response-that-is-not-json-is-text
+    request:
+      operation: get-report
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: text/tab-separated-values }
+          body: "id\tname\n1\tsynthetic\n"
+    wire:
+      - method: GET
+        path: /report
+    expect:
+      result: "id\tname\n1\tsynthetic\n"

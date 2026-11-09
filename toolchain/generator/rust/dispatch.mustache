@@ -25,7 +25,13 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
 {{#operation}}
         ("{{operationIdOriginal}}", false) => {
 {{>partial_dispatch_inputs}}
+{{! A package with binary bodies defines raw_body and download_output in its driver. }}
+{{#vendorExtensions.x-sdk-binary-response}}
+            crate::download_output(client.{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}().{{vendorExtensions.x-sdk-method}}({{>partial_dispatch_args}}).await).await
+{{/vendorExtensions.x-sdk-binary-response}}
+{{^vendorExtensions.x-sdk-binary-response}}
             output(client.{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}().{{vendorExtensions.x-sdk-method}}({{>partial_dispatch_args}}).await)
+{{/vendorExtensions.x-sdk-binary-response}}
         }
 {{#vendorExtensions.x-sdk-iterator}}
         ("{{operationIdOriginal}}", true) => {

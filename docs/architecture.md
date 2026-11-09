@@ -171,6 +171,20 @@ Headers the runtime owns, `Content-Type`, `Content-Length`, `Accept` and `Accept
 
 No API uses `hosts` or `header_defaults` yet, so CI's `templates` job generates a synthetic spec in `toolchain/pipeline/fixtures/multihost/` in every language and type-checks the result. It has two hosts with one operation each, and a default header on one operation that has no other parameter. Its generated code is not committed.
 
+### Binary bodies
+
+A body the spec declares as `type: string, format: binary` is bytes, never text. The overlay declares it that way where upstream does not. The generator marks a binary success response `x-sdk-binary-response` and a request body whose one media type is binary, and neither JSON nor a form, `x-sdk-raw-body` with that media type. Generators type neither one.
+
+* **Downloads.** The call returns a download: the response's `Content-Type`, empty if it has none, and the body as a stream of bytes, with a way to read it whole. The caller closes it. The request asks for `Accept-Encoding: identity`, and the body is passed on as received, compressed or not. An empty body is an empty download, not an error.
+* **Deadline.** The attempt's deadline keeps running while the caller reads the stream, so a timeout must cover the whole transfer. Reading past it fails with `timeout`, and a connection that drops mid-body fails with `connection`.
+* **Retries.** Failures before the download is returned are retried as usual. Nothing is retried once it is, because the caller may have read part of it.
+* **Uploads.** A raw body is a required argument, sent unchanged with the declared media type as `Content-Type`. It is bytes, or a stream in languages that have one. Bytes are retried and refreshed as any body is, and credentials see them. A stream is sent once: a failure that would resend it raises the error instead, and credentials see an empty body, so a signer cannot digest it. TODO: let a signing provider read a replayable stream.
+* **Errors and redaction.** A failure response is read whole as text and mapped to its typed error, redacted, as for any other operation. Redaction never runs over a binary body, and logs give no binary content.
+
+A text response that is not JSON, such as `text/plain` or `text/tab-separated-values`, is returned as text, as before.
+
+An empty 204 is no result: `None`, `undefined`, `nil`, `null` or the type's default, even where the operation also declares a JSON success. An empty body with any other status is a decode error where JSON is declared. TODO: make the return type optional where an operation declares a 204 beside a JSON success.
+
 ### Timeouts
 
 The timeout is one deadline for each attempt, from sending the request to reading the last byte of the response, and is configurable. A body that keeps trickling must not outlast it. A timeout that exhausts its retries raises a `timeout` error.
@@ -217,7 +231,7 @@ Errors map on status first, then parse the body best-effort. A body that fits no
 | `api` | Any other status |
 | `timeout` | No response in time, after retries |
 | `connection` | The connection failed or dropped before a full response, after retries |
-| `decode` | A success response whose declared JSON is empty or does not parse, or whose compressed body cannot be decompressed or ends early; a page whose `next` link is not a valid URL. Never retried. |
+| `decode` | A success response other than 204 whose declared JSON is empty or does not parse, or whose compressed body cannot be decompressed or ends early; a page whose `next` link is not a valid URL. Never retried. |
 
 Errors also carry `request_id`, `code` and `cf_ray` when present. Each language exposes these under its own naming conventions.
 

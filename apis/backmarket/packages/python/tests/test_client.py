@@ -169,7 +169,10 @@ def test_an_empty_204_is_no_result_even_where_json_is_declared() -> None:
     typed: Operation[Order] = Operation(
         id="typed", method="GET", path="/x", resource="r", name="n", response=Order, returns_json=True
     )
+    untyped: Operation[None] = Operation(id="none", method="GET", path="/x", resource="r", name="n", returns_json=True)
     assert client.orders._call(typed) is None
+    assert client.orders._call(untyped) is None
+    assert client.orders.get(1) is None
     assert async_order(lambda request: httpx.Response(204)) is None
 
 

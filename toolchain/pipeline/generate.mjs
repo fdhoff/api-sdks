@@ -96,11 +96,44 @@ export function isJsonMediaType(type) {
   return essence === 'application/json' || /^[a-z0-9.+-]+\/[a-z0-9.+-]+\+json$/.test(essence);
 }
 
-// True when a success response declares a JSON body, so an empty one cannot be a result.
+// True when a success response declares a JSON body, so an empty one cannot be a result. An empty 204 is
+// still no result: runtimes check the status, since most operations that answer 204 also declare JSON.
 export function returnsJson(spec, operation) {
   return Object.entries(operation.responses ?? {}).some(
     ([status, response]) => status.startsWith('2') && Object.keys(dereference(spec, response)?.content ?? {}).some(isJsonMediaType),
   );
+}
+
+const isBinarySchema = (spec, schema) => {
+  const resolved = dereference(spec, schema);
+  return resolved?.type === 'string' && resolved?.format === 'binary';
+};
+
+// Bodies declared as `type: string, format: binary` are raw bytes, which generators would each type their
+// own way. A binary success response is marked `x-sdk-binary-response` and loses its content, so it has no
+// generated type. A request body whose one media type is binary, and neither JSON nor a form, becomes
+// `x-sdk-raw-body` with that media type, and loses its requestBody, so templates add their own argument.
+export function applyBinary(spec) {
+  for (const item of Object.values(spec.paths)) {
+    for (const operation of METHODS.map((method) => item[method]).filter(Boolean)) {
+      const id = operation.operationId;
+      const success = Object.entries(operation.responses ?? {}).filter(([status]) => status.startsWith('2'));
+      const bodies = success.flatMap(([, response]) => Object.values(dereference(spec, response)?.content ?? {}));
+      const binary = bodies.filter((media) => isBinarySchema(spec, media.schema));
+      if (binary.length > 0) {
+        if (binary.length !== bodies.length) throw new Error(`${id}: a success response mixes binary and other bodies`);
+        for (const [status] of success) operation.responses[status] = { description: '' };
+        operation['x-sdk-binary-response'] = true;
+      }
+      const content = Object.entries(dereference(spec, operation.requestBody)?.content ?? {});
+      const raw = content.filter(([type, media]) => !isJsonMediaType(type) && !FORMS.includes(type) && isBinarySchema(spec, media.schema));
+      if (raw.length === 0) continue;
+      if (content.length > 1) throw new Error(`${id}: a request body offers binary and other media types`);
+      operation['x-sdk-raw-body'] = raw[0][0];
+      delete operation.requestBody;
+    }
+  }
+  return spec;
 }
 
 // Every package shares one set of schema names, so a model has the same name in every language. A
@@ -408,7 +441,7 @@ async function generateContract({ apiDir, language, packageDir, config, built, s
 
   const parsed = stripProse(parse(await readFile(built, 'utf8')));
   const routed = applyHeaders(applyHosts(renameSchemas(relax(parsed, config), config.schema_names), sdk?.hosts), sdk?.header_defaults, usedHeaders);
-  const spec = applyOperations(omitOperations(routed, operations), operations, sdk?.paging);
+  const spec = applyOperations(applyBinary(omitOperations(routed, operations)), operations, sdk?.paging);
   const work = await mkdtemp(join(tmpdir(), 'generate-'));
   try {
     const input = join(work, 'openapi.yaml');

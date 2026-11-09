@@ -1,6 +1,9 @@
 {{#pathParams}}
             let {{{paramName}}}: {{>partial_path_owned}} = arg(&case.params, "{{baseName}}");
 {{/pathParams}}
+{{#vendorExtensions.x-sdk-raw-body}}
+            let body = crate::raw_body(case);
+{{/vendorExtensions.x-sdk-raw-body}}
 {{#bodyParam}}
             let body: {{^required}}Option<{{/required}}{{>partial_value_type}}{{^required}}>{{/required}} = body(case);
 {{/bodyParam}}

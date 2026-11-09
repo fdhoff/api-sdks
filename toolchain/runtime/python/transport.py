@@ -8,7 +8,7 @@ import logging
 import re
 import time
 import zlib
-from collections.abc import AsyncIterator, Callable, Iterator, Mapping, Sequence
+from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -16,6 +16,7 @@ from enum import Enum
 from typing import (
     Any,
     Generic,
+    NoReturn,
     TypeVar,
     cast,
 )
@@ -23,6 +24,7 @@ from urllib.parse import parse_qs, quote, urlencode, urlsplit
 
 import httpx
 from pydantic import ValidationError
+from typing_extensions import Self
 
 from .credentials import AuthRequest, Credentials, Requirement, redact
 from .errors import ApiConnectionError, ApiError, ApiTimeoutError, DecodeError, ErrorContext
@@ -33,9 +35,16 @@ T = TypeVar("T")
 FileInput = bytes | tuple[str, bytes]
 """A file to upload: its content, or its name and content."""
 
+# TODO: accept an async iterable in the asynchronous client, which now reads a stream synchronously.
+RawBody = bytes | Iterable[bytes]
+"""A raw request body: bytes, or a stream of chunks such as a file opened in binary mode. A stream is sent
+once and never retried, and credentials see an empty body for it."""
+
 _INTEGER = re.compile(r"[+-]?[0-9]+")
 # Only gzip is decoded, and httpx would otherwise also ask for deflate, br and zstd.
 _ACCEPT_ENCODING = {"Accept-Encoding": "gzip"}
+# A binary body is passed on as received, so it is asked for uncompressed.
+_IDENTITY = {"Accept-Encoding": "identity"}
 
 
 @dataclass(frozen=True)
@@ -82,6 +91,10 @@ class Operation(Generic[T]):
     paging: NextLink | Offset = NextLink()
     security: tuple[Requirement, ...] = ()
     host: str = ""
+    binary_response: bool = False
+    """A success body is bytes, returned as a download."""
+    raw_body: str = ""
+    """The media type of a raw request body, sent unchanged."""
 
 
 @dataclass(frozen=True)
@@ -223,12 +236,15 @@ def _build_request(
     request: dict[str, Any] = {
         "method": operation.method,
         "url": f"{_base_url(settings, operation)}{path}{search}",
-        "headers": {**headers, **_ACCEPT_ENCODING},
+        "headers": {**headers, **(_IDENTITY if operation.binary_response else _ACCEPT_ENCODING)},
     }
     if parts:
         request["files"] = parts
     elif fields:
         request["data"] = fields
+    elif operation.raw_body:
+        request["content"] = bytes(body) if isinstance(body, (bytearray, memoryview)) else body
+        request["headers"]["Content-Type"] = operation.raw_body
     elif body is not None:
         request["json"] = to_wire(body)
     return request
@@ -273,6 +289,97 @@ def _read(settings: Settings, operation: Operation[Any], response: httpx.Respons
         return _Reply(json.loads(text), text, status)
     except ValueError:
         raise DecodeError("The response body is not valid JSON", status=status) from None
+
+
+def _is_stream(operation: Operation[Any], body: Any) -> bool:
+    """A raw body that is not bytes can be read only once."""
+    return bool(operation.raw_body) and body is not None and not isinstance(body, (bytes, bytearray, memoryview))
+
+
+async def _async_chunks(chunks: Iterable[bytes]) -> AsyncIterator[bytes]:
+    for chunk in chunks:
+        yield chunk
+
+
+class Download:
+    """A binary response body, read as it arrives. The attempt's deadline keeps running while it is read.
+    Close it, or use it as a context manager."""
+
+    def __init__(self, response: httpx.Response, chunks: Iterable[bytes]) -> None:
+        self._response = response
+        self._chunks = chunks
+        self.content_type: str = response.headers.get("content-type", "")
+        """The response's `Content-Type`, or empty if it has none."""
+
+    def iter_bytes(self) -> Iterator[bytes]:
+        """Yield the body in chunks as they arrive. It can be read only once."""
+        try:
+            for chunk in self._chunks:
+                if chunk:
+                    yield chunk
+        except httpx.TransportError as error:
+            raise _translate(error) from error
+        finally:
+            self.close()
+
+    def read(self) -> bytes:
+        """The whole body."""
+        return b"".join(self.iter_bytes())
+
+    def close(self) -> None:
+        self._response.close()
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
+
+
+class AsyncDownload:
+    """A binary response body, read as it arrives. The attempt's deadline keeps running while it is read.
+    Close it, or use it as an asynchronous context manager."""
+
+    def __init__(self, response: httpx.Response, deadline: float) -> None:
+        self._response = response
+        self._deadline = deadline
+        self.content_type: str = response.headers.get("content-type", "")
+        """The response's `Content-Type`, or empty if it has none."""
+
+    async def aiter_bytes(self) -> AsyncIterator[bytes]:
+        """Yield the body in chunks as they arrive. It can be read only once."""
+        chunks = aiter(cast(httpx.AsyncByteStream, self._response.stream))
+        loop = asyncio.get_running_loop()
+        try:
+            while True:
+                remaining = self._deadline - loop.time()
+                if remaining <= 0:
+                    raise ApiTimeoutError("The request timed out")
+                try:
+                    chunk = await asyncio.wait_for(anext(chunks), remaining)
+                except StopAsyncIteration:
+                    return
+                except asyncio.TimeoutError as error:
+                    raise ApiTimeoutError("The request timed out") from error
+                except httpx.TransportError as error:
+                    raise _translate(error) from error
+                if chunk:
+                    yield chunk
+        finally:
+            await self.aclose()
+
+    async def aread(self) -> bytes:
+        """The whole body."""
+        return b"".join([chunk async for chunk in self.aiter_bytes()])
+
+    async def aclose(self) -> None:
+        await self._response.aclose()
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(self, *_: object) -> None:
+        await self.aclose()
 
 
 def _undecodable(response: httpx.Response) -> httpx.Response:
@@ -427,6 +534,19 @@ def _unauthorized(operation: Operation[Any], error: ApiError, refreshed: bool) -
     return error.status == 401 and not refreshed and bool(operation.security)
 
 
+def _raise_failure(settings: Settings, operation: Operation[Any], response: httpx.Response) -> NoReturn:
+    """Raise the error for a failure response that a download has read whole."""
+    _read(settings, operation, response)
+    raise AssertionError("A failure response maps to an error")
+
+
+def _opened(settings: Settings, operation: Operation[Any], response: httpx.Response) -> None:
+    _log(settings, logging.DEBUG, f"<- {operation.method} {response.status_code} (streamed)")
+
+
+R = TypeVar("R")
+
+
 class SyncTransport:
     def __init__(self, settings: Settings, http_transport: httpx.BaseTransport | None = None) -> None:
         self.settings = settings
@@ -457,24 +577,54 @@ class SyncTransport:
         finally:
             response.close()
 
+    def _open(self, operation: Operation[Any], outgoing: httpx.Request) -> Download:
+        """A success response is handed over unread, with the deadline still running. A failure is read whole."""
+        deadline = time.monotonic() + self.settings.timeout
+        response = self.http.send(outgoing, stream=True)
+        if response.is_success:
+            _opened(self.settings, operation, response)
+            return Download(response, _Deadline(response.stream, deadline))
+        try:
+            failure = _decoded(response, b"".join(_Deadline(response.stream, deadline)))
+        finally:
+            response.close()
+        _raise_failure(self.settings, operation, failure)
+
     def fetch(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> _Reply:
+        return self._send(
+            operation, body, params, lambda outgoing: _read(self.settings, operation, self._attempt(outgoing))
+        )
+
+    def download(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> Download:
+        return self._send(operation, body, params, lambda outgoing: self._open(operation, outgoing))
+
+    def _send(
+        self,
+        operation: Operation[Any],
+        body: Any,
+        params: Mapping[str, Any],
+        attempt: Callable[[httpx.Request], R],
+    ) -> R:
         settings = self.settings
         request = _build_request(settings, operation, body, params)
+        streamed = _is_stream(operation, body)
         tries = 0
         refreshed = False
         while True:
             _log(settings, logging.DEBUG, f"-> {request['method']} {request['url']}")
             generation = self._generation
             outgoing = self.http.build_request(**request)
-            auth = _auth_request(operation, outgoing, outgoing.read())
+            auth = _auth_request(operation, outgoing, b"" if streamed else outgoing.read())
             _sync(settings.credentials.apply(auth), "apply")
             try:
                 try:
-                    response = self._attempt(_signed(outgoing, auth))
+                    return attempt(_signed(outgoing, auth))
                 except httpx.TransportError as error:
                     raise _translate(error) from error
-                return _read(settings, operation, response)
             except ApiError as error:
+                # A stream has been read, so it cannot be sent again.
+                if streamed:
+                    raise
                 if _unauthorized(operation, error, refreshed):
                     refreshed = True
                     if self._refresh(auth, generation):
@@ -516,8 +666,51 @@ class AsyncTransport:
         finally:
             await response.aclose()
 
-    async def fetch(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> _Reply:
+    async def _fetch_attempt(self, operation: Operation[Any], outgoing: httpx.Request) -> _Reply:
+        try:
+            response = await asyncio.wait_for(self._attempt(outgoing), self.settings.timeout)
+        except asyncio.TimeoutError as error:
+            raise ApiTimeoutError("The request timed out") from error
+        return _read(self.settings, operation, response)
+
+    async def _open(self, operation: Operation[Any], outgoing: httpx.Request) -> AsyncDownload:
+        """A success response is handed over unread, with the deadline still running. A failure is read whole."""
         settings = self.settings
+        deadline = asyncio.get_running_loop().time() + settings.timeout
+        try:
+            response = await asyncio.wait_for(self.http.send(outgoing, stream=True), settings.timeout)
+        except asyncio.TimeoutError as error:
+            raise ApiTimeoutError("The request timed out") from error
+        if response.is_success:
+            _opened(settings, operation, response)
+            return AsyncDownload(response, deadline)
+        try:
+            stream = cast(httpx.AsyncByteStream, response.stream)
+            remaining = max(deadline - asyncio.get_running_loop().time(), 0)
+            raw = await asyncio.wait_for(_collect(stream), remaining)
+        except asyncio.TimeoutError as error:
+            raise ApiTimeoutError("The request timed out") from error
+        finally:
+            await response.aclose()
+        _raise_failure(settings, operation, _decoded(response, raw))
+
+    async def fetch(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> _Reply:
+        return await self._send(operation, body, params, lambda outgoing: self._fetch_attempt(operation, outgoing))
+
+    async def download(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> AsyncDownload:
+        return await self._send(operation, body, params, lambda outgoing: self._open(operation, outgoing))
+
+    async def _send(
+        self,
+        operation: Operation[Any],
+        body: Any,
+        params: Mapping[str, Any],
+        attempt: Callable[[httpx.Request], Awaitable[R]],
+    ) -> R:
+        settings = self.settings
+        streamed = _is_stream(operation, body)
+        if streamed and not isinstance(body, AsyncIterable):
+            body = _async_chunks(body)
         request = _build_request(settings, operation, body, params)
         tries = 0
         refreshed = False
@@ -525,17 +718,17 @@ class AsyncTransport:
             _log(settings, logging.DEBUG, f"-> {request['method']} {request['url']}")
             generation = self._generation
             outgoing = self.http.build_request(**request)
-            auth = _auth_request(operation, outgoing, await outgoing.aread())
+            auth = _auth_request(operation, outgoing, b"" if streamed else await outgoing.aread())
             await _settle(settings.credentials.apply(auth))
             try:
                 try:
-                    response = await asyncio.wait_for(self._attempt(_signed(outgoing, auth)), settings.timeout)
+                    return await attempt(_signed(outgoing, auth))
                 except httpx.TransportError as error:
                     raise _translate(error) from error
-                except asyncio.TimeoutError as error:
-                    raise ApiTimeoutError("The request timed out") from error
-                return _read(settings, operation, response)
             except ApiError as error:
+                # A stream has been read, so it cannot be sent again.
+                if streamed:
+                    raise
                 if _unauthorized(operation, error, refreshed):
                     refreshed = True
                     if await self._refresh(auth, generation):
@@ -547,6 +740,10 @@ class AsyncTransport:
                 _log(settings, logging.INFO, f"retrying after {delay}s: {error.kind}")
                 await asyncio.sleep(delay)
                 tries += 1
+
+
+async def _collect(stream: httpx.AsyncByteStream) -> bytes:
+    return b"".join([chunk async for chunk in stream])
 
 
 def _parse(settings: Settings, response_type: Any, data: Any, reply: _Reply) -> Any:
@@ -577,6 +774,9 @@ class Resource:
         result: T = _parse(self._transport.settings, operation.response, reply.data, reply)
         return result
 
+    def _download(self, operation: Operation[Any], /, *, _body: Any = None, **params: Any) -> Download:
+        return self._transport.download(operation, _body, params)
+
     def _paginate(self, operation: Operation[Any], /, *, _body: Any = None, **params: Any) -> Iterator[Any]:
         current: dict[str, Any] | None = params
         while current is not None:
@@ -597,6 +797,9 @@ class AsyncResource:
         reply = await self._transport.fetch(operation, _body, params)
         result: T = _parse(self._transport.settings, operation.response, reply.data, reply)
         return result
+
+    async def _download(self, operation: Operation[Any], /, *, _body: Any = None, **params: Any) -> AsyncDownload:
+        return await self._transport.download(operation, _body, params)
 
     async def _paginate(self, operation: Operation[Any], /, *, _body: Any = None, **params: Any) -> AsyncIterator[Any]:
         current: dict[str, Any] | None = params

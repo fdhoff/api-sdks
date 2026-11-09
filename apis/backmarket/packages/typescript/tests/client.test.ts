@@ -246,6 +246,11 @@ test('an empty success is a decode error where the spec declares a JSON body', a
   }
 });
 
+test('an empty 204 is no result even where the spec declares a JSON body', async () => {
+  const { client } = clientFor(() => new Response(null, { status: 204 }));
+  assert.equal(await client.orders.get(1), undefined);
+});
+
 test('a success with broken JSON is a decode error', async () => {
   const { client } = clientFor(() => new Response('{', { headers: { 'content-type': 'application/json' } }));
   await assert.rejects(() => client.orders.get(1), DecodeError);

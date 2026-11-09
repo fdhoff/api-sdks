@@ -6,6 +6,9 @@
 {{#bodyParam}}
             _body=body,
 {{/bodyParam}}
+{{#vendorExtensions.x-sdk-raw-body}}
+            _body=body,
+{{/vendorExtensions.x-sdk-raw-body}}
 {{#queryParams}}
             {{paramName}}={{paramName}},
 {{/queryParams}}

@@ -79,6 +79,14 @@ impl {{classname}} {
 {{#operation}}
 
     /// {{{vendorExtensions.x-sdk-summary}}}
+{{#vendorExtensions.x-sdk-binary-response}}
+    ///
+    /// The body arrives as a download, read as it arrives within the client's timeout.
+    pub async fn {{vendorExtensions.x-sdk-method}}({{>partial_sdk_args}}) -> Result<crate::runtime::Download, Error> {
+        self.transport.download({{>partial_sdk_request}}).await
+    }
+{{/vendorExtensions.x-sdk-binary-response}}
+{{^vendorExtensions.x-sdk-binary-response}}
     pub async fn {{vendorExtensions.x-sdk-method}}({{>partial_sdk_args}}) -> Result<{{#returnType}}{{{.}}}{{/returnType}}{{^returnType}}(){{/returnType}}, Error> {
 {{#returnType}}
         self.transport.call({{>partial_sdk_request}}).await
@@ -87,6 +95,7 @@ impl {{classname}} {
         self.transport.call::<serde_json::Value>({{>partial_sdk_request}}).await.map(drop)
 {{/returnType}}
     }
+{{/vendorExtensions.x-sdk-binary-response}}
 {{#vendorExtensions.x-sdk-iterator}}
 
     /// Iterates every item across all pages. The stream ends after yielding an error.

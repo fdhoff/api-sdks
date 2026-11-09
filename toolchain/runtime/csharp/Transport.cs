@@ -107,6 +107,10 @@ internal sealed class Transport : IDisposable
         {
             return Json.Read<T>(json, reply.Status, reply.Clean);
         }
+        if (reply.Text.Length == 0 && reply.Status == 204)
+        {
+            return default!;
+        }
         if (reply.Text.Length == 0)
         {
             throw new ApiDecodeException($"The response body is empty, so it cannot be a {typeof(T).Name}") { Status = reply.Status, RawBody = reply.Clean };
@@ -114,12 +118,16 @@ internal sealed class Transport : IDisposable
         throw new ApiDecodeException($"The response is not JSON, so it cannot be a {typeof(T).Name}") { Status = reply.Status, RawBody = reply.Clean };
     }
 
+    /// <summary>A binary response, streamed. Nothing is retried once it is returned.</summary>
+    public Task<Download> DownloadAsync(Operation operation, object?[] values, CancellationToken cancellationToken) =>
+        FetchAsync(operation, values, DownloadAttemptAsync, cancellationToken);
+
     public async Task SendAsync(Operation operation, object?[] values, CancellationToken cancellationToken) =>
         RejectEmpty(operation, await FetchAsync(operation, values, cancellationToken).ConfigureAwait(false));
 
     private static void RejectEmpty(Operation operation, Reply reply)
     {
-        if (operation.ReturnsJson && reply.Text.Length == 0)
+        if (operation.ReturnsJson && reply.Text.Length == 0 && reply.Status != 204)
         {
             throw new ApiDecodeException("The response body is empty") { Status = reply.Status, RawBody = reply.Clean };
         }
@@ -390,7 +398,8 @@ internal sealed class Transport : IDisposable
         return headers;
     }
 
-    private (Uri Url, Func<HttpContent?> Content) Build(Operation operation, object?[] values)
+    /// <remarks>A <see cref="RawBody"/> stream is returned apart, to be sent once; its content here only carries its type.</remarks>
+    private (Uri Url, Func<HttpContent?> Content, Stream? Stream) Build(Operation operation, object?[] values)
     {
         var baseUrl = BaseUrlOf(operation);
         var path = operation.Path;
@@ -398,6 +407,7 @@ internal sealed class Transport : IDisposable
         var parts = new List<(string Wire, object Value)>();
         var fields = new List<KeyValuePair<string, string>>();
         object? body = null;
+        RawBody? raw = null;
         for (var index = 0; index < operation.Params.Length; index++)
         {
             var param = operation.Params[index];
@@ -422,26 +432,35 @@ internal sealed class Transport : IDisposable
                     break;
                 case ParamLocation.Header:
                     break;
+                case ParamLocation.Raw:
+                    raw = (RawBody)value;
+                    break;
                 default:
                     body = value;
                     break;
             }
         }
         var url = new Uri($"{baseUrl}{path}{(query.Count > 0 ? "?" + string.Join('&', query) : string.Empty)}");
+        if (raw is not null)
+        {
+            var type = MediaTypeHeaderValue.Parse(operation.RawBodyType ?? "application/octet-stream");
+            var sent = raw.Bytes ?? [];
+            return (url, () => new ByteArrayContent(sent) { Headers = { ContentType = type } }, raw.Stream);
+        }
         if (parts.Count > 0)
         {
-            return (url, () => Multipart(parts));
+            return (url, () => Multipart(parts), null);
         }
         if (fields.Count > 0)
         {
-            return (url, () => new FormUrlEncodedContent(fields));
+            return (url, () => new FormUrlEncodedContent(fields), null);
         }
         if (body is null)
         {
-            return (url, () => null);
+            return (url, () => null, null);
         }
         var bytes = JsonSerializer.SerializeToUtf8Bytes(body, body.GetType(), Json.Options);
-        return (url, () => new ByteArrayContent(bytes) { Headers = { ContentType = new MediaTypeHeaderValue("application/json") } });
+        return (url, () => new ByteArrayContent(bytes) { Headers = { ContentType = new MediaTypeHeaderValue("application/json") } }, null);
     }
 
     private static MultipartFormDataContent Multipart(List<(string Wire, object Value)> parts)
@@ -462,9 +481,17 @@ internal sealed class Transport : IDisposable
         return form;
     }
 
-    private async Task<Reply> FetchAsync(Operation operation, object?[] values, CancellationToken cancellationToken)
+    private Task<Reply> FetchAsync(Operation operation, object?[] values, CancellationToken cancellationToken) =>
+        FetchAsync(
+            operation,
+            values,
+            async (auth, stream, token) => Read(operation.Method, await AttemptAsync(auth, stream, token).ConfigureAwait(false)),
+            cancellationToken);
+
+    private async Task<TResult> FetchAsync<TResult>(
+        Operation operation, object?[] values, Func<AuthRequest, Stream?, CancellationToken, Task<TResult>> attempt, CancellationToken cancellationToken)
     {
-        var (url, content) = Build(operation, values);
+        var (url, content, stream) = Build(operation, values);
         var extra = HeadersOf(operation, values);
         var refreshed = false;
         for (var tries = 0; ;)
@@ -474,11 +501,15 @@ internal sealed class Transport : IDisposable
             var auth = await AuthorizeAsync(operation, url, content, extra, cancellationToken).ConfigureAwait(false);
             try
             {
-                var reply = await AttemptAsync(auth, cancellationToken).ConfigureAwait(false);
-                return Read(operation.Method, reply);
+                return await attempt(auth, stream, cancellationToken).ConfigureAwait(false);
             }
             catch (ApiException error)
             {
+                // A stream body has been read, so it cannot be sent again.
+                if (stream is not null)
+                {
+                    throw;
+                }
                 // An operation with no security sends no credentials, such as a token request made during a refresh.
                 if (error.Status == 401 && !refreshed && operation.Security is { Length: > 0 })
                 {
@@ -507,7 +538,9 @@ internal sealed class Transport : IDisposable
     {
         using var draft = content();
         var body = draft is null ? [] : await draft.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
-        var headers = new Dictionary<string, string>(settings.Headers, StringComparer.OrdinalIgnoreCase) { ["Accept-Encoding"] = "gzip" };
+        // A binary body is passed on as received, so it is asked for uncompressed.
+        var encoding = operation.ReturnsBinary ? "identity" : "gzip";
+        var headers = new Dictionary<string, string>(settings.Headers, StringComparer.OrdinalIgnoreCase) { ["Accept-Encoding"] = encoding };
         foreach (var (name, value) in extra)
         {
             // Removed first, so the header goes out under the name the operation declares.
@@ -550,13 +583,72 @@ internal sealed class Transport : IDisposable
     }
 
     /// <summary>One attempt, from sending the request to reading the last byte, under one deadline.</summary>
-    private async Task<RawReply> AttemptAsync(AuthRequest auth, CancellationToken cancellationToken)
+    private async Task<RawReply> AttemptAsync(AuthRequest auth, Stream? stream, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(settings.Timeout);
+        using var request = Message(auth, stream);
+        try
+        {
+            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false);
+            var body = await response.Content.ReadAsByteArrayAsync(deadline.Token).ConfigureAwait(false);
+            return new RawReply((int)response.StatusCode, ResponseHeaders(response), body);
+        }
+        catch (Exception error) when (error is OperationCanceledException or HttpRequestException or IOException && !cancellationToken.IsCancellationRequested)
+        {
+            throw Translate(error, deadline);
+        }
+    }
+
+    /// <summary>
+    /// One attempt that hands a success body over as a stream, still under the attempt's deadline. A failure is read
+    /// whole, as for any other operation.
+    /// </summary>
+    private async Task<Download> DownloadAttemptAsync(AuthRequest auth, Stream? stream, CancellationToken cancellationToken)
+    {
+        var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(settings.Timeout);
+        using var request = Message(auth, stream);
+        HttpResponseMessage? response = null;
+        try
+        {
+            response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false);
+            var status = (int)response.StatusCode;
+            if (status is < 200 or >= 300)
+            {
+                var body = await response.Content.ReadAsByteArrayAsync(deadline.Token).ConfigureAwait(false);
+                Read(auth.Method, new RawReply(status, ResponseHeaders(response), body));
+                throw new InvalidOperationException($"Status {status} raised no error");
+            }
+            var contentType = response.Content.Headers.ContentType?.ToString() ?? string.Empty;
+            var content = await response.Content.ReadAsStreamAsync(deadline.Token).ConfigureAwait(false);
+            Log(LogLevel.Debug, $"<- {auth.Method} {status} (streamed)");
+            var download = new Download(contentType, new DeadlineStream(content, response, deadline, cancellationToken));
+            response = null;
+            deadline = null;
+            return download;
+        }
+        catch (Exception error) when (error is OperationCanceledException or HttpRequestException or IOException && !cancellationToken.IsCancellationRequested)
+        {
+            throw Translate(error, deadline!);
+        }
+        finally
+        {
+            response?.Dispose();
+            deadline?.Dispose();
+        }
+    }
+
+    private static HttpRequestMessage Message(AuthRequest auth, Stream? stream)
+    {
         var method = auth.Method;
-        using var request = new HttpRequestMessage(new HttpMethod(method), auth.Url);
-        if (auth.Body.Length > 0 || method != "GET")
+        var request = new HttpRequestMessage(new HttpMethod(method), auth.Url);
+        if (stream is not null)
+        {
+            request.Content = new StreamBody(stream);
+            request.Headers.ExpectContinue = false;
+        }
+        else if (auth.Body.Length > 0 || method != "GET")
         {
             // The HTTP/1.1 handler resends a request when a reused connection closes before any response, but only
             // one with no content or with Expect: 100-continue. A write has neither, so it can reuse connections.
@@ -571,25 +663,26 @@ internal sealed class Transport : IDisposable
                 request.Content.Headers.TryAddWithoutValidation(name, value);
             }
         }
-        try
+        return request;
+    }
+
+    private static ApiException Translate(Exception error, CancellationTokenSource deadline)
+    {
+        if (deadline.IsCancellationRequested || error.InnerException is TimeoutException)
         {
-            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false);
-            var body = await response.Content.ReadAsByteArrayAsync(deadline.Token).ConfigureAwait(false);
-            var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var (name, value) in response.Headers.NonValidated.Concat(response.Content.Headers.NonValidated))
-            {
-                headers[name] = value.ToString();
-            }
-            return new RawReply((int)response.StatusCode, headers, body);
+            return new ApiTimeoutException("The request timed out", error);
         }
-        catch (Exception error) when (error is OperationCanceledException or HttpRequestException or IOException && !cancellationToken.IsCancellationRequested)
+        return new ApiConnectionException($"The connection failed: {error.GetType().Name}", error);
+    }
+
+    private static Dictionary<string, string> ResponseHeaders(HttpResponseMessage response)
+    {
+        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (name, value) in response.Headers.NonValidated.Concat(response.Content.Headers.NonValidated))
         {
-            if (deadline.IsCancellationRequested || error.InnerException is TimeoutException)
-            {
-                throw new ApiTimeoutException("The request timed out", error);
-            }
-            throw new ApiConnectionException($"The connection failed: {error.GetType().Name}", error);
+            headers[name] = value.ToString();
         }
+        return headers;
     }
 
     private Reply Read(string method, RawReply raw)

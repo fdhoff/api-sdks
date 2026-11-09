@@ -184,3 +184,15 @@ func TestNextLinkPagingReadsTheConfiguredFields(t *testing.T) {
 		t.Errorf("queries are %q, want %q", queries, want)
 	}
 }
+
+func TestAnEmpty204IsNoResultEvenWhereJSONIsDeclared(t *testing.T) {
+	transport := mustTransport(t, Settings{BaseURL: "http://example.invalid", Credentials: StaticCredentials{}, Timeout: time.Second})
+	operation := &Operation{ID: "get-item", Method: "GET", Path: "/items/1", ReturnsJSON: true}
+	result, err := decode[*map[string]any](transport, operation, &response{status: http.StatusNoContent})
+	if err != nil || result != nil {
+		t.Fatalf("result is %v, %v", result, err)
+	}
+	if _, err := decode[*map[string]any](transport, operation, &response{status: http.StatusOK}); err == nil {
+		t.Fatal("an empty 200 decoded")
+	}
+}

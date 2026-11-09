@@ -1,3 +1,6 @@
+use std::fmt;
+use std::sync::{Arc, Mutex};
+
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 use serde::Serialize;
 use serde::ser::{self, Error as _, Impossible};
@@ -76,6 +79,74 @@ pub trait Params {
     fn apply(&self, request: &mut Request);
 }
 
+/// A request body sent as it is: bytes, which can be resent, or a stream, which is sent once.
+/// Credentials see bytes, but see a stream as an empty body, and a call never retries or refreshes
+/// after sending a stream.
+#[derive(Clone)]
+#[allow(dead_code, reason = "an API may send no raw bodies")]
+pub struct RawBody(Raw);
+
+#[derive(Clone)]
+enum Raw {
+    Bytes(Vec<u8>),
+    /// Shared so that a request stays cheap to clone; the first attempt takes it.
+    Stream(Arc<Mutex<Option<reqwest::Body>>>),
+}
+
+#[allow(dead_code, reason = "an API may send no raw bodies")]
+impl RawBody {
+    /// A body that is read as it is sent, such as a file, so it is never held in memory whole.
+    pub fn stream(body: impl Into<reqwest::Body>) -> Self {
+        Self(Raw::Stream(Arc::new(Mutex::new(Some(body.into())))))
+    }
+
+    pub(super) fn bytes(&self) -> &[u8] {
+        match &self.0 {
+            Raw::Bytes(bytes) => bytes,
+            Raw::Stream(_) => &[],
+        }
+    }
+
+    pub(super) fn is_stream(&self) -> bool {
+        matches!(self.0, Raw::Stream(_))
+    }
+
+    /// The stream to send, once. `None` for bytes, and an error for a stream already sent.
+    pub(super) fn take_stream(&self) -> Result<Option<reqwest::Body>, ()> {
+        match &self.0 {
+            Raw::Bytes(_) => Ok(None),
+            Raw::Stream(stream) => stream.lock().unwrap_or_else(|poisoned| poisoned.into_inner()).take().map(Some).ok_or(()),
+        }
+    }
+}
+
+impl fmt::Debug for RawBody {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.0 {
+            Raw::Bytes(bytes) => write!(f, "RawBody({} bytes)", bytes.len()),
+            Raw::Stream(_) => f.write_str("RawBody(stream)"),
+        }
+    }
+}
+
+impl From<Vec<u8>> for RawBody {
+    fn from(bytes: Vec<u8>) -> Self {
+        Self(Raw::Bytes(bytes))
+    }
+}
+
+impl From<&[u8]> for RawBody {
+    fn from(bytes: &[u8]) -> Self {
+        Self(Raw::Bytes(bytes.to_vec()))
+    }
+}
+
+impl<const N: usize> From<&[u8; N]> for RawBody {
+    fn from(bytes: &[u8; N]) -> Self {
+        Self(Raw::Bytes(bytes.to_vec()))
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum Body {
     Empty,
@@ -84,6 +155,16 @@ pub enum Body {
     /// `application/x-www-form-urlencoded` fields, in order. A list repeats its field.
     #[allow(dead_code, reason = "an API may send no form-encoded bodies")]
     Form(Vec<(String, String)>),
+    /// Sent unchanged, with the operation's declared media type.
+    #[allow(dead_code, reason = "an API may send no raw bodies")]
+    Raw { content_type: &'static str, body: RawBody },
+}
+
+impl Body {
+    /// True for a body that cannot be sent again.
+    pub(super) fn sends_once(&self) -> bool {
+        matches!(self, Self::Raw { body, .. } if body.is_stream())
+    }
 }
 
 /// One call's method, path, query and body, ready to send and to resend.
@@ -99,6 +180,8 @@ pub struct Request {
     pub host: Option<&'static str>,
     /// Each default-able header the operation declares, with the caller's value if it gave one.
     pub headers: Vec<(String, Option<String>)>,
+    /// Set for a download, whose body is passed on as received.
+    pub(super) download: bool,
 }
 
 /// The wire form of a scalar. `None` means the value is not sent.
@@ -273,6 +356,7 @@ impl Request {
             invalid: None,
             host: None,
             headers: Vec::new(),
+            download: false,
         }
     }
 
@@ -306,6 +390,13 @@ impl Request {
             Ok(value) => self.body = Body::Json(value.to_string().into_bytes()),
             Err(error) => self.invalid = Some(error.to_string()),
         }
+        self
+    }
+
+    /// Sends a body unchanged, as `content_type`.
+    #[allow(dead_code, reason = "an API may send no raw bodies")]
+    pub fn raw(mut self, content_type: &'static str, body: impl Into<RawBody>) -> Self {
+        self.body = Body::Raw { content_type, body: body.into() };
         self
     }
 

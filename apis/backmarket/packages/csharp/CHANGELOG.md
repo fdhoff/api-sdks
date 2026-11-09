@@ -14,6 +14,8 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * Docs: a plain `new HttpClient()` follows redirects, and a resilience handler added to every client, as in .NET Aspire's service defaults, retries writes unless configured not to.
 * Breaking: integer enum members are named after their meaning, such as `OrderState.PendingShipment` instead of `Value3`. This covers `OrderState`, `OrderLineState`, `ListingStateValue`, `ProductCondition` and `ReturnReason`; the wire values are unchanged.
 * A null item in a list parameter is skipped instead of throwing.
+* An empty 204 response returns `null`, even where the spec also declares JSON, instead of throwing `ApiDecodeException`.
+* New public `Download` and `RawBody` types, for binary response and request bodies. No operation in this package uses them yet.
 
 ## 0.1.0-alpha.1 (2026-11-07)
 

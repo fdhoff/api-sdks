@@ -13,6 +13,8 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * A call whose `signal` is already aborted sends nothing, and a call aborted after a failed attempt rejects with the signal's reason rather than that failure.
 * Each error class has a literal `kind`, and `ClientError` is their union, so comparing `kind` narrows the type.
 * An empty success body where the spec declares JSON throws `DecodeError` instead of resolving to `undefined`. Where the spec declares text, it resolves to `""`.
+* An empty 204 response resolves to `undefined`, even where the spec also declares JSON, instead of throwing `DecodeError`.
+* Binary response and request bodies are read and sent as raw bytes where the spec declares them. No operation in this package does yet.
 
 ## 0.1.0-alpha.2 (2026-11-07)
 

@@ -4,6 +4,9 @@ This module follows semantic versioning and stays on 0.x until outside users con
 
 ## Unreleased
 
+* An empty 204 response returns a nil result, even where the spec also declares JSON, instead of an error matching `ErrDecode`.
+* Binary response and request bodies are read and sent as raw bytes where the spec declares them. No operation in this package does yet.
+
 ## 0.1.0-alpha.1 (2026-11-08)
 
 The first alpha.
