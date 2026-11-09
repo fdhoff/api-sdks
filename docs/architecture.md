@@ -323,6 +323,10 @@ To release, rename `## Unreleased` in the package changelog to `## <version> (<d
 
 A release run can be rerun after it published. Each publish job skips a version the registry already has: `skip-existing` for PyPI, `--skip-duplicate` for NuGet, and a registry lookup before `npm publish` and `cargo publish`. `apis/backmarket/tests/workflows.test.mjs` checks this, and how tags map to APIs.
 
+### Checking what was published
+
+After a publish job, each release workflow calls `.github/workflows/published.yml` for the version it published, and a Go module tag runs it directly. It installs that version from its registry into an empty project outside the checkout, checks the version it reports, and makes one call against the Prism mock with the package's smoke program under `apis/<api>/packages/<language>/published/`. The install retries for a few minutes while the registry catches up. A weekly run checks the latest published version of every package. A failure opens an issue with the package, version and log, and leaves the published version alone. See [`toolchain/published/README.md`](../toolchain/published/README.md).
+
 ## Spec updates
 
 Upstream serves only its latest spec, so an older pin cannot be fetched again. Once upstream changes, a machine with no cached copy fails closed until the pin moves. Released versions are unaffected, because their generated code is committed.

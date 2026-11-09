@@ -127,3 +127,15 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           skip-existing: true
+
+  # Installs what was just published from the registry, as a user would, and makes one call against the mock.
+  published:
+    needs: [target, publish]
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/published.yml
+    with:
+      api: ${{ needs.target.outputs.api }}
+      language: python
+      version: ${{ needs.target.outputs.version }}

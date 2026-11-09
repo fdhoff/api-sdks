@@ -148,3 +148,15 @@ jobs:
       - run: dotnet nuget push dist/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
         env:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+
+  # Installs what was just published from the registry, as a user would, and makes one call against the mock.
+  published:
+    needs: [target, publish]
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/published.yml
+    with:
+      api: ${{ needs.target.outputs.api }}
+      language: csharp
+      version: ${{ needs.target.outputs.version }}
