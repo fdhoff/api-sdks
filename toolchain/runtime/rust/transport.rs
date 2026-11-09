@@ -2,8 +2,7 @@ use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::io::Read;
 use std::pin::Pin;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, PoisonError};
 use std::time::{Duration, SystemTime};
 
 use futures_core::Stream;
@@ -51,9 +50,9 @@ pub struct Transport {
     settings: Settings,
     http: reqwest::Client,
     refreshing: tokio::sync::Mutex<()>,
-    /// Counts refreshes, so that a call whose credentials were refreshed since it sent them retries
-    /// without another.
-    generation: AtomicU64,
+    /// Counts refreshes per refresh group, so that a call whose credentials were refreshed since it
+    /// sent them retries without another.
+    generations: std::sync::Mutex<HashMap<&'static str, u64>>,
 }
 
 impl fmt::Debug for Transport {
@@ -224,7 +223,7 @@ impl Transport {
                 .build()
                 .map_err(|error| Error::new(ErrorKind::Api, "the HTTP client cannot be built").with_source(error))?,
         };
-        Ok(Self { settings, http, refreshing: tokio::sync::Mutex::new(()), generation: AtomicU64::new(0) })
+        Ok(Self { settings, http, refreshing: tokio::sync::Mutex::new(()), generations: std::sync::Mutex::default() })
     }
 
     /// The base URL for a request's host key, or an error before anything is sent.
@@ -279,10 +278,14 @@ impl Transport {
         Ok(auth)
     }
 
-    /// Lets calls waiting on a refresh share it.
-    async fn refresh(&self, auth: &AuthRequest, generation: u64) -> Result<bool, Error> {
+    fn generation(&self, group: &'static str) -> u64 {
+        self.generations.lock().unwrap_or_else(PoisonError::into_inner).get(group).copied().unwrap_or_default()
+    }
+
+    /// Lets calls waiting on a refresh of the same group share it.
+    async fn refresh(&self, auth: &AuthRequest, group: &'static str, generation: u64) -> Result<bool, Error> {
         let _refreshing = self.refreshing.lock().await;
-        if self.generation.load(Ordering::Acquire) != generation {
+        if self.generation(group) != generation {
             return Ok(true);
         }
         let refreshed = self
@@ -292,7 +295,7 @@ impl Transport {
             .await
             .map_err(|error| error.map_message(|text| self.redact(text)))?;
         if refreshed {
-            self.generation.fetch_add(1, Ordering::AcqRel);
+            *self.generations.lock().unwrap_or_else(PoisonError::into_inner).entry(group).or_default() += 1;
         }
         Ok(refreshed)
     }
@@ -394,7 +397,8 @@ impl Transport {
         let mut tries = 0;
         let mut refreshed = false;
         loop {
-            let generation = self.generation.load(Ordering::Acquire);
+            let group = self.settings.credentials.refresh_group(request.operation);
+            let generation = self.generation(group);
             let auth = self.authorize(request, method.clone(), content_type.as_deref(), body.clone()).await?;
             self.log(log::Level::Debug, format_args!("request {} {method} {}", request.operation.id, auth.url));
             let stream = match &request.body {
@@ -416,7 +420,7 @@ impl Transport {
             let secured = !request.operation.security.is_empty();
             if failure.status() == Some(StatusCode::UNAUTHORIZED.as_u16()) && !refreshed && secured {
                 refreshed = true;
-                if self.refresh(&auth, generation).await? {
+                if self.refresh(&auth, group, generation).await? {
                     self.log(log::Level::Info, format_args!("retrying after refreshing credentials"));
                     continue;
                 }

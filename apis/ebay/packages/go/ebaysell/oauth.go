@@ -329,10 +329,26 @@ func (c *credentials) expireApp(token string) {
 	}
 }
 
+// refreshesApp reports whether a 401 on operation replaces the application token rather than the
+// user token.
+func (c *credentials) refreshesApp(operation *runtime.Operation) bool {
+	app, _, _ := c.current()
+	return takesAppToken(operation) && (c.canMint() || app != "")
+}
+
+// RefreshGroup keeps application and user token refreshes apart, so a 401 on one never waits out a
+// refresh of the other.
+func (c *credentials) RefreshGroup(operation *runtime.Operation) string {
+	if c.refreshesApp(operation) {
+		return "app"
+	}
+	return "user"
+}
+
 func (c *credentials) Refresh(ctx context.Context, request *runtime.AuthRequest) (bool, error) {
-	app, user, refresh := c.current()
+	_, user, refresh := c.current()
 	sent := strings.TrimPrefix(request.Header.Get("Authorization"), "Bearer ")
-	if takesAppToken(request.Operation) && (c.canMint() || app != "") {
+	if c.refreshesApp(request.Operation) {
 		if !c.canMint() {
 			return false, nil
 		}

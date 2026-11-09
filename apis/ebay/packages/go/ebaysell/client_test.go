@@ -208,6 +208,8 @@ func TestNewClientValidatesItsArguments(t *testing.T) {
 		"unknown environment": {ebaysell.WithUserToken(userToken), ebaysell.WithEnvironment("staging")},
 		"hosts missing a key": {ebaysell.WithUserToken(userToken), ebaysell.WithHosts(map[string]string{"api": "http://localhost"})},
 		"bad signing key":     {ebaysell.WithUserToken(userToken), ebaysell.WithSigningKey(ebaysell.SigningKey{PrivateKey: "not a key", JWE: "jwe"})},
+		"no app scopes":       {ebaysell.WithClientCredentials(clientID, clientSecret), ebaysell.WithAppScopes()},
+		"blank app scope":     {ebaysell.WithClientCredentials(clientID, clientSecret), ebaysell.WithAppScopes(" ")},
 	}
 	for name, options := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -385,6 +387,77 @@ func TestConcurrent401sShareOneRefresh(t *testing.T) {
 	}
 	if refreshes.Load() != 1 {
 		t.Errorf("refreshed %d times", refreshes.Load())
+	}
+}
+
+// atOnce runs each call in its own goroutine and returns their errors.
+func atOnce(calls ...func() error) []error {
+	var group sync.WaitGroup
+	failures := make([]error, len(calls))
+	for index, call := range calls {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			failures[index] = call()
+		}()
+	}
+	group.Wait()
+	return failures
+}
+
+func grants(seen *recorder) []string {
+	var found []string
+	for _, request := range seen.to(tokenPath) {
+		form, _ := url.ParseQuery(request.body)
+		found = append(found, form.Get("grant_type"))
+	}
+	slices.Sort(found)
+	return found
+}
+
+func TestConcurrentFirstCallsShareOneApplicationToken(t *testing.T) {
+	client, seen := server(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == tokenPath {
+			time.Sleep(20 * time.Millisecond)
+		}
+		accepting(w, r)
+	}, ebaysell.WithClientCredentials(clientID, clientSecret))
+	call := func() error { return defaultTree(client) }
+	for _, err := range atOnce(call, call, call, call) {
+		if err != nil {
+			t.Error(err)
+		}
+	}
+	if got := grants(seen); !reflect.DeepEqual(got, []string{"client_credentials"}) {
+		t.Errorf("token requests are %v", got)
+	}
+}
+
+func TestAnApplication401AndAUser401AtOnceEachRefreshTheirOwnToken(t *testing.T) {
+	// Each first refusal waits for the other, so that both calls fail before either refreshes.
+	var refusals atomic.Int32
+	var held sync.WaitGroup
+	held.Add(2)
+	client, seen := server(t, func(w http.ResponseWriter, r *http.Request) {
+		bearer := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		if r.URL.Path != tokenPath && bearer != newAppToken && bearer != newUserToken {
+			if refusals.Add(1) <= 2 {
+				held.Done()
+				held.Wait()
+			}
+			replyJSON(w, http.StatusUnauthorized, `{"errors":[{"errorId":1001,"message":"Invalid access token"}]}`)
+			return
+		}
+		accepting(w, r)
+	}, ebaysell.WithClientCredentials(clientID, clientSecret), ebaysell.WithAppToken(appToken),
+		ebaysell.WithUserToken(userToken), ebaysell.WithRefreshToken(refreshToken))
+	for _, err := range atOnce(func() error { return defaultTree(client) }, func() error { return order(client) }) {
+		if err != nil {
+			t.Error(err)
+		}
+	}
+	if got := grants(seen); !reflect.DeepEqual(got, []string{"client_credentials", "refresh_token"}) {
+		t.Errorf("token requests are %v", got)
 	}
 }
 

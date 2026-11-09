@@ -19,7 +19,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync/atomic"
+	"sync"
 	"time"
 )
 
@@ -145,7 +145,8 @@ type Transport struct {
 	defaults   map[string]string
 	client     *http.Client
 	refreshing chan struct{}
-	generation atomic.Uint64
+	// generations counts refreshes per refresh group. Only a call holding refreshing changes it.
+	generations sync.Map
 }
 
 // NewTransport builds a Transport. It never follows a redirect: a redirect is reported as a failure,
@@ -329,9 +330,24 @@ func (t *Transport) authorize(ctx context.Context, built *request, base string) 
 	return auth, nil
 }
 
-// refresh lets calls waiting on a refresh share it, and a call whose credentials were refreshed
-// since it sent them retry without another.
-func (t *Transport) refresh(ctx context.Context, auth *AuthRequest, generation uint64) (bool, error) {
+// refreshGroup is the refresh group of an operation's credentials.
+func (t *Transport) refreshGroup(operation *Operation) string {
+	if grouper, ok := t.settings.Credentials.(RefreshGrouper); ok {
+		return grouper.RefreshGroup(operation)
+	}
+	return ""
+}
+
+func (t *Transport) generation(group string) uint64 {
+	if count, ok := t.generations.Load(group); ok {
+		return count.(uint64)
+	}
+	return 0
+}
+
+// refresh lets calls waiting on a refresh of the same group share it, and a call whose credentials
+// were refreshed since it sent them retry without another.
+func (t *Transport) refresh(ctx context.Context, auth *AuthRequest, group string, generation uint64) (bool, error) {
 	refresher, ok := t.settings.Credentials.(Refresher)
 	if !ok {
 		return false, nil
@@ -342,7 +358,7 @@ func (t *Transport) refresh(ctx context.Context, auth *AuthRequest, generation u
 		return false, ctx.Err()
 	}
 	defer func() { <-t.refreshing }()
-	if t.generation.Load() != generation {
+	if t.generation(group) != generation {
 		return true, nil
 	}
 	refreshed, err := refresher.Refresh(ctx, auth)
@@ -350,7 +366,7 @@ func (t *Transport) refresh(ctx context.Context, auth *AuthRequest, generation u
 		return false, t.hide(err)
 	}
 	if refreshed {
-		t.generation.Add(1)
+		t.generations.Store(group, generation+1)
 	}
 	return refreshed, nil
 }
@@ -459,7 +475,8 @@ func (t *Transport) fetch(ctx context.Context, built *request) (*response, error
 	refreshed := false
 	for tries := 0; ; tries++ {
 		t.log(ctx, slog.LevelDebug, "request", slog.String("method", built.method), slog.String("url", built.url(base)))
-		generation := t.generation.Load()
+		group := t.refreshGroup(built.operation)
+		generation := t.generation(group)
 		auth, err := t.authorize(ctx, built, base)
 		if err != nil {
 			return nil, err
@@ -476,7 +493,7 @@ func (t *Transport) fetch(ctx context.Context, built *request) (*response, error
 		// Never for an operation that sends no credentials, such as a token request made during a refresh.
 		if failure.Status == http.StatusUnauthorized && !refreshed && len(built.operation.Security) > 0 {
 			refreshed = true
-			retry, err := t.refresh(ctx, auth, generation)
+			retry, err := t.refresh(ctx, auth, group, generation)
 			if err != nil {
 				return nil, err
 			}

@@ -6,6 +6,8 @@ This module follows semantic versioning and stays on 0.x until outside users con
 
 * `MessageSigner` signs `content-length: 0` for a PATCH without a body, as net/http sends it, instead of returning an error.
 * Breaking: the 26 Inventory and Marketing operations that answer 204 with no body, such as `InventoryItems().Delete`, and Marketing's `ReportTasks().Create`, which answers 202, return only an `error` instead of an `*Error` model as well.
+* An application token 401 and a user token 401 at the same time each refresh their own token. Before, the second call skipped its refresh and failed.
+* `NewClient` returns an error when `WithAppScopes` has no scope, instead of minting with a bare `scope=`.
 * An iterator that gets an empty 204 page stops there instead of returning an error matching `ErrDecode`.
 
 ## 0.1.0-alpha.1 (2026-11-08)

@@ -40,7 +40,9 @@ class Credentials:
     `apply` runs before every attempt, retries included, so it can sign the final request. `secrets`
     lists every value to keep out of logs and errors, and is read again each time, so it may change.
     `refresh` runs after a 401, at most once per call and once at a time per client, and returns whether
-    to retry. Each method may be a coroutine function when the client is asynchronous.
+    to retry. Each method may be a coroutine function when the client is asynchronous. `refresh_group`
+    names the credential an operation sends, where there is more than one: a call skips its own refresh
+    only when another call refreshed the same group since it sent it.
     """
 
     def apply(self, request: AuthRequest) -> None | Awaitable[None]:
@@ -51,6 +53,9 @@ class Credentials:
 
     def refresh(self, request: AuthRequest) -> bool | Awaitable[bool]:
         return False
+
+    def refresh_group(self, operation: Operation[Any]) -> str:
+        return ""
 
 
 class StaticCredentials(Credentials):

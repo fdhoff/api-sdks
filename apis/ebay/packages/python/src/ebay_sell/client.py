@@ -108,6 +108,8 @@ class _Options:
         rate_limit_wait: float,
         max_retry_wait: float,
     ) -> None:
+        if not any(scope.strip() for scope in app_scopes):
+            raise ValueError("app_scopes needs at least one scope")
         signer = signing_key.signer() if signing_key is not None else None
         self.credentials = EbayCredentials(
             client_id,
@@ -145,8 +147,9 @@ class EbayClient:
         user_token: A user access token, sent on operations that need a seller's consent.
         refresh_token: Lets the client replace an expired user token by itself, once per call.
         on_token: Called with every new user token, from `oauth.exchange_code` and every refresh, so you can
-            store it.
-        app_scopes: The scopes of minted application tokens.
+            store it. It runs while the client holds its token locks, so it must not call `oauth` or make
+            calls with this client, which would deadlock.
+        app_scopes: The scopes of minted application tokens, at least one.
         user_scopes: The scopes to ask for when refreshing a user token. eBay keeps the original grant's when
             this is not given.
         environment: `production` or `sandbox`.

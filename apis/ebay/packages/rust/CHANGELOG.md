@@ -6,6 +6,9 @@ This crate follows semantic versioning and stays on 0.x until outside users conf
 
 * A PATCH without a body sends `Content-Length: 0`, as the other languages' HTTP libraries do, and `MessageSigner` signs it.
 * Breaking: the 26 Inventory and Marketing operations that answer 204 with no body, such as `inventory_items().delete`, and Marketing's `report_tasks().create`, which answers 202, return `()` instead of `Option<models::Error>`.
+* An application token 401 and a user token 401 at the same time each refresh their own token. Before, the second call skipped its refresh and failed.
+* `build` returns an error when `app_scopes` has no scope, instead of minting with a bare `scope=`.
+* The docs say `on_token` must not block on the client, since it runs while the token locks are held.
 
 ## 0.1.0-alpha.1 (2026-11-08)
 

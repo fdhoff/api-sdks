@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"maps"
 	"net/http"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/fdhoff/api-sdks/apis/ebay/packages/go/ebaysell/account"
@@ -108,11 +110,13 @@ func WithUserToken(token string) Option { return func(o *options) { o.userToken 
 func WithRefreshToken(token string) Option { return func(o *options) { o.refreshToken = token } }
 
 // WithOnToken sets a function called with every new user token, from [OAuth.ExchangeCode] and every
-// refresh, so you can store it. It runs before the call that obtained the token continues, and must
-// not call the client.
+// refresh, so you can store it. It runs before the call that obtained the token continues, while the
+// client holds its token locks, so it must not call the client: calling [OAuth.Refresh] from it
+// deadlocks.
 func WithOnToken(onToken func(Token)) Option { return func(o *options) { o.onToken = onToken } }
 
-// WithAppScopes sets the scopes of minted application tokens. The default is [APIScope].
+// WithAppScopes sets the scopes of minted application tokens. The default is [APIScope]. [NewClient]
+// fails without at least one.
 func WithAppScopes(scopes ...string) Option {
 	return func(o *options) { o.appScopes = append([]string(nil), scopes...) }
 }
@@ -241,6 +245,9 @@ func NewClient(opts ...Option) (*Client, error) {
 	}
 	if config.clientID == "" && config.appToken == "" && config.userToken == "" && config.refreshToken == "" {
 		return nil, errors.New("pass WithClientCredentials, or a token")
+	}
+	if !slices.ContainsFunc(config.appScopes, func(scope string) bool { return strings.TrimSpace(scope) != "" }) {
+		return nil, errors.New("pass at least one scope to WithAppScopes")
 	}
 	hosts, err := runtime.SelectHosts(environments, config.environment, config.hosts)
 	if err != nil {

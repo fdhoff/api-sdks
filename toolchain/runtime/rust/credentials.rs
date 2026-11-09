@@ -34,6 +34,8 @@ pub struct AuthRequest {
 /// can sign the final request. `secrets` lists every value to keep out of logs and errors, and is
 /// called again each time, so it may change. `refresh` runs after a 401, at most once per call and
 /// once at a time per transport, and returns whether to retry. All three may run concurrently.
+/// `refresh_group` names the credential an operation sends, where there is more than one: a call
+/// skips its own refresh only when another call refreshed the same group since it sent it.
 pub trait Credentials: Send + Sync {
     fn apply<'a>(&'a self, request: &'a mut AuthRequest) -> BoxFuture<'a, Result<(), Error>>;
 
@@ -41,6 +43,10 @@ pub trait Credentials: Send + Sync {
 
     fn refresh<'a>(&'a self, _request: &'a AuthRequest) -> BoxFuture<'a, Result<bool, Error>> {
         Box::pin(async { Ok(false) })
+    }
+
+    fn refresh_group(&self, _operation: &Operation) -> &'static str {
+        ""
     }
 }
 
