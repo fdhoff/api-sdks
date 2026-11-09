@@ -63,6 +63,21 @@ export function renameSchemas(spec, names = {}) {
   return spec;
 }
 
+// Templates that name enum members after their values cannot tell when a value is not an identifier, so a package
+// names such values in `enum_name_mappings`, and every schema holding one is marked `x-sdk-mapped-enum` for its
+// template to name all its members the generator's way. A mapped value that no schema holds fails the build.
+export function markMappedEnums(spec, mappings = {}) {
+  const unused = new Set(Object.keys(mappings));
+  for (const schema of Object.values(spec.components?.schemas ?? {})) {
+    const mapped = (Array.isArray(schema?.enum) ? schema.enum : []).map(String).filter((value) => value in mappings);
+    if (mapped.length === 0) continue;
+    schema['x-sdk-mapped-enum'] = true;
+    for (const value of mapped) unused.delete(value);
+  }
+  if (unused.size > 0) throw new Error(`enum_name_mappings has values no schema holds: ${[...unused].join(', ')}`);
+  return spec;
+}
+
 function dereference(spec, node) {
   return node?.$ref ? dereference(spec, node.$ref.split('/').slice(1).reduce((parent, key) => parent[key], spec)) : node;
 }
@@ -483,7 +498,7 @@ async function generateContract({ apiDir, language, packageDir, config, built, s
   const source = config.source ?? config.properties.packageName.replaceAll('.', '/');
 
   const parsed = stripProse(parse(await readFile(built, 'utf8')));
-  const routed = applyHeaders(applyHosts(renameSchemas(relax(parsed, config), config.schema_names), sdk?.hosts), sdk?.header_defaults, usedHeaders);
+  const routed = applyHeaders(applyHosts(markMappedEnums(renameSchemas(relax(parsed, config), config.schema_names), config.enum_name_mappings), sdk?.hosts), sdk?.header_defaults, usedHeaders);
   const spec = applyOperations(applyBinary(omitOperations(routed, operations)), operations, sdk?.paging);
   const work = await mkdtemp(join(tmpdir(), 'generate-'));
   try {
