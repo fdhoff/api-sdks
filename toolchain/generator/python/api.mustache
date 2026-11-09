@@ -19,6 +19,9 @@ from {{#runtimePackage}}{{runtimePackage}}{{/runtimePackage}}{{^runtimePackage}}
 {{#vendorExtensions.x-sdk-paging.cursor}}
 from {{#runtimePackage}}{{runtimePackage}}{{/runtimePackage}}{{^runtimePackage}}{{packageName}}{{/runtimePackage}}._runtime import Cursor
 {{/vendorExtensions.x-sdk-paging.cursor}}
+{{#vendorExtensions.x-sdk-job}}
+from {{#runtimePackage}}{{runtimePackage}}{{/runtimePackage}}{{^runtimePackage}}{{packageName}}{{/runtimePackage}}._runtime import Job
+{{/vendorExtensions.x-sdk-job}}
 {{/operation}}
 {{/operations}}
 
@@ -83,6 +86,9 @@ _{{operationIdSnakeCase}}: Operation[{{{returnType}}}{{^returnType}}None{{/retur
 {{#vendorExtensions.x-sdk-idempotency-key}}
     idempotency_key="{{vendorExtensions.x-sdk-idempotency-key}}",
 {{/vendorExtensions.x-sdk-idempotency-key}}
+{{#vendorExtensions.x-sdk-job}}
+    job=Job(state="{{state}}", done=({{#done}}"{{.}}", {{/done}}), failed=({{#failed}}"{{.}}", {{/failed}})),
+{{/vendorExtensions.x-sdk-job}}
 )
 {{/operation}}
 
@@ -115,6 +121,31 @@ class {{classname}}(Resource):
         return self._paginate{{>partial_sdk_call}}
 
 {{/vendorExtensions.x-sdk-iterator}}
+{{#vendorExtensions.x-sdk-job}}
+    @checked
+    def {{vendorExtensions.x-sdk-wait}}(
+        self,
+{{#allParams}}
+{{#isPathParam}}
+        {{paramName}}: {{{vendorExtensions.x-py-typing}}},
+{{/isPathParam}}
+{{/allParams}}
+        *,
+        interval: float = 60.0,
+        timeout: float = 3600.0,
+    ) -> {{{returnType}}}:
+        """Poll every `interval` seconds until the job that `{{start}}` started ends, and return its last status,
+        done or failed. Pass the `{{id}}` it returned. Raises `JobTimeoutError` once `timeout` seconds pass."""
+        return self._wait(
+            _{{operationIdSnakeCase}},
+            interval=interval,
+            timeout=timeout,
+{{#pathParams}}
+            {{paramName}}={{paramName}},
+{{/pathParams}}
+        )
+
+{{/vendorExtensions.x-sdk-job}}
 {{/operation}}
 
 class Async{{classname}}(AsyncResource):
@@ -139,5 +170,31 @@ class Async{{classname}}(AsyncResource):
         return self._paginate{{>partial_sdk_call}}
 
 {{/vendorExtensions.x-sdk-iterator}}
+{{#vendorExtensions.x-sdk-job}}
+    @checked
+    async def {{vendorExtensions.x-sdk-wait}}(
+        self,
+{{#allParams}}
+{{#isPathParam}}
+        {{paramName}}: {{{vendorExtensions.x-py-typing}}},
+{{/isPathParam}}
+{{/allParams}}
+        *,
+        interval: float = 60.0,
+        timeout: float = 3600.0,
+    ) -> {{{returnType}}}:
+        """Poll every `interval` seconds until the job that `{{start}}` started ends, and return its last status,
+        done or failed. Pass the `{{id}}` it returned. Raises `JobTimeoutError` once `timeout` seconds pass, and
+        stops when the task is cancelled."""
+        return await self._wait(
+            _{{operationIdSnakeCase}},
+            interval=interval,
+            timeout=timeout,
+{{#pathParams}}
+            {{paramName}}={{paramName}},
+{{/pathParams}}
+        )
+
+{{/vendorExtensions.x-sdk-job}}
 {{/operation}}
 {{/operations}}

@@ -3,10 +3,21 @@ package multihost
 import (
 	"context"
 	"iter"
+	"time"
+
+	"github.com/fdhoff/api-sdks/toolchain/pipeline/fixtures/multihost/packages/go/internal/runtime"
 )
 
-// Seq is the iterator type a package's client defines.
+// Seq, Download and WaitOptions are types a package's client defines.
 type Seq[T any] = iter.Seq2[T, error]
+
+type Download = runtime.Download
+
+type WaitOptions = runtime.WaitOptions
+
+func wait(ctx context.Context, resources Resources) (*ImportStatus, error) {
+	return resources.Imports.Wait(ctx, 7, &WaitOptions{Interval: time.Second, Timeout: time.Minute})
+}
 
 func use(ctx context.Context, resources Resources) error {
 	tenant := "t1"

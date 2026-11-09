@@ -74,6 +74,48 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Gadgets' }
+  /imports:
+    post:
+      operationId: startImport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ImportInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportStarted' }
+  /imports/{import_id}:
+    get:
+      operationId: getImport
+      parameters:
+        - name: import_id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportStatus' }
+  /imports/{import_id}/report:
+    get:
+      operationId: getImportReport
+      parameters:
+        - name: import_id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: OK
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
 components:
   parameters:
     Site:
@@ -125,3 +167,19 @@ components:
           type: object
           properties:
             next_page: { type: string, nullable: true }
+    ImportInput:
+      type: object
+      properties:
+        name: { type: string }
+    ImportStarted:
+      type: object
+      required: [import_id]
+      properties:
+        import_id: { type: integer, format: int64 }
+    ImportStatus:
+      type: object
+      required: [import_id, status]
+      properties:
+        import_id: { type: integer, format: int64 }
+        status: { type: string, enum: [WAITING, RUNNING, COMPLETE, FAILED] }
+        report_url: { type: string }

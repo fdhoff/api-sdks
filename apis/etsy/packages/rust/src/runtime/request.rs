@@ -60,6 +60,16 @@ impl Paging {
     }
 }
 
+/// How an operation reports an asynchronous job's progress. The job has ended once the string at
+/// the dotted `state` path of its response is one of `done` or `failed`.
+#[derive(Debug)]
+#[allow(dead_code, reason = "an API may have no jobs")]
+pub struct Job {
+    pub state: &'static str,
+    pub done: &'static [&'static str],
+    pub failed: &'static [&'static str],
+}
+
 /// Describes one API call.
 #[derive(Debug)]
 pub struct Operation {

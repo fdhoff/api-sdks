@@ -396,7 +396,7 @@ pub(crate) mod tests {
         let error = transport.call::<Value>(Request::new(&GET_ITEM).path("id", &SHARED)).await.unwrap_err();
         assert_eq!(error.raw_body(), Some("bad ***:*** and *** and ***"));
 
-        let auth = transport.authorize(&Request::new(&GET_ITEM).path("id", &1), Method::GET, None, Vec::new()).await.unwrap();
+        let auth = transport.authorize(&Request::new(&GET_ITEM).path("id", &1), None, Method::GET, None, Vec::new()).await.unwrap();
         let output = format!("{error} {error:?} {auth:?}");
         for secret in credentials.secrets() {
             assert!(!output.contains(&secret), "{secret} in {output}");

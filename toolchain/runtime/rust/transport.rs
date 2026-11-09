@@ -6,14 +6,14 @@ use std::sync::{Arc, PoisonError};
 use std::time::{Duration, SystemTime};
 
 use futures_core::Stream;
-use reqwest::header::{ACCEPT, ACCEPT_ENCODING, CONTENT_ENCODING, CONTENT_LENGTH, CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue};
+use reqwest::header::{ACCEPT, ACCEPT_ENCODING, CONTENT_ENCODING, CONTENT_LENGTH, CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue, LOCATION};
 use reqwest::{Method, StatusCode, multipart, redirect};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use super::credentials::{AuthRequest, Credentials, redact_with, redactions};
 use super::error::{Error, ErrorContext};
-use super::request::{Body, Operation, Paging, Part, Request};
+use super::request::{Body, Job, Operation, Paging, Part, Request};
 use crate::ErrorKind;
 
 /// A backoff doubles per retry, and this keeps the shift in range for any retry count.
@@ -21,6 +21,14 @@ const MAX_BACKOFF_DOUBLINGS: u32 = 20;
 
 /// The largest integer a JavaScript number holds exactly, so every runtime accepts the same numeric cursors.
 const MAX_SAFE_INTEGER: f64 = 9_007_199_254_740_991.0;
+
+/// The redirects a URL download follows, and how many it follows before giving up.
+const REDIRECTS: [u16; 5] = [301, 302, 303, 307, 308];
+const MAX_REDIRECTS: usize = 5;
+
+/// What a URL download's credentials see as its operation when the caller names none.
+static URL_DOWNLOAD: Operation =
+    Operation { id: "downloadUrl", method: "GET", path: "", query_params: &[], returns_json: false, paging: None, security: &[] };
 
 /// A stream of every item across all pages. It ends after yielding an error.
 pub type Items<T> = Pin<Box<dyn Stream<Item = Result<T, Error>> + Send>>;
@@ -51,6 +59,22 @@ pub struct Settings {
     pub http: Option<reqwest::Client>,
 }
 
+/// How a job's wait method polls.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(dead_code, reason = "an API may have no jobs")]
+pub struct WaitOptions {
+    /// The time between polls. Defaults to 60 seconds.
+    pub interval: Duration,
+    /// How long to wait for the job to end. Defaults to an hour.
+    pub timeout: Duration,
+}
+
+impl Default for WaitOptions {
+    fn default() -> Self {
+        Self { interval: Duration::from_secs(60), timeout: Duration::from_secs(3600) }
+    }
+}
+
 /// Sends requests, applying the timeout, retry and redaction rules.
 pub struct Transport {
     settings: Settings,
@@ -76,6 +100,23 @@ struct Answer {
 enum Reply {
     Whole(Answer),
     Streamed(Download),
+    /// Where a URL download's redirect points.
+    Redirect(url::Url),
+}
+
+/// One request of a URL download: an absolute URL, sent with credentials only when `signed`.
+pub(super) struct Hop<'a> {
+    url: &'a url::Url,
+    signed: bool,
+}
+
+/// A URL for the log, without its user, password or query, any of which may hold a secret.
+fn shown(url: &url::Url) -> String {
+    format!("{}{}", &url[..url::Position::BeforeUsername], &url[url::Position::BeforeHost..url::Position::AfterPath])
+}
+
+fn absolute(url: url::Url) -> Option<url::Url> {
+    (matches!(url.scheme(), "http" | "https") && url.has_host()).then_some(url)
 }
 
 /// A binary response body, read as it arrives. The attempt's deadline keeps running while it is
@@ -250,9 +291,17 @@ impl Transport {
         redact_with(&redactions(self.settings.credentials.as_ref()), text)
     }
 
-    /// The request for one attempt, with the credentials applied. A header that holds a secret is
-    /// marked sensitive, so that a debug print of it shows nothing.
-    pub(super) async fn authorize(&self, request: &Request, method: Method, content_type: Option<&str>, body: Vec<u8>) -> Result<AuthRequest, Error> {
+    /// The request for one attempt, with the credentials applied unless it is a hop that is not
+    /// signed. A header that holds a secret is marked sensitive, so that a debug print of it shows
+    /// nothing.
+    pub(super) async fn authorize(
+        &self,
+        request: &Request,
+        hop: Option<&Hop<'_>>,
+        method: Method,
+        content_type: Option<&str>,
+        body: Vec<u8>,
+    ) -> Result<AuthRequest, Error> {
         let mut headers = self.settings.headers.clone();
         if request.download {
             headers.insert(ACCEPT_ENCODING, HeaderValue::from_static("identity"));
@@ -275,10 +324,15 @@ impl Transport {
                 .map_err(|error| Error::new(ErrorKind::Api, format!("the {name} header value is not valid")).with_source(error))?;
             headers.insert(name, value);
         }
-        let url = request.url(self.base_url(request)?, &self.settings.query_defaults);
+        let url = match hop {
+            Some(hop) => hop.url.to_string(),
+            None => request.url(self.base_url(request)?, &self.settings.query_defaults),
+        };
         let mut auth = AuthRequest { method, url, headers, body, operation: request.operation };
         let credentials = self.settings.credentials.as_ref();
-        credentials.apply(&mut auth).await.map_err(|error| error.map_message(|text| self.redact(text)))?;
+        if hop.is_none_or(|hop| hop.signed) {
+            credentials.apply(&mut auth).await.map_err(|error| error.map_message(|text| self.redact(text)))?;
+        }
         let secrets: Vec<String> = credentials.secrets().into_iter().filter(|secret| !secret.is_empty()).collect();
         for value in auth.headers.values_mut() {
             let bytes = value.as_bytes();
@@ -341,15 +395,30 @@ impl Transport {
         outgoing.send().await.map_err(translate)
     }
 
+    /// Where a hop's redirect points, resolved against the hop's URL. A redirect without an http or
+    /// https location is an error.
+    fn redirect(&self, hop: &Hop<'_>, status: u16, headers: &HeaderMap) -> Result<url::Url, Error> {
+        let Some(location) = headers.get(LOCATION) else {
+            return Err(Error::new(ErrorKind::Decode, "a redirect has no Location").with_status(status));
+        };
+        let target = location.to_str().ok().and_then(|location| hop.url.join(location).ok()).and_then(absolute);
+        target.ok_or_else(|| Error::new(ErrorKind::Decode, "a redirect's Location is not an http or https URL").with_status(status))
+    }
+
     /// One attempt, with one deadline from sending the request to reading the last byte. A
-    /// successful download is returned as soon as its headers arrive, and keeps the deadline.
-    async fn attempt(&self, auth: &AuthRequest, stream: Option<reqwest::Body>, download: bool) -> Result<Reply, Error> {
+    /// successful download is returned as soon as its headers arrive, and keeps the deadline. A
+    /// hop's redirect is returned unread.
+    async fn attempt(&self, auth: &AuthRequest, stream: Option<reqwest::Body>, download: bool, hop: Option<&Hop<'_>>) -> Result<Reply, Error> {
         let deadline = tokio::time::Instant::now() + self.settings.timeout;
         let timed_out = |elapsed| Error::new(ErrorKind::Timeout, "the request timed out").with_source(elapsed);
         let incoming = tokio::time::timeout_at(deadline, self.send(auth, stream)).await.map_err(timed_out)??;
         let status = incoming.status().as_u16();
         let success = incoming.status().is_success();
         let method = &auth.method;
+        if let Some(hop) = hop.filter(|_| REDIRECTS.contains(&status)) {
+            self.log(log::Level::Debug, format_args!("response {method} {status} (redirect)"));
+            return self.redirect(hop, status, incoming.headers()).map(Reply::Redirect);
+        }
         if download && success {
             self.log(log::Level::Debug, format_args!("response {method} {status} (streamed)"));
             let content_type = incoming.headers().get(CONTENT_TYPE).and_then(|value| value.to_str().ok()).unwrap_or_default().to_owned();
@@ -392,33 +461,41 @@ impl Transport {
     }
 
     async fn fetch(&self, request: &Request) -> Result<Answer, Error> {
-        match self.exchange(request).await? {
+        match self.exchange(request, None).await? {
             Reply::Whole(answer) => Ok(answer),
-            Reply::Streamed(_) => unreachable!("only a download streams"),
+            Reply::Streamed(_) | Reply::Redirect(_) => unreachable!("only a download streams"),
         }
     }
 
-    async fn exchange(&self, request: &Request) -> Result<Reply, Error> {
+    /// Sends a request, retrying as the settings allow. A hop is a GET to its own URL, and is
+    /// refreshed after a 401 only when it is signed.
+    async fn exchange(&self, request: &Request, hop: Option<&Hop<'_>>) -> Result<Reply, Error> {
         if let Some(reason) = &request.invalid {
             return Err(Error::new(ErrorKind::Api, format!("the request body cannot be encoded: {reason}")));
         }
-        let method = Method::from_bytes(request.operation.method.as_bytes())
-            .map_err(|error| Error::new(ErrorKind::Api, "the request method is not valid").with_source(error))?;
+        let method = match hop {
+            Some(_) => Method::GET,
+            None => Method::from_bytes(request.operation.method.as_bytes())
+                .map_err(|error| Error::new(ErrorKind::Api, "the request method is not valid").with_source(error))?,
+        };
         let (content_type, body) = encode(&request.body).await?;
+        let signed = hop.is_none_or(|hop| hop.signed);
+        let repeatable = hop.is_some() || request.repeatable();
         let mut tries = 0;
         let mut refreshed = false;
         loop {
             let group = self.settings.credentials.refresh_group(request.operation);
             let generation = self.generation(group);
-            let auth = self.authorize(request, method.clone(), content_type.as_deref(), body.clone()).await?;
-            self.log(log::Level::Debug, format_args!("request {} {method} {}", request.operation.id, auth.url));
+            let auth = self.authorize(request, hop, method.clone(), content_type.as_deref(), body.clone()).await?;
+            let url = hop.map_or_else(|| auth.url.clone(), |hop| shown(hop.url));
+            self.log(log::Level::Debug, format_args!("request {} {method} {url}", request.operation.id));
             let stream = match &request.body {
                 Body::Raw { body, .. } => body
                     .take_stream()
                     .map_err(|()| Error::new(ErrorKind::Api, "the request body is a stream that was already sent"))?,
                 _ => None,
             };
-            let failure = match self.attempt(&auth, stream, request.download).await {
+            let failure = match self.attempt(&auth, stream, request.download, hop).await {
                 Ok(reply) => return Ok(reply),
                 Err(failure) => failure,
             };
@@ -428,7 +505,7 @@ impl Transport {
             }
             // An operation that sends no credentials, such as a token request made during a
             // refresh, has nothing to refresh.
-            let secured = !request.operation.security.is_empty();
+            let secured = signed && !request.operation.security.is_empty();
             if failure.status() == Some(StatusCode::UNAUTHORIZED.as_u16()) && !refreshed && secured {
                 refreshed = true;
                 if self.refresh(&auth, group, generation).await? {
@@ -436,7 +513,7 @@ impl Transport {
                     continue;
                 }
             }
-            let Some(delay) = self.retry_delay(&failure, request.repeatable(), tries) else {
+            let Some(delay) = self.retry_delay(&failure, repeatable, tries) else {
                 return Err(failure);
             };
             let kind = failure.kind();
@@ -472,9 +549,70 @@ impl Transport {
     #[allow(dead_code, reason = "an API may have no binary responses")]
     pub async fn download(&self, mut request: Request) -> Result<Download, Error> {
         request.download = true;
-        match self.exchange(&request).await? {
+        match self.exchange(&request, None).await? {
             Reply::Streamed(download) => Ok(download),
-            Reply::Whole(_) => unreachable!("a successful download streams"),
+            Reply::Whole(_) | Reply::Redirect(_) => unreachable!("a successful download streams"),
+        }
+    }
+
+    /// GETs an absolute URL that a response returned, as a download, following up to five
+    /// redirects. Credentials are sent only while every request so far has gone to the base URL's
+    /// scheme, host and port, and never again once a redirect leaves it. `operation` is what the
+    /// credentials see, for its security requirements; `None` is one with none.
+    // TODO: a caller's own client that follows redirects follows them itself, past these checks,
+    // and strips only the standard credential headers when it leaves the host.
+    #[allow(dead_code, reason = "an API may download no URLs")]
+    pub async fn download_url(&self, url: &str, operation: Option<&'static Operation>) -> Result<Download, Error> {
+        let invalid = || Error::new(ErrorKind::Api, "the URL is not an absolute http or https URL");
+        let mut target = url::Url::parse(url).ok().and_then(absolute).ok_or_else(invalid)?;
+        let trusted = url::Url::parse(&self.settings.base_url).ok().map(|base| base.origin());
+        let mut request = Request::new(operation.unwrap_or(&URL_DOWNLOAD));
+        request.download = true;
+        let mut signed = true;
+        for _ in 0..=MAX_REDIRECTS {
+            signed = signed && trusted.as_ref() == Some(&target.origin());
+            match self.exchange(&request, Some(&Hop { url: &target, signed })).await? {
+                Reply::Streamed(download) => return Ok(download),
+                Reply::Redirect(next) => target = next,
+                Reply::Whole(_) => unreachable!("a successful download streams"),
+            }
+        }
+        Err(Error::new(ErrorKind::Decode, format!("more than {MAX_REDIRECTS} redirects")))
+    }
+
+    /// Whether a job's status says it has ended. A state that is not a string is an error.
+    fn job_ended(&self, job: &Job, answer: &Answer) -> Result<bool, Error> {
+        let data: Value = serde_json::from_slice(&answer.body).unwrap_or(Value::Null);
+        let state = job.state.split('.').try_fold(&data, |value, key| value.get(key)).and_then(Value::as_str);
+        let Some(state) = state else {
+            return Err(self.decode_error(&format!("the {} state of a job is not a string", job.state), answer));
+        };
+        Ok(job.done.contains(&state) || job.failed.contains(&state))
+    }
+
+    /// Polls a job's status operation until the job ends, and returns its last status, done or
+    /// failed. Each poll is a call, retried as any other. Once the timeout passes, the error's kind
+    /// is `JobTimeout` and [`Error::job_status`] holds the last status. Dropping the future stops
+    /// it, between polls included.
+    #[allow(dead_code, reason = "an API may have no jobs")]
+    pub async fn wait<T>(&self, job: &Job, request: Request, options: WaitOptions) -> Result<T, Error>
+    where
+        T: DeserializeOwned + Default + Send + Sync + 'static,
+    {
+        // A timeout too long to add never passes.
+        let deadline = tokio::time::Instant::now().checked_add(options.timeout);
+        loop {
+            let answer = self.fetch(&request).await?;
+            let status: T = self.decode(request.operation, &answer)?;
+            if self.job_ended(job, &answer)? {
+                return Ok(status);
+            }
+            let remaining = deadline.map(|deadline| deadline.saturating_duration_since(tokio::time::Instant::now()));
+            if remaining.is_some_and(|remaining| remaining.is_zero()) {
+                let message = format!("the job did not end within {:?}", options.timeout);
+                return Err(Error::new(ErrorKind::JobTimeout, message).with_job_status(status));
+            }
+            tokio::time::sleep(remaining.map_or(options.interval, |remaining| remaining.min(options.interval))).await;
         }
     }
 
@@ -1188,6 +1326,356 @@ mod tests {
         fn a_raw_body_prints_no_content() {
             assert_eq!(format!("{:?}", RawBody::from(b"secret".as_slice())), "RawBody(6 bytes)");
             assert_eq!(format!("{:?}", RawBody::stream(b"secret".to_vec())), "RawBody(stream)");
+        }
+    }
+
+    mod jobs {
+        use std::net::{Ipv4Addr, SocketAddr};
+        use std::sync::Mutex;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        use futures_core::future::BoxFuture;
+        use reqwest::header::AUTHORIZATION;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio::net::TcpListener;
+
+        use super::super::super::credentials::Scheme;
+        use super::super::super::credentials::tests::{Log, Sent};
+        use super::*;
+
+        const SECRET: &str = "synthetic-secret";
+        const CSV: &str = "id;error\n1;none\n";
+
+        const STATUS: Operation =
+            Operation { id: "getImport", method: "GET", path: "/imports/{import_id}", query_params: &[], returns_json: true, paging: None, security: &[] };
+        const JOB: Job = Job { state: "progress.state", done: &["COMPLETE"], failed: &["FAILED"] };
+        static SECURED: Operation = Operation {
+            id: "getReport",
+            method: "GET",
+            path: "",
+            query_params: &[],
+            returns_json: false,
+            paging: None,
+            security: &[&[Scheme { name: "key", scopes: &[] }]],
+        };
+
+        /// Sends a header on every request, and counts what it signs and refreshes.
+        #[derive(Default)]
+        struct Key {
+            signed: Mutex<Vec<String>>,
+            refreshes: AtomicUsize,
+        }
+
+        impl Credentials for Key {
+            fn apply<'a>(&'a self, request: &'a mut AuthRequest) -> BoxFuture<'a, Result<(), Error>> {
+                self.signed.lock().unwrap().push(request.url.clone());
+                request.headers.insert(AUTHORIZATION, HeaderValue::from_static(SECRET));
+                Box::pin(async { Ok(()) })
+            }
+
+            fn secrets(&self) -> Vec<String> {
+                vec![SECRET.to_owned()]
+            }
+
+            fn refresh<'a>(&'a self, _request: &'a AuthRequest) -> BoxFuture<'a, Result<bool, Error>> {
+                self.refreshes.fetch_add(1, Ordering::SeqCst);
+                Box::pin(async { Ok(true) })
+            }
+        }
+
+        /// Answers each request with the raw response the script gives for its number and lowercased head.
+        async fn serve(script: impl Fn(usize, &str) -> String + Send + 'static) -> (u16, Log) {
+            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let port = listener.local_addr().unwrap().port();
+            let log = Log::default();
+            let kept = Arc::clone(&log);
+            tokio::spawn(async move {
+                loop {
+                    let Ok((mut stream, _)) = listener.accept().await else { return };
+                    let mut data = Vec::new();
+                    let mut buffer = [0; 4096];
+                    while !data.windows(4).any(|window| window == b"\r\n\r\n") {
+                        match stream.read(&mut buffer).await {
+                            Ok(0) | Err(_) => return,
+                            Ok(read) => data.extend_from_slice(&buffer[..read]),
+                        }
+                    }
+                    let head = String::from_utf8_lossy(&data).to_lowercase();
+                    let number = {
+                        let mut log = kept.lock().unwrap();
+                        log.push(Sent { head: head.clone(), body: Vec::new() });
+                        log.len()
+                    };
+                    let _ = stream.write_all(script(number, &head).as_bytes()).await;
+                    let _ = stream.shutdown().await;
+                }
+            });
+            (port, log)
+        }
+
+        fn response(status: u16, headers: &str, body: &str) -> String {
+            format!("HTTP/1.1 {status} Status\r\n{headers}content-length: {}\r\nconnection: close\r\n\r\n{body}", body.len())
+        }
+
+        fn status(state: &str) -> String {
+            response(200, "content-type: application/json\r\n", &format!(r#"{{"import_id":7,"progress":{{"state":{state}}}}}"#))
+        }
+
+        fn csv() -> String {
+            response(200, "content-type: text/csv\r\n", CSV)
+        }
+
+        fn moved(location: &str) -> String {
+            response(302, &format!("location: {location}\r\n"), "")
+        }
+
+        /// A transport whose base URL is `base`, with both test hosts served on this machine.
+        fn transport(base: &str, credentials: Arc<Key>) -> Transport {
+            let local = SocketAddr::from((Ipv4Addr::LOCALHOST, 0));
+            let http = reqwest::Client::builder()
+                .redirect(redirect::Policy::none())
+                .resolve("api.example.test", local)
+                .resolve("files.example.test", local)
+                .build()
+                .unwrap();
+            let mut headers = HeaderMap::new();
+            headers.insert("user-agent", HeaderValue::from_static("test"));
+            Transport::new(Settings {
+                base_url: base.to_owned(),
+                credentials,
+                to_error: |context| Error::new(ErrorKind::Api, format!("status {}", context.status)).with_status(context.status),
+                max_retries: 2,
+                http: Some(http),
+                ..settings(headers)
+            })
+            .unwrap()
+        }
+
+        fn quick(options: (u64, u64)) -> WaitOptions {
+            WaitOptions { interval: Duration::from_millis(options.0), timeout: Duration::from_millis(options.1) }
+        }
+
+        async fn wait(script: impl Fn(usize, &str) -> String + Send + 'static, options: WaitOptions) -> (Result<Value, Error>, Log) {
+            let (port, log) = serve(script).await;
+            let transport = transport(&format!("http://api.example.test:{port}"), Arc::default());
+            (transport.wait(&JOB, Request::new(&STATUS).path("import_id", &7), options).await, log)
+        }
+
+        fn state(result: &Value) -> &str {
+            result["progress"]["state"].as_str().unwrap()
+        }
+
+        fn line<'a>(head: &'a str, name: &str) -> Option<&'a str> {
+            head.lines().find_map(|line| line.strip_prefix(&format!("{name}: ")))
+        }
+
+        /// The port a request was sent to, from its `Host`.
+        fn port(head: &str) -> &str {
+            line(head, "host").and_then(|host| host.rsplit(':').next()).unwrap()
+        }
+
+        fn signed(log: &Log) -> Vec<Option<String>> {
+            log.lock().unwrap().iter().map(|sent| line(&sent.head, "authorization").map(str::to_owned)).collect()
+        }
+
+        #[test]
+        fn wait_defaults_to_a_minute_between_polls_for_an_hour() {
+            assert_eq!(WaitOptions::default(), quick((60_000, 3_600_000)));
+        }
+
+        #[tokio::test]
+        async fn wait_polls_until_the_job_is_done_and_returns_its_last_status() {
+            let states = ["\"WAITING\"", "\"RUNNING\"", "\"COMPLETE\""];
+            let (result, log) = wait(move |number, _| status(states[number - 1]), quick((0, 5000))).await;
+            assert_eq!(state(&result.unwrap()), "COMPLETE");
+            let log = log.lock().unwrap();
+            assert_eq!(log.len(), 3);
+            assert!(log.iter().all(|sent| sent.head.starts_with("get /imports/7 ")));
+        }
+
+        #[tokio::test]
+        async fn a_failed_job_returns_its_status_rather_than_an_error() {
+            let (result, log) = wait(|number, _| status(if number == 1 { "\"RUNNING\"" } else { "\"FAILED\"" }), quick((0, 5000))).await;
+            assert_eq!(state(&result.unwrap()), "FAILED");
+            assert_eq!(log.lock().unwrap().len(), 2);
+        }
+
+        #[tokio::test]
+        async fn a_job_that_outlasts_the_deadline_is_a_typed_timeout_with_its_last_status() {
+            let (result, log) = wait(|_, _| status("\"RUNNING\""), quick((20, 50))).await;
+            let error = result.unwrap_err();
+            assert_eq!(error.kind(), ErrorKind::JobTimeout);
+            assert_eq!(state(error.job_status::<Value>().unwrap()), "RUNNING");
+            assert!(error.job_status::<String>().is_none());
+            assert!(log.lock().unwrap().len() >= 2);
+
+            let (result, log) = wait(|_, _| status("\"RUNNING\""), quick((0, 0))).await;
+            assert_eq!(result.unwrap_err().kind(), ErrorKind::JobTimeout);
+            assert_eq!(log.lock().unwrap().len(), 1);
+        }
+
+        #[tokio::test]
+        async fn a_timeout_too_long_to_add_never_passes() {
+            let options = WaitOptions { interval: Duration::ZERO, timeout: Duration::MAX };
+            let (result, _) = wait(|number, _| status(if number == 1 { "\"RUNNING\"" } else { "\"COMPLETE\"" }), options).await;
+            assert_eq!(state(&result.unwrap()), "COMPLETE");
+        }
+
+        #[tokio::test]
+        async fn a_rate_limit_while_polling_is_retried_after_its_retry_after() {
+            let (result, log) = wait(
+                |number, _| match number {
+                    1 => status("\"RUNNING\""),
+                    2 => response(429, "retry-after: 0\r\n", ""),
+                    _ => status("\"COMPLETE\""),
+                },
+                quick((0, 5000)),
+            )
+            .await;
+            assert_eq!(state(&result.unwrap()), "COMPLETE");
+            assert_eq!(log.lock().unwrap().len(), 3);
+        }
+
+        #[tokio::test]
+        async fn a_state_that_is_not_a_string_is_a_decode_error() {
+            for state in ["3", "null", "{\"name\":\"COMPLETE\"}"] {
+                let (result, _) = wait(move |_, _| status(state), quick((0, 5000))).await;
+                let error = result.unwrap_err();
+                assert_eq!(error.kind(), ErrorKind::Decode);
+                assert!(error.to_string().contains("progress.state"), "{error}");
+            }
+        }
+
+        #[tokio::test]
+        async fn dropping_a_wait_stops_it_without_waiting_out_the_interval() {
+            let (port, log) = serve(|_, _| status("\"RUNNING\"")).await;
+            let transport = transport(&format!("http://api.example.test:{port}"), Arc::default());
+            let started = std::time::Instant::now();
+            let waiting = transport.wait::<Value>(&JOB, Request::new(&STATUS).path("import_id", &7), WaitOptions::default());
+            assert!(tokio::time::timeout(Duration::from_secs(1), waiting).await.is_err());
+            assert!(started.elapsed() < Duration::from_secs(5));
+            assert_eq!(log.lock().unwrap().len(), 1);
+        }
+
+        #[tokio::test]
+        async fn a_download_url_on_the_base_origin_sends_credentials() {
+            let (port, log) = serve(|_, _| csv()).await;
+            let base = format!("http://api.example.test:{port}");
+            let download = transport(&base, Arc::default()).download_url(&format!("{base}/files/report.csv?sig=abc"), None).await.unwrap();
+            assert_eq!(download.content_type(), "text/csv");
+            assert_eq!(download.bytes().await.unwrap(), CSV.as_bytes());
+            let log = log.lock().unwrap();
+            assert!(log[0].head.starts_with("get /files/report.csv?sig=abc "), "{}", log[0].head);
+            assert_eq!(line(&log[0].head, "authorization"), Some(SECRET));
+            assert_eq!(line(&log[0].head, "accept-encoding"), Some("identity"));
+            assert_eq!(line(&log[0].head, "user-agent"), Some("test"));
+        }
+
+        #[tokio::test]
+        async fn a_download_url_on_another_scheme_host_or_port_sends_no_credentials() {
+            let (port, log) = serve(|_, _| csv()).await;
+            let (other, other_log) = serve(|_, _| csv()).await;
+            for (base, url) in [
+                (format!("http://api.example.test:{port}"), format!("http://files.example.test:{port}/report.csv")),
+                (format!("https://api.example.test:{port}"), format!("http://api.example.test:{port}/report.csv")),
+                (format!("http://api.example.test:{other}"), format!("http://api.example.test:{port}/report.csv")),
+            ] {
+                let credentials = Arc::new(Key::default());
+                let download = transport(&base, credentials.clone()).download_url(&url, None).await.unwrap();
+                assert_eq!(download.bytes().await.unwrap(), CSV.as_bytes());
+                assert!(credentials.signed.lock().unwrap().is_empty(), "{url}");
+            }
+            assert_eq!(signed(&log), [None, None, None]);
+            assert!(other_log.lock().unwrap().is_empty());
+        }
+
+        #[tokio::test]
+        async fn a_redirect_to_another_origin_drops_credentials_for_the_rest_of_the_chain() {
+            let (port, log) = serve(|number, head| match number {
+                1 => moved(&format!("http://files.example.test:{}/signed/1", port(head))),
+                2 => moved(&format!("http://api.example.test:{}/files/final", port(head))),
+                _ => csv(),
+            })
+            .await;
+            let base = format!("http://api.example.test:{port}");
+            let credentials = Arc::new(Key::default());
+            let download = transport(&base, credentials.clone()).download_url(&format!("{base}/files/1"), None).await.unwrap();
+            assert_eq!(download.bytes().await.unwrap(), CSV.as_bytes());
+            let sent: Vec<(String, String)> = log
+                .lock()
+                .unwrap()
+                .iter()
+                .map(|sent| (sent.head.lines().next().unwrap().to_owned(), line(&sent.head, "host").unwrap().to_owned()))
+                .collect();
+            let expected = [("/files/1", "api"), ("/signed/1", "files"), ("/files/final", "api")]
+                .map(|(path, host)| (format!("get {path} http/1.1"), format!("{host}.example.test:{port}")));
+            assert_eq!(sent, expected);
+            assert_eq!(signed(&log), [Some(SECRET.to_owned()), None, None]);
+            assert_eq!(*credentials.signed.lock().unwrap(), [format!("{base}/files/1")]);
+        }
+
+        #[tokio::test]
+        async fn a_relative_redirect_on_the_base_origin_keeps_credentials() {
+            let (port, log) = serve(|number, _| if number == 1 { moved("/files/2") } else { csv() }).await;
+            let base = format!("http://api.example.test:{port}");
+            transport(&base, Arc::default()).download_url(&format!("{base}/files/1"), None).await.unwrap();
+            assert_eq!(signed(&log), [Some(SECRET.to_owned()), Some(SECRET.to_owned())]);
+            assert!(log.lock().unwrap()[1].head.starts_with("get /files/2 "));
+        }
+
+        #[tokio::test]
+        async fn only_a_signed_request_refreshes_its_credentials_after_a_401() {
+            let (port, log) = serve(|number, head| match number {
+                1 | 3 => response(401, "", ""),
+                2 => moved(&format!("http://files.example.test:{}/signed/1", port(head))),
+                _ => csv(),
+            })
+            .await;
+            let base = format!("http://api.example.test:{port}");
+            let credentials = Arc::new(Key::default());
+            let error = transport(&base, credentials.clone()).download_url(&format!("{base}/files/1"), Some(&SECURED)).await.unwrap_err();
+            assert_eq!(error.status(), Some(401));
+            assert_eq!(credentials.refreshes.load(Ordering::SeqCst), 1);
+            assert_eq!(signed(&log), [Some(SECRET.to_owned()), Some(SECRET.to_owned()), None]);
+        }
+
+        #[tokio::test]
+        async fn a_download_url_refuses_a_relative_or_non_http_url_before_any_request() {
+            let (port, log) = serve(|_, _| csv()).await;
+            let transport = transport(&format!("http://api.example.test:{port}"), Arc::default());
+            for url in ["/files/1", "files/1", "ftp://api.example.test/files/1", "mailto:someone@example.test"] {
+                let error = transport.download_url(url, None).await.unwrap_err();
+                assert_eq!(error.kind(), ErrorKind::Api, "{url}");
+                assert!(error.to_string().contains("absolute"), "{error}");
+            }
+            assert!(log.lock().unwrap().is_empty());
+        }
+
+        #[tokio::test]
+        async fn a_download_url_stops_after_five_redirects() {
+            let (port, log) = serve(|_, _| moved("/files/1")).await;
+            let base = format!("http://api.example.test:{port}");
+            let error = transport(&base, Arc::default()).download_url(&format!("{base}/files/1"), None).await.unwrap_err();
+            assert_eq!(error.kind(), ErrorKind::Decode);
+            assert!(error.to_string().contains("redirects"), "{error}");
+            assert_eq!(log.lock().unwrap().len(), 6);
+        }
+
+        #[tokio::test]
+        async fn a_redirect_without_an_http_location_is_a_decode_error() {
+            for reply in [response(302, "", ""), moved("ftp://files.example.test/report.csv")] {
+                let (port, log) = serve(move |_, _| reply.clone()).await;
+                let base = format!("http://api.example.test:{port}");
+                let error = transport(&base, Arc::default()).download_url(&format!("{base}/files/1"), None).await.unwrap_err();
+                assert_eq!((error.kind(), error.status()), (ErrorKind::Decode, Some(302)));
+                assert_eq!(log.lock().unwrap().len(), 1);
+            }
+        }
+
+        #[test]
+        fn a_logged_url_has_no_user_password_or_query() {
+            let url = url::Url::parse("https://user:pass@files.example.test:8443/signed/1?sig=abc#part").unwrap();
+            assert_eq!(shown(&url), "https://files.example.test:8443/signed/1");
         }
     }
 }

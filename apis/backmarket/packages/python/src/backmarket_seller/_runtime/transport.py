@@ -9,7 +9,7 @@ import threading
 import time
 import zlib
 from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable, Iterable, Iterator, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timezone
 from email.utils import parsedate_to_datetime
 from enum import Enum
@@ -27,7 +27,7 @@ from pydantic import ValidationError
 from typing_extensions import Self
 
 from .credentials import AuthRequest, Credentials, Requirement, redact
-from .errors import ApiConnectionError, ApiError, ApiTimeoutError, DecodeError, ErrorContext
+from .errors import ApiConnectionError, ApiError, ApiTimeoutError, DecodeError, ErrorContext, JobTimeoutError
 from .model import ApiModel, parse_response, to_wire
 
 T = TypeVar("T")
@@ -47,6 +47,9 @@ _MAX_SAFE_INTEGER = 2**53 - 1
 _ACCEPT_ENCODING = {"Accept-Encoding": "gzip"}
 # A binary body is passed on as received, so it is asked for uncompressed.
 _IDENTITY = {"Accept-Encoding": "identity"}
+_REDIRECTS = frozenset({301, 302, 303, 307, 308})
+_MAX_REDIRECTS = 5
+_DEFAULT_PORTS = {"http": 80, "https": 443}
 
 
 @dataclass(frozen=True)
@@ -90,6 +93,16 @@ class Cursor:
 
 
 @dataclass(frozen=True)
+class Job:
+    """An operation that reports an asynchronous job's progress. The job has ended once the string at the
+    dotted `state` path of its response is one of `done` or `failed`."""
+
+    state: str
+    done: tuple[str, ...]
+    failed: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class Operation(Generic[T]):
     id: str
     method: str
@@ -112,6 +125,8 @@ class Operation(Generic[T]):
     """The media type of a raw request body, sent unchanged."""
     idempotency_key: str = ""
     """The JSON body field the API deduplicates a write by. With it set, the write is retried as a GET is."""
+    job: Job | None = None
+    """Set when the operation reports a job's progress, for `wait` to poll."""
 
 
 @dataclass(frozen=True)
@@ -612,6 +627,61 @@ def _opened(settings: Settings, operation: Operation[Any], response: httpx.Respo
 
 R = TypeVar("R")
 
+_URL_DOWNLOAD: Operation[None] = Operation(
+    id="downloadUrl", method="GET", path="", resource="", name="download_url", binary_response=True
+)
+
+
+def _origin(url: httpx.URL) -> tuple[str, str, int | None]:
+    return url.scheme, url.host.lower(), url.port or _DEFAULT_PORTS.get(url.scheme)
+
+
+def _absolute(url: str | httpx.URL) -> httpx.URL:
+    try:
+        parsed = httpx.URL(url)
+    except httpx.InvalidURL:
+        raise ValueError("The URL is not valid") from None
+    if parsed.scheme not in _DEFAULT_PORTS or not parsed.host:
+        raise ValueError("The URL is not an absolute http or https URL")
+    return parsed
+
+
+def _shown(url: httpx.URL) -> str:
+    """A URL for the log, without its query, which may hold a signature."""
+    return f"{url.scheme}://{url.netloc.decode('ascii')}{url.path}"
+
+
+def _redirect(response: httpx.Response, outgoing: httpx.Request) -> httpx.URL | None:
+    """Where a redirect points, resolved against the request. A redirect without a usable location is an error."""
+    if response.status_code not in _REDIRECTS:
+        return None
+    location = response.headers.get("location")
+    if not location:
+        raise DecodeError("A redirect has no Location", status=response.status_code)
+    try:
+        return _absolute(outgoing.url.join(location))
+    except (ValueError, httpx.InvalidURL):
+        raise DecodeError("A redirect's Location is not an http or https URL", status=response.status_code) from None
+
+
+def _job_ended(job: Job, reply: _Reply) -> bool:
+    value: Any = reply.data
+    for key in job.state.split("."):
+        value = value.get(key) if isinstance(value, Mapping) else None
+    if not isinstance(value, str):
+        raise DecodeError(f"The `{job.state}` state of a job is not a string", status=reply.status)
+    return value in job.done or value in job.failed
+
+
+def _job_of(operation: Operation[Any], interval: float, timeout: float) -> Job:
+    if operation.job is None:
+        raise ValueError(f"{operation.id} does not report a job")
+    if interval < 0:
+        raise ValueError("interval must not be negative")
+    if timeout < 0:
+        raise ValueError("timeout must not be negative")
+    return operation.job
+
 
 class SyncTransport:
     def __init__(self, settings: Settings, http_transport: httpx.BaseTransport | None = None) -> None:
@@ -646,7 +716,9 @@ class SyncTransport:
     def _open(self, operation: Operation[Any], outgoing: httpx.Request) -> Download:
         """A success response is handed over unread, with the deadline still running. A failure is read whole."""
         deadline = time.monotonic() + self.settings.timeout
-        response = self.http.send(outgoing, stream=True)
+        return self._hand_over(operation, self.http.send(outgoing, stream=True), deadline)
+
+    def _hand_over(self, operation: Operation[Any], response: httpx.Response, deadline: float) -> Download:
         if response.is_success:
             _opened(self.settings, operation, response)
             return Download(response, _Deadline(response.stream, deadline))
@@ -656,6 +728,20 @@ class SyncTransport:
             response.close()
         _raise_failure(self.settings, operation, failure)
 
+    def _open_url(self, operation: Operation[Any], outgoing: httpx.Request) -> Download | httpx.URL:
+        """A download, or where a redirect points."""
+        deadline = time.monotonic() + self.settings.timeout
+        response = self.http.send(outgoing, stream=True)
+        try:
+            target = _redirect(response, outgoing)
+        except DecodeError:
+            response.close()
+            raise
+        if target is None:
+            return self._hand_over(operation, response, deadline)
+        response.close()
+        return target
+
     def fetch(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> _Reply:
         return self._send(
             operation, body, params, lambda outgoing: _read(self.settings, operation, self._attempt(outgoing))
@@ -664,6 +750,25 @@ class SyncTransport:
     def download(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> Download:
         return self._send(operation, body, params, lambda outgoing: self._open(operation, outgoing))
 
+    def download_url(self, url: str, security: tuple[Requirement, ...] = ()) -> Download:
+        """GET an absolute URL that a response returned, as a download, following redirects. Credentials go
+        only to the base URL's scheme, host and port, and never again once a redirect leaves it. `security`
+        is what the credentials see as the operation's requirements."""
+        target = _absolute(url)
+        trusted = _origin(httpx.URL(self.settings.base_url))
+        operation = replace(_URL_DOWNLOAD, security=security)
+        signed = True
+        for _ in range(_MAX_REDIRECTS + 1):
+            signed = signed and _origin(target) == trusted
+            request = {"method": "GET", "url": target, "headers": dict(_IDENTITY)}
+            result = self._exchange(
+                operation, request, False, lambda outgoing: self._open_url(operation, outgoing), signed, _shown(target)
+            )
+            if isinstance(result, Download):
+                return result
+            target = result
+        raise DecodeError(f"More than {_MAX_REDIRECTS} redirects")
+
     def _send(
         self,
         operation: Operation[Any],
@@ -671,19 +776,31 @@ class SyncTransport:
         params: Mapping[str, Any],
         attempt: Callable[[httpx.Request], R],
     ) -> R:
+        request = _build_request(self.settings, operation, body, params)
+        return self._exchange(operation, request, _is_stream(operation, body), attempt, True, request["url"])
+
+    def _exchange(
+        self,
+        operation: Operation[Any],
+        request: dict[str, Any],
+        streamed: bool,
+        attempt: Callable[[httpx.Request], R],
+        signed: bool,
+        shown: str,
+    ) -> R:
+        """Send a request, with credentials when `signed`, retrying as the settings allow."""
         settings = self.settings
-        request = _build_request(settings, operation, body, params)
-        streamed = _is_stream(operation, body)
         repeatable = _repeatable(operation, request)
         tries = 0
         refreshed = False
         while True:
-            _log(settings, logging.DEBUG, f"-> {request['method']} {request['url']}")
+            _log(settings, logging.DEBUG, f"-> {request['method']} {shown}")
             group = settings.credentials.refresh_group(operation)
             generation = self._generations.get(group, 0)
             outgoing = self.http.build_request(**request)
             auth = _auth_request(operation, outgoing, b"" if streamed else outgoing.read())
-            _sync(settings.credentials.apply(auth), "apply")
+            if signed:
+                _sync(settings.credentials.apply(auth), "apply")
             try:
                 try:
                     return attempt(_signed(outgoing, auth))
@@ -693,7 +810,7 @@ class SyncTransport:
                 # A stream has been read, so it cannot be sent again.
                 if streamed:
                     raise
-                if _unauthorized(operation, error, refreshed):
+                if signed and _unauthorized(operation, error, refreshed):
                     refreshed = True
                     if self._refresh(auth, group, generation):
                         _log(settings, logging.INFO, "retrying after refreshing credentials")
@@ -743,12 +860,17 @@ class AsyncTransport:
 
     async def _open(self, operation: Operation[Any], outgoing: httpx.Request) -> AsyncDownload:
         """A success response is handed over unread, with the deadline still running. A failure is read whole."""
-        settings = self.settings
-        deadline = asyncio.get_running_loop().time() + settings.timeout
+        deadline = asyncio.get_running_loop().time() + self.settings.timeout
+        return await self._hand_over(operation, await self._send_streamed(outgoing), deadline)
+
+    async def _send_streamed(self, outgoing: httpx.Request) -> httpx.Response:
         try:
-            response = await asyncio.wait_for(self.http.send(outgoing, stream=True), settings.timeout)
+            return await asyncio.wait_for(self.http.send(outgoing, stream=True), self.settings.timeout)
         except asyncio.TimeoutError as error:
             raise ApiTimeoutError("The request timed out") from error
+
+    async def _hand_over(self, operation: Operation[Any], response: httpx.Response, deadline: float) -> AsyncDownload:
+        settings = self.settings
         if response.is_success:
             _opened(settings, operation, response)
             return AsyncDownload(response, deadline)
@@ -762,11 +884,44 @@ class AsyncTransport:
             await response.aclose()
         _raise_failure(settings, operation, _decoded(response, raw))
 
+    async def _open_url(self, operation: Operation[Any], outgoing: httpx.Request) -> AsyncDownload | httpx.URL:
+        """A download, or where a redirect points."""
+        deadline = asyncio.get_running_loop().time() + self.settings.timeout
+        response = await self._send_streamed(outgoing)
+        try:
+            target = _redirect(response, outgoing)
+        except DecodeError:
+            await response.aclose()
+            raise
+        if target is None:
+            return await self._hand_over(operation, response, deadline)
+        await response.aclose()
+        return target
+
     async def fetch(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> _Reply:
         return await self._send(operation, body, params, lambda outgoing: self._fetch_attempt(operation, outgoing))
 
     async def download(self, operation: Operation[Any], body: Any, params: Mapping[str, Any]) -> AsyncDownload:
         return await self._send(operation, body, params, lambda outgoing: self._open(operation, outgoing))
+
+    async def download_url(self, url: str, security: tuple[Requirement, ...] = ()) -> AsyncDownload:
+        """GET an absolute URL that a response returned, as a download, following redirects. Credentials go
+        only to the base URL's scheme, host and port, and never again once a redirect leaves it. `security`
+        is what the credentials see as the operation's requirements."""
+        target = _absolute(url)
+        trusted = _origin(httpx.URL(self.settings.base_url))
+        operation = replace(_URL_DOWNLOAD, security=security)
+        signed = True
+        for _ in range(_MAX_REDIRECTS + 1):
+            signed = signed and _origin(target) == trusted
+            request = {"method": "GET", "url": target, "headers": dict(_IDENTITY)}
+            result = await self._exchange(
+                operation, request, False, lambda outgoing: self._open_url(operation, outgoing), signed, _shown(target)
+            )
+            if isinstance(result, AsyncDownload):
+                return result
+            target = result
+        raise DecodeError(f"More than {_MAX_REDIRECTS} redirects")
 
     async def _send(
         self,
@@ -775,21 +930,34 @@ class AsyncTransport:
         params: Mapping[str, Any],
         attempt: Callable[[httpx.Request], Awaitable[R]],
     ) -> R:
-        settings = self.settings
         streamed = _is_stream(operation, body)
         if streamed and not isinstance(body, AsyncIterable):
             body = _async_chunks(body)
-        request = _build_request(settings, operation, body, params)
+        request = _build_request(self.settings, operation, body, params)
+        return await self._exchange(operation, request, streamed, attempt, True, request["url"])
+
+    async def _exchange(
+        self,
+        operation: Operation[Any],
+        request: dict[str, Any],
+        streamed: bool,
+        attempt: Callable[[httpx.Request], Awaitable[R]],
+        signed: bool,
+        shown: str,
+    ) -> R:
+        """Send a request, with credentials when `signed`, retrying as the settings allow."""
+        settings = self.settings
         repeatable = _repeatable(operation, request)
         tries = 0
         refreshed = False
         while True:
-            _log(settings, logging.DEBUG, f"-> {request['method']} {request['url']}")
+            _log(settings, logging.DEBUG, f"-> {request['method']} {shown}")
             group = settings.credentials.refresh_group(operation)
             generation = self._generations.get(group, 0)
             outgoing = self.http.build_request(**request)
             auth = _auth_request(operation, outgoing, b"" if streamed else await outgoing.aread())
-            await _settle(settings.credentials.apply(auth))
+            if signed:
+                await _settle(settings.credentials.apply(auth))
             try:
                 try:
                     return await attempt(_signed(outgoing, auth))
@@ -799,7 +967,7 @@ class AsyncTransport:
                 # A stream has been read, so it cannot be sent again.
                 if streamed:
                     raise
-                if _unauthorized(operation, error, refreshed):
+                if signed and _unauthorized(operation, error, refreshed):
                     refreshed = True
                     if await self._refresh(auth, group, generation):
                         _log(settings, logging.INFO, "retrying after refreshing credentials")
@@ -847,6 +1015,20 @@ class Resource:
     def _download(self, operation: Operation[Any], /, *, _body: Any = None, **params: Any) -> Download:
         return self._transport.download(operation, _body, params)
 
+    def _wait(self, operation: Operation[T], /, *, interval: float, timeout: float, **params: Any) -> T:
+        """Poll a job's status operation until the job ends, and return its last status, done or failed."""
+        job = _job_of(operation, interval, timeout)
+        deadline = time.monotonic() + timeout
+        while True:
+            reply = self._transport.fetch(operation, None, params)
+            result: T = _parse(self._transport.settings, operation.response, reply.data, reply)
+            if _job_ended(job, reply):
+                return result
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise JobTimeoutError(f"The job did not end within {timeout}s", result=result)
+            time.sleep(min(interval, remaining))
+
     def _paginate(self, operation: Operation[Any], /, *, _body: Any = None, **params: Any) -> Iterator[Any]:
         current: dict[str, Any] | None = params
         while current is not None:
@@ -870,6 +1052,22 @@ class AsyncResource:
 
     async def _download(self, operation: Operation[Any], /, *, _body: Any = None, **params: Any) -> AsyncDownload:
         return await self._transport.download(operation, _body, params)
+
+    async def _wait(self, operation: Operation[T], /, *, interval: float, timeout: float, **params: Any) -> T:
+        """Poll a job's status operation until the job ends, and return its last status, done or failed.
+        Cancelling the task stops it."""
+        job = _job_of(operation, interval, timeout)
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
+        while True:
+            reply = await self._transport.fetch(operation, None, params)
+            result: T = _parse(self._transport.settings, operation.response, reply.data, reply)
+            if _job_ended(job, reply):
+                return result
+            remaining = deadline - loop.time()
+            if remaining <= 0:
+                raise JobTimeoutError(f"The job did not end within {timeout}s", result=result)
+            await asyncio.sleep(min(interval, remaining))
 
     async def _paginate(self, operation: Operation[Any], /, *, _body: Any = None, **params: Any) -> AsyncIterator[Any]:
         current: dict[str, Any] | None = params

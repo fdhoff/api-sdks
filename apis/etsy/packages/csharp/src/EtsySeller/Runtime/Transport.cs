@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO.Compression;
 using System.Net;
@@ -20,6 +21,11 @@ internal sealed class Transport : IDisposable
     private const string Redacted = "***";
     // The largest integer a JavaScript number holds exactly, so every runtime accepts the same numeric cursors.
     private const double MaxSafeInteger = 9007199254740991;
+    private const int MaxRedirects = 5;
+    private static readonly int[] Redirects = [301, 302, 303, 307, 308];
+    private static readonly TimeSpan DefaultJobInterval = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan DefaultJobTimeout = TimeSpan.FromHours(1);
+    private static readonly Operation UrlDownload = new("downloadUrl", "GET", string.Empty, string.Empty, "DownloadUrlAsync", null, [], Security: [], ReturnsBinary: true);
     private static readonly string[] Months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
     /// <summary>RFC 5322, RFC 850 and asctime dates, as leniently as Python's <c>email.utils</c>.</summary>
@@ -118,9 +124,11 @@ internal sealed class Transport : IDisposable
         }
     }
 
-    public async Task<T> CallAsync<T>(Operation operation, object?[] values, CancellationToken cancellationToken)
+    public async Task<T> CallAsync<T>(Operation operation, object?[] values, CancellationToken cancellationToken) =>
+        Parse<T>(operation, await FetchAsync(operation, values, cancellationToken).ConfigureAwait(false));
+
+    private static T Parse<T>(Operation operation, Reply reply)
     {
-        var reply = await FetchAsync(operation, values, cancellationToken).ConfigureAwait(false);
         RejectEmpty(operation, reply);
         if (typeof(T) == typeof(string))
         {
@@ -143,7 +151,113 @@ internal sealed class Transport : IDisposable
 
     /// <summary>A binary response, streamed. Nothing is retried once it is returned.</summary>
     public Task<Download> DownloadAsync(Operation operation, object?[] values, CancellationToken cancellationToken) =>
-        FetchAsync(operation, values, DownloadAttemptAsync, cancellationToken);
+        FetchAsync(operation, values, async (auth, stream, token) => (await OpenAsync(auth, stream, redirects: false, token).ConfigureAwait(false)).Download!, cancellationToken);
+
+    /// <summary>
+    /// Polls a job's status operation until the job ends, and returns its last status, done or failed. Each poll is an
+    /// ordinary call, retried as usual, and the wait between polls is cut short by the deadline or by cancellation.
+    /// </summary>
+    /// <exception cref="ArgumentException">The operation reports no job, or the interval or timeout is negative. Nothing is sent.</exception>
+    /// <exception cref="ApiJobTimeoutException">The job had not ended by the deadline.</exception>
+    public async Task<T> WaitAsync<T>(Operation operation, object?[] values, TimeSpan? interval, TimeSpan? timeout, CancellationToken cancellationToken)
+    {
+        var job = operation.Job ?? throw new ArgumentException($"{operation.Id} does not report a job", nameof(operation));
+        var every = interval ?? DefaultJobInterval;
+        var limit = timeout ?? DefaultJobTimeout;
+        if (every < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(interval), every, "The interval must not be negative");
+        }
+        if (limit < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(timeout), limit, "The timeout must not be negative");
+        }
+        var started = Stopwatch.GetTimestamp();
+        while (true)
+        {
+            var reply = await FetchAsync(operation, values, cancellationToken).ConfigureAwait(false);
+            var result = Parse<T>(operation, reply);
+            if (JobEnded(job, reply))
+            {
+                return result;
+            }
+            var remaining = limit - Stopwatch.GetElapsedTime(started);
+            if (remaining <= TimeSpan.Zero)
+            {
+                throw new ApiJobTimeoutException($"The job did not end within {limit}", result);
+            }
+            await Task.Delay(every < remaining ? every : remaining, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static bool JobEnded(JobPolling job, Reply reply)
+    {
+        var value = reply.Json;
+        foreach (var key in job.State.Split('.'))
+        {
+            value = value is { ValueKind: JsonValueKind.Object } node && node.TryGetProperty(key, out var next) ? next : null;
+        }
+        if (value is not { ValueKind: JsonValueKind.String } state)
+        {
+            throw new ApiDecodeException($"The `{job.State}` state of a job is not a string") { Status = reply.Status, RawBody = reply.Clean };
+        }
+        var text = state.GetString()!;
+        return job.Done.Contains(text) || job.Failed.Contains(text);
+    }
+
+    /// <summary>
+    /// GETs an absolute URL that a response returned, as a download, following up to five redirects. Credentials go
+    /// only to the base URL's scheme, host and port, and never again once a redirect leaves them. <paramref name="security"/>
+    /// is what the credentials see as the operation's requirements. Each request is retried as usual.
+    /// </summary>
+    /// <remarks>
+    /// The client's own handler never follows redirects, so they are followed here.
+    /// TODO: a caller's handler that follows redirects itself drops only <c>Authorization</c> on the way, and sends any
+    /// other credential header on to wherever they point. Such a download is refused, but only once it has happened.
+    /// </remarks>
+    /// <exception cref="ArgumentException">The URL is not an absolute http or https URL. Nothing is sent.</exception>
+    public async Task<Download> DownloadUrlAsync(string url, Scheme[][]? security = null, CancellationToken cancellationToken = default)
+    {
+        var target = Absolute(url) ?? throw new ArgumentException("The URL is not an absolute http or https URL", nameof(url));
+        var trusted = Origin(new Uri(settings.BaseUrl));
+        var operation = UrlDownload with { Security = security ?? [] };
+        var signed = true;
+        for (var hop = 0; hop <= MaxRedirects; hop++)
+        {
+            signed = signed && Origin(target) == trusted;
+            var opened = await ExchangeAsync(
+                operation, target, () => null, null, [], signed, target.GetLeftPart(UriPartial.Path),
+                (auth, _, token) => OpenAsync(auth, null, redirects: true, token), cancellationToken).ConfigureAwait(false);
+            if (opened.Download is { } download)
+            {
+                return download;
+            }
+            target = opened.Location!;
+        }
+        throw new ApiDecodeException($"More than {MaxRedirects} redirects");
+    }
+
+    private static Uri? Absolute(string? url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var parsed) && parsed.Scheme is "http" or "https" && parsed.Host.Length > 0 ? parsed : null;
+
+    /// <remarks><see cref="Uri.Port"/> is already the scheme's default when the URL names none.</remarks>
+    private static (string Scheme, string Host, int Port) Origin(Uri url) => (url.Scheme, url.Host.ToLowerInvariant(), url.Port);
+
+    /// <summary>Where a redirect points, resolved against the request, or null for any other response.</summary>
+    private static Uri? Redirect(int status, Dictionary<string, string> headers, Uri current)
+    {
+        if (!Redirects.Contains(status))
+        {
+            return null;
+        }
+        if (!headers.TryGetValue("Location", out var location) || location.Length == 0)
+        {
+            throw new ApiDecodeException("A redirect has no Location") { Status = status };
+        }
+        return Uri.TryCreate(current, location, out var resolved) && Absolute(resolved.AbsoluteUri) is { } next
+            ? next
+            : throw new ApiDecodeException("A redirect's Location is not an http or https URL") { Status = status };
+    }
 
     public async Task SendAsync(Operation operation, object?[] values, CancellationToken cancellationToken) =>
         RejectEmpty(operation, await FetchAsync(operation, values, cancellationToken).ConfigureAwait(false));
@@ -629,14 +743,28 @@ internal sealed class Transport : IDisposable
         Operation operation, object?[] values, Func<AuthRequest, Stream?, CancellationToken, Task<TResult>> attempt, CancellationToken cancellationToken)
     {
         var (url, content, stream) = Build(operation, values);
-        var extra = HeadersOf(operation, values);
+        return await ExchangeAsync(operation, url, content, stream, HeadersOf(operation, values), signed: true, url.ToString(), attempt, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Sends a request, with credentials when <paramref name="signed"/>, retrying as the settings allow. <paramref name="shown"/> is the URL as logged.</summary>
+    private async Task<TResult> ExchangeAsync<TResult>(
+        Operation operation,
+        Uri url,
+        Func<HttpContent?> content,
+        Stream? stream,
+        List<KeyValuePair<string, string>> extra,
+        bool signed,
+        string shown,
+        Func<AuthRequest, Stream?, CancellationToken, Task<TResult>> attempt,
+        CancellationToken cancellationToken)
+    {
         var refreshed = false;
         for (var tries = 0; ;)
         {
-            Log(LogLevel.Debug, $"-> {operation.Method} {url}");
+            Log(LogLevel.Debug, $"-> {operation.Method} {shown}");
             var group = settings.Credentials.RefreshGroup(operation);
             var seen = generations.GetValueOrDefault(group);
-            var auth = await AuthorizeAsync(operation, url, content, extra, cancellationToken).ConfigureAwait(false);
+            var auth = await AuthorizeAsync(operation, url, content, extra, signed, cancellationToken).ConfigureAwait(false);
             try
             {
                 return await attempt(auth, stream, cancellationToken).ConfigureAwait(false);
@@ -649,7 +777,7 @@ internal sealed class Transport : IDisposable
                     throw;
                 }
                 // An operation with no security sends no credentials, such as a token request made during a refresh.
-                if (error.Status == 401 && !refreshed && operation.Security is { Length: > 0 })
+                if (signed && error.Status == 401 && !refreshed && operation.Security is { Length: > 0 })
                 {
                     refreshed = true;
                     if (await RefreshAsync(auth, group, seen, cancellationToken).ConfigureAwait(false))
@@ -670,9 +798,9 @@ internal sealed class Transport : IDisposable
         }
     }
 
-    /// <summary>Encodes one attempt's request and lets the credentials sign the bytes that will be sent.</summary>
+    /// <summary>Encodes one attempt's request and, when <paramref name="signed"/>, lets the credentials sign the bytes that will be sent.</summary>
     private async Task<AuthRequest> AuthorizeAsync(
-        Operation operation, Uri url, Func<HttpContent?> content, List<KeyValuePair<string, string>> extra, CancellationToken cancellationToken)
+        Operation operation, Uri url, Func<HttpContent?> content, List<KeyValuePair<string, string>> extra, bool signed, CancellationToken cancellationToken)
     {
         using var draft = content();
         var body = draft is null ? [] : await draft.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
@@ -697,7 +825,10 @@ internal sealed class Transport : IDisposable
             }
         }
         var auth = new AuthRequest { Method = operation.Method, Url = url, Headers = headers, Body = body, Operation = operation };
-        await settings.Credentials.ApplyAsync(auth, cancellationToken).ConfigureAwait(false);
+        if (signed)
+        {
+            await settings.Credentials.ApplyAsync(auth, cancellationToken).ConfigureAwait(false);
+        }
         return auth;
     }
 
@@ -747,9 +878,10 @@ internal sealed class Transport : IDisposable
 
     /// <summary>
     /// One attempt that hands a success body over as a stream, still under the attempt's deadline. A failure is read
-    /// whole, as for any other operation.
+    /// whole, as for any other operation. With <paramref name="redirects"/>, a redirect is returned as where it points.
     /// </summary>
-    private async Task<Download> DownloadAttemptAsync(AuthRequest auth, Stream? stream, CancellationToken cancellationToken)
+    /// <exception cref="InvalidOperationException">With <paramref name="redirects"/>, the handler followed a redirect itself.</exception>
+    private async Task<Opened> OpenAsync(AuthRequest auth, Stream? stream, bool redirects, CancellationToken cancellationToken)
     {
         var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(settings.Timeout);
@@ -759,6 +891,18 @@ internal sealed class Transport : IDisposable
         {
             response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false);
             var status = (int)response.StatusCode;
+            if (redirects)
+            {
+                if (request.RequestUri != auth.Url)
+                {
+                    throw new InvalidOperationException("The HTTP handler followed a redirect itself; downloading a URL needs AllowAutoRedirect off");
+                }
+                if (Redirect(status, ResponseHeaders(response), auth.Url) is { } location)
+                {
+                    Log(LogLevel.Debug, $"<- {auth.Method} {status} (redirect)");
+                    return new Opened(null, location);
+                }
+            }
             if (status is < 200 or >= 300)
             {
                 var body = await response.Content.ReadAsByteArrayAsync(deadline.Token).ConfigureAwait(false);
@@ -771,7 +915,7 @@ internal sealed class Transport : IDisposable
             var download = new Download(contentType, new DeadlineStream(content, response, deadline, cancellationToken));
             response = null;
             deadline = null;
-            return download;
+            return new Opened(download, null);
         }
         catch (Exception error) when (error is OperationCanceledException or HttpRequestException or IOException && !cancellationToken.IsCancellationRequested)
         {
@@ -913,6 +1057,9 @@ internal sealed class Transport : IDisposable
     }
 
     private sealed record RawReply(int Status, Dictionary<string, string> Headers, byte[] Body);
+
+    /// <summary>A download, or where a redirect points.</summary>
+    private sealed record Opened(Download? Download, Uri? Location);
 
     // Text is returned as it is. Clean has the token removed, for exceptions.
     private sealed record Reply(int Status, string Text, string Clean, JsonElement? Json);

@@ -11,6 +11,7 @@ const (
 	KindTimeout    Kind = "timeout"
 	KindConnection Kind = "connection"
 	KindDecode     Kind = "decode"
+	KindJobTimeout Kind = "job_timeout"
 )
 
 // Error is the failure every call returns once it has a request to send, apart from the caller's
@@ -27,7 +28,9 @@ type Error struct {
 	RequestID  string
 	RetryAfter string
 	CFRay      string
-	Cause      error
+	// Result is the last status a job reported, for a [KindJobTimeout] error.
+	Result any
+	Cause  error
 }
 
 func (e *Error) Error() string {

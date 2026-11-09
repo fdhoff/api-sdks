@@ -496,6 +496,7 @@ pub(crate) mod tests {
         let auth = transport
             .authorize(
                 &Request::new(&GET_ITEM).path("id", &1),
+                None,
                 Method::GET,
                 None,
                 Vec::new(),

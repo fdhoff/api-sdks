@@ -1,5 +1,12 @@
 import { redact, type AuthRequest, type Credentials, type Requirement } from './credentials.js';
-import { ApiConnectionError, ApiError, ApiTimeoutError, DecodeError, type ErrorContext } from './errors.js';
+import {
+  ApiConnectionError,
+  ApiError,
+  ApiTimeoutError,
+  DecodeError,
+  JobTimeoutError,
+  type ErrorContext,
+} from './errors.js';
 
 export type FileContent = Blob | Uint8Array;
 
@@ -62,6 +69,14 @@ export interface Cursor {
 
 export type Paging = NextLink | Offset | Cursor;
 
+/** An operation that reports an asynchronous job's progress. The job has ended once the string at the dotted
+ * `state` path of its response is one of `done` or `failed`. */
+export interface Job {
+  state: string;
+  done: readonly string[];
+  failed: readonly string[];
+}
+
 export interface Operation {
   id: string;
   method: string;
@@ -84,6 +99,8 @@ export interface Operation {
   idempotencyKey?: string;
   iterator?: string;
   paging?: Paging;
+  /** Set when the operation reports a job's progress, for a wait method to poll. */
+  job?: Job;
   /** Any one of these requirements authorizes the call. */
   security?: readonly Requirement[];
 }
@@ -92,6 +109,20 @@ export interface Operation {
 export interface RequestOptions {
   /** Cancels the call, including a wait before a retry. The call rejects with the signal's reason. */
   signal?: AbortSignal;
+}
+
+/** Options for a wait method. Aborting `signal` also stops the wait between polls. */
+export interface WaitOptions extends RequestOptions {
+  /** Milliseconds between polls. Defaults to 60000. */
+  intervalMs?: number;
+  /** Milliseconds after which a job that has not ended throws `JobTimeoutError`. Defaults to 3600000. */
+  timeoutMs?: number;
+}
+
+/** Options for {@link Transport.downloadUrl}. */
+export interface DownloadUrlOptions extends RequestOptions {
+  /** What the credentials see as the operation's requirements. Defaults to none. */
+  security?: readonly Requirement[];
 }
 
 /** Receives what the client logs. `console` fits. */
@@ -112,6 +143,8 @@ export interface Settings {
   credentials: Credentials;
   headers: Record<string, string>;
   toError: (context: ErrorContext) => ApiError;
+  /** Must honour `redirect: 'manual'`, returning a redirect as it is, so that `downloadUrl` decides where
+   * credentials go. */
   fetch: typeof globalThis.fetch;
   logger?: Logger;
   timeoutMs: number;
@@ -138,6 +171,19 @@ interface Encoded {
 const NEXT_LINK: NextLink = { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] };
 const HTTP_DATE = /^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/;
 const MAX_TIMER_MS = 2 ** 31 - 1;
+const REDIRECTS = new Set([301, 302, 303, 307, 308]);
+const MAX_REDIRECTS = 5;
+const DEFAULT_INTERVAL_MS = 60_000;
+const DEFAULT_WAIT_MS = 3_600_000;
+const URL_DOWNLOAD: Operation = {
+  id: 'downloadUrl',
+  method: 'GET',
+  path: '',
+  resource: '',
+  name: 'downloadUrl',
+  params: [],
+  returnsBinary: true,
+};
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 const isContent = (value: unknown): value is FileContent => value instanceof Blob || value instanceof Uint8Array;
@@ -480,6 +526,43 @@ function items(operation: Operation, page: unknown): unknown[] {
   return Array.isArray(results) ? results : [];
 }
 
+/** An absolute http or https URL, resolved against `base` when given. */
+function absolute(url: string, base?: string): URL | undefined {
+  const parsed = URL.canParse(url, base) ? new URL(url, base) : undefined;
+  return parsed && ['http:', 'https:'].includes(parsed.protocol) && parsed.hostname ? parsed : undefined;
+}
+
+/** A URL for the log, without its query, which may hold a signature. */
+const shown = (url: URL): string => `${url.protocol}//${url.host}${url.pathname}`;
+
+/** Where a redirect points, resolved against the URL it answered, with its body released. A redirect without a
+ * usable location is an error. */
+async function redirected(response: Response, url: string): Promise<URL | undefined> {
+  if (!REDIRECTS.has(response.status)) return undefined;
+  await response.body?.cancel().catch(() => undefined);
+  const location = response.headers.get('location');
+  if (!location) throw new DecodeError('A redirect has no Location', { status: response.status });
+  const target = absolute(location, url);
+  if (target === undefined) {
+    throw new DecodeError("A redirect's Location is not an http or https URL", { status: response.status });
+  }
+  return target;
+}
+
+function jobEnded(job: Job, result: unknown): boolean {
+  let value: unknown = result;
+  for (const key of job.state.split('.')) value = isObject(value) && !Array.isArray(value) ? value[key] : undefined;
+  if (typeof value !== 'string') throw new DecodeError(`The \`${job.state}\` state of a job is not a string`);
+  return job.done.includes(value) || job.failed.includes(value);
+}
+
+function jobOf(operation: Operation, intervalMs: number, timeoutMs: number): Job {
+  if (operation.job === undefined) throw new TypeError(`${operation.id} does not report a job`);
+  if (!(intervalMs >= 0)) throw new RangeError('intervalMs must not be negative');
+  if (!(timeoutMs >= 0)) throw new RangeError('timeoutMs must not be negative');
+  return operation.job;
+}
+
 export class Transport {
   readonly #settings: Settings;
   readonly #headerDefaults: ReadonlyMap<string, string>;
@@ -519,23 +602,27 @@ export class Transport {
     return refreshing;
   }
 
-  async #attempt(
-    { method, returnsJson, returnsText, returnsBinary }: Operation,
-    url: string,
-    init: RequestInit,
-    signal: AbortSignal | undefined,
-  ): Promise<unknown> {
+  /** Sends one attempt, logged as `shown`. */
+  async #send(url: string, shown: string, init: RequestInit, signal: AbortSignal | undefined): Promise<Response> {
     const settings = this.#settings;
     const { fetch } = settings;
-    this.#log('debug', `-> ${method} ${url}`);
-    let response: Response;
+    this.#log('debug', `-> ${init.method} ${shown}`);
     try {
       const timeout = AbortSignal.timeout(settings.timeoutMs);
-      response = await fetch(url, { ...init, signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
+      return await fetch(url, { ...init, signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
     } catch (error) {
       signal?.throwIfAborted();
       throw translate(error);
     }
+  }
+
+  /** Reads a response as the operation declares it. A failure is the error `toError` makes of it. */
+  async #read(
+    { method, returnsJson, returnsText, returnsBinary }: Operation,
+    response: Response,
+    signal: AbortSignal | undefined,
+  ): Promise<unknown> {
+    const settings = this.#settings;
     if (returnsBinary && response.ok) {
       this.#log('debug', `<- ${method} ${response.status} (streamed)`);
       return download(response, signal);
@@ -568,9 +655,49 @@ export class Transport {
 
   async fetch(operation: Operation, body: unknown, params: Params, { signal }: RequestOptions = {}): Promise<unknown> {
     signal?.throwIfAborted();
-    const settings = this.#settings;
-    const built = buildRequest(settings, this.#headerDefaults, operation, body, params);
+    const built = buildRequest(this.#settings, this.#headerDefaults, operation, body, params);
     const encoded = await encode(built.body);
+    return this.#exchange(operation, built, encoded, true, built.url, signal, (response) =>
+      this.#read(operation, response, signal),
+    );
+  }
+
+  /** GETs an absolute URL that a response returned, as a download, following redirects. Credentials go only to
+   * the base URL's scheme, host and port, and never again once a redirect leaves it. The `fetch` in the settings
+   * must honour `redirect: 'manual'`. */
+  async downloadUrl(url: string, { security = [], signal }: DownloadUrlOptions = {}): Promise<Download> {
+    const first = absolute(url);
+    if (first === undefined) throw new TypeError('The URL is not an absolute http or https URL');
+    signal?.throwIfAborted();
+    const settings = this.#settings;
+    const trusted = new URL(settings.baseUrl).origin;
+    const operation: Operation = { ...URL_DOWNLOAD, security };
+    let signed = true;
+    let target = first;
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
+      signed &&= target.origin === trusted;
+      const headers = { 'Accept-Encoding': 'identity', ...settings.headers };
+      const built: Built = { url: target.href, headers, body: undefined };
+      const read = async (response: Response) =>
+        (await redirected(response, built.url)) ?? ((await this.#read(operation, response, signal)) as Download);
+      const result: Download | URL = await this.#exchange(operation, built, { bytes: new Uint8Array() }, signed, shown(target), signal, read);
+      if (!(result instanceof URL)) return result;
+      target = result;
+    }
+    throw new DecodeError(`More than ${MAX_REDIRECTS} redirects`);
+  }
+
+  /** Sends a request, with credentials when `signed`, retrying as the settings allow. */
+  async #exchange<R>(
+    operation: Operation,
+    built: Built,
+    encoded: Encoded,
+    signed: boolean,
+    shown: string,
+    signal: AbortSignal | undefined,
+    read: (response: Response) => Promise<R>,
+  ): Promise<R> {
+    const settings = this.#settings;
     const retryable = repeatable(operation, built);
     let refreshed = false;
     for (let tries = 0; ;) {
@@ -579,7 +706,7 @@ export class Transport {
       const headers = new Headers(built.headers);
       if (encoded.contentType !== undefined) headers.set('Content-Type', encoded.contentType);
       const auth: AuthRequest = { method: operation.method, url: built.url, headers, body: encoded.bytes, operation };
-      await settings.credentials.apply(auth);
+      if (signed) await settings.credentials.apply(auth);
       signal?.throwIfAborted();
       // A JSON body goes as its text, which encodes to the same bytes.
       const sent = typeof built.body === 'string' ? built.body : built.body && encoded.bytes;
@@ -591,14 +718,14 @@ export class Transport {
         ...(encoded.streamed ? { duplex: 'half' } : {}),
       };
       try {
-        return await this.#attempt(operation, built.url, init, signal);
+        return await read(await this.#send(built.url, shown, init, signal));
       } catch (error) {
         signal?.throwIfAborted();
         if (!(error instanceof ApiError)) throw error;
         // A stream was consumed by the attempt, so it cannot be sent again.
         if (encoded.streamed) throw error;
         // Never for an operation that sends no credentials, such as a token request made during a refresh.
-        if (error.status === 401 && !refreshed && (operation.security?.length ?? 0) > 0) {
+        if (signed && error.status === 401 && !refreshed && (operation.security?.length ?? 0) > 0) {
           refreshed = true;
           if (await this.#refresh(auth, group, generation)) {
             this.#log('info', 'retrying after refreshing credentials');
@@ -624,6 +751,20 @@ export class Resource {
 
   protected async call<T>(operation: Operation, body: unknown, params: Params, options?: RequestOptions): Promise<T> {
     return (await this.#transport.fetch(operation, body, params, options)) as T;
+  }
+
+  /** Polls a job's status operation until the job ends, and returns its last status, done or failed. */
+  protected async pollJob<T>(operation: Operation, params: Params, options: WaitOptions = {}): Promise<T> {
+    const { intervalMs = DEFAULT_INTERVAL_MS, timeoutMs = DEFAULT_WAIT_MS, signal } = options;
+    const job = jobOf(operation, intervalMs, timeoutMs);
+    const deadline = performance.now() + timeoutMs;
+    for (;;) {
+      const result = await this.#transport.fetch(operation, undefined, params, { signal });
+      if (jobEnded(job, result)) return result as T;
+      const remaining = deadline - performance.now();
+      if (remaining <= 0) throw new JobTimeoutError(`The job did not end within ${timeoutMs}ms`, result);
+      await sleep(Math.min(intervalMs, remaining, MAX_TIMER_MS), signal);
+    }
   }
 
   protected async *paginate<T>(

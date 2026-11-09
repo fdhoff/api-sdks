@@ -41,13 +41,30 @@ type request struct {
 	contentType string
 	// stream is a raw body that can be read only once, so it is never resent.
 	stream io.Reader
+	// target is an absolute URL a response returned, sent to instead of the base URL and path. A
+	// redirect from it is returned as a response.
+	target *url.URL
+	// unsigned is set when the credentials must not see the request.
+	unsigned bool
 }
 
 func (r *request) url(base string) string {
+	if r.target != nil {
+		return r.target.String()
+	}
 	if len(r.query) == 0 {
 		return base + r.path
 	}
 	return base + r.path + "?" + r.query.Encode()
+}
+
+// shown is the URL for the log. A URL a response returned is shown without its query, which may hold
+// a signature.
+func (r *request) shown(base string) string {
+	if r.target == nil {
+		return r.url(base)
+	}
+	return r.target.Scheme + "://" + r.target.Host + r.target.EscapedPath()
 }
 
 func text(value reflect.Value) string {

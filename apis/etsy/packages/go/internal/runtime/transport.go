@@ -96,6 +96,8 @@ type Operation struct {
 	IdempotencyKey string
 	// Paging is how Iterator walks pages. Nil means the default [NextLink].
 	Paging Paging
+	// Job is set when the operation reports an asynchronous job's progress, for [Wait] to poll.
+	Job *Job
 	// Security lists alternatives: any one requirement authorizes the call.
 	Security []Requirement
 }
@@ -348,7 +350,7 @@ func (t *Transport) authorize(ctx context.Context, built *request, base string) 
 	}
 	t.addHeaderParams(header, built)
 	auth := &AuthRequest{Method: built.method, URL: built.url(base), Header: header, Body: built.body, Operation: built.operation}
-	if t.settings.Credentials == nil {
+	if t.settings.Credentials == nil || built.unsigned {
 		return auth, nil
 	}
 	if err := t.settings.Credentials.Apply(ctx, auth); err != nil {
@@ -418,6 +420,11 @@ func (t *Transport) attempt(ctx context.Context, auth *AuthRequest, built *reque
 	incoming, err := t.client.Do(outgoing)
 	if err != nil {
 		return nil, t.translate(ctx, attempt, err)
+	}
+	if built.target != nil && slices.Contains(redirects, incoming.StatusCode) {
+		incoming.Body.Close()
+		t.log(ctx, slog.LevelDebug, "response", slog.String("method", auth.Method), slog.Int("status", incoming.StatusCode), slog.String("body", "redirect"))
+		return &response{status: incoming.StatusCode, header: incoming.Header}, nil
 	}
 	success := incoming.StatusCode >= 200 && incoming.StatusCode < 300
 	if success && built.operation.BinaryResponse {
@@ -541,7 +548,7 @@ func (t *Transport) fetch(ctx context.Context, built *request) (*response, error
 	built = t.withQueryDefaults(built)
 	refreshed := false
 	for tries := 0; ; tries++ {
-		t.log(ctx, slog.LevelDebug, "request", slog.String("method", built.method), slog.String("url", built.url(base)))
+		t.log(ctx, slog.LevelDebug, "request", slog.String("method", built.method), slog.String("url", built.shown(base)))
 		group := t.refreshGroup(built.operation)
 		generation := t.generation(group)
 		auth, err := t.authorize(ctx, built, base)
@@ -558,7 +565,7 @@ func (t *Transport) fetch(ctx context.Context, built *request) (*response, error
 			return nil, err
 		}
 		// Never for an operation that sends no credentials, such as a token request made during a refresh.
-		if failure.Status == http.StatusUnauthorized && !refreshed && len(built.operation.Security) > 0 {
+		if failure.Status == http.StatusUnauthorized && !refreshed && len(built.operation.Security) > 0 && !built.unsigned {
 			refreshed = true
 			retry, err := t.refresh(ctx, auth, group, generation)
 			if err != nil {

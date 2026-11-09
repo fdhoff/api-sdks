@@ -31,6 +31,8 @@ pub enum ErrorKind {
     Connection,
     /// A success response that could not be read as the API declares it.
     Decode,
+    /// A job that had not ended by the deadline. [`Error::job_status`] holds its last status.
+    JobTimeout,
 }
 
 impl ErrorKind {
@@ -49,6 +51,7 @@ impl ErrorKind {
             Self::Timeout => "timeout",
             Self::Connection => "connection",
             Self::Decode => "decode",
+            Self::JobTimeout => "job_timeout",
         }
     }
 }

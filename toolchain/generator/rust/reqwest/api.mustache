@@ -38,6 +38,9 @@ const {{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}: Operat
 {{/vendorExtensions.x-sdk-paging}}
     security: &[{{#vendorExtensions.x-sdk-security}}&[{{#schemes}}Scheme { name: "{{scheme}}", scopes: &[{{#scopes}}"{{.}}", {{/scopes}}] }, {{/schemes}}], {{/vendorExtensions.x-sdk-security}}],
 };
+{{#vendorExtensions.x-sdk-job}}
+const {{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}_JOB: crate::runtime::Job = crate::runtime::Job { state: "{{state}}", done: &[{{#done}}"{{.}}", {{/done}}], failed: &[{{#failed}}"{{.}}", {{/failed}}] };
+{{/vendorExtensions.x-sdk-job}}
 {{/operation}}
 {{#operation}}
 {{#vendorExtensions.x-sdk-has-params}}
@@ -128,6 +131,17 @@ impl {{classname}} {
         Transport::paginate(&self.transport, {{>partial_sdk_request}})
     }
 {{/vendorExtensions.x-sdk-iterator}}
+{{#vendorExtensions.x-sdk-job}}
+
+    /// Polls every `options.interval` until the job that `{{start}}` started ends, and returns
+    /// its last status, done or failed. Pass the `{{id}}` it returned. Once `options.timeout`
+    /// passes, the error's kind is `JobTimeout` and [`Error::job_status`] holds the last status.
+    /// Dropping the future stops it.
+    pub async fn {{vendorExtensions.x-sdk-wait}}(&self{{#pathParams}}, {{{paramName}}}: {{>partial_path_type}}{{/pathParams}}, options: crate::runtime::WaitOptions) -> Result<{{{returnType}}}, Error> {
+        let request = Request::new(&{{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}){{#vendorExtensions.x-sdk-host}}.host("{{.}}"){{/vendorExtensions.x-sdk-host}}{{#pathParams}}.path("{{baseName}}", &{{{paramName}}}){{/pathParams}};
+        self.transport.wait(&{{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}_JOB, request, options).await
+    }
+{{/vendorExtensions.x-sdk-job}}
 {{/operation}}
 }
 {{/operations}}

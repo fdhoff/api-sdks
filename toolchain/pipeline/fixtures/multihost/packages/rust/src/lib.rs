@@ -10,7 +10,7 @@ mod resources;
 mod runtime;
 
 pub use apis::*;
-pub use runtime::{Error, File, Items};
+pub use runtime::{Download, Error, File, Items, WaitOptions};
 
 /// The kinds the runtime raises.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -19,6 +19,7 @@ pub enum ErrorKind {
     Timeout,
     Connection,
     Decode,
+    JobTimeout,
 }
 
 pub struct Client {

@@ -1,5 +1,5 @@
 from .credentials import AuthRequest, Credentials, Requirement, Scheme, StaticCredentials, redact
-from .errors import ApiConnectionError, ApiError, ApiTimeoutError, DecodeError, ErrorContext
+from .errors import ApiConnectionError, ApiError, ApiTimeoutError, DecodeError, ErrorContext, JobTimeoutError
 from .model import ApiModel, checked, to_wire
 from .signing import ED25519, RSA_V1_5_SHA256, MessageSigner, content_digest
 from .transport import (
@@ -9,6 +9,7 @@ from .transport import (
     Cursor,
     Download,
     FileInput,
+    Job,
     NextLink,
     Offset,
     Operation,
@@ -39,6 +40,8 @@ __all__ = [
     "Download",
     "ErrorContext",
     "FileInput",
+    "Job",
+    "JobTimeoutError",
     "MessageSigner",
     "NextLink",
     "Offset",

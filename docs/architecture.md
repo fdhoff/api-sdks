@@ -205,6 +205,15 @@ A body the spec declares as `type: string, format: binary` is bytes, never text.
 
 A text response that is not JSON, such as `text/plain` or `text/tab-separated-values`, is returned as text, as before.
 
+### Asynchronous jobs and URL downloads
+
+Some APIs start a job, such as a bulk import, and report its progress through a status operation. `jobs` in `sdk.yaml` maps each start operation to `{ status, id, param, state, done, failed }`: the status GET, the dotted path of the job ID in the start response, the status operation's path parameter that takes it, and the dotted path of the state in its response, which ends the job once it is in `done` or `failed`. The status operation's `operations.yaml` entry names the `wait` method. Generation fails when an operation, parameter or field does not exist, when the status operation requires anything but the job ID, or when a state is both done and failed.
+
+* **Polling.** The wait method calls the status operation every interval, 60 seconds by default, until the state ends the job, and returns the last status. A failed job is returned, not raised, so the caller can fetch its error report. Each poll is an ordinary call, so a 429 waits for `Retry-After` as usual. At the deadline, an hour by default, it raises a `job_timeout` error that holds the last status. It stops when cancelled: a Go context, a TypeScript `AbortSignal`, a .NET `CancellationToken`, a cancelled Python task, or a dropped Rust future.
+* **URL downloads.** The runtimes can GET an absolute URL a response returns, such as a report link, as a download. Credentials go only to the base URL's scheme, host and port. Redirects are followed by hand, up to five, and once one leaves that origin no later request carries credentials. Logs omit the URL's query, which may hold a signature. A hand-written client exposes this where its API returns such links.
+
+The multihost fixture has a synthetic start, status and report trio, so CI type-checks the generated wait methods.
+
 An empty 204 is no result: `None`, `undefined`, `nil`, `null` or the type's default, even where the operation also declares a JSON success. An empty body with any other status is a decode error where JSON is declared. TODO: make the return type optional where an operation declares a 204 beside a JSON success.
 
 ### Timeouts

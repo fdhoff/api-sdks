@@ -26,6 +26,7 @@ const (
 	KindTimeout        = runtime.KindTimeout
 	KindConnection     = runtime.KindConnection
 	KindDecode         = runtime.KindDecode
+	KindJobTimeout     = runtime.KindJobTimeout
 	KindBadRequest     = Kind("bad_request")
 	KindAuthentication = Kind("authentication")
 	KindPermission     = Kind("permission")
@@ -42,6 +43,7 @@ var (
 	ErrTimeout        = &APIError{Kind: KindTimeout, Message: "timeout"}
 	ErrConnection     = &APIError{Kind: KindConnection, Message: "connection failed"}
 	ErrDecode         = &APIError{Kind: KindDecode, Message: "response cannot be decoded"}
+	ErrJobTimeout     = &APIError{Kind: KindJobTimeout, Message: "job did not end in time"}
 	ErrBadRequest     = &APIError{Kind: KindBadRequest, Message: "bad request"}
 	ErrAuthentication = &APIError{Kind: KindAuthentication, Message: "authentication failed"}
 	ErrPermission     = &APIError{Kind: KindPermission, Message: "permission denied"}
