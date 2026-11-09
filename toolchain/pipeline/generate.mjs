@@ -619,7 +619,8 @@ async function generateContract({ apiDir, language, packageDir, config, built, s
   try {
     const input = join(work, 'openapi.yaml');
     const generatorConfig = join(work, 'config.json');
-    await writeFile(input, stringify(spec, { lineWidth: 0, compat: 'yaml-1.1' }));
+    // The generator's YAML parser refuses more than 50 aliases, so repeated objects are written out in full.
+    await writeFile(input, stringify(spec, { lineWidth: 0, compat: 'yaml-1.1', aliasDuplicateObjects: false }));
     await writeFile(generatorConfig, JSON.stringify({ files: supportingFiles(config, source) }));
     await mkdir(join(work, 'out'));
     await writeFile(join(work, 'out', '.openapi-generator-ignore'), ignoreFile(config));

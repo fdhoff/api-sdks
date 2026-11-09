@@ -8,7 +8,7 @@ Unofficial, spec-driven SDKs for third-party APIs, one directory per API under `
 | Etsy Open API v3 | [`apis/etsy/`](apis/etsy/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
 | eBay Sell, Commerce and Developer APIs | [`apis/ebay/`](apis/ebay/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
 | Mercury API | [`apis/mercury/`](apis/mercury/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
-| Mirakl seller API | [`apis/mirakl/`](apis/mirakl/) | Spec pipeline and conformance cases; no language package yet |
+| Mirakl seller API | [`apis/mirakl/`](apis/mirakl/) | TypeScript alpha, not yet published |
 
 Every SDK here is unofficial and is not affiliated with, endorsed by, or supported by the company whose API it calls, including Back Market, Etsy, eBay, Mercury and Mirakl.
 
@@ -159,7 +159,7 @@ The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see 
 
 ## Mirakl seller API
 
-`apis/mirakl/` pins the public spec of Mirakl's marketplace seller API, corrects it, and checks the conformance cases against a reference driver. There is no language package yet. Every operator runs its own Mirakl instance, so the caller always supplies the base URL and a shop API key. This project is not affiliated with, endorsed by or sponsored by Mirakl.
+`apis/mirakl/` pins the public spec of Mirakl's marketplace seller API, corrects it, and checks the conformance cases against a reference driver. The TypeScript SDK is an alpha, not yet published: see [`apis/mirakl/packages/typescript/`](apis/mirakl/packages/typescript/README.md). Every operator runs its own Mirakl instance, so the caller always supplies the base URL and a shop API key. This project is not affiliated with, endorsed by or sponsored by Mirakl.
 
 ## Layout
 

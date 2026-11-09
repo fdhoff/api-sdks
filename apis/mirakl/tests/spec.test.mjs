@@ -134,3 +134,12 @@ test('no spec content is tracked under this API', () => {
   const tracked = execFileSync('git', ['ls-files', API_DIR], { encoding: 'utf8' }).split('\n').filter(Boolean);
   assert.deepEqual(tracked.filter((file) => /openapi|upstream\/(?!lock\.json$)|\/build\//.test(file)), []);
 });
+
+test("a shipment's additional information value is a string, as each of its kinds declares", () => {
+  const bases = Object.entries(built.components.schemas).filter(([name, schema]) => schema.discriminator && /ShipmentAdditionalInformation$/.test(name) && schema.properties?.value);
+  assert.equal(bases.length, 3);
+  for (const [name, schema] of bases) {
+    assert.equal(schema.properties.value.type, 'string', name);
+    for (const ref of Object.values(schema.discriminator.mapping)) assert.equal(deref({ $ref: ref }).properties.value.type, 'string', ref);
+  }
+});

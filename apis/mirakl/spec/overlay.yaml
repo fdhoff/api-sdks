@@ -163,3 +163,8 @@ actions:
   - description: M7. A list parameter whose item default is the whole list as one string, outside its own enum.
     target: $.paths['/api/seller-billing-cycles'].get.parameters[?(@.name == 'pay_out_state')].schema.items.default
     remove: true
+
+  - description: M8. A shipment's additional information declares its value an object, but both of its kinds declare a string.
+    target: $.components.schemas[?(@.discriminator && @.properties.value.type == 'object')].properties.value
+    update:
+      type: string
