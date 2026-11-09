@@ -195,7 +195,7 @@ async fn encode(body: &Body) -> Result<(Option<String>, Vec<u8>), Error> {
         }
         Body::Multipart(parts) => parts,
     };
-    let form = form(parts);
+    let form = form(parts)?;
     let content_type = format!("multipart/form-data; boundary={}", form.boundary());
     let mut stream = std::pin::pin!(form.into_stream());
     let mut bytes = Vec::new();
@@ -205,22 +205,18 @@ async fn encode(body: &Body) -> Result<(Option<String>, Vec<u8>), Error> {
     Ok((Some(content_type), bytes))
 }
 
-fn form(parts: &[Part]) -> multipart::Form {
+fn form(parts: &[Part]) -> Result<multipart::Form, Error> {
     parts
         .iter()
-        .fold(multipart::Form::new(), |form, part| match part {
-            Part::Text { name, value } => form.text(name.clone(), value.clone()),
+        .try_fold(multipart::Form::new(), |form, part| match part {
+            Part::Text { name, value } => Ok(form.text(name.clone(), value.clone())),
             Part::File { name, file } => {
                 let filename = file.name.clone().unwrap_or_else(|| name.clone());
-                let mut headers = HeaderMap::new();
-                headers.insert(
-                    CONTENT_TYPE,
-                    HeaderValue::from_static("application/octet-stream"),
-                );
                 let part = multipart::Part::bytes(file.content.clone())
                     .file_name(filename)
-                    .headers(headers);
-                form.part(name.clone(), part)
+                    .mime_str("application/octet-stream")
+                    .map_err(translate)?;
+                Ok(form.part(name.clone(), part))
             }
         })
 }
@@ -746,6 +742,9 @@ impl Transport {
 
     async fn page(&self, request: &Request) -> Result<(VecDeque<Value>, Option<Request>), Error> {
         let answer = self.fetch(request).await?;
+        if answer.status == 204 {
+            return Ok((VecDeque::new(), None));
+        }
         let page: Value = serde_json::from_slice(&answer.body).unwrap_or(Value::Null);
         if !page.is_object() {
             return Err(self.decode_error("a page is not a JSON object", &answer));
@@ -1049,6 +1048,35 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn a_multipart_file_part_is_typed_and_a_text_part_is_not() {
+        let file = super::super::request::File {
+            name: Some("photo.png".to_owned()),
+            content: b"synthetic".to_vec(),
+        };
+        let parts = vec![
+            Part::File {
+                name: "image".to_owned(),
+                file,
+            },
+            Part::Text {
+                name: "title".to_owned(),
+                value: "Lamp".to_owned(),
+            },
+        ];
+        let (content_type, body) = encode(&Body::Multipart(parts)).await.unwrap();
+        assert!(
+            content_type
+                .unwrap()
+                .starts_with("multipart/form-data; boundary=")
+        );
+        let body = String::from_utf8(body).unwrap();
+        let file = "content-disposition: form-data; name=\"image\"; filename=\"photo.png\"\r\ncontent-type: application/octet-stream\r\n\r\nsynthetic";
+        assert!(body.to_lowercase().contains(file), "{body}");
+        let text = "content-disposition: form-data; name=\"title\"\r\n\r\nLamp";
+        assert!(body.to_lowercase().contains(&text.to_lowercase()), "{body}");
+    }
+
     #[test]
     fn a_request_that_cannot_be_built_is_not_a_connection_failure() {
         let error = reqwest::Client::new().get("not a url").build().unwrap_err();
@@ -1350,6 +1378,38 @@ mod tests {
             assert_eq!(sent[0].body, PDF);
             assert_eq!(line(&sent[0].head, "content-type"), Some("video/mp4"));
             assert_eq!(*credentials.bodies.lock().unwrap(), [Vec::<u8>::new()]);
+        }
+
+        #[tokio::test]
+        async fn an_empty_204_page_is_the_last_page() {
+            let (url, log) = serve(|number| match number {
+                1 => reply(
+                    200,
+                    Some("application/json"),
+                    br#"{"total":null,"data":[1,2]}"#,
+                ),
+                _ => reply(204, None, b""),
+            })
+            .await;
+            let transport = Arc::new(quick(&url));
+            let items: Vec<Value> = futures_util::StreamExt::collect::<Vec<_>>(
+                Transport::paginate(&transport, Request::new(&OFFSET_LIST)),
+            )
+            .await
+            .into_iter()
+            .collect::<Result<_, _>>()
+            .unwrap();
+            assert_eq!(items, [serde_json::json!(1), serde_json::json!(2)]);
+            assert_eq!(log.lock().unwrap().len(), 2);
+
+            let (url, log) = serve(|_| reply(204, None, b"")).await;
+            let transport = Arc::new(quick(&url));
+            let items = futures_util::StreamExt::collect::<Vec<Result<Value, Error>>>(
+                Transport::paginate(&transport, Request::new(&OFFSET_LIST)),
+            )
+            .await;
+            assert!(items.is_empty());
+            assert_eq!(log.lock().unwrap().len(), 1);
         }
 
         #[tokio::test]
