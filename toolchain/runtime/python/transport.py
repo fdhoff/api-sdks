@@ -235,7 +235,7 @@ def _is_array(value: Any) -> bool:
     return isinstance(value, (Sequence, AbstractSet)) and not isinstance(value, (str, bytes, bytearray, memoryview))
 
 
-def _items(value: Any) -> list[Any]:
+def _values(value: Any) -> list[Any]:
     return list(value) if _is_array(value) else [value]
 
 
@@ -281,9 +281,9 @@ def _build_request(
         elif param.location == "path":
             path = path.replace(f"{{{param.wire}}}", quote(_text(value), safe=""))
         elif param.location == "query":
-            query.extend((param.wire, _text(item)) for item in _items(value))
+            query.extend((param.wire, _text(item)) for item in _values(value))
         elif param.location == "urlencoded":
-            fields.setdefault(param.wire, []).extend(_field(item) for item in _items(value))
+            fields.setdefault(param.wire, []).extend(_field(item) for item in _values(value))
         else:
             parts.extend(_multipart(param.wire, value))
     search = f"?{urlencode(query)}" if query else ""
