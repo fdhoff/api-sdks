@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net8.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Generated models carry no upstream prose, so most public members have no XML docs. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <PackageId>MercuryBanking</PackageId>
+    <Version>0.1.0-alpha.1</Version>
+    <Authors>api-sdks contributors</Authors>
+    <Description>Unofficial client for the Mercury API. Not affiliated with, endorsed by or sponsored by Mercury Technologies, Inc.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageProjectUrl>https://github.com/fdhoff/api-sdks/tree/main/apis/mercury/packages/csharp</PackageProjectUrl>
+    <PackageTags>mercury-api;sdk;unofficial</PackageTags>
+    <RepositoryUrl>https://github.com/fdhoff/api-sdks</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <!-- Source Link ships with the .NET SDK; these record the commit and let debuggers fetch the source. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md;../../LICENSE;../../NOTICE;../../icon.png" Pack="true" PackagePath="/" />
+    <InternalsVisibleTo Include="MercuryBanking.Tests" />
+    <InternalsVisibleTo Include="MercuryBanking.Conformance" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- This package does not sign requests, so it leaves out the runtime's message signer and its dependency. -->
+    <Compile Remove="Runtime/MessageSigner.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="System.Text.Json" Version="10.0.14" />
+  </ItemGroup>
+
+</Project>

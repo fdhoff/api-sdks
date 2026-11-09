@@ -1,0 +1,113 @@
+# Public names for every operation, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`. Each page's list
+# and its paging are the ones ../../sdk.yaml gives under `iterators`; operations.yaml repeats them until generate.mjs
+# reads them from there.
+# `idempotency` lets a money-moving write be retried like a GET when its `idempotencyKey` is set, as in ../../sdk.yaml.
+getAccounts: { resource: Accounts, method: ListAsync, iterator: ListAllAsync, items: Account, paging: { items: accounts }, summary: List one page of your accounts. }
+getAccountCards: { resource: Accounts, method: ListCardsAsync, summary: List the cards issued on an account. }
+getAccountStatements: { resource: Accounts, method: ListStatementsAsync, iterator: ListAllStatementsAsync, items: DepositoryAccountStatement, paging: { items: statements }, summary: List one page of an account's statements. }
+listAccountTransactions: { resource: Accounts, method: ListTransactionsAsync, iterator: ListAllTransactionsAsync, items: Transaction, paging: { style: offset, items: transactions, total: total }, summary: List one page of an account's transactions. }
+getTransaction: { resource: Accounts, method: GetTransactionAsync, summary: Get one transaction of an account. }
+createTransaction: { resource: Accounts, method: SendMoneyAsync, idempotency: { body: idempotencyKey }, summary: Send money from an account to a recipient. }
+requestSendMoney: { resource: Accounts, method: RequestSendMoneyAsync, idempotency: { body: idempotencyKey }, summary: "Ask to send money from an account, subject to your approval policy." }
+createInternalTransfer: { resource: Accounts, method: TransferAsync, idempotency: { body: idempotencyKey }, summary: Move money between two of your accounts. }
+
+getAutoTransferRules: { resource: AutoTransferRules, method: ListAsync, iterator: ListAllAsync, items: AutoTransferRule, paging: { items: rules }, summary: List one page of automatic transfer rules. }
+
+listBudgets: { resource: Budgets, method: ListAsync, iterator: ListAllAsync, items: ApiV1SpendBudgetResponse, paging: { items: budgets }, summary: List one page of budgets. }
+getBudget: { resource: Budgets, method: GetAsync, summary: Get one budget. }
+createBudget: { resource: Budgets, method: CreateAsync, summary: Create a budget. }
+updateBudget: { resource: Budgets, method: UpdateAsync, summary: Update a budget. }
+archiveBudget: { resource: Budgets, method: ArchiveAsync, summary: "Archive a published budget, or delete a draft." }
+assignTransactionToBudget: { resource: Budgets, method: AssignTransactionAsync, summary: Count a transaction against a budget. }
+getBudgetExpenditures: { resource: Budgets, method: ListExpendituresAsync, iterator: ListAllExpendituresAsync, items: ApiV1BudgetExpenditure, paging: { items: expenditures }, summary: List one page of a budget's spending. }
+getBudgetMembers: { resource: Budgets, method: ListMembersAsync, iterator: ListAllMembersAsync, items: ApiV1BudgetMember, paging: { items: members }, summary: List one page of a budget's members. }
+
+listCards: { resource: Cards, method: ListAsync, iterator: ListAllAsync, items: Card, paging: { items: cards }, summary: List one page of cards. }
+getCard: { resource: Cards, method: GetAsync, summary: Get one card. }
+createCard: { resource: Cards, method: CreateAsync, summary: Issue a card. }
+updateCard: { resource: Cards, method: UpdateAsync, summary: Update a card. }
+cancelCard: { resource: Cards, method: CancelAsync, summary: Cancel a card for good. }
+freezeCard: { resource: Cards, method: FreezeAsync, summary: Freeze a card. }
+unfreezeCard: { resource: Cards, method: UnfreezeAsync, summary: Unfreeze a card. }
+revealCardPan: { resource: Cards, method: RevealAsync, summary: Get a card's full number and security code. Never log the result. }
+
+listCategories: { resource: Categories, method: ListAsync, iterator: ListAllAsync, items: CategoryData, paging: { items: categories }, summary: List one page of expense categories. }
+createCategory: { resource: Categories, method: CreateAsync, summary: Create an expense category. }
+editCategory: { resource: Categories, method: UpdateAsync, summary: Update an expense category. }
+deleteCategory: { resource: Categories, method: DeleteAsync, summary: Delete an expense category. }
+
+listCredit: { resource: Credit, method: ListAsync, summary: List your credit accounts. }
+getCreditAccountStatements: { resource: Credit, method: ListStatementsAsync, iterator: ListAllStatementsAsync, items: AccountStatement, paging: { items: statements }, summary: List one page of a credit account's statements. }
+
+listCustomers: { resource: Customers, method: ListAsync, iterator: ListAllAsync, items: ApiV1ArCustomerResponseData, paging: { items: customers }, summary: List one page of invoicing customers. }
+getCustomer: { resource: Customers, method: GetAsync, summary: Get one invoicing customer. }
+createCustomer: { resource: Customers, method: CreateAsync, summary: Create an invoicing customer. }
+updateCustomer: { resource: Customers, method: UpdateAsync, summary: Update an invoicing customer. }
+deleteCustomer: { resource: Customers, method: DeleteAsync, summary: Delete an invoicing customer. }
+
+getEvents: { resource: Events, method: ListAsync, iterator: ListAllAsync, items: ApiEventResponse, paging: { items: events }, summary: List one page of events. }
+getEvent: { resource: Events, method: GetAsync, summary: Get one event. }
+
+listInvoices: { resource: Invoices, method: ListAsync, iterator: ListAllAsync, items: ApiV1ArInvoicesData, paging: { items: invoices }, summary: List one page of invoices. }
+getInvoice: { resource: Invoices, method: GetAsync, summary: Get one invoice. }
+createInvoice: { resource: Invoices, method: CreateAsync, summary: Create an invoice. }
+updateInvoice: { resource: Invoices, method: UpdateAsync, summary: Update an invoice. }
+cancelInvoice: { resource: Invoices, method: CancelAsync, summary: Cancel an invoice. }
+getInvoicePdf: { resource: Invoices, method: DownloadPdfAsync, summary: Download an invoice as a PDF. }
+listInvoiceAttachments: { resource: Invoices, method: ListAttachmentsAsync, summary: List an invoice's attachments. }
+getAttachment: { resource: Invoices, method: GetAttachmentAsync, summary: "Get one invoice attachment, with its download URL." }
+
+listMerchants: { resource: Merchants, method: ListAsync, iterator: ListAllAsync, items: MerchantInfo, paging: { items: data }, summary: List one page of merchants you have paid. }
+
+getOrganization: { resource: Organization, method: GetAsync, summary: Get your organization. }
+
+listReceipts: { resource: Receipts, method: ListAsync, iterator: ListAllAsync, items: ApiV1ReceiptResponse, paging: { items: receipts }, summary: List one page of receipts. }
+getReceipt: { resource: Receipts, method: GetAsync, summary: Get one receipt. }
+createReceiptUploadUrl: { resource: Receipts, method: CreateUploadUrlAsync, summary: Get a short-lived URL to upload a receipt file to. }
+matchReceipt: { resource: Receipts, method: MatchAsync, summary: Start matching an uploaded receipt to a transaction. }
+
+getRecipients: { resource: Recipients, method: ListAsync, iterator: ListAllAsync, items: RecipientInfo, paging: { items: recipients }, summary: List one page of payment recipients. }
+getRecipient: { resource: Recipients, method: GetAsync, summary: Get one payment recipient. }
+createRecipient: { resource: Recipients, method: CreateAsync, summary: Create a payment recipient. }
+updateRecipient: { resource: Recipients, method: UpdateAsync, summary: Update a payment recipient. }
+deleteRecipient: { resource: Recipients, method: DeleteAsync, summary: Delete a payment recipient. }
+uploadRecipientAttachment: { resource: Recipients, method: UploadAttachmentAsync, summary: "Attach a file, such as a tax form, to a recipient." }
+listRecipientsAttachments: { resource: Recipients, method: ListAttachmentsAsync, iterator: ListAllAttachmentsAsync, items: RecipientAttachmentWithId, paging: { items: attachments }, summary: List one page of the files attached to recipients. }
+
+listRecipientInvites: { resource: RecipientInvites, method: ListAsync, iterator: ListAllAsync, items: RecipientInviteApiResponse, paging: { items: invites }, summary: List one page of recipient invites. }
+getRecipientInvite: { resource: RecipientInvites, method: GetAsync, summary: Get one recipient invite. }
+createRecipientInvite: { resource: RecipientInvites, method: CreateAsync, summary: Invite someone to add their own payment details as a recipient. }
+deleteRecipientInvite: { resource: RecipientInvites, method: DeleteAsync, summary: Delete a recipient invite. }
+
+getSafeRequests: { resource: Safes, method: ListAsync, summary: List your SAFE requests. }
+getSafeRequest: { resource: Safes, method: GetAsync, summary: Get one SAFE request. }
+getSafeRequestDocument: { resource: Safes, method: DownloadDocumentAsync, summary: Download a SAFE request's document as a PDF. }
+
+listSendMoneyApprovalRequests: { resource: SendMoneyRequests, method: ListAsync, iterator: ListAllAsync, items: SendMoneyApprovalRequestResponse, paging: { items: requests }, summary: List one page of requests to send money. }
+getSendMoneyApprovalRequest: { resource: SendMoneyRequests, method: GetAsync, summary: Get one request to send money. }
+
+getStatementPdf: { resource: Statements, method: DownloadPdfAsync, summary: Download an account statement as a PDF. }
+
+listTransactions: { resource: Transactions, method: ListAsync, iterator: ListAllAsync, items: Transaction, paging: { items: transactions }, summary: List one page of transactions across your accounts. }
+getTransactionById: { resource: Transactions, method: GetAsync, summary: Get one transaction. }
+updateTransaction: { resource: Transactions, method: UpdateAsync, summary: Update a transaction's note or category. }
+uploadTransactionAttachment: { resource: Transactions, method: UploadAttachmentAsync, summary: "Attach a file, such as a receipt, to a transaction." }
+
+listTransferMoneyApprovalRequests: { resource: TransferRequests, method: ListAsync, iterator: ListAllAsync, items: TransferMoneyApprovalRequestResponse, paging: { items: requests }, summary: List one page of requests to move money between accounts. }
+getTransferMoneyApprovalRequest: { resource: TransferRequests, method: GetAsync, summary: Get one request to move money between accounts. }
+requestTransferMoney: { resource: TransferRequests, method: CreateAsync, idempotency: { body: idempotencyKey }, summary: "Ask to move money between accounts, subject to your approval policy." }
+
+getTreasury: { resource: Treasury, method: ListAsync, iterator: ListAllAsync, items: TreasuryAccount, paging: { items: accounts }, summary: List one page of treasury accounts. }
+getTreasuryStatements: { resource: Treasury, method: ListStatementsAsync, iterator: ListAllStatementsAsync, items: TreasuryStatement, paging: { items: statements }, summary: List one page of a treasury account's statements. }
+getTreasuryTransactions: { resource: Treasury, method: ListTransactionsAsync, iterator: ListAllTransactionsAsync, items: TreasuryTxn, paging: { style: cursor, items: transactions, next: cursor, param: cursor }, summary: List one page of a treasury account's transactions. }
+
+getUsers: { resource: Users, method: ListAsync, iterator: ListAllAsync, items: UserDetails, paging: { items: users }, summary: List one page of your organization's users. }
+getUser: { resource: Users, method: GetAsync, summary: Get one user. }
+
+getWebhooks: { resource: Webhooks, method: ListAsync, iterator: ListAllAsync, items: ApiWebhookResponse, paging: { items: webhooks }, summary: List one page of webhook endpoints. }
+getWebhook: { resource: Webhooks, method: GetAsync, summary: Get one webhook endpoint. }
+createWebhook: { resource: Webhooks, method: CreateAsync, summary: Register a webhook endpoint. }
+updateWebhook: { resource: Webhooks, method: UpdateAsync, summary: Update a webhook endpoint. }
+deleteWebhook: { resource: Webhooks, method: DeleteAsync, summary: Delete a webhook endpoint. }
+verifyWebhook: { resource: Webhooks, method: SendTestEventAsync, summary: Send a test event to a webhook endpoint. }

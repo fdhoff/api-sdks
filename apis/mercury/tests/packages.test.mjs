@@ -56,3 +56,25 @@ test('the Go manifest, package doc and README say it is unofficial and not affil
   assert.match(readme, /How this differs from Mercury's Go SDK/);
   assert.match(readme, /0\.x/);
 });
+
+const CSHARP = new URL('packages/csharp/', API);
+
+test('the C# package ships the Apache-2.0 licence and the Python notice', async () => {
+  assert.equal(await readFile(new URL('LICENSE', CSHARP), 'utf8'), await readFile(new URL('LICENSE', ROOT), 'utf8'));
+  assert.equal(await readFile(new URL('NOTICE', CSHARP), 'utf8'), await readFile(new URL('packages/python/NOTICE', API), 'utf8'));
+});
+
+test('the C# project declares Apache-2.0 and MercuryBanking, and its description starts with Unofficial', async () => {
+  const project = await readFile(new URL('src/MercuryBanking/MercuryBanking.csproj', CSHARP), 'utf8');
+  assert.match(project, /<PackageLicenseExpression>Apache-2\.0<\/PackageLicenseExpression>/);
+  assert.match(project, /<PackageId>MercuryBanking<\/PackageId>/);
+  assert.ok(project.includes(`<Description>Unofficial client for the Mercury API. ${AFFILIATION}</Description>`));
+});
+
+test('the C# README says it is unofficial, not affiliated and that Mercury is not a bank', async () => {
+  const readme = await unwrapped(new URL('README.md', CSHARP));
+  assert.match(readme, /^# MercuryBanking Unofficial /);
+  assert.ok(readme.includes(AFFILIATION));
+  assert.match(readme, /not a bank/);
+  assert.match(readme, /0\.x/);
+});

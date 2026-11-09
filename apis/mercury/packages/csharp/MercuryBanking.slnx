@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/MercuryBanking/MercuryBanking.csproj" />
+  <Project Path="tests/MercuryBanking.Tests/MercuryBanking.Tests.csproj" />
+  <Project Path="conformance/Driver/MercuryBanking.Conformance.csproj" />
+</Solution>
