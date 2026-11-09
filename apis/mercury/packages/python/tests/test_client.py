@@ -99,7 +99,8 @@ def test_a_list_or_tuple_filter_repeats_the_query_key(status: Any) -> None:
         seen.append(request)
         return httpx.Response(200, json={"cards": [], "page": {}})
 
-    client_for(handler).cards.list(status=status, kind=frozenset({"virtual"}))
+    kind: Any = frozenset({"virtual"})
+    client_for(handler).cards.list(status=status, kind=kind)
     assert seen[0].url.params.get_list("status") == ["active", "frozen"]
     assert seen[0].url.params.get_list("kind") == ["virtual"]
 
