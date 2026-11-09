@@ -1,7 +1,8 @@
-// Prints `matrix=` for $GITHUB_OUTPUT: one {api, language, package, version} per published package to smoke test.
+// Prints `matrix=` for $GITHUB_OUTPUT: one {api, language, package, version, ref, best_effort} per package to smoke test.
 // Given a language and version, that API's package at that version. Given a Go module tag, that module. Otherwise
 // the latest version on its registry of every package, or of those an API or language filter picks; a package
 // with no published version is left out. Uses only Node's own modules, so it runs before `npm ci`.
+import { spawnSync } from 'node:child_process';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -118,7 +119,25 @@ async function published(language, name) {
   return latestVersion(language, await response.text());
 }
 
-export async function targets(root, { api, language, version, tag }, lookup = published) {
+// The tags a version may have been released from, newest naming first. Tags from before tags named the API are
+// `<language>/v<version>`.
+export function releaseTags(api, language, version) {
+  if (language === 'go') return [`apis/${api}/packages/go/v${version}`];
+  return [`${api}/${language}/v${version}`, `${language}/v${version}`];
+}
+
+const git = (root, ...args) => spawnSync('git', args, { cwd: root, stdio: 'ignore' }).status === 0;
+
+// The release tag that holds a smoke program for this version, or null when it was released before it had one.
+function releasedProgram(root, { api, language, version }) {
+  const path = `apis/${api}/packages/${language}/published/${PROGRAMS[language]}`;
+  return releaseTags(api, language, version).find((tag) => git(root, 'cat-file', '-e', `refs/tags/${tag}:${path}`)) ?? null;
+}
+
+// Each entry's `ref` is the release tag whose smoke program to run, so a version is always checked with the program
+// written for its own API. A version released before it had one is checked with this checkout's program instead, and
+// `best_effort` marks it: the API may have changed since, so a failure warns rather than fails.
+export async function targets(root, { api, language, version, tag }, lookup = published, programAt = releasedProgram) {
   const go = GO_TAG.exec(tag ?? '');
   if (!language && go) {
     language = 'go';
@@ -133,8 +152,12 @@ export async function targets(root, { api, language, version, tag }, lookup = pu
     const name = await packageName(join(root, 'apis', item.api), item.language);
     if (!name) throw new Error(`apis/${item.api}/packages/${item.language} does not declare a package name`);
     const resolved = version || (await lookup(item.language, name));
-    if (resolved) matrix.push({ ...item, package: name, version: resolved });
-    else console.error(`::notice title=Not published::${name} (${item.language}) has no published version.`);
+    if (!resolved) {
+      console.error(`::notice title=Not published::${name} (${item.language}) has no published version.`);
+      continue;
+    }
+    const ref = programAt(root, { ...item, version: resolved });
+    matrix.push({ ...item, package: name, version: resolved, ref: ref ?? '', best_effort: ref === null });
   }
   return matrix;
 }

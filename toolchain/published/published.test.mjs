@@ -3,9 +3,10 @@ import { access, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { LANGUAGES, latestVersion, packages, PROGRAMS, registryUrl, targets } from './targets.mjs';
+import { LANGUAGES, latestVersion, packages, PROGRAMS, registryUrl, releaseTags, targets } from './targets.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
+const NO_PROGRAM = () => null;
 
 test('PyPI: the version uploaded last, ignoring yanked files and empty releases', () => {
   const file = (time, yanked = false) => ({ upload_time_iso_8601: time, yanked });
@@ -51,24 +52,41 @@ test('registry URLs follow each registry layout', () => {
 test('a release names one package at its version, without asking the registry', async () => {
   const [{ api, language }] = await packages(ROOT);
   const never = () => assert.fail('looked up the registry');
-  const matrix = await targets(ROOT, { api, language, version: '9.9.9' }, never);
+  const matrix = await targets(ROOT, { api, language, version: '9.9.9' }, never, () => `${api}/${language}/v9.9.9`);
   assert.equal(matrix.length, 1);
   assert.equal(matrix[0].version, '9.9.9');
   assert.ok(matrix[0].package);
+  assert.equal(matrix[0].ref, `${api}/${language}/v9.9.9`);
+  assert.equal(matrix[0].best_effort, false);
 });
 
 test('a Go module tag names that module', async () => {
   const go = (await packages(ROOT)).find((item) => item.language === 'go');
-  const matrix = await targets(ROOT, { tag: `apis/${go.api}/packages/go/v0.1.0-alpha.3` }, () => assert.fail());
-  assert.deepEqual(matrix, [{ api: go.api, language: 'go', package: `github.com/fdhoff/api-sdks/apis/${go.api}/packages/go`, version: '0.1.0-alpha.3' }]);
+  const tag = `apis/${go.api}/packages/go/v0.1.0-alpha.3`;
+  const matrix = await targets(ROOT, { tag }, () => assert.fail(), () => tag);
+  assert.deepEqual(matrix, [
+    { api: go.api, language: 'go', package: `github.com/fdhoff/api-sdks/apis/${go.api}/packages/go`, version: '0.1.0-alpha.3', ref: tag, best_effort: false },
+  ]);
 });
 
 test('otherwise every package at its latest version, leaving out those never published', async () => {
   const all = await packages(ROOT);
-  const matrix = await targets(ROOT, {}, async (language) => (language === 'rust' ? null : '1.0.0'));
+  const matrix = await targets(ROOT, {}, async (language) => (language === 'rust' ? null : '1.0.0'), NO_PROGRAM);
   assert.equal(matrix.length, all.filter(({ language }) => language !== 'rust').length);
-  const python = await targets(ROOT, { language: 'python' }, async () => '1.0.0');
+  const python = await targets(ROOT, { language: 'python' }, async () => '1.0.0', NO_PROGRAM);
   assert.deepEqual(python.map(({ api }) => api), all.filter(({ language }) => language === 'python').map(({ api }) => api));
+});
+
+test('a version released before it had a smoke program is checked best effort with this one', async () => {
+  const [{ api, language }] = await packages(ROOT);
+  const [entry] = await targets(ROOT, { api, language, version: '0.0.1' }, () => assert.fail(), NO_PROGRAM);
+  assert.equal(entry.ref, '');
+  assert.equal(entry.best_effort, true);
+});
+
+test('release tags name the API, except Go modules and tags from before tags did', () => {
+  assert.deepEqual(releaseTags('example', 'python', '1.0.0'), ['example/python/v1.0.0', 'python/v1.0.0']);
+  assert.deepEqual(releaseTags('example', 'go', '1.0.0'), ['apis/example/packages/go/v1.0.0']);
 });
 
 test('a version needs an API that has the package', async () => {

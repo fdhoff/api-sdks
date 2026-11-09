@@ -48,8 +48,10 @@ jobs:
     outputs:
       matrix: ${{ steps.target.outputs.matrix }}
     steps:
+      # Every tag, to find the smoke program each version was released with.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -70,6 +72,8 @@ jobs:
     name: ${{ matrix.package }} ${{ matrix.version }} (${{ matrix.language }})
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # A version released before it had a smoke program is checked with main's, written for a newer API.
+    continue-on-error: ${{ matrix.best_effort }}
     strategy:
       fail-fast: false
       matrix:
@@ -84,6 +88,8 @@ jobs:
       PACKAGE: ${{ matrix.package }}
       VERSION: ${{ matrix.version }}
       SMOKE_BASE_URL: http://127.0.0.1:4010
+      # Only a version that was just published may not be served yet.
+      SMOKE_WAIT_SECONDS: ${{ (inputs.version || github.event_name == 'push') && '900' || '0' }}
       RUSTUP_TOOLCHAIN: "1.99"
     defaults:
       run:
@@ -92,6 +98,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Use the smoke program the version was released with
+        if: matrix.ref != ''
+        env:
+          REF: ${{ matrix.ref }}
+        run: |
+          git fetch --depth 1 origin "refs/tags/$REF:refs/tags/$REF"
+          git checkout "$REF" -- "apis/$API/packages/$LANGUAGE/published"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
@@ -131,8 +144,12 @@ jobs:
         run: |
           bash toolchain/published/smoke.sh "$LANGUAGE" "$PACKAGE" "$VERSION" "apis/$API/packages/$LANGUAGE/published" 2>&1 \
             | tee "$RUNNER_TEMP/smoke.log"
+      - name: Warn that a version released before its smoke program failed
+        if: failure() && matrix.best_effort
+        run: |
+          echo "::warning title=Best-effort check failed::$PACKAGE $VERSION ($LANGUAGE) was released before it had a smoke program, and failed main's. See the log."
       - name: Open an issue, or comment on the open one
-        if: failure() && github.event_name != 'pull_request'
+        if: failure() && github.event_name != 'pull_request' && !matrix.best_effort
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

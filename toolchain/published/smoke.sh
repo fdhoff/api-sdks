@@ -14,7 +14,7 @@ version=$3
 program=$(cd "$4" && pwd)
 templates=$(cd "$(dirname "$0")" && pwd)
 : "${SMOKE_BASE_URL:?SMOKE_BASE_URL must name the mock}"
-wait_seconds=${SMOKE_WAIT_SECONDS:-900}
+wait_seconds=${SMOKE_WAIT_SECONDS:-0}
 export SMOKE_VERSION=$version
 
 work=$(mktemp -d)
@@ -78,12 +78,19 @@ case "$language" in
     ;;
   csharp)
     export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 NUGET_PACKAGES="$work/.nuget"
-    sed -e "s/{{package}}/$package/" -e "s/{{version}}/$version/" "$templates/csharp/Smoke.csproj" > Smoke.csproj
     cp "$program/Program.cs" .
-    install() { dotnet restore --no-http-cache; }
+    id=$(echo "$package" | tr '[:upper:]' '[:lower:]')
+    nuspec="https://api.nuget.org/v3-flatcontainer/$id/$(echo "$version" | tr '[:upper:]' '[:lower:]')/$id.nuspec"
+    # Runs on each .NET installed here that the package targets, as its nuspec's dependency groups list them.
+    install() {
+      frameworks=$(curl -fsS "$nuspec" | grep -o 'targetFramework="net\(8\|10\)\.0"' | cut -d'"' -f2 | sort -u | paste -sd';' -) || return 1
+      sed -e "s/{{package}}/$package/" -e "s/{{version}}/$version/" -e "s/{{frameworks}}/$frameworks/" \
+        "$templates/csharp/Smoke.csproj" > Smoke.csproj
+      dotnet restore --no-http-cache
+    }
     retry install
     reported "$(jq -r --arg id "$package" '.libraries | keys[] | select(ascii_downcase | startswith(($id | ascii_downcase) + "/")) | split("/")[1]' obj/project.assets.json)"
-    for framework in net10.0 net8.0; do
+    for framework in ${frameworks//;/ }; do
       dotnet run --no-restore --framework "$framework"
     done
     ;;
