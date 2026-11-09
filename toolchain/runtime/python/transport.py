@@ -100,6 +100,7 @@ class Operation(Generic[T]):
 @dataclass(frozen=True)
 class Settings:
     base_url: str
+    """Where an operation with no host key is sent, without a trailing slash."""
     credentials: Credentials = field(repr=False)
     headers: Mapping[str, str] = field(repr=False)
     to_error: Callable[[ErrorContext], ApiError]
@@ -110,7 +111,8 @@ class Settings:
     rate_limit_wait: float = 10.0
     max_retry_wait: float = 60.0
     hosts: Mapping[str, str] = field(default_factory=dict)
-    """The base URL for each host key. An operation without a key goes to `base_url`."""
+    """The base URL for each host key, without a trailing slash, as `select_hosts` returns them. An
+    operation without a key goes to `base_url`."""
     header_defaults: Mapping[str, str] = field(default_factory=dict)
     """Values for header parameters that a call leaves out, by header name in any case."""
     _defaults_by_name: dict[str, str] = field(init=False, repr=False, compare=False)

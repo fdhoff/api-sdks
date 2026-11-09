@@ -82,8 +82,9 @@ export interface Logger {
 }
 
 export interface Settings {
+  /** Where an operation with no host key is sent, without a trailing slash. */
   baseUrl: string;
-  /** The base URL of each host key that operations name. */
+  /** The base URL of each host key that operations name, without a trailing slash, as `selectHosts` returns them. */
   hosts?: Readonly<Record<string, string>>;
   /** Values for header parameters that an operation declares and the call leaves unset, by header name. */
   headerDefaults?: Readonly<Record<string, string>>;
