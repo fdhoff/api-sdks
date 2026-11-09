@@ -7,7 +7,7 @@ Unofficial, spec-driven SDKs for third-party APIs, one directory per API under `
 | Back Market Seller API | [`apis/backmarket/`](apis/backmarket/) | Alphas in Python, TypeScript, Go, C# and Rust |
 | Etsy Open API v3 | [`apis/etsy/`](apis/etsy/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
 | eBay Sell, Commerce and Developer APIs | [`apis/ebay/`](apis/ebay/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
-| Mercury API | [`apis/mercury/`](apis/mercury/) | Python alpha, not yet published |
+| Mercury API | [`apis/mercury/`](apis/mercury/) | Python and Go alphas, not yet published |
 
 Every SDK here is unofficial and is not affiliated with, endorsed by, or supported by the company whose API it calls, including Back Market, Etsy, eBay and Mercury.
 
@@ -154,7 +154,7 @@ The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see 
 
 ## Mercury API
 
-The Python SDK is an alpha, not yet published: see [`apis/mercury/packages/python/`](apis/mercury/packages/python/README.md). `apis/mercury/` pins Mercury's public API spec, corrects it, and checks the conformance cases against a reference driver. The Mercury sandbox workflow makes read-only calls to Mercury's sandbox, which holds only dummy data, when a `MERCURY_SANDBOX_TOKEN` secret is set; it never runs on pull requests. Mercury is a financial technology company, not a bank; its banking services come through partner banks. This project is not affiliated with, endorsed by or sponsored by Mercury Technologies, Inc.
+The Python and Go SDKs are alphas, not yet published: see [`apis/mercury/packages/python/`](apis/mercury/packages/python/README.md) and [`apis/mercury/packages/go/`](apis/mercury/packages/go/README.md). The Go README explains how it differs from Mercury's official Go SDK. `apis/mercury/` pins Mercury's public API spec, corrects it, and checks the conformance cases against a reference driver. The Mercury sandbox workflow makes read-only calls to Mercury's sandbox, which holds only dummy data, when a `MERCURY_SANDBOX_TOKEN` secret is set; it never runs on pull requests. Mercury is a financial technology company, not a bank; its banking services come through partner banks. This project is not affiliated with, endorsed by or sponsored by Mercury Technologies, Inc.
 
 ## Layout
 

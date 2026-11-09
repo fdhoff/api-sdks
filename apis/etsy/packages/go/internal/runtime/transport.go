@@ -84,6 +84,8 @@ type Operation struct {
 	ReturnsJSON bool
 	// BinaryResponse is set when the success body is bytes, returned by [CallDownload] as a stream.
 	BinaryResponse bool
+	// Accept is the media types a download asks for, instead of the client's default Accept header.
+	Accept string
 	// RawBody is the media type of a raw request body, sent unchanged from [Input.Raw].
 	RawBody string
 	// IdempotencyKey names the JSON body field the API deduplicates the operation by. A call whose body
@@ -331,6 +333,9 @@ func (t *Transport) authorize(ctx context.Context, built *request, base string) 
 	if built.operation.BinaryResponse {
 		// A stream is handed on as it arrives, so it is never compressed in transit.
 		header.Set("Accept-Encoding", "identity")
+	}
+	if built.operation.Accept != "" {
+		header.Set("Accept", built.operation.Accept)
 	}
 	if built.contentType != "" {
 		header.Set("Content-Type", built.contentType)

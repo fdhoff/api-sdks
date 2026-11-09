@@ -81,6 +81,22 @@ func TestADownloadReturnsTheExactBytesAndContentType(t *testing.T) {
 	}
 }
 
+func TestADownloadAsksForItsMediaTypes(t *testing.T) {
+	transport, seen := binaryServer(t, time.Second, func(w http.ResponseWriter, r *http.Request, _ int) {
+		_, _ = w.Write(notUTF8)
+	})
+	transport.settings.Headers = http.Header{"Accept": {"application/json"}}
+	operation := &Operation{ID: "download-pdf", Method: "GET", Path: "/download", BinaryResponse: true, Accept: "application/pdf"}
+	download, err := CallDownload(context.Background(), transport, operation, Input{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	download.Body.Close()
+	if got := seen()[0].header.Values("Accept"); len(got) != 1 || got[0] != "application/pdf" {
+		t.Errorf("Accept is %q", got)
+	}
+}
+
 func TestADownloadStreamsBeforeTheBodyHasArrived(t *testing.T) {
 	release := make(chan struct{})
 	transport, _ := binaryServer(t, 5*time.Second, func(w http.ResponseWriter, r *http.Request, _ int) {

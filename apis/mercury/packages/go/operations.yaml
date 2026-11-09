@@ -1,0 +1,112 @@
+# Public names for every operation, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that walks every page and yields `items`. Each page's list and its paging are the ones
+# ../../sdk.yaml gives under `iterators`; operations.yaml repeats them until generate.mjs reads them from there.
+# `idempotency` lets a money-moving write be retried like a GET when its `idempotencyKey` is set, as in ../../sdk.yaml.
+getAccounts: { resource: Accounts, method: List, iterator: Iter, items: Account, paging: { items: accounts }, summary: List lists one page of your accounts. }
+getAccountCards: { resource: Accounts, method: ListCards, summary: ListCards lists the cards issued on an account. }
+getAccountStatements: { resource: Accounts, method: ListStatements, iterator: IterStatements, items: DepositoryAccountStatement, paging: { items: statements }, summary: ListStatements lists one page of an account's statements. }
+listAccountTransactions: { resource: Accounts, method: ListTransactions, iterator: IterTransactions, items: Transaction, paging: { style: offset, items: transactions, total: total }, summary: ListTransactions lists one page of an account's transactions. }
+getTransaction: { resource: Accounts, method: GetTransaction, summary: GetTransaction gets one transaction of an account. }
+createTransaction: { resource: Accounts, method: SendMoney, idempotency: { body: idempotencyKey }, summary: SendMoney sends money from an account to a recipient. }
+requestSendMoney: { resource: Accounts, method: RequestSendMoney, idempotency: { body: idempotencyKey }, summary: "RequestSendMoney asks to send money from an account, subject to your approval policy." }
+createInternalTransfer: { resource: Accounts, method: Transfer, idempotency: { body: idempotencyKey }, summary: Transfer moves money between two of your accounts. }
+
+getAutoTransferRules: { resource: AutoTransferRules, method: List, iterator: Iter, items: AutoTransferRule, paging: { items: rules }, summary: List lists one page of automatic transfer rules. }
+
+listBudgets: { resource: Budgets, method: List, iterator: Iter, items: ApiV1SpendBudgetResponse, paging: { items: budgets }, summary: List lists one page of budgets. }
+getBudget: { resource: Budgets, method: Get, summary: Get gets one budget. }
+createBudget: { resource: Budgets, method: Create, summary: Create creates a budget. }
+updateBudget: { resource: Budgets, method: Update, summary: Update updates a budget. }
+archiveBudget: { resource: Budgets, method: Archive, summary: "Archive archives a published budget, or deletes a draft." }
+assignTransactionToBudget: { resource: Budgets, method: AssignTransaction, summary: AssignTransaction counts a transaction against a budget. }
+getBudgetExpenditures: { resource: Budgets, method: ListExpenditures, iterator: IterExpenditures, items: ApiV1BudgetExpenditure, paging: { items: expenditures }, summary: ListExpenditures lists one page of a budget's spending. }
+getBudgetMembers: { resource: Budgets, method: ListMembers, iterator: IterMembers, items: ApiV1BudgetMember, paging: { items: members }, summary: ListMembers lists one page of a budget's members. }
+
+listCards: { resource: Cards, method: List, iterator: Iter, items: Card, paging: { items: cards }, summary: List lists one page of cards. }
+getCard: { resource: Cards, method: Get, summary: Get gets one card. }
+createCard: { resource: Cards, method: Create, summary: Create issues a card. }
+updateCard: { resource: Cards, method: Update, summary: Update updates a card. }
+cancelCard: { resource: Cards, method: Cancel, summary: Cancel cancels a card for good. }
+freezeCard: { resource: Cards, method: Freeze, summary: Freeze freezes a card. }
+unfreezeCard: { resource: Cards, method: Unfreeze, summary: Unfreeze unfreezes a card. }
+revealCardPan: { resource: Cards, method: Reveal, summary: Reveal gets a card's full number and security code. Never log the result. }
+
+listCategories: { resource: Categories, method: List, iterator: Iter, items: CategoryData, paging: { items: categories }, summary: List lists one page of expense categories. }
+createCategory: { resource: Categories, method: Create, summary: Create creates an expense category. }
+editCategory: { resource: Categories, method: Update, summary: Update updates an expense category. }
+deleteCategory: { resource: Categories, method: Delete, summary: Delete deletes an expense category. }
+
+listCredit: { resource: Credit, method: List, summary: List lists your credit accounts. }
+getCreditAccountStatements: { resource: Credit, method: ListStatements, iterator: IterStatements, items: AccountStatement, paging: { items: statements }, summary: ListStatements lists one page of a credit account's statements. }
+
+listCustomers: { resource: Customers, method: List, iterator: Iter, items: ApiV1ArCustomerResponseData, paging: { items: customers }, summary: List lists one page of invoicing customers. }
+getCustomer: { resource: Customers, method: Get, summary: Get gets one invoicing customer. }
+createCustomer: { resource: Customers, method: Create, summary: Create creates an invoicing customer. }
+updateCustomer: { resource: Customers, method: Update, summary: Update updates an invoicing customer. }
+deleteCustomer: { resource: Customers, method: Delete, summary: Delete deletes an invoicing customer. }
+
+getEvents: { resource: Events, method: List, iterator: Iter, items: ApiEventResponse, paging: { items: events }, summary: List lists one page of events. }
+getEvent: { resource: Events, method: Get, summary: Get gets one event. }
+
+listInvoices: { resource: Invoices, method: List, iterator: Iter, items: ApiV1ArInvoicesData, paging: { items: invoices }, summary: List lists one page of invoices. }
+getInvoice: { resource: Invoices, method: Get, summary: Get gets one invoice. }
+createInvoice: { resource: Invoices, method: Create, summary: Create creates an invoice. }
+updateInvoice: { resource: Invoices, method: Update, summary: Update updates an invoice. }
+cancelInvoice: { resource: Invoices, method: Cancel, summary: Cancel cancels an invoice. }
+getInvoicePdf: { resource: Invoices, method: DownloadPDF, summary: DownloadPDF downloads an invoice as a PDF. }
+listInvoiceAttachments: { resource: Invoices, method: ListAttachments, summary: ListAttachments lists an invoice's attachments. }
+getAttachment: { resource: Invoices, method: GetAttachment, summary: "GetAttachment gets one invoice attachment, with its download URL." }
+
+listMerchants: { resource: Merchants, method: List, iterator: Iter, items: MerchantInfo, paging: { items: data }, summary: List lists one page of merchants you have paid. }
+
+getOrganization: { resource: Organization, method: Get, summary: Get gets your organization. }
+
+listReceipts: { resource: Receipts, method: List, iterator: Iter, items: ApiV1ReceiptResponse, paging: { items: receipts }, summary: List lists one page of receipts. }
+getReceipt: { resource: Receipts, method: Get, summary: Get gets one receipt. }
+createReceiptUploadUrl: { resource: Receipts, method: CreateUploadURL, summary: CreateUploadURL gets a short-lived URL to upload a receipt file to. }
+matchReceipt: { resource: Receipts, method: Match, summary: Match starts matching an uploaded receipt to a transaction. }
+
+getRecipients: { resource: Recipients, method: List, iterator: Iter, items: RecipientInfo, paging: { items: recipients }, summary: List lists one page of payment recipients. }
+getRecipient: { resource: Recipients, method: Get, summary: Get gets one payment recipient. }
+createRecipient: { resource: Recipients, method: Create, summary: Create creates a payment recipient. }
+updateRecipient: { resource: Recipients, method: Update, summary: Update updates a payment recipient. }
+deleteRecipient: { resource: Recipients, method: Delete, summary: Delete deletes a payment recipient. }
+uploadRecipientAttachment: { resource: Recipients, method: UploadAttachment, summary: "UploadAttachment attaches a file, such as a tax form, to a recipient." }
+listRecipientsAttachments: { resource: Recipients, method: ListAttachments, iterator: IterAttachments, items: RecipientAttachmentWithId, paging: { items: attachments }, summary: ListAttachments lists one page of the files attached to recipients. }
+
+listRecipientInvites: { resource: RecipientInvites, method: List, iterator: Iter, items: RecipientInviteApiResponse, paging: { items: invites }, summary: List lists one page of recipient invites. }
+getRecipientInvite: { resource: RecipientInvites, method: Get, summary: Get gets one recipient invite. }
+createRecipientInvite: { resource: RecipientInvites, method: Create, summary: Create invites someone to add their own payment details as a recipient. }
+deleteRecipientInvite: { resource: RecipientInvites, method: Delete, summary: Delete deletes a recipient invite. }
+
+getSafeRequests: { resource: Safes, method: List, summary: List lists your SAFE requests. }
+getSafeRequest: { resource: Safes, method: Get, summary: Get gets one SAFE request. }
+getSafeRequestDocument: { resource: Safes, method: DownloadDocument, summary: DownloadDocument downloads a SAFE request's document as a PDF. }
+
+listSendMoneyApprovalRequests: { resource: SendMoneyRequests, method: List, iterator: Iter, items: SendMoneyApprovalRequestResponse, paging: { items: requests }, summary: List lists one page of requests to send money. }
+getSendMoneyApprovalRequest: { resource: SendMoneyRequests, method: Get, summary: Get gets one request to send money. }
+
+getStatementPdf: { resource: Statements, method: DownloadPDF, summary: DownloadPDF downloads an account statement as a PDF. }
+
+listTransactions: { resource: Transactions, method: List, iterator: Iter, items: Transaction, paging: { items: transactions }, summary: List lists one page of transactions across your accounts. }
+getTransactionById: { resource: Transactions, method: Get, summary: Get gets one transaction. }
+updateTransaction: { resource: Transactions, method: Update, summary: Update updates a transaction's note or category. }
+uploadTransactionAttachment: { resource: Transactions, method: UploadAttachment, summary: "UploadAttachment attaches a file, such as a receipt, to a transaction." }
+
+listTransferMoneyApprovalRequests: { resource: TransferRequests, method: List, iterator: Iter, items: TransferMoneyApprovalRequestResponse, paging: { items: requests }, summary: List lists one page of requests to move money between accounts. }
+getTransferMoneyApprovalRequest: { resource: TransferRequests, method: Get, summary: Get gets one request to move money between accounts. }
+requestTransferMoney: { resource: TransferRequests, method: Create, idempotency: { body: idempotencyKey }, summary: "Create asks to move money between accounts, subject to your approval policy." }
+
+getTreasury: { resource: Treasury, method: List, iterator: Iter, items: TreasuryAccount, paging: { items: accounts }, summary: List lists one page of treasury accounts. }
+getTreasuryStatements: { resource: Treasury, method: ListStatements, iterator: IterStatements, items: TreasuryStatement, paging: { items: statements }, summary: ListStatements lists one page of a treasury account's statements. }
+getTreasuryTransactions: { resource: Treasury, method: ListTransactions, iterator: IterTransactions, items: TreasuryTxn, paging: { style: cursor, items: transactions, next: cursor, param: cursor }, summary: ListTransactions lists one page of a treasury account's transactions. }
+
+getUsers: { resource: Users, method: List, iterator: Iter, items: UserDetails, paging: { items: users }, summary: List lists one page of your organization's users. }
+getUser: { resource: Users, method: Get, summary: Get gets one user. }
+
+getWebhooks: { resource: Webhooks, method: List, iterator: Iter, items: ApiWebhookResponse, paging: { items: webhooks }, summary: List lists one page of webhook endpoints. }
+getWebhook: { resource: Webhooks, method: Get, summary: Get gets one webhook endpoint. }
+createWebhook: { resource: Webhooks, method: Create, summary: Create registers a webhook endpoint. }
+updateWebhook: { resource: Webhooks, method: Update, summary: Update updates a webhook endpoint. }
+deleteWebhook: { resource: Webhooks, method: Delete, summary: Delete deletes a webhook endpoint. }
+verifyWebhook: { resource: Webhooks, method: SendTestEvent, summary: SendTestEvent sends a test event to a webhook endpoint. }
