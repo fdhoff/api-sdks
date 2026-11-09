@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* `client.postOrder` and the `ebay-sell/post-order` subpath cover the Post-Order API's 29 remaining operations on cancellations, returns, item-not-received inquiries and cases. They take the seller's user token and the client's `marketplaceId`. Return files are uploaded as base64 in a JSON body.
 * An application token 401 and a user token 401 at the same time each refresh their own token. Before, the second call skipped its refresh and failed.
 * An empty or blank `appScopes` throws a `TypeError` when the client is built, instead of minting with a bare `scope=`.
 * The docs say `onToken` must not call the client, since the refresh that called it waits for it.

@@ -14,6 +14,7 @@ import { Resources as Metadata } from './metadata/resources.js';
 import { Resources as Negotiation } from './negotiation/resources.js';
 import { Resources as Recommendation } from './recommendation/resources.js';
 import { Resources as Stores } from './stores/resources.js';
+import { Resources as PostOrder } from './post-order/resources.js';
 import { Resources as Feedback } from './feedback/resources.js';
 import { Resources as Identity } from './identity/resources.js';
 import { Resources as Media } from './media/resources.js';
@@ -129,6 +130,7 @@ export class EbayClient {
   readonly negotiation: Negotiation;
   readonly recommendation: Recommendation;
   readonly stores: Stores;
+  readonly postOrder: PostOrder;
   readonly feedback: Feedback;
   readonly identity: Identity;
   readonly media: Media;
@@ -158,6 +160,7 @@ export class EbayClient {
     this.negotiation = new Negotiation(shared);
     this.recommendation = new Recommendation(shared);
     this.stores = new Stores(shared);
+    this.postOrder = new PostOrder(shared);
     this.feedback = new Feedback(shared);
     this.identity = new Identity(shared);
     this.media = new Media(shared);

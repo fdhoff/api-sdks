@@ -73,7 +73,7 @@ const orders = (...ids: string[]) => ({ total: ids.length, orders: ids.map((orde
 test('every operation has a public method', async () => {
   const { client } = clientFor(() => json({}));
   const contracts = Object.entries(client).filter(([name]) => name !== 'oauth');
-  assert.equal(contracts.length, 20);
+  assert.equal(contracts.length, 21);
   let count = 0;
   for (const [name, resources] of contracts) {
     const dir = name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
@@ -85,7 +85,7 @@ test('every operation has a public method', async () => {
       count += 1;
     }
   }
-  assert.equal(count, 310);
+  assert.equal(count, 339);
 });
 
 test('each API is a subpath export with its own classes', () => {
@@ -342,6 +342,17 @@ test('the marketplace default is sent on operations that take it, unless a call 
     sent.map(({ headers }) => headers.get('x-ebay-c-marketplace-id')),
     ['EBAY_US', 'EBAY_GB', null],
   );
+});
+
+test('a Post-Order upload sends the user token, the marketplace and a JSON file', async () => {
+  const { client, sent } = clientFor(() => json({ fileId: 'f1' }), { userToken: USER, marketplaceId: 'EBAY_GB' });
+  await client.postOrder.returns.uploadFile('5000000001', { data: 'c3ludGhldGlj', filePurpose: 'LABEL_RELATED' });
+  const [request] = sent;
+  assert.equal(request?.url.href, `${HOSTS.api}/post-order/v2/return/5000000001/file/upload`);
+  assert.equal(request?.headers.get('authorization'), `Bearer ${USER}`);
+  assert.equal(request?.headers.get('x-ebay-c-marketplace-id'), 'EBAY_GB');
+  assert.equal(request?.headers.get('content-type'), 'application/json');
+  assert.deepEqual(JSON.parse(request?.body ?? ''), { data: 'c3ludGhldGlj', filePurpose: 'LABEL_RELATED' });
 });
 
 test('a signing key signs every request and stays out of logs and errors', async () => {

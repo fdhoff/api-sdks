@@ -147,6 +147,16 @@
         "default": "./dist/cjs/stores/index.js"
       }
     },
+    "./post-order": {
+      "import": {
+        "types": "./dist/esm/post-order/index.d.ts",
+        "default": "./dist/esm/post-order/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/post-order/index.d.ts",
+        "default": "./dist/cjs/post-order/index.js"
+      }
+    },
     "./feedback": {
       "import": {
         "types": "./dist/esm/feedback/index.d.ts",
