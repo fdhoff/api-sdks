@@ -19,3 +19,5 @@ export type {
   RequestOptions,
   Settings,
 } from './transport.js';
+export { DEFAULT_WEBHOOK_TOLERANCE_SECONDS, verifyWebhook, WebhookSignatureError } from './webhooks.js';
+export type { VerifyWebhookOptions, WebhookFailure } from './webhooks.js';

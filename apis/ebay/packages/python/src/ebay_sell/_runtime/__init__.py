@@ -18,8 +18,10 @@ from .transport import (
     SyncTransport,
     select_hosts,
 )
+from .webhooks import DEFAULT_WEBHOOK_TOLERANCE, WebhookFailure, WebhookSignatureError, verify_webhook
 
 __all__ = [
+    "DEFAULT_WEBHOOK_TOLERANCE",
     "ED25519",
     "RSA_V1_5_SHA256",
     "ApiConnectionError",
@@ -47,9 +49,12 @@ __all__ = [
     "Settings",
     "StaticCredentials",
     "SyncTransport",
+    "WebhookFailure",
+    "WebhookSignatureError",
     "checked",
     "content_digest",
     "redact",
     "select_hosts",
     "to_wire",
+    "verify_webhook",
 ]

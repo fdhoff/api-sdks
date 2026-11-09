@@ -36,6 +36,8 @@
   <ItemGroup>
     <!-- This package does not sign requests, so it leaves out the runtime's message signer and its dependency. -->
     <Compile Remove="Runtime/MessageSigner.cs" />
+    <!-- Its API sends no signed webhooks, so it leaves out the runtime's webhook verifier. -->
+    <Compile Remove="Runtime/Webhooks.cs" />
   </ItemGroup>
 
   <ItemGroup>

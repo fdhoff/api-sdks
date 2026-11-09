@@ -1,0 +1,190 @@
+{
+  "description": "Timestamped HMAC-SHA256 webhook signatures: a header of `t=<unix seconds>,v1=<hex>`, signed over `<t>.<raw body>` with the endpoint secret. `now` is the receiver clock in Unix seconds, and `tolerance` the maximum age in seconds when it is not the default of 300. `error` is null for a valid signature. All data is synthetic.",
+  "secret": "synthetic-endpoint-secret",
+  "cases": [
+    {
+      "name": "valid-signature",
+      "header": "t=1767225600,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": null
+    },
+    {
+      "name": "raw-body-bytes-are-signed",
+      "header": "t=1767225600,v1=6a4ac4f5847d7e2d3c914fe7d8f0f869b25fc588c40ffd9cbffe82731e15a73a",
+      "body": "{\n  \"amount\": 12.50,\n  \"note\": \"café ☕\"\n}\n",
+      "now": 1767225660,
+      "error": null
+    },
+    {
+      "name": "reserialised-body-fails",
+      "header": "t=1767225600,v1=6a4ac4f5847d7e2d3c914fe7d8f0f869b25fc588c40ffd9cbffe82731e15a73a",
+      "body": "{\"amount\":12.5,\"note\":\"café ☕\"}",
+      "now": 1767225660,
+      "error": "bad_signature"
+    },
+    {
+      "name": "tampered-body",
+      "header": "t=1767225600,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.deleted\"}",
+      "now": 1767225660,
+      "error": "bad_signature"
+    },
+    {
+      "name": "wrong-secret",
+      "header": "t=1767225600,v1=ae73ba01e2a4b5742e45ae9569117ee4761655bd4ddc65070f3b655e804c206c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": "bad_signature"
+    },
+    {
+      "name": "timestamp-changed-after-signing",
+      "header": "t=1767225630,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": "bad_signature"
+    },
+    {
+      "name": "old-timestamp",
+      "header": "t=1767225600,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225901,
+      "error": "too_old"
+    },
+    {
+      "name": "timestamp-at-the-tolerance",
+      "header": "t=1767225600,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225900,
+      "error": null
+    },
+    {
+      "name": "old-timestamp-with-a-bad-signature",
+      "header": "t=1767225600,v1=ae73ba01e2a4b5742e45ae9569117ee4761655bd4ddc65070f3b655e804c206c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225901,
+      "error": "bad_signature"
+    },
+    {
+      "name": "longer-tolerance",
+      "header": "t=1767225600,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767226199,
+      "tolerance": 600,
+      "error": null
+    },
+    {
+      "name": "shorter-tolerance",
+      "header": "t=1767225600,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225661,
+      "tolerance": 60,
+      "error": "too_old"
+    },
+    {
+      "name": "timestamp-ahead-of-the-clock",
+      "header": "t=1767225600,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767222000,
+      "error": null
+    },
+    {
+      "name": "several-v1-values-one-matches",
+      "header": "t=1767225600,v1=ae73ba01e2a4b5742e45ae9569117ee4761655bd4ddc65070f3b655e804c206c,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": null
+    },
+    {
+      "name": "several-v1-values-none-match",
+      "header": "t=1767225600,v1=ae73ba01e2a4b5742e45ae9569117ee4761655bd4ddc65070f3b655e804c206c,v1=fdf1fb92d698648b6b1f16725c3a7a95cfa0f7f709fcfcbf78fe4bb4698af323",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": "bad_signature"
+    },
+    {
+      "name": "v1-value-that-is-not-hex",
+      "header": "t=1767225600,v1=not-hex",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": "bad_signature"
+    },
+    {
+      "name": "uppercase-hex",
+      "header": "t=1767225600,v1=86B1F8C962433D4AFFB754AA31E90F04E4573665A72B94E5D36B048FF21D138C",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": null
+    },
+    {
+      "name": "unknown-keys-are-ignored",
+      "header": "t=1767225600,v0=0000000000000000000000000000000000000000000000000000000000000000,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c,scheme=synthetic",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": null
+    },
+    {
+      "name": "spaces-around-entries",
+      "header": " t=1767225600 , v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c ",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": null
+    },
+    {
+      "name": "empty-header",
+      "header": "",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": "malformed_header"
+    },
+    {
+      "name": "missing-timestamp",
+      "header": "v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": "malformed_header"
+    },
+    {
+      "name": "missing-v1",
+      "header": "t=1767225600",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": "malformed_header"
+    },
+    {
+      "name": "timestamp-not-a-number",
+      "header": "t=soon,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": "malformed_header"
+    },
+    {
+      "name": "negative-timestamp",
+      "header": "t=-1767225600,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": "malformed_header"
+    },
+    {
+      "name": "timestamp-too-long",
+      "header": "t=00000000000001767225600,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": "malformed_header"
+    },
+    {
+      "name": "duplicate-timestamp",
+      "header": "t=1767225600,t=1767225600,v1=86b1f8c962433d4affb754aa31e90f04e4573665a72b94e5d36b048ff21d138c",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": "malformed_header"
+    },
+    {
+      "name": "entry-without-equals",
+      "header": "t=1767225600,v1",
+      "body": "{\"id\":\"evt_synthetic_1\",\"type\":\"synthetic.created\"}",
+      "now": 1767225660,
+      "error": "malformed_header"
+    }
+  ]
+}
