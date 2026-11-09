@@ -8,6 +8,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 * A 401 that raced an explicit `OAuth.RefreshAsync` could send a second token request with the refresh token just issued. It now waits for that refresh and uses its token.
 * New public `Download` and `RawBody` types, for binary response and request bodies. No operation in this package uses them yet.
 * A file part of a multipart upload is sent with `Content-Type: application/octet-stream`.
+* A multipart file part sends `filename*` only when the name is not ASCII, and never with quote marks inside it. It used to send the quoted name, so servers that read `filename*` first, such as ASP.NET Core, Django and Werkzeug, kept the quote marks as part of the file name. A `"` or `\` in the name is escaped. An empty name, or one with a control character such as CR or LF, throws `ArgumentException` before anything is sent.
 
 ## 0.1.0-alpha.1 (2026-11-08)
 
