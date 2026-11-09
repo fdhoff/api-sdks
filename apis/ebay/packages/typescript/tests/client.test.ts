@@ -167,14 +167,13 @@ test('credentials are checked', () => {
 });
 
 test('a 401 refreshes the user token once, keeps the refresh token and retries', async () => {
-  let current = USER;
+  const fresh = 'synthetic-new-user-token';
   const { client, sent, tokens } = clientFor(
     (url, request) => {
       if (url.pathname === TOKEN_PATH) {
-        current = 'synthetic-new-user-token';
-        return json({ access_token: current, expires_in: 7200, token_type: 'User Access Token' });
+        return json({ access_token: fresh, expires_in: 7200, token_type: 'User Access Token' });
       }
-      return request.headers.get('authorization') === `Bearer ${current}` ? json(orders('1')) : json({}, 401);
+      return request.headers.get('authorization') === `Bearer ${fresh}` ? json(orders('1')) : json({}, 401);
     },
     { userToken: USER, refreshToken: REFRESH, userScopes: ['https://api.ebay.com/oauth/api_scope/sell.fulfillment'] },
   );
@@ -194,15 +193,14 @@ test('a 401 refreshes the user token once, keeps the refresh token and retries',
 });
 
 test('concurrent 401s share one refresh', async () => {
-  let current = USER;
+  const fresh = 'synthetic-new-user-token';
   const { client, sent } = clientFor(
     async (url, request) => {
       if (url.pathname === TOKEN_PATH) {
         await new Promise((resolve) => setTimeout(resolve, 5));
-        current = 'synthetic-new-user-token';
-        return json({ access_token: current });
+        return json({ access_token: fresh });
       }
-      return request.headers.get('authorization') === `Bearer ${current}` ? json(orders()) : json({}, 401);
+      return request.headers.get('authorization') === `Bearer ${fresh}` ? json(orders()) : json({}, 401);
     },
     { userToken: USER, refreshToken: REFRESH },
   );
@@ -211,14 +209,12 @@ test('concurrent 401s share one refresh', async () => {
 });
 
 test('a 401 on an application call mints a new application token', async () => {
-  let current = 'synthetic-stale-app-token';
   const { client, sent } = clientFor(
     (url, request) => {
       if (url.pathname === TOKEN_PATH) {
-        current = APP;
         return json({ access_token: APP, expires_in: 7200 });
       }
-      return request.headers.get('authorization') === `Bearer ${current}` ? json({}) : json({}, 401);
+      return request.headers.get('authorization') === `Bearer ${APP}` ? json({}) : json({}, 401);
     },
     { appToken: 'synthetic-stale-app-token' },
   );
