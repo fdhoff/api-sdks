@@ -4,6 +4,7 @@ This module follows semantic versioning and stays on 0.x until outside users con
 
 ## Unreleased
 
+* An iterator page without a `results` list returns an error matching `ErrDecode`.
 * Breaking: `Task` is `BackgroundTask`, as in every other language.
 * Breaking: the module path is now `github.com/fdhoff/api-sdks/apis/backmarket/packages/go`, following the repository rename. Update imports from `github.com/fdhoff/backmarket-seller-sdk/apis/backmarket/packages/go`. `0.1.0-alpha.1` stays at the old path.
 * `APIError.Error()` includes the cause, such as the DNS or TLS failure behind "the connection failed", with the token removed. `errors.Is` and `errors.As` still reach the cause.

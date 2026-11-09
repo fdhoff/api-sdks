@@ -1,0 +1,5 @@
+# Public names for the Analytics API, keyed by operationId. Summaries are ours, not upstream's.
+getCustomerServiceMetric: { resource: CustomerServiceMetrics, method: Get, summary: "Get gets the seller's rating for one customer service metric." }
+findSellerStandardsProfiles: { resource: SellerStandardsProfiles, method: List, summary: "List lists the seller's standards profiles." }
+getSellerStandardsProfile: { resource: SellerStandardsProfiles, method: Get, summary: Get gets one seller standards profile. }
+getTrafficReport: { resource: TrafficReports, method: Get, summary: "Get gets a traffic report of the seller's listings." }

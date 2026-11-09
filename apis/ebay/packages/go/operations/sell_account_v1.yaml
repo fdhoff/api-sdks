@@ -1,0 +1,49 @@
+# Public names for the Account API v1, keyed by operationId. Summaries are ours, not upstream's.
+getCustomPolicies: { resource: CustomPolicies, method: List, summary: "List lists the seller's custom policies." }
+createCustomPolicy: { resource: CustomPolicies, method: Create, summary: Create creates a custom policy. }
+getCustomPolicy: { resource: CustomPolicies, method: Get, summary: Get gets one custom policy. }
+updateCustomPolicy: { resource: CustomPolicies, method: Update, summary: Update updates a custom policy. }
+
+getFulfillmentPolicies: { resource: FulfillmentPolicies, method: List, summary: "List lists the seller's fulfillment policies on a marketplace." }
+createFulfillmentPolicy: { resource: FulfillmentPolicies, method: Create, summary: Create creates a fulfillment policy. }
+getFulfillmentPolicy: { resource: FulfillmentPolicies, method: Get, summary: Get gets one fulfillment policy. }
+getFulfillmentPolicyByName: { resource: FulfillmentPolicies, method: GetByName, summary: GetByName gets a fulfillment policy by its name. }
+updateFulfillmentPolicy: { resource: FulfillmentPolicies, method: Update, summary: Update replaces a fulfillment policy. }
+deleteFulfillmentPolicy: { resource: FulfillmentPolicies, method: Delete, summary: Delete deletes a fulfillment policy. }
+
+getPaymentPolicies: { resource: PaymentPolicies, method: List, summary: "List lists the seller's payment policies on a marketplace." }
+createPaymentPolicy: { resource: PaymentPolicies, method: Create, summary: Create creates a payment policy. }
+getPaymentPolicy: { resource: PaymentPolicies, method: Get, summary: Get gets one payment policy. }
+getPaymentPolicyByName: { resource: PaymentPolicies, method: GetByName, summary: GetByName gets a payment policy by its name. }
+updatePaymentPolicy: { resource: PaymentPolicies, method: Update, summary: Update replaces a payment policy. }
+deletePaymentPolicy: { resource: PaymentPolicies, method: Delete, summary: Delete deletes a payment policy. }
+
+getReturnPolicies: { resource: ReturnPolicies, method: List, summary: "List lists the seller's return policies on a marketplace." }
+createReturnPolicy: { resource: ReturnPolicies, method: Create, summary: Create creates a return policy. }
+getReturnPolicy: { resource: ReturnPolicies, method: Get, summary: Get gets one return policy. }
+getReturnPolicyByName: { resource: ReturnPolicies, method: GetByName, summary: GetByName gets a return policy by its name. }
+updateReturnPolicy: { resource: ReturnPolicies, method: Update, summary: Update replaces a return policy. }
+deleteReturnPolicy: { resource: ReturnPolicies, method: Delete, summary: Delete deletes a return policy. }
+
+getPaymentsProgram: { resource: PaymentsPrograms, method: Get, summary: "Get gets the seller's status in a payments program." }
+getPaymentsProgramOnboarding: { resource: PaymentsPrograms, method: GetOnboarding, summary: "GetOnboarding gets the seller's onboarding progress in a payments program." }
+
+getPrivileges: { resource: Privileges, method: Get, summary: "Get gets the seller's selling limits and registration status." }
+
+getOptedInPrograms: { resource: Programs, method: ListOptedIn, summary: ListOptedIn lists the seller programs the seller has joined. }
+optInToProgram: { resource: Programs, method: OptIn, summary: OptIn joins a seller program. }
+optOutOfProgram: { resource: Programs, method: OptOut, summary: OptOut leaves a seller program. }
+
+getRateTables: { resource: RateTables, method: List, summary: "List lists the seller's shipping rate tables." }
+
+getSalesTaxes: { resource: SalesTaxes, method: List, summary: "List lists the seller's sales tax rates for a country." }
+getSalesTax: { resource: SalesTaxes, method: Get, summary: "Get gets the seller's sales tax rate for one jurisdiction." }
+createOrReplaceSalesTax: { resource: SalesTaxes, method: CreateOrReplace, summary: "CreateOrReplace sets the seller's sales tax rate for one jurisdiction." }
+bulkCreateOrReplaceSalesTax: { resource: SalesTaxes, method: BulkCreateOrReplace, summary: "BulkCreateOrReplace sets the seller's sales tax rates for several jurisdictions." }
+deleteSalesTax: { resource: SalesTaxes, method: Delete, summary: "Delete removes the seller's sales tax rate for one jurisdiction." }
+
+getSubscription: { resource: Subscriptions, method: List, iterator: Iter, items: Subscription, paging: { items: subscriptions }, summary: "List lists one page of the seller's eBay subscriptions, such as a store." }
+
+getKYC: { resource: Kyc, method: Get, summary: Get lists the identity checks eBay needs from the seller. }
+
+getAdvertisingEligibility: { resource: AdvertisingEligibility, method: Get, summary: "Get gets the seller's eligibility for each advertising program." }

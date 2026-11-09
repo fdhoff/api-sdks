@@ -1,0 +1,18 @@
+# Public names for the Fulfillment API, keyed by operationId. Summaries are ours, not upstream's.
+getOrders: { resource: Orders, method: List, iterator: Iter, items: Order, paging: { items: orders }, summary: "List lists one page of the seller's orders." }
+getOrder: { resource: Orders, method: Get, summary: Get gets one order. }
+issueRefund: { resource: Orders, method: IssueRefund, summary: IssueRefund refunds all or part of an order. }
+
+getShippingFulfillments: { resource: ShippingFulfillments, method: List, summary: List lists the shipping fulfillments of an order. }
+createShippingFulfillment: { resource: ShippingFulfillments, method: Create, summary: "Create marks line items of an order shipped, with their tracking." }
+getShippingFulfillment: { resource: ShippingFulfillments, method: Get, summary: Get gets one shipping fulfillment. }
+
+getPaymentDisputeSummaries: { resource: PaymentDisputes, method: ListSummaries, iterator: IterSummaries, items: PaymentDisputeSummary, paging: { items: paymentDisputeSummaries }, summary: "ListSummaries lists one page of the seller's payment disputes." }
+getPaymentDispute: { resource: PaymentDisputes, method: Get, summary: Get gets one payment dispute. }
+getActivities: { resource: PaymentDisputes, method: ListActivities, summary: ListActivities lists the activity on a payment dispute. }
+acceptPaymentDispute: { resource: PaymentDisputes, method: Accept, summary: Accept accepts a payment dispute. }
+contestPaymentDispute: { resource: PaymentDisputes, method: Contest, summary: Contest contests a payment dispute. }
+uploadEvidenceFile: { resource: PaymentDisputes, method: UploadEvidenceFile, summary: UploadEvidenceFile uploads a file to use as evidence in a payment dispute. }
+addEvidence: { resource: PaymentDisputes, method: AddEvidence, summary: AddEvidence adds a set of uploaded evidence files to a payment dispute. }
+updateEvidence: { resource: PaymentDisputes, method: UpdateEvidence, summary: UpdateEvidence adds uploaded files to an existing set of evidence. }
+fetchEvidenceContent: { omit: The file response needs binary bodies in the runtime. }

@@ -1,0 +1,7 @@
+# Public names for the Feedback API, keyed by operationId. Summaries are ours, not upstream's.
+# TODO: iterate getFeedback and getItemsAwaitingFeedback once a paging style reads `pagination`.
+getItemsAwaitingFeedback: { resource: Feedback, method: ListAwaiting, summary: ListAwaiting lists one page of the order line items still waiting for feedback. }
+getFeedback: { resource: Feedback, method: List, summary: List lists one page of feedback a user left or received. }
+leaveFeedback: { resource: Feedback, method: Leave, summary: Leave leaves feedback for the other party of an order line item. }
+getFeedbackRatingSummary: { resource: Feedback, method: GetRatingSummary, summary: "GetRatingSummary gets a user's feedback rating summary." }
+respondToFeedback: { resource: Feedback, method: Respond, summary: "Respond replies to feedback, or follows up on feedback you left." }

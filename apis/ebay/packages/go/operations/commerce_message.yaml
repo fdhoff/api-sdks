@@ -1,0 +1,6 @@
+# Public names for the Message API, keyed by operationId. Summaries are ours, not upstream's.
+bulkUpdateConversation: { resource: Conversations, method: BulkUpdate, summary: BulkUpdate updates the status of several conversations. }
+getConversation: { resource: Conversations, method: Get, iterator: IterMessages, items: MessageDetail, paging: { items: messages }, summary: Get gets one conversation with one page of its messages. }
+getConversations: { resource: Conversations, method: List, iterator: Iter, items: ConversationDetail, paging: { items: conversations }, summary: List lists one page of conversations. }
+sendMessage: { resource: Conversations, method: Send, summary: "Send sends a message, in a new conversation or an existing one." }
+updateConversation: { resource: Conversations, method: Update, summary: Update updates the status of one conversation. }

@@ -1,0 +1,14 @@
+# Public names for the Media API, keyed by operationId. Summaries are ours, not upstream's.
+createImageFromFile: { resource: Images, method: Upload, summary: "Upload uploads an image file to eBay's picture service." }
+createImageFromUrl: { resource: Images, method: CreateFromURL, summary: "CreateFromURL creates an image on eBay's picture service from a public URL." }
+getImage: { resource: Images, method: Get, summary: Get gets one image. }
+createVideo: { resource: Videos, method: Create, summary: Create creates a video resource to upload content to. }
+getVideo: { resource: Videos, method: Get, summary: Get gets one video and its status. }
+uploadVideo: { omit: The raw request body needs binary bodies in the runtime. }
+createDocument: { resource: Documents, method: Create, summary: Create creates a document resource to upload a file to. }
+createDocumentFromUrl: { resource: Documents, method: CreateFromURL, summary: CreateFromURL creates a document from a public URL. }
+getDocument: { resource: Documents, method: Get, summary: Get gets one document and its status. }
+uploadDocument: { resource: Documents, method: Upload, summary: Upload uploads the file of a document. }
+downloadPostOrderDocument: { omit: The PDF response needs binary bodies in the runtime. }
+removePostOrderDocument: { resource: PostOrderDocuments, method: Delete, summary: Delete deletes a post-order document. }
+uploadPostOrderDocument: { resource: PostOrderDocuments, method: Upload, summary: "Upload uploads a document for a return, cancellation, inquiry or case." }
