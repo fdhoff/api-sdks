@@ -6,7 +6,7 @@ use std::sync::{Arc, PoisonError};
 use std::time::{Duration, SystemTime};
 
 use futures_core::Stream;
-use reqwest::header::{ACCEPT_ENCODING, CONTENT_ENCODING, CONTENT_LENGTH, CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue};
+use reqwest::header::{ACCEPT, ACCEPT_ENCODING, CONTENT_ENCODING, CONTENT_LENGTH, CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue};
 use reqwest::{Method, StatusCode, multipart, redirect};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
@@ -253,6 +253,11 @@ impl Transport {
         let mut headers = self.settings.headers.clone();
         if request.download {
             headers.insert(ACCEPT_ENCODING, HeaderValue::from_static("identity"));
+        }
+        if let Some(accept) = request.accept {
+            let value = HeaderValue::from_str(accept)
+                .map_err(|error| Error::new(ErrorKind::Api, "the accepted media types are not valid").with_source(error))?;
+            headers.insert(ACCEPT, value);
         }
         if let Some(content_type) = content_type {
             let value = HeaderValue::from_str(content_type)
@@ -1009,6 +1014,19 @@ mod tests {
             assert_eq!(download.content_type(), "application/pdf");
             assert_eq!(download.bytes().await.unwrap(), PDF);
             assert_eq!(line(&log.lock().unwrap()[0].head, "accept-encoding"), Some("identity"));
+        }
+
+        #[tokio::test]
+        async fn a_download_asks_for_its_media_types_instead_of_the_default_accept() {
+            let (url, log) = serve(|_| reply(200, Some("application/pdf"), PDF)).await;
+            let mut headers = HeaderMap::new();
+            headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
+            let transport = Transport::new(Settings { base_url: url, max_retries: 0, ..settings(headers) }).unwrap();
+            transport.download(Request::new(&DOWNLOAD).accept("application/pdf")).await.unwrap();
+            transport.download(Request::new(&DOWNLOAD)).await.unwrap();
+            let log = log.lock().unwrap();
+            assert_eq!(line(&log[0].head, "accept"), Some("application/pdf"));
+            assert_eq!(line(&log[1].head, "accept"), Some("application/json"));
         }
 
         #[tokio::test]
