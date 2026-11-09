@@ -14,7 +14,7 @@ const unwrapped = async (path) => (await readFile(path, 'utf8')).replace(/\s+/g,
 const contracts = async () => {
   const config = parse(await readFile(join(RUST, 'generate.yaml'), 'utf8'));
   return Promise.all(
-    Object.values(config.contracts).map(async (contract) => ({
+    Object.values(config.contracts).filter((contract) => !contract.omit).map(async (contract) => ({
       module: contract.properties.sdkModule,
       operations: Object.fromEntries(
         Object.entries(parse(await readFile(join(RUST, contract.operations), 'utf8'))).filter(([, names]) => !names.omit),
