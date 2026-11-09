@@ -1,0 +1,2 @@
+# Public names for the Recommendation API, keyed by operationId. Summaries are ours, not upstream's.
+findListingRecommendations: { resource: listingRecommendations, method: find, iterator: iter, items: ListingRecommendation, paging: { items: listingRecommendations }, summary: List one page of recommendations for the seller's listings. }

@@ -1,0 +1,18 @@
+# Public names for the Fulfillment API, keyed by operationId. Summaries are ours, not upstream's.
+getOrders: { resource: orders, method: list, iterator: iter, items: Order, paging: { items: orders }, summary: List one page of the seller's orders. }
+getOrder: { resource: orders, method: get, summary: Get one order. }
+issueRefund: { resource: orders, method: issueRefund, summary: Refund all or part of an order. }
+
+getShippingFulfillments: { resource: shippingFulfillments, method: list, summary: List the shipping fulfillments of an order. }
+createShippingFulfillment: { resource: shippingFulfillments, method: create, summary: Mark line items of an order shipped, with their tracking. }
+getShippingFulfillment: { resource: shippingFulfillments, method: get, summary: Get one shipping fulfillment. }
+
+getPaymentDisputeSummaries: { resource: paymentDisputes, method: listSummaries, iterator: iterSummaries, items: PaymentDisputeSummary, paging: { items: paymentDisputeSummaries }, summary: List one page of the seller's payment disputes. }
+getPaymentDispute: { resource: paymentDisputes, method: get, summary: Get one payment dispute. }
+getActivities: { resource: paymentDisputes, method: listActivities, summary: List the activity on a payment dispute. }
+acceptPaymentDispute: { resource: paymentDisputes, method: accept, summary: Accept a payment dispute. }
+contestPaymentDispute: { resource: paymentDisputes, method: contest, summary: Contest a payment dispute. }
+uploadEvidenceFile: { resource: paymentDisputes, method: uploadEvidenceFile, summary: Upload a file to use as evidence in a payment dispute. }
+addEvidence: { resource: paymentDisputes, method: addEvidence, summary: Add a set of uploaded evidence files to a payment dispute. }
+updateEvidence: { resource: paymentDisputes, method: updateEvidence, summary: Add uploaded files to an existing set of evidence. }
+fetchEvidenceContent: { omit: The file response needs binary bodies in the runtime. }

@@ -1,0 +1,26 @@
+# Public names for the Notification API, keyed by operationId. Summaries are ours, not upstream's.
+getConfig: { resource: config, method: get, summary: Get the app's notification settings. }
+updateConfig: { resource: config, method: update, summary: Update the app's notification settings. }
+
+getDestinations: { resource: destinations, method: list, iterator: iter, items: Destination, paging: { items: destinations }, summary: List one page of the app's notification destinations. }
+createDestination: { resource: destinations, method: create, summary: Create a destination endpoint for notifications. }
+getDestination: { resource: destinations, method: get, summary: Get one destination. }
+updateDestination: { resource: destinations, method: update, summary: Update a destination. }
+deleteDestination: { resource: destinations, method: delete, summary: Delete a destination. }
+
+getPublicKey: { resource: publicKeys, method: get, summary: Get the public key that verifies a notification's signature. }
+
+getSubscriptions: { resource: subscriptions, method: list, iterator: iter, items: Subscription, paging: { items: subscriptions }, summary: List one page of the app's subscriptions. }
+createSubscription: { resource: subscriptions, method: create, summary: Subscribe to a notification topic. }
+createSubscriptionFilter: { resource: subscriptions, method: createFilter, summary: Add a filter to a subscription. }
+getSubscription: { resource: subscriptions, method: get, summary: Get one subscription. }
+updateSubscription: { resource: subscriptions, method: update, summary: Update a subscription. }
+deleteSubscription: { resource: subscriptions, method: delete, summary: Delete a subscription. }
+getSubscriptionFilter: { resource: subscriptions, method: getFilter, summary: Get one filter of a subscription. }
+deleteSubscriptionFilter: { resource: subscriptions, method: deleteFilter, summary: Delete a filter from a subscription. }
+disableSubscription: { resource: subscriptions, method: disable, summary: Stop sending a subscription's notifications. }
+enableSubscription: { resource: subscriptions, method: enable, summary: Resume sending a subscription's notifications. }
+testSubscription: { resource: subscriptions, method: test, summary: Send a test notification to a subscription's destination. }
+
+getTopic: { resource: topics, method: get, summary: Get one notification topic. }
+getTopics: { resource: topics, method: list, iterator: iter, items: Topic, paging: { items: topics }, summary: List one page of notification topics. }

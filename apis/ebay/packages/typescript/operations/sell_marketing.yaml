@@ -1,0 +1,92 @@
+# Public names for the Marketing API, keyed by operationId. Summaries are ours, not upstream's.
+getCampaigns: { resource: campaigns, method: list, iterator: iter, items: Campaign, paging: { items: campaigns }, summary: List one page of the seller's Promoted Listings campaigns. }
+getCampaign: { resource: campaigns, method: get, summary: Get one campaign. }
+getCampaignByName: { resource: campaigns, method: getByName, summary: Get a campaign by its name. }
+findCampaignByAdReference: { resource: campaigns, method: findByAdReference, summary: Find the campaigns that hold a listing or inventory reference. }
+createCampaign: { resource: campaigns, method: create, summary: Create a Promoted Listings campaign. }
+cloneCampaign: { resource: campaigns, method: clone, summary: Copy an ended campaign into a new one. }
+deleteCampaign: { resource: campaigns, method: delete, summary: Delete a campaign. }
+endCampaign: { resource: campaigns, method: end, summary: End a campaign. }
+pauseCampaign: { resource: campaigns, method: pause, summary: Pause a campaign. }
+resumeCampaign: { resource: campaigns, method: resume, summary: Resume a paused campaign. }
+suggestBudget: { resource: campaigns, method: suggestBudget, summary: Suggest a daily budget for a new campaign. }
+suggestItems: { resource: campaigns, method: suggestItems, iterator: iterSuggestedItems, items: TargetingItems, paging: { items: suggestedItems }, summary: List one page of listings suggested for a campaign. }
+suggestMaxCpc: { resource: campaigns, method: suggestMaxCpc, summary: Suggest a maximum cost per click for a campaign. }
+updateAdRateStrategy: { resource: campaigns, method: updateAdRateStrategy, summary: Change how a campaign sets its ad rates. }
+updateBiddingStrategy: { resource: campaigns, method: updateBiddingStrategy, summary: Change the bidding strategy of a campaign. }
+updateCampaignBudget: { resource: campaigns, method: updateBudget, summary: Change the daily budget of a campaign. }
+updateCampaignIdentification: { resource: campaigns, method: updateIdentification, summary: Rename a campaign or change its dates. }
+
+getAds: { resource: ads, method: list, iterator: iter, items: Ad, paging: { items: ads }, summary: List one page of a campaign's ads. }
+getAd: { resource: ads, method: get, summary: Get one ad. }
+getAdsByInventoryReference: { resource: ads, method: getByInventoryReference, summary: Get a campaign's ads for one inventory reference. }
+createAdByListingId: { resource: ads, method: createByListingId, summary: Create an ad for a listing. }
+createAdsByInventoryReference: { resource: ads, method: createByInventoryReference, summary: Create ads for an inventory reference. }
+deleteAd: { resource: ads, method: delete, summary: Delete an ad. }
+deleteAdsByInventoryReference: { resource: ads, method: deleteByInventoryReference, summary: Delete a campaign's ads for one inventory reference. }
+updateBid: { resource: ads, method: updateBid, summary: Change the bid of an ad. }
+bulkCreateAdsByListingId: { resource: ads, method: bulkCreateByListingId, summary: Create ads for several listings. }
+bulkCreateAdsByInventoryReference: { resource: ads, method: bulkCreateByInventoryReference, summary: Create ads for several inventory references. }
+bulkDeleteAdsByListingId: { resource: ads, method: bulkDeleteByListingId, summary: Delete the ads of several listings. }
+bulkDeleteAdsByInventoryReference: { resource: ads, method: bulkDeleteByInventoryReference, summary: Delete the ads of several inventory references. }
+bulkUpdateAdsBidByListingId: { resource: ads, method: bulkUpdateBidByListingId, summary: Change the bids of several listings' ads. }
+bulkUpdateAdsBidByInventoryReference: { resource: ads, method: bulkUpdateBidByInventoryReference, summary: Change the bids of several inventory references' ads. }
+bulkUpdateAdsStatus: { resource: ads, method: bulkUpdateStatus, summary: Change the status of several ads. }
+bulkUpdateAdsStatusByListingId: { resource: ads, method: bulkUpdateStatusByListingId, summary: Change the status of several listings' ads. }
+
+getAdGroups: { resource: adGroups, method: list, iterator: iter, items: AdGroup, paging: { items: adGroups }, summary: List one page of a campaign's ad groups. }
+getAdGroup: { resource: adGroups, method: get, summary: Get one ad group. }
+createAdGroup: { resource: adGroups, method: create, summary: Create an ad group in a campaign. }
+updateAdGroup: { resource: adGroups, method: update, summary: Update an ad group. }
+suggestBids: { resource: adGroups, method: suggestBids, summary: Suggest bids for keywords in an ad group. }
+suggestKeywords: { resource: adGroups, method: suggestKeywords, summary: Suggest keywords for an ad group. }
+
+getKeywords: { resource: keywords, method: list, iterator: iter, items: Keyword, paging: { items: keywords }, summary: List one page of a campaign's keywords. }
+getKeyword: { resource: keywords, method: get, summary: Get one keyword. }
+createKeyword: { resource: keywords, method: create, summary: Create a keyword in an ad group. }
+updateKeyword: { resource: keywords, method: update, summary: Change the bid or status of a keyword. }
+bulkCreateKeyword: { resource: keywords, method: bulkCreate, summary: Create several keywords. }
+bulkUpdateKeyword: { resource: keywords, method: bulkUpdate, summary: Change the bids or status of several keywords. }
+
+getNegativeKeywords: { resource: negativeKeywords, method: list, iterator: iter, items: NegativeKeyword, paging: { items: negativeKeywords }, summary: List one page of negative keywords. }
+getNegativeKeyword: { resource: negativeKeywords, method: get, summary: Get one negative keyword. }
+createNegativeKeyword: { resource: negativeKeywords, method: create, summary: Create a negative keyword. }
+updateNegativeKeyword: { resource: negativeKeywords, method: update, summary: Change the status of a negative keyword. }
+bulkCreateNegativeKeyword: { resource: negativeKeywords, method: bulkCreate, summary: Create several negative keywords. }
+bulkUpdateNegativeKeyword: { resource: negativeKeywords, method: bulkUpdate, summary: Change the status of several negative keywords. }
+
+getReport: { omit: The tab-separated report needs binary bodies in the runtime. }
+getReportMetadata: { resource: reportMetadata, method: list, summary: List the fields of every Promoted Listings report type. }
+getReportMetadataForReportType: { resource: reportMetadata, method: get, summary: List the fields of one report type. }
+
+getReportTasks: { resource: reportTasks, method: list, iterator: iter, items: ReportTask, paging: { items: reportTasks }, summary: List one page of the seller's report tasks. }
+getReportTask: { resource: reportTasks, method: get, summary: Get one report task. }
+createReportTask: { resource: reportTasks, method: create, summary: Start a task that builds a Promoted Listings report. }
+deleteReportTask: { resource: reportTasks, method: delete, summary: Delete a report task. }
+
+getItemPriceMarkdownPromotion: { resource: itemPriceMarkdowns, method: get, summary: Get one markdown sale. }
+createItemPriceMarkdownPromotion: { resource: itemPriceMarkdowns, method: create, summary: Create a markdown sale. }
+updateItemPriceMarkdownPromotion: { resource: itemPriceMarkdowns, method: update, summary: Replace a markdown sale. }
+deleteItemPriceMarkdownPromotion: { resource: itemPriceMarkdowns, method: delete, summary: Delete a markdown sale. }
+
+getItemPromotion: { resource: itemPromotions, method: get, summary: Get one threshold promotion. }
+createItemPromotion: { resource: itemPromotions, method: create, summary: Create a threshold promotion. }
+updateItemPromotion: { resource: itemPromotions, method: update, summary: Replace a threshold promotion. }
+deleteItemPromotion: { resource: itemPromotions, method: delete, summary: Delete a threshold promotion. }
+
+getPromotions: { resource: promotions, method: list, iterator: iter, items: PromotionDetail, paging: { items: promotions }, summary: List one page of the seller's promotions on a marketplace. }
+getListingSet: { resource: promotions, method: getListingSet, iterator: iterListingSet, items: ListingDetail, paging: { items: listings }, summary: List one page of the listings in a promotion. }
+pausePromotion: { resource: promotions, method: pause, summary: Pause a promotion. }
+resumePromotion: { resource: promotions, method: resume, summary: Resume a paused promotion. }
+
+getPromotionReports: { resource: promotionReports, method: list, iterator: iter, items: PromotionReportDetail, paging: { items: promotionReports }, summary: List one page of promotion performance reports. }
+getPromotionSummaryReport: { resource: promotionReports, method: getSummary, summary: Get a summary of the seller's promotion performance. }
+
+getEmailCampaigns: { resource: emailCampaigns, method: list, iterator: iter, items: CampaignDTO, paging: { items: campaigns }, summary: List one page of the seller's store email campaigns. }
+getEmailCampaign: { resource: emailCampaigns, method: get, summary: Get one email campaign. }
+createEmailCampaign: { resource: emailCampaigns, method: create, summary: Create a store email campaign. }
+updateEmailCampaign: { resource: emailCampaigns, method: update, summary: Update an email campaign. }
+deleteEmailCampaign: { resource: emailCampaigns, method: delete, summary: Delete an email campaign. }
+getAudiences: { resource: emailCampaigns, method: listAudiences, iterator: iterAudiences, items: CampaignAudience, paging: { items: audiences }, summary: List one page of the audiences an email campaign can target. }
+getEmailPreview: { resource: emailCampaigns, method: getPreview, summary: Preview the email of a campaign. }
+getEmailReport: { resource: emailCampaigns, method: getReport, summary: Get the performance of the seller's email campaigns. }

@@ -1,0 +1,49 @@
+# Public names for the Account API v1, keyed by operationId. Summaries are ours, not upstream's.
+getCustomPolicies: { resource: customPolicies, method: list, summary: List the seller's custom policies. }
+createCustomPolicy: { resource: customPolicies, method: create, summary: Create a custom policy. }
+getCustomPolicy: { resource: customPolicies, method: get, summary: Get one custom policy. }
+updateCustomPolicy: { resource: customPolicies, method: update, summary: Update a custom policy. }
+
+getFulfillmentPolicies: { resource: fulfillmentPolicies, method: list, summary: List the seller's fulfillment policies on a marketplace. }
+createFulfillmentPolicy: { resource: fulfillmentPolicies, method: create, summary: Create a fulfillment policy. }
+getFulfillmentPolicy: { resource: fulfillmentPolicies, method: get, summary: Get one fulfillment policy. }
+getFulfillmentPolicyByName: { resource: fulfillmentPolicies, method: getByName, summary: Get a fulfillment policy by its name. }
+updateFulfillmentPolicy: { resource: fulfillmentPolicies, method: update, summary: Replace a fulfillment policy. }
+deleteFulfillmentPolicy: { resource: fulfillmentPolicies, method: delete, summary: Delete a fulfillment policy. }
+
+getPaymentPolicies: { resource: paymentPolicies, method: list, summary: List the seller's payment policies on a marketplace. }
+createPaymentPolicy: { resource: paymentPolicies, method: create, summary: Create a payment policy. }
+getPaymentPolicy: { resource: paymentPolicies, method: get, summary: Get one payment policy. }
+getPaymentPolicyByName: { resource: paymentPolicies, method: getByName, summary: Get a payment policy by its name. }
+updatePaymentPolicy: { resource: paymentPolicies, method: update, summary: Replace a payment policy. }
+deletePaymentPolicy: { resource: paymentPolicies, method: delete, summary: Delete a payment policy. }
+
+getReturnPolicies: { resource: returnPolicies, method: list, summary: List the seller's return policies on a marketplace. }
+createReturnPolicy: { resource: returnPolicies, method: create, summary: Create a return policy. }
+getReturnPolicy: { resource: returnPolicies, method: get, summary: Get one return policy. }
+getReturnPolicyByName: { resource: returnPolicies, method: getByName, summary: Get a return policy by its name. }
+updateReturnPolicy: { resource: returnPolicies, method: update, summary: Replace a return policy. }
+deleteReturnPolicy: { resource: returnPolicies, method: delete, summary: Delete a return policy. }
+
+getPaymentsProgram: { resource: paymentsPrograms, method: get, summary: Get the seller's status in a payments program. }
+getPaymentsProgramOnboarding: { resource: paymentsPrograms, method: getOnboarding, summary: Get the seller's onboarding progress in a payments program. }
+
+getPrivileges: { resource: privileges, method: get, summary: Get the seller's selling limits and registration status. }
+
+getOptedInPrograms: { resource: programs, method: listOptedIn, summary: List the seller programs the seller has joined. }
+optInToProgram: { resource: programs, method: optIn, summary: Join a seller program. }
+optOutOfProgram: { resource: programs, method: optOut, summary: Leave a seller program. }
+
+getRateTables: { resource: rateTables, method: list, summary: List the seller's shipping rate tables. }
+
+getSalesTaxes: { resource: salesTaxes, method: list, summary: List the seller's sales tax rates for a country. }
+getSalesTax: { resource: salesTaxes, method: get, summary: Get the seller's sales tax rate for one jurisdiction. }
+createOrReplaceSalesTax: { resource: salesTaxes, method: createOrReplace, summary: Set the seller's sales tax rate for one jurisdiction. }
+bulkCreateOrReplaceSalesTax: { resource: salesTaxes, method: bulkCreateOrReplace, summary: Set the seller's sales tax rates for several jurisdictions. }
+deleteSalesTax: { resource: salesTaxes, method: delete, summary: Remove the seller's sales tax rate for one jurisdiction. }
+
+getSubscription: { resource: subscriptions, method: list, iterator: iter, items: Subscription, paging: { items: subscriptions }, summary: List one page of the seller's eBay subscriptions, such as a store. }
+
+getKYC: { resource: kyc, method: get, summary: List the identity checks eBay needs from the seller. }
+
+getAdvertisingEligibility: { resource: advertisingEligibility, method: get, summary: Get the seller's eligibility for each advertising program. }

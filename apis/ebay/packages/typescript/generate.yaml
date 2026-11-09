@@ -1,0 +1,41 @@
+# How `npm run generate:typescript` builds this package. Each contract becomes a sub-module with its own models,
+# so schema names that repeat across contracts never collide, and each is a subpath export. Public method names
+# are in operations/.
+generator: typescript-fetch
+output: src
+source: .
+generated: [apis, models]
+resources: resources.ts
+runtime: runtime
+format: [npx, --no-install, prettier, --write, --log-level=warn]
+properties:
+  dateLibrary: string
+  disallowAdditionalPropertiesIfNotPresent: false
+  importFileExtension: .js
+  modelPropertyNaming: original
+  withoutRuntimeChecks: true
+collapse_single_unions: true
+# The header the client's `marketplaceId` option sets, under the same name on a call.
+parameter_name_mappings:
+  X-EBAY-C-MARKETPLACE-ID: marketplaceId
+contracts:
+  sell_account_v1: { output: src/account, operations: operations/sell_account_v1.yaml, properties: { sdkModule: account }, supporting_files: { module.mustache: src/account/index.ts } }
+  sell_account_v2: { output: src/account-v2, operations: operations/sell_account_v2.yaml, properties: { sdkModule: accountV2 }, supporting_files: { module.mustache: src/account-v2/index.ts } }
+  sell_analytics: { output: src/analytics, operations: operations/sell_analytics.yaml, properties: { sdkModule: analytics }, supporting_files: { module.mustache: src/analytics/index.ts } }
+  sell_feed: { output: src/feed, operations: operations/sell_feed.yaml, properties: { sdkModule: feed }, supporting_files: { module.mustache: src/feed/index.ts } }
+  sell_finances: { output: src/finances, operations: operations/sell_finances.yaml, properties: { sdkModule: finances }, supporting_files: { module.mustache: src/finances/index.ts } }
+  sell_fulfillment: { output: src/fulfillment, operations: operations/sell_fulfillment.yaml, properties: { sdkModule: fulfillment }, supporting_files: { module.mustache: src/fulfillment/index.ts } }
+  sell_inventory: { output: src/inventory, operations: operations/sell_inventory.yaml, properties: { sdkModule: inventory }, supporting_files: { module.mustache: src/inventory/index.ts } }
+  sell_marketing: { output: src/marketing, operations: operations/sell_marketing.yaml, properties: { sdkModule: marketing }, supporting_files: { module.mustache: src/marketing/index.ts } }
+  sell_metadata: { output: src/metadata, operations: operations/sell_metadata.yaml, properties: { sdkModule: metadata }, supporting_files: { module.mustache: src/metadata/index.ts } }
+  sell_negotiation: { output: src/negotiation, operations: operations/sell_negotiation.yaml, properties: { sdkModule: negotiation }, supporting_files: { module.mustache: src/negotiation/index.ts } }
+  sell_recommendation: { output: src/recommendation, operations: operations/sell_recommendation.yaml, properties: { sdkModule: recommendation }, supporting_files: { module.mustache: src/recommendation/index.ts } }
+  sell_stores: { output: src/stores, operations: operations/sell_stores.yaml, properties: { sdkModule: stores }, supporting_files: { module.mustache: src/stores/index.ts } }
+  commerce_feedback: { output: src/feedback, operations: operations/commerce_feedback.yaml, properties: { sdkModule: feedback }, supporting_files: { module.mustache: src/feedback/index.ts } }
+  commerce_identity: { output: src/identity, operations: operations/commerce_identity.yaml, properties: { sdkModule: identity }, supporting_files: { module.mustache: src/identity/index.ts } }
+  commerce_media: { output: src/media, operations: operations/commerce_media.yaml, properties: { sdkModule: media }, supporting_files: { module.mustache: src/media/index.ts } }
+  commerce_message: { output: src/message, operations: operations/commerce_message.yaml, properties: { sdkModule: message }, supporting_files: { module.mustache: src/message/index.ts } }
+  commerce_notification: { output: src/notification, operations: operations/commerce_notification.yaml, properties: { sdkModule: notification }, supporting_files: { module.mustache: src/notification/index.ts } }
+  commerce_taxonomy: { output: src/taxonomy, operations: operations/commerce_taxonomy.yaml, properties: { sdkModule: taxonomy }, supporting_files: { module.mustache: src/taxonomy/index.ts } }
+  developer_analytics: { output: src/developer-analytics, operations: operations/developer_analytics.yaml, properties: { sdkModule: developerAnalytics }, supporting_files: { module.mustache: src/developer-analytics/index.ts } }
+  developer_key_management: { output: src/key-management, operations: operations/developer_key_management.yaml, properties: { sdkModule: keyManagement }, supporting_files: { module.mustache: src/key-management/index.ts } }
