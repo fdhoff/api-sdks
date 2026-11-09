@@ -1,0 +1,81 @@
+# Binary and CSV downloads keep every byte, and imports send their file as a multipart `file` part.
+cases:
+  - name: files-a-stock-error-report-is-csv
+    request:
+      operation: STO03
+      params: { import_id: stock-import-2 }
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: text/csv }
+          body: "offer-sku;error\nsku-2;synthetic error\n"
+    wire:
+      - method: GET
+        path: /api/offers/stock/imports/stock-import-2/error_report
+        headers: { accept: text/csv, authorization: '{{token}}' }
+    expect:
+      result: { content_type: text/csv, base64: b2ZmZXItc2t1O2Vycm9yCnNrdS0yO3N5bnRoZXRpYyBlcnJvcgo= }
+
+  - name: files-a-price-error-report-is-csv
+    request:
+      operation: PRI03
+      params: { import_id: price-import-1 }
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: text/csv; charset=UTF-8 }
+          body: "offer-sku;error\n"
+    wire:
+      - method: GET
+        path: /api/offers/pricing/imports/price-import-1/error_report
+        headers: { accept: text/csv }
+    expect:
+      result: { content_type: text/csv; charset=UTF-8, base64: b2ZmZXItc2t1O2Vycm9yCg== }
+
+  - name: files-an-invoice-keeps-every-byte
+    request:
+      operation: IV02
+      params: { accounting_document_id: invoice-1 }
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/pdf }
+          body_base64: JVBERi0xLjQK/+jV0QoxIDAgb2JqCg==
+    wire:
+      - method: GET
+        path: /api/invoices/invoice-1
+        headers: { accept: application/octet-stream }
+    expect:
+      result: { content_type: application/pdf, base64: JVBERi0xLjQK/+jV0QoxIDAgb2JqCg== }
+
+  - name: files-a-price-import-is-one-multipart-file-part
+    request:
+      operation: PRI01
+      multipart: { file: "offer-sku;price\nsku-1;10.00\n" }
+    mock:
+      responses:
+        - status: 201
+          body: { import_id: price-import-2 }
+    wire:
+      - method: POST
+        path: /api/offers/pricing/imports
+        headers_match: { content-type: '^multipart/form-data; boundary=' }
+        parts: { file: ["offer-sku;price\nsku-1;10.00\n"] }
+    expect:
+      result: { import_id: price-import-2 }
+
+  - name: files-a-thread-reply-sends-a-json-part-and-its-attachments
+    request:
+      operation: M12
+      params: { thread_id: 00000000-0000-4000-8000-7e4ead000001 }
+      multipart: { message_input: '{"body":"Synthetic reply","to":[{"type":"CUSTOMER"}]}', files: [synthetic attachment one, synthetic attachment two] }
+    mock:
+      responses:
+        - status: 201
+          body: { message_id: 00000000-0000-4000-8000-3e55a9000001 }
+    wire:
+      - method: POST
+        path: /api/inbox/threads/00000000-0000-4000-8000-7e4ead000001/message
+        parts: { message_input: ['{"body":"Synthetic reply","to":[{"type":"CUSTOMER"}]}'], files: [synthetic attachment one, synthetic attachment two] }
+    expect:
+      result: { message_id: 00000000-0000-4000-8000-3e55a9000001 }

@@ -8,8 +8,9 @@ Unofficial, spec-driven SDKs for third-party APIs, one directory per API under `
 | Etsy Open API v3 | [`apis/etsy/`](apis/etsy/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
 | eBay Sell, Commerce and Developer APIs | [`apis/ebay/`](apis/ebay/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
 | Mercury API | [`apis/mercury/`](apis/mercury/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
+| Mirakl seller API | [`apis/mirakl/`](apis/mirakl/) | Spec pipeline and conformance cases; no language package yet |
 
-Every SDK here is unofficial and is not affiliated with, endorsed by, or supported by the company whose API it calls, including Back Market, Etsy, eBay and Mercury.
+Every SDK here is unofficial and is not affiliated with, endorsed by, or supported by the company whose API it calls, including Back Market, Etsy, eBay, Mercury and Mirakl.
 
 ## Back Market Seller API
 
@@ -156,6 +157,10 @@ The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see 
 
 The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see [`apis/mercury/packages/python/`](apis/mercury/packages/python/README.md), [`apis/mercury/packages/typescript/`](apis/mercury/packages/typescript/README.md), [`apis/mercury/packages/go/`](apis/mercury/packages/go/README.md), [`apis/mercury/packages/csharp/`](apis/mercury/packages/csharp/README.md) and [`apis/mercury/packages/rust/`](apis/mercury/packages/rust/README.md). The Go README explains how it differs from Mercury's official Go SDK. `apis/mercury/` pins Mercury's public API spec, corrects it, and checks the conformance cases against a reference driver. The Mercury sandbox workflow makes read-only calls to Mercury's sandbox, which holds only dummy data, when a `MERCURY_SANDBOX_TOKEN` secret is set; it never runs on pull requests. Mercury is a financial technology company, not a bank; its banking services come through partner banks. This project is not affiliated with, endorsed by or sponsored by Mercury Technologies, Inc.
 
+## Mirakl seller API
+
+`apis/mirakl/` pins the public spec of Mirakl's marketplace seller API, corrects it, and checks the conformance cases against a reference driver. There is no language package yet. Every operator runs its own Mirakl instance, so the caller always supplies the base URL and a shop API key. This project is not affiliated with, endorsed by or sponsored by Mirakl.
+
 ## Layout
 
 | Path | Contents |
@@ -169,6 +174,7 @@ The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see 
 | `apis/etsy/` | The same for Etsy's Open API v3: spec pin, overlay, conformance cases, spec audit, and Python, TypeScript, Go, C# and Rust packages |
 | `apis/ebay/` | The same for eBay's Sell, Commerce and Developer APIs: one pin and overlay per contract, an overlay shared by all of them, conformance cases, spec audit, and Python, TypeScript, Go, C# and Rust packages |
 | `apis/mercury/` | The same for the Mercury API: spec pin, a check that the pin is still current, overlay, conformance cases, webhook signature vectors and spec audit |
+| `apis/mirakl/` | The same for Mirakl's seller API: spec pin, a check that the URL still serves a spec, overlay, shared settings, conformance cases and spec audit |
 
 `toolchain/` must not name this API or contain its endpoints or schemas; a test enforces that. This boundary keeps later extraction cheap and is not a framework.
 
@@ -218,6 +224,6 @@ All tests run against the mock. The project uses no live credentials.
 
 Apache-2.0: see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). The licence covers only this project's own code.
 
-The upstream OpenAPI specs are not in this repository. They are fetched at build time, belong to Back Market, Etsy, eBay and Mercury, and are not covered by this licence. The licence grants no right to the Back Market, Etsy, eBay or Mercury names.
+The upstream OpenAPI specs are not in this repository. They are fetched at build time, belong to Back Market, Etsy, eBay, Mercury and Mirakl, and are not covered by this licence. The licence grants no right to the Back Market, Etsy, eBay, Mercury or Mirakl names.
 
-This project is unofficial and is not affiliated with Back Market, Etsy, eBay or Mercury.
+This project is unofficial and is not affiliated with Back Market, Etsy, eBay, Mercury or Mirakl.

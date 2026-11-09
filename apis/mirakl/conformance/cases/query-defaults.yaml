@@ -1,0 +1,70 @@
+# Every operation takes an optional `shop_id`. A client-level value is sent on every call that leaves it unset,
+# a call's own value wins, and with neither none is sent.
+cases:
+  - name: query-defaults-the-client-shop-id-is-sent
+    client: { query_defaults: { shop_id: '2001' } }
+    request:
+      operation: OR11
+      params: { order_state_codes: SHIPPING }
+    mock:
+      responses:
+        - status: 200
+          body: { orders: [], total_count: 0 }
+    wire:
+      - method: GET
+        path: /api/orders
+        query: { shop_id: '2001', order_state_codes: SHIPPING }
+    expect:
+      result: { orders: [], total_count: 0 }
+
+  - name: query-defaults-a-call-shop-id-overrides-the-client
+    client: { query_defaults: { shop_id: '2001' } }
+    request:
+      operation: A01
+      params: { shop_id: '2002' }
+    mock:
+      responses:
+        - status: 200
+          body: { shop_id: 2002, shop_name: Synthetic shop }
+    wire:
+      - method: GET
+        path: /api/account
+        query: { shop_id: '2002' }
+    expect:
+      result: { shop_id: 2002, shop_name: Synthetic shop }
+
+  - name: query-defaults-the-client-shop-id-reaches-every-page
+    client: { query_defaults: { shop_id: '2001' } }
+    request:
+      operation: ST11
+      params: { limit: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { data: [{ id: shipment-1 }], next_page_token: token-2 }
+        - status: 200
+          body: { data: [{ id: shipment-2 }] }
+    wire:
+      - method: GET
+        path: /api/shipments
+        query: { shop_id: '2001', limit: '1' }
+      - method: GET
+        path: /api/shipments
+        query: { shop_id: '2001', limit: '1', page_token: token-2 }
+    expect:
+      result: [{ id: shipment-1 }, { id: shipment-2 }]
+
+  - name: query-defaults-no-shop-id-is-sent-without-one
+    request:
+      operation: A01
+    mock:
+      responses:
+        - status: 200
+          body: { shop_id: 2001, shop_name: Synthetic shop }
+    wire:
+      - method: GET
+        path: /api/account
+        query: {}
+    expect:
+      result: { shop_id: 2001, shop_name: Synthetic shop }

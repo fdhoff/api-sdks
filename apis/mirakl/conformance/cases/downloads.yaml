@@ -1,0 +1,68 @@
+# Export URLs are fetched with the URL download helper. The key goes only to the base URL's own origin, never to
+# another one, and never again once a redirect leaves it. Logs leave out the query, which may hold a signature.
+cases:
+  - name: downloads-an-order-export-on-another-origin-is-fetched-without-the-key
+    client: { poll_interval_ms: 0 }
+    steps:
+      - request: { operation: OR13, body: { start_date: '2026-01-01T00:00:00Z' } }
+        expect: { result: { tracking_id: tracking-2 } }
+      - request: { operation: OR14, params: { tracking_id: tracking-2 }, wait: true }
+        expect: { result: { status: COMPLETED, urls: ['{{other_origin}}/exports/orders-1.json?signature=synthetic-signature'] } }
+      - request: { download: '{{other_origin}}/exports/orders-1.json?signature=synthetic-signature' }
+        expect:
+          result: { content_type: application/json, base64: W3sib3JkZXJfaWQiOiJvcmRlci0xIn1d }
+          logs_exclude: [synthetic-signature]
+    mock:
+      responses:
+        - status: 200
+          body: { tracking_id: tracking-2 }
+        - status: 200
+          body: { status: COMPLETED, urls: ['{{other_origin}}/exports/orders-1.json?signature=synthetic-signature'] }
+        - status: 200
+          headers: { content-type: application/json }
+          body: '[{"order_id":"order-1"}]'
+    wire:
+      - method: POST
+        path: /api/orders/async-export
+        headers: { authorization: '{{token}}' }
+      - method: GET
+        path: /api/orders/async-export/status/tracking-2
+      - method: GET
+        path: /exports/orders-1.json
+        query: { signature: synthetic-signature }
+        cross_origin: true
+        headers_absent: [authorization]
+
+  - name: downloads-a-redirect-to-another-origin-drops-the-key
+    request: { download: '{{base_url}}/exports/offers-2.json' }
+    mock:
+      responses:
+        - status: 302
+          headers: { location: '{{other_origin}}/stored/offers-2.json?signature=synthetic-signature' }
+        - status: 200
+          headers: { content-type: application/json }
+          body: '[]'
+    wire:
+      - method: GET
+        path: /exports/offers-2.json
+        headers: { authorization: '{{token}}' }
+      - method: GET
+        path: /stored/offers-2.json
+        query: { signature: synthetic-signature }
+        cross_origin: true
+        headers_absent: [authorization]
+    expect:
+      result: { content_type: application/json, base64: W10= }
+      logs_exclude: [synthetic-signature]
+
+  - name: downloads-a-missing-export-is-not-found
+    request: { download: '{{base_url}}/exports/missing.json' }
+    mock:
+      responses:
+        - status: 404
+          body: gone
+    wire:
+      - method: GET
+        path: /exports/missing.json
+    expect:
+      error: { kind: not_found, status: 404, raw_body: gone }

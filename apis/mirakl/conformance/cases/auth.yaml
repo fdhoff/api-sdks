@@ -1,0 +1,57 @@
+# Every request sends the shop API key as the whole Authorization header, and no result, error or log holds it.
+cases:
+  - name: auth-sends-the-key-as-the-raw-authorization-header
+    request:
+      operation: A01
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /api/account
+        headers: { authorization: '{{token}}', accept: application/json }
+    expect:
+      result_keys: [shop_id, shop_name]
+
+  - name: auth-a-key-of-another-shape-is-sent-unchanged
+    client: { token: 00000000-0000-4000-8000-5e11e4000001 }
+    request:
+      operation: V01
+    mock:
+      responses:
+        - status: 200
+          body: { version: 3.0.0 }
+    wire:
+      - method: GET
+        path: /api/version
+        headers: { authorization: 00000000-0000-4000-8000-5e11e4000001 }
+    expect:
+      result: { version: 3.0.0 }
+
+  - name: auth-a-refused-key-is-an-authentication-error-without-the-key
+    request:
+      operation: OR11
+    mock:
+      responses:
+        - status: 401
+          body: 'unknown key {{token}}'
+    wire:
+      - method: GET
+        path: /api/orders
+    expect:
+      error: { kind: authentication, status: 401, raw_body: 'unknown key ***' }
+      logs_required: true
+
+  - name: auth-a-key-echoed-in-a-server-error-is-removed
+    client: { max_retries: 0 }
+    request:
+      operation: A01
+    mock:
+      responses:
+        - status: 500
+          body: 'Authorization: {{token}}'
+    wire:
+      - method: GET
+        path: /api/account
+    expect:
+      error: { kind: server, status: 500, raw_body: 'Authorization: ***' }
+      logs_required: true

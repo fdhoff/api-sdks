@@ -1,0 +1,93 @@
+# A 429 is retried on every method after its Retry-After seconds. 5xx, timeouts and dropped connections are
+# retried on GET only: no write takes an idempotency key.
+cases:
+  - name: retry-429-waits-for-retry-after
+    request:
+      operation: OR11
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '1' }
+          body: too many requests
+        - status: 200
+          body: { orders: [], total_count: 0 }
+    wire:
+      - method: GET
+        path: /api/orders
+      - method: GET
+        path: /api/orders
+        min_delay_ms: 1000
+    expect:
+      result: { orders: [], total_count: 0 }
+
+  - name: retry-429-on-an-upload-resends-the-file
+    request:
+      operation: STO01
+      multipart: { file: "offer-sku;quantity\nsku-3;1\n" }
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '0' }
+          body: ''
+        - status: 201
+          body: { import_id: stock-import-3 }
+    wire:
+      - method: POST
+        path: /api/offers/stock/imports
+        parts: { file: ["offer-sku;quantity\nsku-3;1\n"] }
+      - method: POST
+        path: /api/offers/stock/imports
+        parts: { file: ["offer-sku;quantity\nsku-3;1\n"] }
+    expect:
+      result: { import_id: stock-import-3 }
+
+  - name: retry-429-beyond-the-longest-wait-is-rate-limited
+    client: { max_retry_wait_ms: 1000 }
+    request:
+      operation: A01
+    mock:
+      responses:
+        - status: 429
+          headers: { retry-after: '120' }
+          body: slow down
+    wire:
+      - method: GET
+        path: /api/account
+    expect:
+      error: { kind: rate_limited, status: 429, raw_body: slow down }
+
+  - name: retry-a-get-is-retried-on-503
+    client: { max_retries: 1 }
+    request:
+      operation: V01
+    mock:
+      responses:
+        - status: 503
+          body: unavailable
+        - status: 200
+          body: { version: 3.0.0 }
+    wire:
+      - method: GET
+        path: /api/version
+      - method: GET
+        path: /api/version
+    expect:
+      result: { version: 3.0.0 }
+
+  - name: retry-a-dropped-connection-on-a-get-is-retried
+    client: { max_retries: 1 }
+    request:
+      operation: STO02
+      params: { import_id: stock-import-4 }
+    mock:
+      responses:
+        - drop: true
+        - status: 200
+          body: { import_id: stock-import-4, status: COMPLETE }
+    wire:
+      - method: GET
+        path: /api/offers/stock/imports/stock-import-4/status
+      - method: GET
+        path: /api/offers/stock/imports/stock-import-4/status
+    expect:
+      result: { import_id: stock-import-4, status: COMPLETE }
