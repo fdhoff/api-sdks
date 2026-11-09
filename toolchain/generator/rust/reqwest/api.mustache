@@ -33,6 +33,9 @@ const {{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}: Operat
 {{#vendorExtensions.x-sdk-paging.cursor}}
     paging: Some(Paging::Cursor { items: "{{items}}", next: "{{next}}", param: "{{param}}" }),
 {{/vendorExtensions.x-sdk-paging.cursor}}
+{{#vendorExtensions.x-sdk-paging.link_header}}
+    paging: Some(Paging::LinkHeader { items: "{{items}}", rel: "{{rel}}", params: &[{{#params}}"{{.}}", {{/params}}] }),
+{{/vendorExtensions.x-sdk-paging.link_header}}
 {{^vendorExtensions.x-sdk-paging}}
     paging: None,
 {{/vendorExtensions.x-sdk-paging}}

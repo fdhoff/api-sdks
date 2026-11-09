@@ -6,7 +6,7 @@ use std::sync::{Arc, PoisonError};
 use std::time::{Duration, SystemTime};
 
 use futures_core::Stream;
-use reqwest::header::{ACCEPT, ACCEPT_ENCODING, CONTENT_ENCODING, CONTENT_LENGTH, CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue, LOCATION};
+use reqwest::header::{ACCEPT, ACCEPT_ENCODING, CONTENT_ENCODING, CONTENT_LENGTH, CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue, LINK, LOCATION};
 use reqwest::{Method, StatusCode, multipart, redirect};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
@@ -618,15 +618,52 @@ impl Transport {
 
     /// The request for the page after this one. `None` means the last page.
     fn next_request(&self, request: &Request, page: &Value, answer: &Answer, received: usize) -> Result<Option<Request>, Error> {
-        let items = request.operation.paging().items();
-        if !page.get(items).is_some_and(Value::is_array) {
-            return Err(self.decode_error(&format!("the {items} field of a page is not a list"), answer));
-        }
+        self.page_items(request, page, answer)?;
         match request.operation.paging() {
             Paging::NextLink { link, params, .. } => self.next_link(request, link, params, page, answer),
             Paging::Offset { total, offset, .. } => self.next_offset(request, total, offset, page, answer, received),
             Paging::Cursor { next, param, .. } => self.next_cursor(request, next, param, page, answer),
+            Paging::LinkHeader { rel, params, .. } => self.next_link_header(request, rel, params, answer),
         }
+    }
+
+    /// A page's items: the page itself when `items` is the root, and otherwise its `items` field.
+    fn page_items<'a>(&self, request: &Request, page: &'a Value, answer: &Answer) -> Result<&'a Vec<Value>, Error> {
+        let items = request.operation.paging().items();
+        if items == Paging::ROOT {
+            return page.as_array().ok_or_else(|| self.decode_error("a page is not a JSON list", answer));
+        }
+        if !page.is_object() {
+            return Err(self.decode_error("a page is not a JSON object", answer));
+        }
+        page.get(items).and_then(Value::as_array).ok_or_else(|| self.decode_error(&format!("the {items} field of a page is not a list"), answer))
+    }
+
+    /// Reads the position out of the response's `rel` Link and applies it to our own request. The link
+    /// is never fetched: its host is the server's own idea of its address, and could be another one.
+    fn next_link_header(&self, request: &Request, rel: &str, params: &[&str], answer: &Answer) -> Result<Option<Request>, Error> {
+        let header = answer.headers.get_all(LINK).iter().map(|value| String::from_utf8_lossy(value.as_bytes())).collect::<Vec<_>>().join(",");
+        let Some(link) = linked(&header, rel) else {
+            return Ok(None);
+        };
+        let base = url::Url::parse("http://localhost/").expect("a valid base");
+        let parsed = base.join(&link).map_err(|_| self.decode_error(&format!("the {rel} Link is not a valid URL"), answer))?;
+        let mut next = request.clone();
+        let mut advanced = false;
+        for marker in params {
+            if !request.operation.query_params.contains(marker) {
+                continue;
+            }
+            let Some((_, value)) = parsed.query_pairs().find(|(name, value)| name == marker && !value.is_empty()) else {
+                continue;
+            };
+            advanced = advanced || request.query_value(marker) != Some(value.as_ref());
+            next.set_query(marker, &value);
+        }
+        if !advanced {
+            return Err(self.decode_error(&format!("the {rel} Link does not advance the iteration"), answer));
+        }
+        Ok(Some(next))
     }
 
     /// Reads the position out of a page's link and applies it to our own request. The link is
@@ -730,13 +767,7 @@ impl Transport {
             return Ok((VecDeque::new(), None));
         }
         let page: Value = serde_json::from_slice(&answer.body).unwrap_or(Value::Null);
-        if !page.is_object() {
-            return Err(self.decode_error("a page is not a JSON object", &answer));
-        }
-        let items: VecDeque<Value> = match page.get(request.operation.paging().items()) {
-            Some(Value::Array(items)) => items.iter().cloned().collect(),
-            _ => VecDeque::new(),
-        };
+        let items: VecDeque<Value> = self.page_items(request, &page, &answer)?.iter().cloned().collect();
         let next = self.next_request(request, &page, &answer, items.len())?;
         if next.as_ref().and_then(position).is_some_and(|at| !seen.insert(at)) {
             return Err(self.decode_error("the next page is one this iteration already requested", &answer));
@@ -783,8 +814,69 @@ fn position(request: &Request) -> Option<Vec<Option<String>>> {
         Paging::NextLink { params, .. } => *params,
         Paging::Cursor { param, .. } => std::slice::from_ref(param),
         Paging::Offset { .. } => return None,
+        Paging::LinkHeader { params, .. } => *params,
     };
     Some(markers.iter().map(|marker| request.query_value(marker).map(str::to_owned)).collect())
+}
+
+/// Splits on each `separator` outside a `<...>` URI and outside a quoted string.
+fn split_outside(text: &str, separator: char) -> Vec<&str> {
+    let mut parts = Vec::new();
+    let (mut start, mut uri, mut quoted, mut escaped) = (0, false, false, false);
+    for (index, char) in text.char_indices() {
+        if quoted {
+            if escaped {
+                escaped = false;
+            } else if char == '\\' {
+                escaped = true;
+            } else if char == '"' {
+                quoted = false;
+            }
+            continue;
+        }
+        match char {
+            '<' if !uri => uri = true,
+            '>' if uri => uri = false,
+            '"' if !uri => quoted = true,
+            _ if char == separator && !uri => {
+                parts.push(&text[start..index]);
+                start = index + char.len_utf8();
+            }
+            _ => {}
+        }
+    }
+    parts.push(&text[start..]);
+    parts
+}
+
+/// A parameter value: a token, or a quoted string with its escapes removed.
+fn unquote(value: &str) -> String {
+    let Some(quoted) = value.strip_prefix('"') else {
+        return value.to_owned();
+    };
+    let mut text = String::new();
+    let mut chars = quoted.chars();
+    while let Some(char) = chars.next() {
+        match char {
+            '"' => break,
+            '\\' => text.extend(chars.next()),
+            _ => text.push(char),
+        }
+    }
+    text
+}
+
+/// The URI of the first link in an RFC 8288 `Link` header whose first `rel` parameter holds `rel`, compared
+/// without case. A link-value that does not start with `<uri>` is skipped.
+fn linked(header: &str, rel: &str) -> Option<String> {
+    split_outside(header, ',').into_iter().find_map(|value| {
+        let (uri, params) = value.trim().strip_prefix('<')?.split_once('>')?;
+        let relations = split_outside(params, ';').into_iter().find_map(|param| {
+            let (name, value) = param.split_once('=').unwrap_or((param, ""));
+            name.trim().eq_ignore_ascii_case("rel").then(|| unquote(value.trim()))
+        })?;
+        relations.split_whitespace().any(|relation| relation.eq_ignore_ascii_case(rel)).then(|| uri.to_owned())
+    })
 }
 
 /// Whether a request with no body is sent with `Content-Length: 0`, as Go, Python and TypeScript send it.
@@ -885,13 +977,34 @@ mod tests {
         security: &[],
     };
 
+    const PARTS: Operation = Operation {
+        id: "listParts",
+        method: "GET",
+        path: "/parts",
+        query_params: &["page", "limit", "zone"],
+        returns_json: true,
+        paging: Some(Paging::LinkHeader { items: "$", rel: "next", params: &["page", "limit"] }),
+        security: &[],
+    };
+
+    const BINS: Operation =
+        Operation { id: "listBins", path: "/bins", paging: Some(Paging::LinkHeader { items: "bins", rel: "next", params: &["page", "limit"] }), ..PARTS };
+
     fn next(operation: &'static Operation, query: &[(&str, &str)], page: Value, received: usize) -> Result<Option<String>, Error> {
+        linked_next(operation, query, page, received, &[])
+    }
+
+    fn linked_next(operation: &'static Operation, query: &[(&str, &str)], page: Value, received: usize, links: &[&'static str]) -> Result<Option<String>, Error> {
         let transport = Transport::new(settings(HeaderMap::new())).unwrap();
         let mut request = Request::new(operation);
         for (name, value) in query {
             request.set_query(name, value);
         }
-        let answer = Answer { status: 200, headers: HeaderMap::new(), body: Vec::new() };
+        let mut headers = HeaderMap::new();
+        for link in links {
+            headers.append(LINK, HeaderValue::from_static(link));
+        }
+        let answer = Answer { status: 200, headers, body: Vec::new() };
         Ok(transport.next_request(&request, &page, &answer, received)?.map(|next| next.url("", &HashMap::new())))
     }
 
@@ -1015,6 +1128,50 @@ mod tests {
         assert_eq!(Operation { paging: None, ..LINKED_LIST }.paging().items(), "results");
     }
 
+    #[test]
+    fn link_header_paging_reads_the_next_rel_among_several_links_and_rels() {
+        let next = |links: &[&'static str]| linked_next(&PARTS, &[("limit", "2"), ("zone", "a")], serde_json::json!([1]), 1, links).unwrap();
+        let several = [
+            r#"<https://elsewhere.example/parts?page=9>; rel="prev first""#,
+            r#"<https://elsewhere.example/parts?page=%32&limit=2>; REL="Last NEXT""#,
+        ];
+        assert_eq!(next(&several).as_deref(), Some("/parts?zone=a&page=2&limit=2"));
+        let joined: &'static str = several.join(", ").leak();
+        assert_eq!(next(&[joined]).as_deref(), Some("/parts?zone=a&page=2&limit=2"));
+        assert_eq!(next(&["<https://elsewhere.example/parts?page=3>; rel=next"]).as_deref(), Some("/parts?limit=2&zone=a&page=3"));
+        let quoted = r#"<https://elsewhere.example/parts?page=7,8>; rel="a,b"; title="x,y;\"z", </parts?page=4>;rel = "next""#;
+        assert_eq!(next(&[quoted]).as_deref(), Some("/parts?limit=2&zone=a&page=4"));
+        assert_eq!(next(&["nonsense; rel=next, <https://elsewhere.example/parts?page=6>; rel=next"]).as_deref(), Some("/parts?limit=2&zone=a&page=6"));
+        assert_eq!(next(&["<https://elsewhere.example/parts?page=5&page=8>; rel=next; rel=prev"]).as_deref(), Some("/parts?limit=2&zone=a&page=5"));
+    }
+
+    #[test]
+    fn link_header_paging_stops_without_a_next_link() {
+        let next = |links: &[&'static str]| linked_next(&PARTS, &[("page", "3")], serde_json::json!([1]), 1, links).unwrap();
+        assert_eq!(next(&[]), None);
+        assert_eq!(next(&[r#"<https://elsewhere.example/parts?page=2>; rel="prev""#]), None);
+        assert_eq!(next(&["<https://elsewhere.example/parts?page=4>; rel=prev; rel=next"]), None);
+        assert_eq!(next(&["https://elsewhere.example/parts?page=4; rel=next"]), None);
+    }
+
+    #[test]
+    fn link_header_paging_rejects_a_link_that_does_not_advance_or_cannot_be_parsed() {
+        for link in ["<https://elsewhere.example/parts?page=2&limit=2>; rel=next", "<https://elsewhere.example/parts?page=&limit=>; rel=next", "<http://[::1>; rel=next"] {
+            let error = linked_next(&PARTS, &[("page", "2"), ("limit", "2")], serde_json::json!([]), 0, &[link]).unwrap_err();
+            assert_eq!(error.kind(), ErrorKind::Decode, "{link}");
+        }
+    }
+
+    #[test]
+    fn root_items_need_a_list_page_and_field_items_an_object_page() {
+        let link = &["</parts?page=2>; rel=next"];
+        assert_eq!(linked_next(&PARTS, &[], serde_json::json!([]), 0, link).unwrap().as_deref(), Some("/parts?page=2"));
+        assert_eq!(linked_next(&BINS, &[], serde_json::json!({ "bins": [] }), 0, link).unwrap().as_deref(), Some("/bins?page=2"));
+        for (operation, page) in [(&PARTS, serde_json::json!({ "data": [] })), (&PARTS, Value::Null), (&BINS, serde_json::json!([])), (&BINS, serde_json::json!({}))] {
+            assert_eq!(linked_next(operation, &[], page, 0, link).unwrap_err().kind(), ErrorKind::Decode);
+        }
+    }
+
     #[tokio::test]
     async fn a_multipart_file_part_is_typed_and_a_text_part_is_not() {
         let file = super::super::request::File { name: Some("photo.png".to_owned()), content: b"synthetic".to_vec() };
@@ -1059,10 +1216,11 @@ mod tests {
             content_type: Option<&'static str>,
             parts: Vec<Vec<u8>>,
             gate: Option<Arc<Notify>>,
+            links: &'static [&'static str],
         }
 
         fn reply(status: u16, content_type: Option<&'static str>, body: &[u8]) -> Scripted {
-            Scripted { status, content_type, parts: vec![body.to_vec()], gate: None }
+            Scripted { status, content_type, parts: vec![body.to_vec()], gate: None, links: &[] }
         }
 
         async fn serve(script: impl Fn(usize) -> Scripted + Send + 'static) -> (String, Log) {
@@ -1101,10 +1259,11 @@ mod tests {
                         log.push(Sent { head, body: data[head_end..].to_vec() });
                         log.len()
                     };
-                    let Scripted { status, content_type, parts, gate } = script(number);
+                    let Scripted { status, content_type, parts, gate, links } = script(number);
                     let length: usize = parts.iter().map(Vec::len).sum();
                     let content_type = content_type.map(|value| format!("content-type: {value}\r\n")).unwrap_or_default();
-                    let head = format!("HTTP/1.1 {status} Status\r\n{content_type}content-length: {length}\r\nconnection: close\r\n\r\n");
+                    let links: String = links.iter().map(|link| format!("link: {link}\r\n")).collect();
+                    let head = format!("HTTP/1.1 {status} Status\r\n{content_type}{links}content-length: {length}\r\nconnection: close\r\n\r\n");
                     tokio::spawn(async move {
                         let _ = stream.write_all(head.as_bytes()).await;
                         for (index, part) in parts.iter().enumerate() {
@@ -1195,6 +1354,7 @@ mod tests {
                 content_type: Some("application/octet-stream"),
                 parts: vec![b"first".to_vec(), b"second".to_vec()],
                 gate: Some(Arc::clone(&held)),
+                links: &[],
             })
             .await;
             let mut download = quick(&url).download(Request::new(&DOWNLOAD)).await.unwrap();
@@ -1220,6 +1380,7 @@ mod tests {
                 content_type: None,
                 parts: vec![b"first".to_vec(), b"never".to_vec()],
                 gate: Some(Arc::clone(&held)),
+                links: &[],
             })
             .await;
             let transport = transport(&url, Duration::from_millis(200), Arc::new(Recorder::default()));
@@ -1339,6 +1500,49 @@ mod tests {
             assert!(error.to_string().contains("already requested"), "{error}");
             let sent: Vec<String> = log.lock().unwrap().iter().map(|sent| sent.head.lines().next().unwrap().to_owned()).collect();
             assert_eq!(sent, paths.map(|path| format!("get {path} http/1.1")));
+        }
+
+        fn linked(body: &'static [u8], links: &'static [&'static str]) -> Scripted {
+            Scripted { links, ..reply(200, Some("application/json"), body) }
+        }
+
+        async fn walk_links(operation: &'static Operation, query: &[(&str, &str)], script: fn(usize) -> Scripted) -> (Vec<Result<Value, Error>>, Vec<String>) {
+            let (url, log) = serve(script).await;
+            let transport = Arc::new(quick(&url));
+            let mut request = Request::new(operation);
+            for (name, value) in query {
+                request.set_query(name, value);
+            }
+            let items = futures_util::StreamExt::collect::<Vec<Result<Value, Error>>>(Transport::paginate(&transport, request)).await;
+            let sent = log.lock().unwrap().iter().map(|sent| sent.head.lines().next().unwrap().to_owned()).collect();
+            (items, sent)
+        }
+
+        #[tokio::test]
+        async fn link_header_paging_walks_list_pages_on_its_own_host_until_no_next_link() {
+            let (items, sent) = walk_links(&PARTS, &[("limit", "2"), ("zone", "a")], |number| match number {
+                1 => linked(br#"[{"id":"p1"},{"id":"p2"}]"#, &["<https://elsewhere.example/api/parts?page=2&limit=2>; rel=\"next\", <https://elsewhere.example/api/parts?page=3&limit=2>; rel=\"last\""]),
+                2 => linked(br#"[{"id":"p3"},{"id":"p4"}]"#, &["<https://elsewhere.example/api/parts?page=1&limit=2>; rel=\"prev first\"", "<https://elsewhere.example/api/parts?page=3&limit=2>; rel=\"next last\""]),
+                _ => linked(br#"[{"id":"p5"}]"#, &["<https://elsewhere.example/api/parts?page=2&limit=2>; rel=\"prev\""]),
+            })
+            .await;
+            let ids: Vec<Value> = items.into_iter().map(|item| item.unwrap()["id"].clone()).collect();
+            assert_eq!(ids, ["p1", "p2", "p3", "p4", "p5"]);
+            assert_eq!(sent, ["get /parts?limit=2&zone=a http/1.1", "get /parts?zone=a&page=2&limit=2 http/1.1", "get /parts?zone=a&page=3&limit=2 http/1.1"]);
+        }
+
+        #[tokio::test]
+        async fn link_header_paging_rejects_a_position_that_cycles_back() {
+            let (items, sent) = walk_links(&BINS, &[], |number| match number {
+                1 => linked(br#"{"bins":[1]}"#, &["</bins?page=2>; rel=next"]),
+                2 => linked(br#"{"bins":[2]}"#, &["</bins?page=1>; rel=next"]),
+                _ => linked(br#"{"bins":[3]}"#, &["</bins?page=2>; rel=next"]),
+            })
+            .await;
+            let error = items.last().unwrap().as_ref().unwrap_err();
+            assert_eq!(error.kind(), ErrorKind::Decode);
+            assert!(error.to_string().contains("already requested"), "{error}");
+            assert_eq!(sent, ["get /bins http/1.1", "get /bins?page=2 http/1.1", "get /bins?page=1 http/1.1"]);
         }
 
         #[tokio::test]
