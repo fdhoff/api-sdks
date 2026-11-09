@@ -17,6 +17,7 @@ mod message;
 mod metadata;
 mod negotiation;
 mod notification;
+mod post_order;
 mod recommendation;
 mod stores;
 mod taxonomy;
@@ -40,6 +41,7 @@ pub async fn dispatch(client: &Client, contract: &str, case: &Case) -> Result<Va
         "sell_negotiation" => negotiation::dispatch(client, case).await,
         "sell_recommendation" => recommendation::dispatch(client, case).await,
         "sell_stores" => stores::dispatch(client, case).await,
+        "sell_post_order" => post_order::dispatch(client, case).await,
         "commerce_feedback" => feedback::dispatch(client, case).await,
         "commerce_identity" => identity::dispatch(client, case).await,
         "commerce_media" => media::dispatch(client, case).await,

@@ -477,6 +477,46 @@ async fn the_marketplace_is_a_default_each_call_may_override() {
 }
 
 #[tokio::test]
+async fn a_post_order_upload_sends_the_user_token_marketplace_and_a_json_file() {
+    use ebay_sell::post_order::ReturnsUploadFileParams;
+    use ebay_sell::post_order::models::{FilePurposeEnum, UploadFileRequest};
+
+    let (url, log) = serve(|_| (200, r#"{"fileId":"1"}"#.to_owned())).await;
+    let client = builder(&url)
+        .user_token(USER)
+        .marketplace_id("EBAY_GB")
+        .build()
+        .unwrap();
+    let file = UploadFileRequest {
+        data: Some("c3ludGhldGlj".to_owned()),
+        file_purpose: Some(FilePurposeEnum::LabelRelated),
+        ..UploadFileRequest::default()
+    };
+    client
+        .post_order()
+        .returns()
+        .upload_file("5000000001", &file, &ReturnsUploadFileParams::default())
+        .await
+        .unwrap();
+    let sent = sent(&log);
+    assert_eq!(sent[0].path, "/post-order/v2/return/5000000001/file/upload");
+    assert_eq!(sent[0].bearer(), Some(USER.to_lowercase()));
+    assert_eq!(
+        sent[0].header("x-ebay-c-marketplace-id").as_deref(),
+        Some("ebay_gb")
+    );
+    assert_eq!(
+        sent[0].header("content-type").as_deref(),
+        Some("application/json")
+    );
+    let body: serde_json::Value = serde_json::from_str(&sent[0].body).unwrap();
+    assert_eq!(
+        body,
+        serde_json::json!({"data": "c3ludGhldGlj", "filePurpose": "LABEL_RELATED"})
+    );
+}
+
+#[tokio::test]
 async fn an_empty_204_is_none() {
     let (url, _) = serve(|_| (204, String::new())).await;
     let client = builder(&url).user_token(USER).build().unwrap();

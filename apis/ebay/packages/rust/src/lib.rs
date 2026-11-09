@@ -21,6 +21,7 @@ pub mod metadata;
 pub mod negotiation;
 pub mod notification;
 mod oauth;
+pub mod post_order;
 pub mod recommendation;
 mod runtime;
 #[cfg(feature = "signing")]

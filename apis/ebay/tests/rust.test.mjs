@@ -94,6 +94,6 @@ test('the conformance driver can call every operation and iterator', async () =>
     operations += Object.keys(contract.operations).length;
     iterators += expected.length - Object.keys(contract.operations).length;
   }
-  assert.equal(operations, 310);
+  assert.equal(operations, 339);
   assert.equal(iterators, 35);
 });

@@ -40,7 +40,7 @@ contracts:
   sell_negotiation: { output: src/negotiation, operations: operations/sell_negotiation.yaml, properties: { sdkModule: negotiation }, supporting_files: { dispatch.mustache: conformance/dispatch/negotiation.rs } }
   sell_recommendation: { output: src/recommendation, operations: operations/sell_recommendation.yaml, properties: { sdkModule: recommendation }, supporting_files: { dispatch.mustache: conformance/dispatch/recommendation.rs } }
   sell_stores: { output: src/stores, operations: operations/sell_stores.yaml, properties: { sdkModule: stores }, supporting_files: { dispatch.mustache: conformance/dispatch/stores.rs } }
-  sell_post_order: { omit: Added in a later release. }
+  sell_post_order: { output: src/post_order, operations: operations/sell_post_order.yaml, properties: { sdkModule: post_order }, schema_names: { DateTime: Timestamp }, supporting_files: { dispatch.mustache: conformance/dispatch/post_order.rs } }
   commerce_feedback: { output: src/feedback, operations: operations/commerce_feedback.yaml, properties: { sdkModule: feedback }, supporting_files: { dispatch.mustache: conformance/dispatch/feedback.rs } }
   commerce_identity: { output: src/identity, operations: operations/commerce_identity.yaml, properties: { sdkModule: identity }, supporting_files: { dispatch.mustache: conformance/dispatch/identity.rs } }
   commerce_media: { output: src/media, operations: operations/commerce_media.yaml, properties: { sdkModule: media }, supporting_files: { dispatch.mustache: conformance/dispatch/media.rs } }

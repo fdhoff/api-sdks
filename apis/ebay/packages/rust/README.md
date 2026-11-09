@@ -196,7 +196,7 @@ Set these on `Client::builder()`. Set `client_id` and `client_secret`, a token, 
 
 ## Behaviour
 
-* **Methods** are grouped by API and then by resource, such as `client.fulfillment().orders()`, `client.inventory().inventory_items()`, `client.account().fulfillment_policies()` and `client.taxonomy().category_trees()`. Each API is also a module, such as `ebay_sell::fulfillment`, with its parameter structs at its root and its models in `ebay_sell::fulfillment::models`. 310 of the 317 operations in the 20 contracts have a method; see Limits.
+* **Methods** are grouped by API and then by resource, such as `client.fulfillment().orders()`, `client.inventory().inventory_items()`, `client.post_order().returns()`, `client.account().fulfillment_policies()` and `client.taxonomy().category_trees()`. Each API is also a module, such as `ebay_sell::fulfillment`, with its parameter structs at its root and its models in `ebay_sell::fulfillment::models`. 339 of the 346 operations in the 21 contracts have a method; see Limits.
 * **Tokens:** an operation that accepts an application token's scope gets the application token, and every other operation gets the user token. With no application token and no way to mint one, the user token is sent instead. Basic authentication with your App ID and Cert ID goes only to the token endpoint.
 * **Hosts:** most operations go to `api.ebay.com`. Finances, Identity, Key Management and payment disputes go to `apiz.ebay.com`, and most of Media to `apim.ebay.com`. Each operation goes to its own host in the environment you chose.
 * **Pagination:** `list` methods return one page and `iter` methods return a stream of every item, following each page's `next` link. A stream ends after yielding an error.
