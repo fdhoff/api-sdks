@@ -1,0 +1,4 @@
+# Public names for the Developer Analytics API, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+getRateLimits: { resource: RateLimits, method: ListAsync, summary: "List the app's call limits and current usage." }
+getUserRateLimits: { resource: RateLimits, method: ListForUserAsync, summary: List the call limits and current usage of the user the token belongs to. }

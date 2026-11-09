@@ -1,0 +1,32 @@
+# Public names for the Metadata API, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+getAutomotivePartsCompatibilityPolicies: { resource: Marketplaces, method: GetAutomotivePartsCompatibilityPoliciesAsync, summary: List the categories of a marketplace that support parts compatibility. }
+getCategoryPolicies: { resource: Marketplaces, method: GetCategoryPoliciesAsync, summary: "List the listing policies of a marketplace's categories." }
+getClassifiedAdPolicies: { resource: Marketplaces, method: GetClassifiedAdPoliciesAsync, summary: "List the classified ad policies of a marketplace's categories." }
+getCurrencies: { resource: Marketplaces, method: GetCurrenciesAsync, summary: Get the default currency of a marketplace. }
+getExtendedProducerResponsibilityPolicies: { resource: Marketplaces, method: GetExtendedProducerResponsibilityPoliciesAsync, summary: "List the extended producer responsibility policies of a marketplace's categories." }
+getHazardousMaterialsLabels: { resource: Marketplaces, method: GetHazardousMaterialsLabelsAsync, summary: List the hazardous materials labels a marketplace accepts. }
+getItemConditionPolicies: { resource: Marketplaces, method: GetItemConditionPoliciesAsync, summary: "List the item conditions a marketplace's categories accept." }
+getListingStructurePolicies: { resource: Marketplaces, method: GetListingStructurePoliciesAsync, summary: "List which of a marketplace's categories accept multi-variation listings." }
+getListingTypePolicies: { resource: Marketplaces, method: GetListingTypePoliciesAsync, summary: "List the listing formats and durations of a marketplace's categories." }
+getMotorsListingPolicies: { resource: Marketplaces, method: GetMotorsListingPoliciesAsync, summary: "List the motors listing policies of a marketplace's categories." }
+getNegotiatedPricePolicies: { resource: Marketplaces, method: GetNegotiatedPricePoliciesAsync, summary: "List the Best Offer policies of a marketplace's categories." }
+getProductSafetyLabels: { resource: Marketplaces, method: GetProductSafetyLabelsAsync, summary: List the product safety labels a marketplace accepts. }
+getRegulatoryPolicies: { resource: Marketplaces, method: GetRegulatoryPoliciesAsync, summary: "List the regulatory policies of a marketplace's categories." }
+getReturnPolicies: { resource: Marketplaces, method: GetReturnPoliciesAsync, summary: "List the return policies of a marketplace's categories." }
+getShippingPolicies: { resource: Marketplaces, method: GetShippingPoliciesAsync, summary: "List the shipping policies of a marketplace's categories." }
+getSiteVisibilityPolicies: { resource: Marketplaces, method: GetSiteVisibilityPoliciesAsync, summary: "List which of a marketplace's categories show on other marketplaces." }
+
+getCompatibilitiesBySpecification: { resource: Compatibilities, method: GetBySpecificationAsync, summary: List the vehicles that match a parts specification. }
+getCompatibilityPropertyNames: { resource: Compatibilities, method: GetPropertyNamesAsync, summary: List the compatibility property names of a category. }
+getCompatibilityPropertyValues: { resource: Compatibilities, method: GetPropertyValuesAsync, summary: List the values of one compatibility property. }
+getMultiCompatibilityPropertyValues: { resource: Compatibilities, method: GetMultiPropertyValuesAsync, summary: List the values of several compatibility properties. }
+getProductCompatibilities: { resource: Compatibilities, method: GetProductCompatibilitiesAsync, summary: List the vehicles a product fits. }
+
+getExcludeShippingLocations: { resource: Shipping, method: GetExcludedLocationsAsync, summary: List the regions and countries a seller can exclude from shipping. }
+getHandlingTimes: { resource: Shipping, method: GetHandlingTimesAsync, summary: List the handling times a marketplace accepts. }
+getShippingCarriers: { resource: Shipping, method: GetCarriersAsync, summary: List the shipping carriers of a marketplace. }
+getShippingLocations: { resource: Shipping, method: GetLocationsAsync, summary: List the shipping locations of a marketplace. }
+getShippingServices: { resource: Shipping, method: GetServicesAsync, summary: List the shipping services of a marketplace. }
+
+getSalesTaxJurisdictions: { resource: Countries, method: GetSalesTaxJurisdictionsAsync, summary: List the sales tax jurisdictions of a country. }

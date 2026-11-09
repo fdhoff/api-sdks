@@ -1,0 +1,5 @@
+# Public names for the Key Management API, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+getSigningKeys: { resource: SigningKeys, method: ListAsync, summary: "List the app's signing keys." }
+createSigningKey: { resource: SigningKeys, method: CreateAsync, summary: Create a signing key pair and return its private key once. }
+getSigningKey: { resource: SigningKeys, method: GetAsync, summary: Get one signing key. }

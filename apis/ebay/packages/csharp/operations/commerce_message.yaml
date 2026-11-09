@@ -1,0 +1,7 @@
+# Public names for the Message API, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+bulkUpdateConversation: { resource: Conversations, method: BulkUpdateAsync, summary: Update the status of several conversations. }
+getConversation: { resource: Conversations, method: GetAsync, iterator: ListAllMessagesAsync, items: MessageDetail, paging: { items: messages }, summary: Get one conversation with one page of its messages. }
+getConversations: { resource: Conversations, method: ListAsync, iterator: ListAllAsync, items: ConversationDetail, paging: { items: conversations }, summary: List one page of conversations. }
+sendMessage: { resource: Conversations, method: SendAsync, summary: Send a message }
+updateConversation: { resource: Conversations, method: UpdateAsync, summary: Update the status of one conversation. }

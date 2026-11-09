@@ -1,0 +1,8 @@
+# Public names for the Analytics API, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+getCustomerServiceMetric: { resource: CustomerServiceMetrics, method: GetAsync, summary: "Get the seller's rating for one customer service metric." }
+
+findSellerStandardsProfiles: { resource: SellerStandardsProfiles, method: ListAsync, summary: "List the seller's standards profiles." }
+getSellerStandardsProfile: { resource: SellerStandardsProfiles, method: GetAsync, summary: Get one seller standards profile. }
+
+getTrafficReport: { resource: TrafficReports, method: GetAsync, summary: "Get a traffic report of the seller's listings." }

@@ -1,0 +1,4 @@
+# Public names for the Negotiation API, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+findEligibleItems: { resource: Offers, method: FindEligibleItemsAsync, iterator: ListAllEligibleItemsAsync, items: EligibleItem, paging: { items: eligibleItems }, summary: "List one page of the seller's listings with interested buyers." }
+sendOfferToInterestedBuyers: { resource: Offers, method: SendToInterestedBuyersAsync, summary: Send a discount offer to the buyers interested in a listing. }

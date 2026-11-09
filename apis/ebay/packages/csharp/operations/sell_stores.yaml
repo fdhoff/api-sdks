@@ -1,0 +1,10 @@
+# Public names for the Stores API, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+getStore: { resource: Store, method: GetAsync, summary: "Get the seller's eBay store." }
+getStoreCategories: { resource: Store, method: ListCategoriesAsync, summary: "List the categories of the seller's store." }
+addStoreCategory: { resource: Store, method: AddCategoryAsync, summary: Start a task that adds a store category. }
+renameStoreCategory: { resource: Store, method: RenameCategoryAsync, summary: Rename a store category. }
+moveStoreCategory: { resource: Store, method: MoveCategoryAsync, summary: Start a task that moves a store category. }
+deleteStoreCategory: { resource: Store, method: DeleteCategoryAsync, summary: Start a task that deletes a store category. }
+getStoreTasks: { resource: Store, method: ListTasksAsync, summary: "List the seller's store category tasks." }
+getStoreTask: { resource: Store, method: GetTaskAsync, summary: Get one store category task. }

@@ -1,0 +1,43 @@
+# Public names for the Inventory API, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+getInventoryItems: { resource: InventoryItems, method: ListAsync, iterator: ListAllAsync, items: InventoryItemWithSkuLocaleGroupid, paging: { items: inventoryItems }, summary: "List one page of the seller's inventory items." }
+getInventoryItem: { resource: InventoryItems, method: GetAsync, summary: Get one inventory item by SKU. }
+createOrReplaceInventoryItem: { resource: InventoryItems, method: CreateOrReplaceAsync, summary: Create or replace an inventory item. }
+deleteInventoryItem: { resource: InventoryItems, method: DeleteAsync, summary: Delete an inventory item and its offers. }
+bulkCreateOrReplaceInventoryItem: { resource: InventoryItems, method: BulkCreateOrReplaceAsync, summary: Create or replace several inventory items. }
+bulkGetInventoryItem: { resource: InventoryItems, method: BulkGetAsync, summary: Get several inventory items by SKU. }
+bulkUpdatePriceQuantity: { resource: InventoryItems, method: BulkUpdatePriceQuantityAsync, summary: Update the price and quantity of several inventory items and their offers. }
+
+getProductCompatibility: { resource: ProductCompatibility, method: GetAsync, summary: Get the vehicles an inventory item fits. }
+createOrReplaceProductCompatibility: { resource: ProductCompatibility, method: CreateOrReplaceAsync, summary: Set the vehicles an inventory item fits. }
+deleteProductCompatibility: { resource: ProductCompatibility, method: DeleteAsync, summary: Remove the vehicle list of an inventory item. }
+
+getInventoryItemGroup: { resource: InventoryItemGroups, method: GetAsync, summary: Get one inventory item group. }
+createOrReplaceInventoryItemGroup: { resource: InventoryItemGroups, method: CreateOrReplaceAsync, summary: Create or replace an inventory item group for a multi-variation listing. }
+deleteInventoryItemGroup: { resource: InventoryItemGroups, method: DeleteAsync, summary: Delete an inventory item group. }
+
+bulkMigrateListing: { resource: Listings, method: BulkMigrateAsync, summary: Move existing listings into the Inventory API. }
+getSkuLocationMapping: { resource: Listings, method: GetSkuLocationsAsync, summary: Get the fulfillment locations of a SKU in a listing. }
+createOrReplaceSkuLocationMapping: { resource: Listings, method: SetSkuLocationsAsync, summary: Set the fulfillment locations of a SKU in a listing. }
+deleteSkuLocationMapping: { resource: Listings, method: DeleteSkuLocationsAsync, summary: Remove the fulfillment locations of a SKU in a listing. }
+
+getOffers: { resource: Offers, method: ListAsync, iterator: ListAllAsync, items: EbayOfferDetailsWithAll, paging: { items: offers }, summary: List one page of the offers of a SKU. }
+getOffer: { resource: Offers, method: GetAsync, summary: Get one offer. }
+createOffer: { resource: Offers, method: CreateAsync, summary: Create an unpublished offer for an inventory item. }
+updateOffer: { resource: Offers, method: UpdateAsync, summary: Replace an offer. }
+deleteOffer: { resource: Offers, method: DeleteAsync, summary: Delete an offer }
+bulkCreateOffer: { resource: Offers, method: BulkCreateAsync, summary: Create several unpublished offers. }
+getListingFees: { resource: Offers, method: GetListingFeesAsync, summary: Estimate the listing fees of unpublished offers. }
+publishOffer: { resource: Offers, method: PublishAsync, summary: Publish an offer as a listing. }
+bulkPublishOffer: { resource: Offers, method: BulkPublishAsync, summary: Publish several offers as listings. }
+publishOfferByInventoryItemGroup: { resource: Offers, method: PublishByInventoryItemGroupAsync, summary: Publish the offers of an inventory item group as one multi-variation listing. }
+withdrawOffer: { resource: Offers, method: WithdrawAsync, summary: End the listing of an offer and keep the offer. }
+withdrawOfferByInventoryItemGroup: { resource: Offers, method: WithdrawByInventoryItemGroupAsync, summary: End the multi-variation listing of an inventory item group. }
+
+getInventoryLocations: { resource: Locations, method: ListAsync, iterator: ListAllAsync, items: InventoryLocationResponse, paging: { items: locations }, summary: "List one page of the seller's inventory locations." }
+getInventoryLocation: { resource: Locations, method: GetAsync, summary: Get one inventory location. }
+createInventoryLocation: { resource: Locations, method: CreateAsync, summary: Create an inventory location. }
+updateInventoryLocation: { resource: Locations, method: UpdateAsync, summary: Update the details of an inventory location. }
+deleteInventoryLocation: { resource: Locations, method: DeleteAsync, summary: Delete an inventory location. }
+disableInventoryLocation: { resource: Locations, method: DisableAsync, summary: Disable an inventory location. }
+enableInventoryLocation: { resource: Locations, method: EnableAsync, summary: Enable a disabled inventory location. }

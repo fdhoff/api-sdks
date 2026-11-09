@@ -1,0 +1,3 @@
+# Public names for the Recommendation API, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+findListingRecommendations: { resource: ListingRecommendations, method: FindAsync, iterator: ListAllAsync, items: ListingRecommendation, paging: { items: listingRecommendations }, summary: "List one page of recommendations for the seller's listings." }

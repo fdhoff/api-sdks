@@ -1,0 +1,27 @@
+# Public names for the Notification API, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+getConfig: { resource: Config, method: GetAsync, summary: "Get the app's notification settings." }
+updateConfig: { resource: Config, method: UpdateAsync, summary: "Update the app's notification settings." }
+
+getDestinations: { resource: Destinations, method: ListAsync, iterator: ListAllAsync, items: Destination, paging: { items: destinations }, summary: "List one page of the app's notification destinations." }
+createDestination: { resource: Destinations, method: CreateAsync, summary: Create a destination endpoint for notifications. }
+getDestination: { resource: Destinations, method: GetAsync, summary: Get one destination. }
+updateDestination: { resource: Destinations, method: UpdateAsync, summary: Update a destination. }
+deleteDestination: { resource: Destinations, method: DeleteAsync, summary: Delete a destination. }
+
+getPublicKey: { resource: PublicKeys, method: GetAsync, summary: "Get the public key that verifies a notification's signature." }
+
+getSubscriptions: { resource: Subscriptions, method: ListAsync, iterator: ListAllAsync, items: Subscription, paging: { items: subscriptions }, summary: "List one page of the app's subscriptions." }
+createSubscription: { resource: Subscriptions, method: CreateAsync, summary: Subscribe to a notification topic. }
+createSubscriptionFilter: { resource: Subscriptions, method: CreateFilterAsync, summary: Add a filter to a subscription. }
+getSubscription: { resource: Subscriptions, method: GetAsync, summary: Get one subscription. }
+updateSubscription: { resource: Subscriptions, method: UpdateAsync, summary: Update a subscription. }
+deleteSubscription: { resource: Subscriptions, method: DeleteAsync, summary: Delete a subscription. }
+getSubscriptionFilter: { resource: Subscriptions, method: GetFilterAsync, summary: Get one filter of a subscription. }
+deleteSubscriptionFilter: { resource: Subscriptions, method: DeleteFilterAsync, summary: Delete a filter from a subscription. }
+disableSubscription: { resource: Subscriptions, method: DisableAsync, summary: "Stop sending a subscription's notifications." }
+enableSubscription: { resource: Subscriptions, method: EnableAsync, summary: "Resume sending a subscription's notifications." }
+testSubscription: { resource: Subscriptions, method: TestAsync, summary: "Send a test notification to a subscription's destination." }
+
+getTopic: { resource: Topics, method: GetAsync, summary: Get one notification topic. }
+getTopics: { resource: Topics, method: ListAsync, iterator: ListAllAsync, items: Topic, paging: { items: topics }, summary: List one page of notification topics. }

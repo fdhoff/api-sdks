@@ -43,7 +43,11 @@ internal sealed partial class MessageSigner : IDisposable
 
     /// <param name="privateKey">An unencrypted PKCS #8 PEM Ed25519 or RSA private key. It is a secret.</param>
     /// <param name="components">Lowercase field names, and <c>@method</c>, <c>@target-uri</c>, <c>@authority</c>, <c>@scheme</c>, <c>@request-target</c>, <c>@path</c> and <c>@query</c>.</param>
+    /// <param name="label">The signature's label in <c>Signature-Input</c> and <c>Signature</c>.</param>
+    /// <param name="keyId">Adds <c>keyid</c>, when set.</param>
+    /// <param name="includeAlg">Adds <c>alg</c>, the key's algorithm.</param>
     /// <param name="lifetime">Adds <c>expires</c>, this long after <c>created</c>. Whole seconds, at least 1.</param>
+    /// <param name="clock">The source of <c>created</c>; the system clock by default.</param>
     public MessageSigner(
         string privateKey,
         IReadOnlyList<string> components,

@@ -1,0 +1,11 @@
+# Public names for the Taxonomy API, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+getDefaultCategoryTreeId: { resource: CategoryTrees, method: GetDefaultIdAsync, summary: "Get the ID of a marketplace's default category tree." }
+getCategoryTree: { resource: CategoryTrees, method: GetAsync, summary: Get a whole category tree. }
+getCategorySubtree: { resource: CategoryTrees, method: GetSubtreeAsync, summary: Get the part of a category tree under one category. }
+getCategorySuggestions: { resource: CategoryTrees, method: GetSuggestionsAsync, summary: Suggest leaf categories for a search phrase. }
+getItemAspectsForCategory: { resource: CategoryTrees, method: GetItemAspectsAsync, summary: List the item aspects of one leaf category. }
+fetchItemAspects: { resource: CategoryTrees, method: FetchItemAspectsAsync, summary: Get the item aspects of every leaf category in a tree }
+getCompatibilityProperties: { resource: CategoryTrees, method: GetCompatibilityPropertiesAsync, summary: List the parts compatibility properties of a category. }
+getCompatibilityPropertyValues: { resource: CategoryTrees, method: GetCompatibilityPropertyValuesAsync, summary: List the values of one parts compatibility property. }
+getExpiredCategories: { resource: CategoryTrees, method: GetExpiredCategoriesAsync, summary: List the leaf categories that expired and what replaced them. }

@@ -1,0 +1,58 @@
+# How `npm run generate:csharp` builds this package. Each contract becomes a namespace with its own models, so
+# schema names that repeat across contracts never collide. Public method names are in operations/.
+generator: csharp
+output: src/EbaySell
+generated: [Api, Models]
+resources: Resources.cs
+runtime: Runtime
+# The runtime's namespaces are written with a placeholder, because C# has no relative imports.
+runtime_package: EbaySell
+format: [dotnet, format, whitespace, --folder]
+properties:
+  runtimePackage: EbaySell
+  library: httpclient
+  apiPackage: Api
+  modelPackage: Models
+  apiNameSuffix: Resource
+  disallowAdditionalPropertiesIfNotPresent: false
+  nullableReferenceTypes: true
+  useDateTimeOffset: true
+# A union of one schema is typed as that schema.
+collapse_single_unions: true
+# Every property is nullable here, so null already means null or absent.
+drop_nullable: true
+# A value of several types becomes `object`, which reads as a JsonElement.
+drop_unions: true
+type_mappings:
+  integer: long
+  float: double
+  AnyType: object
+  object: object
+  file: UploadFile
+  binary: UploadFile
+# The header's name is not a C# identifier, and no operation that takes it has a marketplace ID parameter too.
+parameter_name_mappings:
+  X-EBAY-C-MARKETPLACE-ID: marketplaceId
+contracts:
+  sell_account_v1: { output: src/EbaySell/Account, source: src/EbaySell.Account, operations: operations/sell_account_v1.yaml, properties: { packageName: EbaySell.Account, sdkContract: sell_account_v1 }, ignore: [src/EbaySell.Account/Models/AbstractOpenAPISchema.cs] }
+  sell_account_v2: { output: src/EbaySell/AccountV2, source: src/EbaySell.AccountV2, operations: operations/sell_account_v2.yaml, properties: { packageName: EbaySell.AccountV2, sdkContract: sell_account_v2 }, ignore: [src/EbaySell.AccountV2/Models/AbstractOpenAPISchema.cs] }
+  sell_analytics: { output: src/EbaySell/Analytics, source: src/EbaySell.Analytics, operations: operations/sell_analytics.yaml, properties: { packageName: EbaySell.Analytics, sdkContract: sell_analytics }, ignore: [src/EbaySell.Analytics/Models/AbstractOpenAPISchema.cs] }
+  # Task would hide System.Threading.Tasks.Task wherever the models are imported.
+  sell_feed: { schema_names: { Task: FeedTask }, output: src/EbaySell/Feed, source: src/EbaySell.Feed, operations: operations/sell_feed.yaml, properties: { packageName: EbaySell.Feed, sdkContract: sell_feed }, ignore: [src/EbaySell.Feed/Models/AbstractOpenAPISchema.cs] }
+  sell_finances: { output: src/EbaySell/Finances, source: src/EbaySell.Finances, operations: operations/sell_finances.yaml, properties: { packageName: EbaySell.Finances, sdkContract: sell_finances }, ignore: [src/EbaySell.Finances/Models/AbstractOpenAPISchema.cs] }
+  sell_fulfillment: { output: src/EbaySell/Fulfillment, source: src/EbaySell.Fulfillment, operations: operations/sell_fulfillment.yaml, properties: { packageName: EbaySell.Fulfillment, sdkContract: sell_fulfillment }, ignore: [src/EbaySell.Fulfillment/Models/AbstractOpenAPISchema.cs] }
+  sell_inventory: { output: src/EbaySell/Inventory, source: src/EbaySell.Inventory, operations: operations/sell_inventory.yaml, properties: { packageName: EbaySell.Inventory, sdkContract: sell_inventory }, ignore: [src/EbaySell.Inventory/Models/AbstractOpenAPISchema.cs] }
+  sell_marketing: { output: src/EbaySell/Marketing, source: src/EbaySell.Marketing, operations: operations/sell_marketing.yaml, properties: { packageName: EbaySell.Marketing, sdkContract: sell_marketing }, ignore: [src/EbaySell.Marketing/Models/AbstractOpenAPISchema.cs] }
+  sell_metadata: { output: src/EbaySell/Metadata, source: src/EbaySell.Metadata, operations: operations/sell_metadata.yaml, properties: { packageName: EbaySell.Metadata, sdkContract: sell_metadata }, ignore: [src/EbaySell.Metadata/Models/AbstractOpenAPISchema.cs] }
+  sell_negotiation: { output: src/EbaySell/Negotiation, source: src/EbaySell.Negotiation, operations: operations/sell_negotiation.yaml, properties: { packageName: EbaySell.Negotiation, sdkContract: sell_negotiation }, ignore: [src/EbaySell.Negotiation/Models/AbstractOpenAPISchema.cs] }
+  sell_recommendation: { output: src/EbaySell/Recommendation, source: src/EbaySell.Recommendation, operations: operations/sell_recommendation.yaml, properties: { packageName: EbaySell.Recommendation, sdkContract: sell_recommendation }, ignore: [src/EbaySell.Recommendation/Models/AbstractOpenAPISchema.cs] }
+  sell_stores: { output: src/EbaySell/Stores, source: src/EbaySell.Stores, operations: operations/sell_stores.yaml, properties: { packageName: EbaySell.Stores, sdkContract: sell_stores }, ignore: [src/EbaySell.Stores/Models/AbstractOpenAPISchema.cs] }
+  sell_post_order: { omit: Added in a later release. }
+  commerce_feedback: { output: src/EbaySell/Feedback, source: src/EbaySell.Feedback, operations: operations/commerce_feedback.yaml, properties: { packageName: EbaySell.Feedback, sdkContract: commerce_feedback }, ignore: [src/EbaySell.Feedback/Models/AbstractOpenAPISchema.cs] }
+  commerce_identity: { output: src/EbaySell/Identity, source: src/EbaySell.Identity, operations: operations/commerce_identity.yaml, properties: { packageName: EbaySell.Identity, sdkContract: commerce_identity }, ignore: [src/EbaySell.Identity/Models/AbstractOpenAPISchema.cs] }
+  commerce_media: { output: src/EbaySell/Media, source: src/EbaySell.Media, operations: operations/commerce_media.yaml, properties: { packageName: EbaySell.Media, sdkContract: commerce_media }, ignore: [src/EbaySell.Media/Models/AbstractOpenAPISchema.cs] }
+  commerce_message: { output: src/EbaySell/Message, source: src/EbaySell.Message, operations: operations/commerce_message.yaml, properties: { packageName: EbaySell.Message, sdkContract: commerce_message }, ignore: [src/EbaySell.Message/Models/AbstractOpenAPISchema.cs] }
+  commerce_notification: { output: src/EbaySell/Notification, source: src/EbaySell.Notification, operations: operations/commerce_notification.yaml, properties: { packageName: EbaySell.Notification, sdkContract: commerce_notification }, ignore: [src/EbaySell.Notification/Models/AbstractOpenAPISchema.cs] }
+  commerce_taxonomy: { output: src/EbaySell/Taxonomy, source: src/EbaySell.Taxonomy, operations: operations/commerce_taxonomy.yaml, properties: { packageName: EbaySell.Taxonomy, sdkContract: commerce_taxonomy }, ignore: [src/EbaySell.Taxonomy/Models/AbstractOpenAPISchema.cs] }
+  developer_analytics: { output: src/EbaySell/DeveloperAnalytics, source: src/EbaySell.DeveloperAnalytics, operations: operations/developer_analytics.yaml, properties: { packageName: EbaySell.DeveloperAnalytics, sdkContract: developer_analytics }, ignore: [src/EbaySell.DeveloperAnalytics/Models/AbstractOpenAPISchema.cs] }
+  developer_key_management: { output: src/EbaySell/KeyManagement, source: src/EbaySell.KeyManagement, operations: operations/developer_key_management.yaml, properties: { packageName: EbaySell.KeyManagement, sdkContract: developer_key_management }, ignore: [src/EbaySell.KeyManagement/Models/AbstractOpenAPISchema.cs] }

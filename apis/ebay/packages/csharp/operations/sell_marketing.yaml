@@ -1,0 +1,93 @@
+# Public names for the Marketing API, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+getCampaigns: { resource: Campaigns, method: ListAsync, iterator: ListAllAsync, items: Campaign, paging: { items: campaigns }, summary: "List one page of the seller's Promoted Listings campaigns." }
+getCampaign: { resource: Campaigns, method: GetAsync, summary: Get one campaign. }
+getCampaignByName: { resource: Campaigns, method: GetByNameAsync, summary: Get a campaign by its name. }
+findCampaignByAdReference: { resource: Campaigns, method: FindByAdReferenceAsync, summary: Find the campaigns that hold a listing or inventory reference. }
+createCampaign: { resource: Campaigns, method: CreateAsync, summary: Create a Promoted Listings campaign. }
+cloneCampaign: { resource: Campaigns, method: CloneAsync, summary: Copy an ended campaign into a new one. }
+deleteCampaign: { resource: Campaigns, method: DeleteAsync, summary: Delete a campaign. }
+endCampaign: { resource: Campaigns, method: EndAsync, summary: End a campaign. }
+pauseCampaign: { resource: Campaigns, method: PauseAsync, summary: Pause a campaign. }
+resumeCampaign: { resource: Campaigns, method: ResumeAsync, summary: Resume a paused campaign. }
+suggestBudget: { resource: Campaigns, method: SuggestBudgetAsync, summary: Suggest a daily budget for a new campaign. }
+suggestItems: { resource: Campaigns, method: SuggestItemsAsync, iterator: ListAllSuggestedItemsAsync, items: TargetingItems, paging: { items: suggestedItems }, summary: List one page of listings suggested for a campaign. }
+suggestMaxCpc: { resource: Campaigns, method: SuggestMaxCpcAsync, summary: Suggest a maximum cost per click for a campaign. }
+updateAdRateStrategy: { resource: Campaigns, method: UpdateAdRateStrategyAsync, summary: Change how a campaign sets its ad rates. }
+updateBiddingStrategy: { resource: Campaigns, method: UpdateBiddingStrategyAsync, summary: Change the bidding strategy of a campaign. }
+updateCampaignBudget: { resource: Campaigns, method: UpdateBudgetAsync, summary: Change the daily budget of a campaign. }
+updateCampaignIdentification: { resource: Campaigns, method: UpdateIdentificationAsync, summary: Rename a campaign or change its dates. }
+
+getAds: { resource: Ads, method: ListAsync, iterator: ListAllAsync, items: Ad, paging: { items: ads }, summary: "List one page of a campaign's ads." }
+getAd: { resource: Ads, method: GetAsync, summary: Get one ad. }
+getAdsByInventoryReference: { resource: Ads, method: GetByInventoryReferenceAsync, summary: "Get a campaign's ads for one inventory reference." }
+createAdByListingId: { resource: Ads, method: CreateByListingIdAsync, summary: Create an ad for a listing. }
+createAdsByInventoryReference: { resource: Ads, method: CreateByInventoryReferenceAsync, summary: Create ads for an inventory reference. }
+deleteAd: { resource: Ads, method: DeleteAsync, summary: Delete an ad. }
+deleteAdsByInventoryReference: { resource: Ads, method: DeleteByInventoryReferenceAsync, summary: "Delete a campaign's ads for one inventory reference." }
+updateBid: { resource: Ads, method: UpdateBidAsync, summary: Change the bid of an ad. }
+bulkCreateAdsByListingId: { resource: Ads, method: BulkCreateByListingIdAsync, summary: Create ads for several listings. }
+bulkCreateAdsByInventoryReference: { resource: Ads, method: BulkCreateByInventoryReferenceAsync, summary: Create ads for several inventory references. }
+bulkDeleteAdsByListingId: { resource: Ads, method: BulkDeleteByListingIdAsync, summary: Delete the ads of several listings. }
+bulkDeleteAdsByInventoryReference: { resource: Ads, method: BulkDeleteByInventoryReferenceAsync, summary: Delete the ads of several inventory references. }
+bulkUpdateAdsBidByListingId: { resource: Ads, method: BulkUpdateBidByListingIdAsync, summary: "Change the bids of several listings' ads." }
+bulkUpdateAdsBidByInventoryReference: { resource: Ads, method: BulkUpdateBidByInventoryReferenceAsync, summary: "Change the bids of several inventory references' ads." }
+bulkUpdateAdsStatus: { resource: Ads, method: BulkUpdateStatusAsync, summary: Change the status of several ads. }
+bulkUpdateAdsStatusByListingId: { resource: Ads, method: BulkUpdateStatusByListingIdAsync, summary: "Change the status of several listings' ads." }
+
+getAdGroups: { resource: AdGroups, method: ListAsync, iterator: ListAllAsync, items: AdGroup, paging: { items: adGroups }, summary: "List one page of a campaign's ad groups." }
+getAdGroup: { resource: AdGroups, method: GetAsync, summary: Get one ad group. }
+createAdGroup: { resource: AdGroups, method: CreateAsync, summary: Create an ad group in a campaign. }
+updateAdGroup: { resource: AdGroups, method: UpdateAsync, summary: Update an ad group. }
+suggestBids: { resource: AdGroups, method: SuggestBidsAsync, summary: Suggest bids for keywords in an ad group. }
+suggestKeywords: { resource: AdGroups, method: SuggestKeywordsAsync, summary: Suggest keywords for an ad group. }
+
+getKeywords: { resource: Keywords, method: ListAsync, iterator: ListAllAsync, items: Keyword, paging: { items: keywords }, summary: "List one page of a campaign's keywords." }
+getKeyword: { resource: Keywords, method: GetAsync, summary: Get one keyword. }
+createKeyword: { resource: Keywords, method: CreateAsync, summary: Create a keyword in an ad group. }
+updateKeyword: { resource: Keywords, method: UpdateAsync, summary: Change the bid or status of a keyword. }
+bulkCreateKeyword: { resource: Keywords, method: BulkCreateAsync, summary: Create several keywords. }
+bulkUpdateKeyword: { resource: Keywords, method: BulkUpdateAsync, summary: Change the bids or status of several keywords. }
+
+getNegativeKeywords: { resource: NegativeKeywords, method: ListAsync, iterator: ListAllAsync, items: NegativeKeyword, paging: { items: negativeKeywords }, summary: List one page of negative keywords. }
+getNegativeKeyword: { resource: NegativeKeywords, method: GetAsync, summary: Get one negative keyword. }
+createNegativeKeyword: { resource: NegativeKeywords, method: CreateAsync, summary: Create a negative keyword. }
+updateNegativeKeyword: { resource: NegativeKeywords, method: UpdateAsync, summary: Change the status of a negative keyword. }
+bulkCreateNegativeKeyword: { resource: NegativeKeywords, method: BulkCreateAsync, summary: Create several negative keywords. }
+bulkUpdateNegativeKeyword: { resource: NegativeKeywords, method: BulkUpdateAsync, summary: Change the status of several negative keywords. }
+getReport: { omit: The tab-separated report needs binary bodies in the runtime. }
+
+getReportMetadata: { resource: ReportMetadata, method: ListAsync, summary: List the fields of every Promoted Listings report type. }
+getReportMetadataForReportType: { resource: ReportMetadata, method: GetAsync, summary: List the fields of one report type. }
+
+getReportTasks: { resource: ReportTasks, method: ListAsync, iterator: ListAllAsync, items: ReportTask, paging: { items: reportTasks }, summary: "List one page of the seller's report tasks." }
+getReportTask: { resource: ReportTasks, method: GetAsync, summary: Get one report task. }
+createReportTask: { resource: ReportTasks, method: CreateAsync, summary: Start a task that builds a Promoted Listings report. }
+deleteReportTask: { resource: ReportTasks, method: DeleteAsync, summary: Delete a report task. }
+
+getItemPriceMarkdownPromotion: { resource: ItemPriceMarkdowns, method: GetAsync, summary: Get one markdown sale. }
+createItemPriceMarkdownPromotion: { resource: ItemPriceMarkdowns, method: CreateAsync, summary: Create a markdown sale. }
+updateItemPriceMarkdownPromotion: { resource: ItemPriceMarkdowns, method: UpdateAsync, summary: Replace a markdown sale. }
+deleteItemPriceMarkdownPromotion: { resource: ItemPriceMarkdowns, method: DeleteAsync, summary: Delete a markdown sale. }
+
+getItemPromotion: { resource: ItemPromotions, method: GetAsync, summary: Get one threshold promotion. }
+createItemPromotion: { resource: ItemPromotions, method: CreateAsync, summary: Create a threshold promotion. }
+updateItemPromotion: { resource: ItemPromotions, method: UpdateAsync, summary: Replace a threshold promotion. }
+deleteItemPromotion: { resource: ItemPromotions, method: DeleteAsync, summary: Delete a threshold promotion. }
+
+getPromotions: { resource: Promotions, method: ListAsync, iterator: ListAllAsync, items: PromotionDetail, paging: { items: promotions }, summary: "List one page of the seller's promotions on a marketplace." }
+getListingSet: { resource: Promotions, method: GetListingSetAsync, iterator: ListAllListingSetAsync, items: ListingDetail, paging: { items: listings }, summary: List one page of the listings in a promotion. }
+pausePromotion: { resource: Promotions, method: PauseAsync, summary: Pause a promotion. }
+resumePromotion: { resource: Promotions, method: ResumeAsync, summary: Resume a paused promotion. }
+
+getPromotionReports: { resource: PromotionReports, method: ListAsync, iterator: ListAllAsync, items: PromotionReportDetail, paging: { items: promotionReports }, summary: List one page of promotion performance reports. }
+getPromotionSummaryReport: { resource: PromotionReports, method: GetSummaryAsync, summary: "Get a summary of the seller's promotion performance." }
+
+getEmailCampaigns: { resource: EmailCampaigns, method: ListAsync, iterator: ListAllAsync, items: CampaignDTO, paging: { items: campaigns }, summary: "List one page of the seller's store email campaigns." }
+getEmailCampaign: { resource: EmailCampaigns, method: GetAsync, summary: Get one email campaign. }
+createEmailCampaign: { resource: EmailCampaigns, method: CreateAsync, summary: Create a store email campaign. }
+updateEmailCampaign: { resource: EmailCampaigns, method: UpdateAsync, summary: Update an email campaign. }
+deleteEmailCampaign: { resource: EmailCampaigns, method: DeleteAsync, summary: Delete an email campaign. }
+getAudiences: { resource: EmailCampaigns, method: ListAudiencesAsync, iterator: ListAllAudiencesAsync, items: CampaignAudience, paging: { items: audiences }, summary: List one page of the audiences an email campaign can target. }
+getEmailPreview: { resource: EmailCampaigns, method: GetPreviewAsync, summary: Preview the email of a campaign. }
+getEmailReport: { resource: EmailCampaigns, method: GetReportAsync, summary: "Get the performance of the seller's email campaigns." }

@@ -1,0 +1,18 @@
+# Public names for the Finances API, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+getOrderEarnings: { resource: OrderEarnings, method: ListAsync, iterator: ListAllAsync, items: OrderEarning, paging: { items: orders }, summary: "List one page of the seller's earnings by order." }
+getOrderEarningsById: { resource: OrderEarnings, method: GetAsync, summary: "Get the seller's earnings from one order." }
+getOrderEarningsSummary: { resource: OrderEarnings, method: GetSummaryAsync, summary: "Sum the seller's earnings across orders." }
+
+getPayouts: { resource: Payouts, method: ListAsync, iterator: ListAllAsync, items: Payout, paging: { items: payouts }, summary: "List one page of the seller's payouts." }
+getPayout: { resource: Payouts, method: GetAsync, summary: Get one payout. }
+getPayoutSummary: { resource: Payouts, method: GetSummaryAsync, summary: "Sum the seller's payouts." }
+
+getSellerFundsSummary: { resource: SellerFunds, method: GetSummaryAsync, summary: "Get the seller's funds that are not yet paid out." }
+
+getTransactions: { resource: Transactions, method: ListAsync, iterator: ListAllAsync, items: Transaction, paging: { items: transactions }, summary: "List one page of the seller's monetary transactions." }
+getTransactionSummary: { resource: Transactions, method: GetSummaryAsync, summary: "Sum the seller's monetary transactions by type." }
+
+getTransfer: { resource: Transfers, method: GetAsync, summary: Get one transfer of funds the seller owes eBay. }
+
+getBillingActivities: { resource: BillingActivities, method: ListAsync, iterator: ListAllAsync, items: BillingActivityLineItem, paging: { items: billingActivities }, summary: "List one page of the seller's billing activities." }

@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/EbaySell/EbaySell.csproj" />
+  <Project Path="tests/EbaySell.Tests/EbaySell.Tests.csproj" />
+  <Project Path="conformance/Driver/EbaySell.Conformance.csproj" />
+</Solution>
