@@ -1,0 +1,13 @@
+api-sdks
+Copyright 2026 Foster Hoff
+
+This project is unofficial. It is not affiliated with, endorsed by or
+sponsored by Mirakl SAS.
+
+The Apache License, Version 2.0 covers only this project's own code.
+
+Mirakl's OpenAPI specification is not included in this repository. It is
+fetched at build time from Mirakl's published developer documentation,
+belongs to Mirakl, and is not covered by this licence.
+
+This licence grants no right to the Mirakl name.
