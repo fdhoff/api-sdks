@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::sync::{Arc, Mutex};
 
@@ -219,6 +220,9 @@ pub struct Request {
     pub idempotency_key: Option<&'static str>,
     /// Each default-able header the operation declares, with the caller's value if it gave one.
     pub headers: Vec<(String, Option<String>)>,
+    /// Each default-able query parameter the operation declares. The client's default is sent for
+    /// one the call leaves unset.
+    pub query_defaults: Vec<String>,
     /// Set for a download, whose body is passed on as received.
     pub(super) download: bool,
     /// The media types a download asks for in `Accept`, instead of the client's default.
@@ -422,6 +426,7 @@ impl Request {
             host: None,
             idempotency_key: None,
             headers: Vec::new(),
+            query_defaults: Vec::new(),
             download: false,
             accept: None,
         }
@@ -517,6 +522,14 @@ impl Request {
         }
     }
 
+    /// Adds a query parameter as [`Request::query`] does, falling back to the client's default for it
+    /// when the call gives `None`.
+    #[allow(dead_code, reason = "an API may name no default-able query parameters")]
+    pub fn query_default(&mut self, name: &str, value: &impl Serialize) {
+        self.query(name, value);
+        self.query_defaults.push(name.to_owned());
+    }
+
     /// Replaces a query parameter.
     pub fn set_query(&mut self, name: &str, value: &str) {
         self.query.retain(|(key, _)| key != name);
@@ -566,12 +579,24 @@ impl Request {
         }
     }
 
-    pub fn url(&self, base: &str) -> String {
-        if self.query.is_empty() {
+    /// The URL, with the value in `defaults` for each default-able query parameter the call left unset.
+    pub fn url(&self, base: &str, defaults: &HashMap<String, String>) -> String {
+        let filled = self
+            .query_defaults
+            .iter()
+            .filter(|name| self.query_value(name).is_none())
+            .filter_map(|name| defaults.get_key_value(name));
+        let pairs: Vec<(&String, &String)> = self
+            .query
+            .iter()
+            .map(|(name, value)| (name, value))
+            .chain(filled)
+            .collect();
+        if pairs.is_empty() {
             return format!("{base}{}", self.path);
         }
         let query = url::form_urlencoded::Serializer::new(String::new())
-            .extend_pairs(&self.query)
+            .extend_pairs(pairs)
             .finish();
         format!("{base}{}?{query}", self.path)
     }
@@ -607,7 +632,7 @@ mod tests {
     fn path_values_are_encoded_as_one_segment() {
         let request = Request::new(&OPERATION).path("id", &"a/b c");
         assert_eq!(
-            request.url("https://example.test"),
+            request.url("https://example.test", &HashMap::new()),
             "https://example.test/items/a%2Fb%20c"
         );
     }
@@ -619,7 +644,10 @@ mod tests {
             tags: Some(vec!["a".into(), "b".into()]),
         };
         let request = Request::new(&OPERATION).path("id", &1).params(&query);
-        assert_eq!(request.url("http://h"), "http://h/items/1?tags=a&tags=b");
+        assert_eq!(
+            request.url("http://h", &HashMap::new()),
+            "http://h/items/1?tags=a&tags=b"
+        );
     }
 
     #[test]

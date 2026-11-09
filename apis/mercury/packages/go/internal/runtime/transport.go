@@ -12,6 +12,7 @@ import (
 	"io"
 	"iter"
 	"log/slog"
+	"maps"
 	"math"
 	"net"
 	"net/http"
@@ -78,6 +79,8 @@ type Operation struct {
 	Contract string
 	// HeaderParams are the header arguments, each falling back to the client's default.
 	HeaderParams []string
+	// QueryDefaults are the query arguments that fall back to the client's default when left unset.
+	QueryDefaults []string
 	// Host is the key of the host that serves the operation in [Settings.Hosts]. Empty means BaseURL.
 	Host string
 	// ReturnsJSON is set when the spec declares a JSON success body, so an empty one is an error.
@@ -144,6 +147,9 @@ type Settings struct {
 	// HeaderDefaults holds the value of a header argument that a call leaves unset, matched without
 	// regard to case.
 	HeaderDefaults map[string]string
+	// QueryDefaults holds the value of a defaulted query argument that a call leaves unset, matched by
+	// exact name.
+	QueryDefaults  map[string]string
 	Credentials    Credentials
 	Headers        http.Header
 	ToError        func(ErrorContext) *Error
@@ -506,11 +512,33 @@ func sleep(ctx context.Context, delay time.Duration) error {
 	}
 }
 
+// withQueryDefaults fills in the client's default for each defaulted query argument the call left unset.
+func (t *Transport) withQueryDefaults(built *request) *request {
+	var query url.Values
+	for _, name := range built.operation.QueryDefaults {
+		value, found := t.settings.QueryDefaults[name]
+		if !found || built.query.Has(name) {
+			continue
+		}
+		if query == nil {
+			query = maps.Clone(built.query)
+		}
+		query.Set(name, value)
+	}
+	if query == nil {
+		return built
+	}
+	filled := *built
+	filled.query = query
+	return &filled
+}
+
 func (t *Transport) fetch(ctx context.Context, built *request) (*response, error) {
 	base, err := t.baseURL(built.operation)
 	if err != nil {
 		return nil, err
 	}
+	built = t.withQueryDefaults(built)
 	refreshed := false
 	for tries := 0; ; tries++ {
 		t.log(ctx, slog.LevelDebug, "request", slog.String("method", built.method), slog.String("url", built.url(base)))

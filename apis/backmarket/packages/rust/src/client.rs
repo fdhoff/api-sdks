@@ -240,6 +240,7 @@ impl ClientBuilder {
             hosts: HashMap::new(),
             headers: headers(&user_agent, &locale)?,
             header_defaults: HashMap::new(),
+            query_defaults: HashMap::new(),
             credentials: Arc::new(credentials(token)?),
             to_error,
             timeout: self.timeout,
