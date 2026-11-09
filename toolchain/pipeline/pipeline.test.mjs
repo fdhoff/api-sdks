@@ -305,6 +305,18 @@ test('applyBinary marks binary responses and raw request bodies, and drops what 
   assert.throws(() => applyBinary(offered), /upload: a request body offers binary and other media types/);
 });
 
+test('applyOperations marks operations that declare a 204 beside a JSON success', () => {
+  const names = { a: { resource: 'r', method: 'a', summary: 'A.' } };
+  const empty = (responses) =>
+    applyOperations({ paths: { '/x': { put: { operationId: 'a', responses } } } }, names).paths['/x'].put['x-sdk-no-content'];
+  const json = { content: { 'application/json': { schema: {} } } };
+
+  assert.equal(empty({ 200: json, 204: { description: 'None.' } }), true);
+  assert.equal(empty({ 200: json }), false);
+  assert.equal(empty({ 204: { description: 'None.' } }), false);
+  assert.equal(empty({ 202: { description: 'None.' }, 200: json }), false);
+});
+
 test('applyOperations passes each operation its security requirements, inherited or its own', () => {
   const names = { a: { resource: 'r', method: 'a', summary: 'A.' } };
   const security = (spec, own) =>

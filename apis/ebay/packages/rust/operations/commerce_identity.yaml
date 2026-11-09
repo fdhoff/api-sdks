@@ -1,0 +1,2 @@
+# Public names for the Identity API, keyed by operationId. Summaries are ours, not upstream's.
+getUser: { resource: user, method: get, summary: Get the account details of the user the token belongs to. }

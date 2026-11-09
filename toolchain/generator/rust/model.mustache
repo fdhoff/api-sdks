@@ -17,7 +17,7 @@ crate::runtime::open_enum! {
 {{^isEnum}}
 
 #[allow(unused_imports)]
-use crate::models;
+use crate::{{#sdkModule}}{{.}}::{{/sdkModule}}models;
 
 /// {{{classname}}} is an API object. `extra` holds unknown fields, nulls, and any value that did not fit its field.
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -7,6 +7,8 @@ This crate follows semantic versioning and stays on 0.x until outside users conf
 * A POST or PUT without a body sends `Content-Length: 0`, as the other languages' HTTP libraries do.
 * An empty 204 response returns the type's default, even where the spec also declares JSON, instead of an `ErrorKind::Decode` error.
 * Binary response and request bodies are read and sent as raw bytes where the spec declares them. No operation in this package does yet.
+* A file in a multipart body is sent with `Content-Type: application/octet-stream`, as the other languages' HTTP libraries do.
+* A pagination stream ends at an empty 204 page instead of failing with an `ErrorKind::Decode` error, as in Python.
 
 ## 0.1.0-alpha.1 (2026-11-08)
 

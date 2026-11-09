@@ -3,8 +3,16 @@
 use std::sync::Arc;
 
 use crate::Error;
+{{^sdkModule}}
 #[allow(unused_imports)]
 use crate::{File, models};
+{{/sdkModule}}
+{{#sdkModule}}
+#[allow(unused_imports)]
+use crate::File;
+#[allow(unused_imports)]
+use crate::{{.}}::models;
+{{/sdkModule}}
 #[allow(unused_imports)]
 use crate::runtime::{Items, Operation, Paging, Params, Request, Scheme, Transport};
 
@@ -66,7 +74,12 @@ impl Params for {{>partial_params_name}} {
 {{/vendorExtensions.x-sdk-has-params}}
 {{/operation}}
 
+{{^sdkModule}}
 /// The `{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}` operations, from [`Client::{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}`](crate::Client::{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}).
+{{/sdkModule}}
+{{#sdkModule}}
+/// The `{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}` operations, from [`Resources::{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}`](crate::{{.}}::Resources::{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}).
+{{/sdkModule}}
 #[derive(Clone, Debug)]
 pub struct {{classname}} {
     transport: Arc<Transport>,
@@ -87,7 +100,13 @@ impl {{classname}} {
     }
 {{/vendorExtensions.x-sdk-binary-response}}
 {{^vendorExtensions.x-sdk-binary-response}}
-    pub async fn {{vendorExtensions.x-sdk-method}}({{>partial_sdk_args}}) -> Result<{{#returnType}}{{{.}}}{{/returnType}}{{^returnType}}(){{/returnType}}, Error> {
+{{#returnType}}
+{{#vendorExtensions.x-sdk-no-content}}
+    ///
+    /// `None` when the API answers 204 with no body.
+{{/vendorExtensions.x-sdk-no-content}}
+{{/returnType}}
+    pub async fn {{vendorExtensions.x-sdk-method}}({{>partial_sdk_args}}) -> Result<{{#returnType}}{{#vendorExtensions.x-sdk-no-content}}Option<{{/vendorExtensions.x-sdk-no-content}}{{{.}}}{{#vendorExtensions.x-sdk-no-content}}>{{/vendorExtensions.x-sdk-no-content}}{{/returnType}}{{^returnType}}(){{/returnType}}, Error> {
 {{#returnType}}
         self.transport.call({{>partial_sdk_request}}).await
 {{/returnType}}
@@ -99,7 +118,7 @@ impl {{classname}} {
 {{#vendorExtensions.x-sdk-iterator}}
 
     /// Iterates every item across all pages. The stream ends after yielding an error.
-    pub fn {{.}}({{>partial_sdk_args}}) -> Items<models::{{vendorExtensions.x-sdk-items}}> {
+    pub fn {{.}}{{#bodyParam}}{{^required}}<'b>{{/required}}{{/bodyParam}}({{>partial_sdk_iter_args}}) -> Items<models::{{vendorExtensions.x-sdk-items}}> {
         Transport::paginate(&self.transport, {{>partial_sdk_request}})
     }
 {{/vendorExtensions.x-sdk-iterator}}

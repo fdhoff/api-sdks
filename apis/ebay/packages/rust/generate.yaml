@@ -1,0 +1,50 @@
+# How `npm run generate:rust` builds this package. Each contract becomes a module with its own models, so
+# schema names that repeat across contracts never collide. Public method names are in operations/.
+generator: rust
+output: src
+source: src
+generated: [apis, models]
+resources: resources.rs
+runtime: runtime
+ignore: [src/apis/configuration.rs]
+format: [sh, -c, cargo fmt, --]
+properties:
+  packageName: ebay_sell
+  library: reqwest
+# Every field is an Option here, so None already means null or absent.
+drop_nullable: true
+# A field of several types becomes a serde_json::Value.
+drop_unions: true
+collapse_single_unions: true
+type_mappings:
+  integer: i64
+  i32: i64
+  float: f64
+  file: File
+  File: File
+  binary: File
+  DateTime: chrono::DateTime<chrono::FixedOffset>
+  date: String
+  UUID: String
+  URI: String
+contracts:
+  sell_account_v1: { output: src/account, operations: operations/sell_account_v1.yaml, properties: { sdkModule: account }, supporting_files: { dispatch.mustache: conformance/dispatch/account.rs } }
+  sell_account_v2: { output: src/account_v2, operations: operations/sell_account_v2.yaml, properties: { sdkModule: account_v2 }, supporting_files: { dispatch.mustache: conformance/dispatch/account_v2.rs } }
+  sell_analytics: { output: src/analytics, operations: operations/sell_analytics.yaml, properties: { sdkModule: analytics }, supporting_files: { dispatch.mustache: conformance/dispatch/analytics.rs } }
+  sell_feed: { output: src/feed, operations: operations/sell_feed.yaml, properties: { sdkModule: feed }, supporting_files: { dispatch.mustache: conformance/dispatch/feed.rs } }
+  sell_finances: { output: src/finances, operations: operations/sell_finances.yaml, properties: { sdkModule: finances }, supporting_files: { dispatch.mustache: conformance/dispatch/finances.rs } }
+  sell_fulfillment: { output: src/fulfillment, operations: operations/sell_fulfillment.yaml, properties: { sdkModule: fulfillment }, supporting_files: { dispatch.mustache: conformance/dispatch/fulfillment.rs } }
+  sell_inventory: { output: src/inventory, operations: operations/sell_inventory.yaml, properties: { sdkModule: inventory }, supporting_files: { dispatch.mustache: conformance/dispatch/inventory.rs } }
+  sell_marketing: { output: src/marketing, operations: operations/sell_marketing.yaml, properties: { sdkModule: marketing }, supporting_files: { dispatch.mustache: conformance/dispatch/marketing.rs } }
+  sell_metadata: { output: src/metadata, operations: operations/sell_metadata.yaml, properties: { sdkModule: metadata }, supporting_files: { dispatch.mustache: conformance/dispatch/metadata.rs } }
+  sell_negotiation: { output: src/negotiation, operations: operations/sell_negotiation.yaml, properties: { sdkModule: negotiation }, supporting_files: { dispatch.mustache: conformance/dispatch/negotiation.rs } }
+  sell_recommendation: { output: src/recommendation, operations: operations/sell_recommendation.yaml, properties: { sdkModule: recommendation }, supporting_files: { dispatch.mustache: conformance/dispatch/recommendation.rs } }
+  sell_stores: { output: src/stores, operations: operations/sell_stores.yaml, properties: { sdkModule: stores }, supporting_files: { dispatch.mustache: conformance/dispatch/stores.rs } }
+  commerce_feedback: { output: src/feedback, operations: operations/commerce_feedback.yaml, properties: { sdkModule: feedback }, supporting_files: { dispatch.mustache: conformance/dispatch/feedback.rs } }
+  commerce_identity: { output: src/identity, operations: operations/commerce_identity.yaml, properties: { sdkModule: identity }, supporting_files: { dispatch.mustache: conformance/dispatch/identity.rs } }
+  commerce_media: { output: src/media, operations: operations/commerce_media.yaml, properties: { sdkModule: media }, supporting_files: { dispatch.mustache: conformance/dispatch/media.rs } }
+  commerce_message: { output: src/message, operations: operations/commerce_message.yaml, properties: { sdkModule: message }, supporting_files: { dispatch.mustache: conformance/dispatch/message.rs } }
+  commerce_notification: { output: src/notification, operations: operations/commerce_notification.yaml, properties: { sdkModule: notification }, supporting_files: { dispatch.mustache: conformance/dispatch/notification.rs } }
+  commerce_taxonomy: { output: src/taxonomy, operations: operations/commerce_taxonomy.yaml, properties: { sdkModule: taxonomy }, supporting_files: { dispatch.mustache: conformance/dispatch/taxonomy.rs } }
+  developer_analytics: { output: src/developer_analytics, operations: operations/developer_analytics.yaml, properties: { sdkModule: developer_analytics }, supporting_files: { dispatch.mustache: conformance/dispatch/developer_analytics.rs } }
+  developer_key_management: { output: src/key_management, operations: operations/developer_key_management.yaml, properties: { sdkModule: key_management }, supporting_files: { dispatch.mustache: conformance/dispatch/key_management.rs } }

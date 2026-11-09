@@ -136,6 +136,11 @@ export function applyBinary(spec) {
   return spec;
 }
 
+// True when an operation declares a 204 beside a JSON success, so a call may return no result.
+export function mayHaveNoContent(spec, operation) {
+  return '204' in (operation.responses ?? {}) && returnsJson(spec, operation);
+}
+
 // Every package shares one set of schema names, so a model has the same name in every language. A
 // package may add names for schemas only it sees, but never rename a shared one.
 export function packageNames(shared, config) {
@@ -269,6 +274,7 @@ export function applyOperations(spec, operations, paging = {}) {
       operation['x-sdk-has-params'] = hasParams(spec, [...shared, ...(operation.parameters ?? [])], operation);
       operation['x-sdk-params-required'] = paramsRequired(spec, [...shared, ...(operation.parameters ?? [])], operation);
       operation['x-sdk-returns-json'] = returnsJson(spec, operation);
+      operation['x-sdk-no-content'] = mayHaveNoContent(spec, operation);
       operation['x-sdk-security'] = securityOf(spec, operation);
       operation['x-sdk-has-headers'] = [...shared, ...(operation.parameters ?? [])].some((parameter) => isDefaultHeader(dereference(spec, parameter)));
       if (names.iterator) {
@@ -479,8 +485,9 @@ async function generateContract({ apiDir, language, packageDir, config, built, s
   return output;
 }
 
-// TODO: the Python templates import the runtime from `runtimePackage` when it is set, so a contract's
-// sub-module finds it at the package root. The other languages' templates still import it from
+// TODO: the Python templates import the runtime from `runtimePackage` when it is set, and the Rust
+// templates put a contract's code under `crate::<sdkModule>` when that is set, so a contract's sub-module
+// finds the runtime at the package root. The other languages' templates still import it from
 // `packageName`; add the same with each language's first multi-contract package.
 async function generate(apiDir, language) {
   const packageDir = resolve(apiDir, 'packages', language);
