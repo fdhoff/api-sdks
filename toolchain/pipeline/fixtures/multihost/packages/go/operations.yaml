@@ -1,2 +1,3 @@
 getWidget: { resource: widgets, method: Get, summary: Get one widget. }
+createWidget: { resource: widgets, method: Create, summary: Create a widget., idempotency: { body: idempotency_key } }
 listUploads: { resource: uploads, method: List, summary: List uploads. }

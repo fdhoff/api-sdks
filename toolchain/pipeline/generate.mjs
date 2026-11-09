@@ -171,6 +171,26 @@ export function resolvePaging(operationId, queryParams, override = {}, fallback 
   return { [style]: paging };
 }
 
+function bodyProperties(spec, node) {
+  const schema = dereference(spec, node);
+  return [...Object.keys(schema?.properties ?? {}), ...(schema?.allOf ?? []).flatMap((part) => bodyProperties(spec, part))];
+}
+
+// `idempotency: { body: <field> }` in operations.yaml marks a write the API deduplicates by a key in its JSON
+// body, so the runtimes may retry it as they do a GET whenever the caller sets that key.
+export function resolveIdempotency(spec, operation, setting) {
+  const id = operation.operationId;
+  const unknown = Object.keys(setting).filter((key) => key !== 'body');
+  if (unknown.length > 0) throw new Error(`${id}: unknown idempotency keys: ${unknown.join(', ')}`);
+  if (typeof setting.body !== 'string' || setting.body === '') throw new Error(`${id}: idempotency needs a body field`);
+  const content = dereference(spec, operation.requestBody)?.content ?? {};
+  const schema = Object.entries(content).find(([type]) => isJsonMediaType(type))?.[1].schema;
+  if (!bodyProperties(spec, schema).includes(setting.body)) {
+    throw new Error(`${id}: idempotency field ${setting.body} is not in the JSON request body`);
+  }
+  return setting.body;
+}
+
 // The requirements an operation's request must meet: any one of them, each naming its schemes and their scopes.
 // An operation without its own `security` inherits the spec's, and an empty list means none.
 export function securityOf(spec, operation) {
@@ -294,6 +314,7 @@ export function applyOperations(spec, operations, paging = {}) {
       } else if (names.paging) {
         throw new Error(`${operation.operationId}: paging is set but there is no iterator`);
       }
+      if (names.idempotency) operation['x-sdk-idempotency-key'] = resolveIdempotency(spec, operation, names.idempotency);
       for (const parameter of [...shared, ...(operation.parameters ?? [])]) {
         if (names.string_params?.includes(parameter.name)) parameter.schema = { type: 'string' };
       }
