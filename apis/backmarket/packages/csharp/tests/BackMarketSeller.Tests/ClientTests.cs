@@ -186,8 +186,9 @@ public sealed class ClientTests
             Paging = new NextLinkPaging("data", "more", ["token"]),
         };
 
-        Assert.Equal(["b"], Next(operation, [null], """{"more": "/items?token=b", "next": "/items?token=c"}""", 1));
-        Assert.Null(Next(operation, ["b"], """{"more": null, "next": "/items?token=c"}""", 1));
+        Assert.Equal(["b"], Next(operation, [null], """{"data": [], "more": "/items?token=b", "next": "/items?token=c"}""", 1));
+        Assert.Null(Next(operation, ["b"], """{"data": [], "more": null, "next": "/items?token=c"}""", 1));
+        Assert.Throws<ApiDecodeException>(() => Next(operation, ["b"], """{"results": [], "more": null}""", 1));
     }
 
     [Fact]
