@@ -27,7 +27,7 @@ const CREATE_OR_REPLACE_SKU_LOCATION_MAPPING: Operation = Operation {
     method: "PUT",
     path: "/sell/inventory/v1/listing/{listingId}/sku/{sku}/locations",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -39,7 +39,7 @@ const DELETE_SKU_LOCATION_MAPPING: Operation = Operation {
     method: "DELETE",
     path: "/sell/inventory/v1/listing/{listingId}/sku/{sku}/locations",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -84,16 +84,14 @@ impl ListingsApi {
     }
 
     /// Set the fulfillment locations of a SKU in a listing.
-    ///
-    /// `None` when the API answers 204 with no body.
     pub async fn set_sku_locations(
         &self,
         listing_id: &str,
         sku: &str,
         body: &models::LocationMapping,
-    ) -> Result<Option<models::Error>, Error> {
+    ) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&CREATE_OR_REPLACE_SKU_LOCATION_MAPPING)
                     .host("api")
                     .path("listingId", &listing_id)
@@ -101,24 +99,20 @@ impl ListingsApi {
                     .json(&body),
             )
             .await
+            .map(drop)
     }
 
     /// Remove the fulfillment locations of a SKU in a listing.
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn delete_sku_locations(
-        &self,
-        listing_id: &str,
-        sku: &str,
-    ) -> Result<Option<models::Error>, Error> {
+    pub async fn delete_sku_locations(&self, listing_id: &str, sku: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&DELETE_SKU_LOCATION_MAPPING)
                     .host("api")
                     .path("listingId", &listing_id)
                     .path("sku", &sku),
             )
             .await
+            .map(drop)
     }
 
     /// Get the fulfillment locations of a SKU in a listing.

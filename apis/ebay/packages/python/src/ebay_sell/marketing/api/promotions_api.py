@@ -8,7 +8,6 @@ from pydantic import StrictStr
 
 from ebay_sell._runtime import AsyncResource, NextLink, Operation, Param, Resource, Scheme, checked
 from ebay_sell.marketing import models as _models
-from ebay_sell.marketing.models.error import Error
 from ebay_sell.marketing.models.items_paged_collection import ItemsPagedCollection
 from ebay_sell.marketing.models.promotions_paged_collection import PromotionsPagedCollection
 
@@ -83,27 +82,25 @@ _get_promotions: Operation[PromotionsPagedCollection] = Operation(
     ),
     host="api",
 )
-_pause_promotion: Operation[Error] = Operation(
+_pause_promotion: Operation[None] = Operation(
     id="pausePromotion",
     method="POST",
     path="/sell/marketing/v1/promotion/{promotion_id}/pause",
     resource="promotions",
     name="pause",
     params=(Param("promotion_id", "promotion_id", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
-_resume_promotion: Operation[Error] = Operation(
+_resume_promotion: Operation[None] = Operation(
     id="resumePromotion",
     method="POST",
     path="/sell/marketing/v1/promotion/{promotion_id}/resume",
     resource="promotions",
     name="resume",
     params=(Param("promotion_id", "promotion_id", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
@@ -213,7 +210,7 @@ class PromotionsApi(Resource):
     def pause(
         self,
         promotion_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Pause a promotion."""
         return self._call(
             _pause_promotion,
@@ -224,7 +221,7 @@ class PromotionsApi(Resource):
     def resume(
         self,
         promotion_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Resume a paused promotion."""
         return self._call(
             _resume_promotion,
@@ -329,7 +326,7 @@ class AsyncPromotionsApi(AsyncResource):
     async def pause(
         self,
         promotion_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Pause a promotion."""
         return await self._call(
             _pause_promotion,
@@ -340,7 +337,7 @@ class AsyncPromotionsApi(AsyncResource):
     async def resume(
         self,
         promotion_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Resume a paused promotion."""
         return await self._call(
             _resume_promotion,

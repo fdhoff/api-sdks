@@ -83,7 +83,6 @@ var (
 		Path:        "/sell/marketing/v1/ad_campaign/{campaign_id}/ad_group/{ad_group_id}",
 		Resource:    "AdGroups",
 		Name:        "Update",
-		ReturnsJSON: true,
 		PathParams:  []string{"ad_group_id", "campaign_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -134,6 +133,7 @@ func (r *AdGroupsResource) SuggestKeywords(ctx context.Context, adGroupID string
 }
 
 // Update updates an ad group.
-func (r *AdGroupsResource) Update(ctx context.Context, adGroupID string, campaignID string, body *UpdateAdGroupRequest) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opUpdateAdGroup, runtime.Input{Path: []any{adGroupID, campaignID}, Body: body})
+func (r *AdGroupsResource) Update(ctx context.Context, adGroupID string, campaignID string, body *UpdateAdGroupRequest) error {
+	_, err := runtime.Call[any](ctx, r.transport, opUpdateAdGroup, runtime.Input{Path: []any{adGroupID, campaignID}, Body: body})
+	return err
 }

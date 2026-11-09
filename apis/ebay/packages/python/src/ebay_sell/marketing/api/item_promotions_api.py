@@ -8,7 +8,6 @@ from pydantic import StrictStr
 
 from ebay_sell._runtime import AsyncResource, Operation, Param, Resource, Scheme, checked
 from ebay_sell.marketing.models.base_response import BaseResponse
-from ebay_sell.marketing.models.error import Error
 from ebay_sell.marketing.models.item_promotion import ItemPromotion
 from ebay_sell.marketing.models.item_promotion_response import ItemPromotionResponse
 
@@ -24,15 +23,14 @@ _create_item_promotion: Operation[BaseResponse] = Operation(
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
-_delete_item_promotion: Operation[Error] = Operation(
+_delete_item_promotion: Operation[None] = Operation(
     id="deleteItemPromotion",
     method="DELETE",
     path="/sell/marketing/v1/item_promotion/{promotion_id}",
     resource="item_promotions",
     name="delete",
     params=(Param("promotion_id", "promotion_id", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
@@ -95,7 +93,7 @@ class ItemPromotionsApi(Resource):
     def delete(
         self,
         promotion_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete a threshold promotion."""
         return self._call(
             _delete_item_promotion,
@@ -143,7 +141,7 @@ class AsyncItemPromotionsApi(AsyncResource):
     async def delete(
         self,
         promotion_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete a threshold promotion."""
         return await self._call(
             _delete_item_promotion,

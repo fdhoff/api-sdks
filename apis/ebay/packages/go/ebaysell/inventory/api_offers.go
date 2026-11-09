@@ -57,7 +57,6 @@ var (
 		Path:        "/sell/inventory/v1/offer/{offerId}",
 		Resource:    "Offers",
 		Name:        "Delete",
-		ReturnsJSON: true,
 		PathParams:  []string{"offerId"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -164,7 +163,6 @@ var (
 		Path:        "/sell/inventory/v1/offer/withdraw_by_inventory_item_group",
 		Resource:    "Offers",
 		Name:        "WithdrawByInventoryItemGroup",
-		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{},
 		Host:        "api",
@@ -203,8 +201,9 @@ func (r *OffersResource) Create(ctx context.Context, body *EbayOfferDetailsWithK
 }
 
 // Delete deletes an offer, ending its listing if published.
-func (r *OffersResource) Delete(ctx context.Context, offerID string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opDeleteOffer, runtime.Input{Path: []any{offerID}})
+func (r *OffersResource) Delete(ctx context.Context, offerID string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opDeleteOffer, runtime.Input{Path: []any{offerID}})
+	return err
 }
 
 // GetListingFees estimates the listing fees of unpublished offers.
@@ -262,6 +261,7 @@ func (r *OffersResource) Withdraw(ctx context.Context, offerID string) (*Withdra
 }
 
 // WithdrawByInventoryItemGroup ends the multi-variation listing of an inventory item group.
-func (r *OffersResource) WithdrawByInventoryItemGroup(ctx context.Context, body *WithdrawByInventoryItemGroupRequest) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opWithdrawOfferByInventoryItemGroup, runtime.Input{Body: body})
+func (r *OffersResource) WithdrawByInventoryItemGroup(ctx context.Context, body *WithdrawByInventoryItemGroupRequest) error {
+	_, err := runtime.Call[any](ctx, r.transport, opWithdrawOfferByInventoryItemGroup, runtime.Input{Body: body})
+	return err
 }

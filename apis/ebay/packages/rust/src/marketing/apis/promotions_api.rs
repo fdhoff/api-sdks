@@ -58,7 +58,7 @@ const PAUSE_PROMOTION: Operation = Operation {
     method: "POST",
     path: "/sell/marketing/v1/promotion/{promotion_id}/pause",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -70,7 +70,7 @@ const RESUME_PROMOTION: Operation = Operation {
     method: "POST",
     path: "/sell/marketing/v1/promotion/{promotion_id}/resume",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -183,28 +183,26 @@ impl PromotionsApi {
     }
 
     /// Pause a promotion.
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn pause(&self, promotion_id: &str) -> Result<Option<models::Error>, Error> {
+    pub async fn pause(&self, promotion_id: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&PAUSE_PROMOTION)
                     .host("api")
                     .path("promotion_id", &promotion_id),
             )
             .await
+            .map(drop)
     }
 
     /// Resume a paused promotion.
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn resume(&self, promotion_id: &str) -> Result<Option<models::Error>, Error> {
+    pub async fn resume(&self, promotion_id: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&RESUME_PROMOTION)
                     .host("api")
                     .path("promotion_id", &promotion_id),
             )
             .await
+            .map(drop)
     }
 }

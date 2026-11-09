@@ -16,7 +16,6 @@ var (
 		Path:        "/sell/marketing/v1/ad_report_task",
 		Resource:    "ReportTasks",
 		Name:        "Create",
-		ReturnsJSON: true,
 		PathParams:  []string{},
 		QueryParams: []string{},
 		Host:        "api",
@@ -29,7 +28,6 @@ var (
 		Path:        "/sell/marketing/v1/ad_report_task/{report_task_id}",
 		Resource:    "ReportTasks",
 		Name:        "Delete",
-		ReturnsJSON: true,
 		PathParams:  []string{"report_task_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -71,13 +69,15 @@ type ReportTasksResource struct {
 }
 
 // Create starts a task that builds a Promoted Listings report.
-func (r *ReportTasksResource) Create(ctx context.Context, body *CreateReportTask) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opCreateReportTask, runtime.Input{Body: body})
+func (r *ReportTasksResource) Create(ctx context.Context, body *CreateReportTask) error {
+	_, err := runtime.Call[any](ctx, r.transport, opCreateReportTask, runtime.Input{Body: body})
+	return err
 }
 
 // Delete deletes a report task.
-func (r *ReportTasksResource) Delete(ctx context.Context, reportTaskID string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opDeleteReportTask, runtime.Input{Path: []any{reportTaskID}})
+func (r *ReportTasksResource) Delete(ctx context.Context, reportTaskID string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opDeleteReportTask, runtime.Input{Path: []any{reportTaskID}})
+	return err
 }
 
 // Get gets one report task.

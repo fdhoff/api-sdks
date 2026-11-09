@@ -27,7 +27,7 @@ const DELETE_ITEM_PRICE_MARKDOWN_PROMOTION: Operation = Operation {
     method: "DELETE",
     path: "/sell/marketing/v1/item_price_markdown/{promotion_id}",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -85,16 +85,15 @@ impl ItemPriceMarkdownsApi {
     }
 
     /// Delete a markdown sale.
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn delete(&self, promotion_id: &str) -> Result<Option<models::Error>, Error> {
+    pub async fn delete(&self, promotion_id: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&DELETE_ITEM_PRICE_MARKDOWN_PROMOTION)
                     .host("api")
                     .path("promotion_id", &promotion_id),
             )
             .await
+            .map(drop)
     }
 
     /// Get one markdown sale.

@@ -66,7 +66,7 @@ const DELETE_INVENTORY_ITEM: Operation = Operation {
     method: "DELETE",
     path: "/sell/inventory/v1/inventory_item/{sku}",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -224,16 +224,15 @@ impl InventoryItemsApi {
     }
 
     /// Delete an inventory item and its offers.
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn delete(&self, sku: &str) -> Result<Option<models::Error>, Error> {
+    pub async fn delete(&self, sku: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&DELETE_INVENTORY_ITEM)
                     .host("api")
                     .path("sku", &sku),
             )
             .await
+            .map(drop)
     }
 
     /// Get one inventory item by SKU.

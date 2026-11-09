@@ -9,7 +9,6 @@ from pydantic import StrictStr
 from ebay_sell._runtime import AsyncResource, Operation, Param, Resource, Scheme, checked
 from ebay_sell.inventory.models.bulk_migrate_listing import BulkMigrateListing
 from ebay_sell.inventory.models.bulk_migrate_listing_response import BulkMigrateListingResponse
-from ebay_sell.inventory.models.error import Error
 from ebay_sell.inventory.models.location_mapping import LocationMapping
 
 _bulk_migrate_listing: Operation[BulkMigrateListingResponse] = Operation(
@@ -24,7 +23,7 @@ _bulk_migrate_listing: Operation[BulkMigrateListingResponse] = Operation(
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
-_create_or_replace_sku_location_mapping: Operation[Error] = Operation(
+_create_or_replace_sku_location_mapping: Operation[None] = Operation(
     id="createOrReplaceSkuLocationMapping",
     method="PUT",
     path="/sell/inventory/v1/listing/{listingId}/sku/{sku}/locations",
@@ -34,12 +33,11 @@ _create_or_replace_sku_location_mapping: Operation[Error] = Operation(
         Param("listingId", "listing_id", "path"),
         Param("sku", "sku", "path"),
     ),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
-_delete_sku_location_mapping: Operation[Error] = Operation(
+_delete_sku_location_mapping: Operation[None] = Operation(
     id="deleteSkuLocationMapping",
     method="DELETE",
     path="/sell/inventory/v1/listing/{listingId}/sku/{sku}/locations",
@@ -49,8 +47,7 @@ _delete_sku_location_mapping: Operation[Error] = Operation(
         Param("listingId", "listing_id", "path"),
         Param("sku", "sku", "path"),
     ),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
@@ -106,7 +103,7 @@ class ListingsApi(Resource):
         listing_id: StrictStr,
         sku: StrictStr,
         body: Union[LocationMapping, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Set the fulfillment locations of a SKU in a listing."""
         return self._call(
             _create_or_replace_sku_location_mapping,
@@ -120,7 +117,7 @@ class ListingsApi(Resource):
         self,
         listing_id: StrictStr,
         sku: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Remove the fulfillment locations of a SKU in a listing."""
         return self._call(
             _delete_sku_location_mapping,
@@ -160,7 +157,7 @@ class AsyncListingsApi(AsyncResource):
         listing_id: StrictStr,
         sku: StrictStr,
         body: Union[LocationMapping, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Set the fulfillment locations of a SKU in a listing."""
         return await self._call(
             _create_or_replace_sku_location_mapping,
@@ -174,7 +171,7 @@ class AsyncListingsApi(AsyncResource):
         self,
         listing_id: StrictStr,
         sku: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Remove the fulfillment locations of a SKU in a listing."""
         return await self._call(
             _delete_sku_location_mapping,

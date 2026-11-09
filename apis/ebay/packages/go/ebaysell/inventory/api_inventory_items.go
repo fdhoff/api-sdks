@@ -70,7 +70,6 @@ var (
 		Path:        "/sell/inventory/v1/inventory_item/{sku}",
 		Resource:    "InventoryItems",
 		Name:        "Delete",
-		ReturnsJSON: true,
 		PathParams:  []string{"sku"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -142,8 +141,9 @@ func (r *InventoryItemsResource) CreateOrReplace(ctx context.Context, sku string
 }
 
 // Delete deletes an inventory item and its offers.
-func (r *InventoryItemsResource) Delete(ctx context.Context, sku string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opDeleteInventoryItem, runtime.Input{Path: []any{sku}})
+func (r *InventoryItemsResource) Delete(ctx context.Context, sku string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opDeleteInventoryItem, runtime.Input{Path: []any{sku}})
+	return err
 }
 
 // Get gets one inventory item by SKU.

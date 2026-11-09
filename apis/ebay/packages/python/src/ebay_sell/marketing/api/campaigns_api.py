@@ -13,7 +13,6 @@ from ebay_sell.marketing.models.campaign_paged_collection_response import Campai
 from ebay_sell.marketing.models.campaigns import Campaigns
 from ebay_sell.marketing.models.clone_campaign_request import CloneCampaignRequest
 from ebay_sell.marketing.models.create_campaign_request import CreateCampaignRequest
-from ebay_sell.marketing.models.error import Error
 from ebay_sell.marketing.models.suggest_budget_response import SuggestBudgetResponse
 from ebay_sell.marketing.models.suggest_max_cpc_request import SuggestMaxCpcRequest
 from ebay_sell.marketing.models.suggest_max_cpc_response import SuggestMaxCpcResponse
@@ -47,27 +46,25 @@ _create_campaign: Operation[object] = Operation(
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
-_delete_campaign: Operation[Error] = Operation(
+_delete_campaign: Operation[None] = Operation(
     id="deleteCampaign",
     method="DELETE",
     path="/sell/marketing/v1/ad_campaign/{campaign_id}",
     resource="campaigns",
     name="delete",
     params=(Param("campaign_id", "campaign_id", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
-_end_campaign: Operation[Error] = Operation(
+_end_campaign: Operation[None] = Operation(
     id="endCampaign",
     method="POST",
     path="/sell/marketing/v1/ad_campaign/{campaign_id}/end",
     resource="campaigns",
     name="end",
     params=(Param("campaign_id", "campaign_id", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
@@ -184,27 +181,25 @@ _get_campaigns: Operation[CampaignPagedCollectionResponse] = Operation(
     ),
     host="api",
 )
-_pause_campaign: Operation[Error] = Operation(
+_pause_campaign: Operation[None] = Operation(
     id="pauseCampaign",
     method="POST",
     path="/sell/marketing/v1/ad_campaign/{campaign_id}/pause",
     resource="campaigns",
     name="pause",
     params=(Param("campaign_id", "campaign_id", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
-_resume_campaign: Operation[Error] = Operation(
+_resume_campaign: Operation[None] = Operation(
     id="resumeCampaign",
     method="POST",
     path="/sell/marketing/v1/ad_campaign/{campaign_id}/resume",
     resource="campaigns",
     name="resume",
     params=(Param("campaign_id", "campaign_id", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
@@ -260,27 +255,25 @@ _suggest_max_cpc: Operation[SuggestMaxCpcResponse] = Operation(
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
-_update_ad_rate_strategy: Operation[Error] = Operation(
+_update_ad_rate_strategy: Operation[None] = Operation(
     id="updateAdRateStrategy",
     method="POST",
     path="/sell/marketing/v1/ad_campaign/{campaign_id}/update_ad_rate_strategy",
     resource="campaigns",
     name="update_ad_rate_strategy",
     params=(Param("campaign_id", "campaign_id", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
-_update_bidding_strategy: Operation[Error] = Operation(
+_update_bidding_strategy: Operation[None] = Operation(
     id="updateBiddingStrategy",
     method="POST",
     path="/sell/marketing/v1/ad_campaign/{campaign_id}/update_bidding_strategy",
     resource="campaigns",
     name="update_bidding_strategy",
     params=(Param("campaign_id", "campaign_id", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
@@ -296,15 +289,14 @@ _update_campaign_budget: Operation[object] = Operation(
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
-_update_campaign_identification: Operation[Error] = Operation(
+_update_campaign_identification: Operation[None] = Operation(
     id="updateCampaignIdentification",
     method="POST",
     path="/sell/marketing/v1/ad_campaign/{campaign_id}/update_campaign_identification",
     resource="campaigns",
     name="update_identification",
     params=(Param("campaign_id", "campaign_id", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.marketing",)),),),
     host="api",
 )
@@ -359,7 +351,7 @@ class CampaignsApi(Resource):
     def delete(
         self,
         campaign_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete a campaign."""
         return self._call(
             _delete_campaign,
@@ -370,7 +362,7 @@ class CampaignsApi(Resource):
     def end(
         self,
         campaign_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """End a campaign."""
         return self._call(
             _end_campaign,
@@ -476,7 +468,7 @@ class CampaignsApi(Resource):
     def pause(
         self,
         campaign_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Pause a campaign."""
         return self._call(
             _pause_campaign,
@@ -487,7 +479,7 @@ class CampaignsApi(Resource):
     def resume(
         self,
         campaign_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Resume a paused campaign."""
         return self._call(
             _resume_campaign,
@@ -558,7 +550,7 @@ class CampaignsApi(Resource):
         self,
         campaign_id: StrictStr,
         body: Union[UpdateAdrateStrategyRequest, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Change how a campaign sets its ad rates."""
         return self._call(
             _update_ad_rate_strategy,
@@ -571,7 +563,7 @@ class CampaignsApi(Resource):
         self,
         campaign_id: StrictStr,
         body: Union[UpdateBiddingStrategyRequest, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Change the bidding strategy of a campaign."""
         return self._call(
             _update_bidding_strategy,
@@ -597,7 +589,7 @@ class CampaignsApi(Resource):
         self,
         campaign_id: StrictStr,
         body: Union[UpdateCampaignIdentificationRequest, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Rename a campaign or change its dates."""
         return self._call(
             _update_campaign_identification,
@@ -635,7 +627,7 @@ class AsyncCampaignsApi(AsyncResource):
     async def delete(
         self,
         campaign_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Delete a campaign."""
         return await self._call(
             _delete_campaign,
@@ -646,7 +638,7 @@ class AsyncCampaignsApi(AsyncResource):
     async def end(
         self,
         campaign_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """End a campaign."""
         return await self._call(
             _end_campaign,
@@ -752,7 +744,7 @@ class AsyncCampaignsApi(AsyncResource):
     async def pause(
         self,
         campaign_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Pause a campaign."""
         return await self._call(
             _pause_campaign,
@@ -763,7 +755,7 @@ class AsyncCampaignsApi(AsyncResource):
     async def resume(
         self,
         campaign_id: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Resume a paused campaign."""
         return await self._call(
             _resume_campaign,
@@ -834,7 +826,7 @@ class AsyncCampaignsApi(AsyncResource):
         self,
         campaign_id: StrictStr,
         body: Union[UpdateAdrateStrategyRequest, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Change how a campaign sets its ad rates."""
         return await self._call(
             _update_ad_rate_strategy,
@@ -847,7 +839,7 @@ class AsyncCampaignsApi(AsyncResource):
         self,
         campaign_id: StrictStr,
         body: Union[UpdateBiddingStrategyRequest, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Change the bidding strategy of a campaign."""
         return await self._call(
             _update_bidding_strategy,
@@ -873,7 +865,7 @@ class AsyncCampaignsApi(AsyncResource):
         self,
         campaign_id: StrictStr,
         body: Union[UpdateCampaignIdentificationRequest, Mapping[str, Any]],
-    ) -> Error:
+    ) -> None:
         """Rename a campaign or change its dates."""
         return await self._call(
             _update_campaign_identification,

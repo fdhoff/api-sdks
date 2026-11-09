@@ -42,7 +42,6 @@ var (
 		Path:        "/sell/marketing/v1/ad_campaign/{campaign_id}",
 		Resource:    "Campaigns",
 		Name:        "Delete",
-		ReturnsJSON: true,
 		PathParams:  []string{"campaign_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -55,7 +54,6 @@ var (
 		Path:        "/sell/marketing/v1/ad_campaign/{campaign_id}/end",
 		Resource:    "Campaigns",
 		Name:        "End",
-		ReturnsJSON: true,
 		PathParams:  []string{"campaign_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -122,7 +120,6 @@ var (
 		Path:        "/sell/marketing/v1/ad_campaign/{campaign_id}/pause",
 		Resource:    "Campaigns",
 		Name:        "Pause",
-		ReturnsJSON: true,
 		PathParams:  []string{"campaign_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -135,7 +132,6 @@ var (
 		Path:        "/sell/marketing/v1/ad_campaign/{campaign_id}/resume",
 		Resource:    "Campaigns",
 		Name:        "Resume",
-		ReturnsJSON: true,
 		PathParams:  []string{"campaign_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -190,7 +186,6 @@ var (
 		Path:        "/sell/marketing/v1/ad_campaign/{campaign_id}/update_ad_rate_strategy",
 		Resource:    "Campaigns",
 		Name:        "UpdateAdRateStrategy",
-		ReturnsJSON: true,
 		PathParams:  []string{"campaign_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -203,7 +198,6 @@ var (
 		Path:        "/sell/marketing/v1/ad_campaign/{campaign_id}/update_bidding_strategy",
 		Resource:    "Campaigns",
 		Name:        "UpdateBiddingStrategy",
-		ReturnsJSON: true,
 		PathParams:  []string{"campaign_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -229,7 +223,6 @@ var (
 		Path:        "/sell/marketing/v1/ad_campaign/{campaign_id}/update_campaign_identification",
 		Resource:    "Campaigns",
 		Name:        "UpdateIdentification",
-		ReturnsJSON: true,
 		PathParams:  []string{"campaign_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -253,13 +246,15 @@ func (r *CampaignsResource) Create(ctx context.Context, body *CreateCampaignRequ
 }
 
 // Delete deletes a campaign.
-func (r *CampaignsResource) Delete(ctx context.Context, campaignID string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opDeleteCampaign, runtime.Input{Path: []any{campaignID}})
+func (r *CampaignsResource) Delete(ctx context.Context, campaignID string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opDeleteCampaign, runtime.Input{Path: []any{campaignID}})
+	return err
 }
 
 // End ends a campaign.
-func (r *CampaignsResource) End(ctx context.Context, campaignID string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opEndCampaign, runtime.Input{Path: []any{campaignID}})
+func (r *CampaignsResource) End(ctx context.Context, campaignID string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opEndCampaign, runtime.Input{Path: []any{campaignID}})
+	return err
 }
 
 // CampaignsFindByAdReferenceParams holds the query parameters of [CampaignsResource.FindByAdReference]. Set only what you need.
@@ -313,13 +308,15 @@ func (r *CampaignsResource) Iter(ctx context.Context, params *CampaignsListParam
 }
 
 // Pause pauses a campaign.
-func (r *CampaignsResource) Pause(ctx context.Context, campaignID string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opPauseCampaign, runtime.Input{Path: []any{campaignID}})
+func (r *CampaignsResource) Pause(ctx context.Context, campaignID string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opPauseCampaign, runtime.Input{Path: []any{campaignID}})
+	return err
 }
 
 // Resume resumes a paused campaign.
-func (r *CampaignsResource) Resume(ctx context.Context, campaignID string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opResumeCampaign, runtime.Input{Path: []any{campaignID}})
+func (r *CampaignsResource) Resume(ctx context.Context, campaignID string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opResumeCampaign, runtime.Input{Path: []any{campaignID}})
+	return err
 }
 
 // CampaignsSuggestBudgetParams holds the parameters of [CampaignsResource.SuggestBudget]. Set only what you need; a header left nil takes the client's default.
@@ -355,13 +352,15 @@ func (r *CampaignsResource) SuggestMaxCPC(ctx context.Context, body *SuggestMaxC
 }
 
 // UpdateAdRateStrategy changes how a campaign sets its ad rates.
-func (r *CampaignsResource) UpdateAdRateStrategy(ctx context.Context, campaignID string, body *UpdateAdrateStrategyRequest) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opUpdateAdRateStrategy, runtime.Input{Path: []any{campaignID}, Body: body})
+func (r *CampaignsResource) UpdateAdRateStrategy(ctx context.Context, campaignID string, body *UpdateAdrateStrategyRequest) error {
+	_, err := runtime.Call[any](ctx, r.transport, opUpdateAdRateStrategy, runtime.Input{Path: []any{campaignID}, Body: body})
+	return err
 }
 
 // UpdateBiddingStrategy changes the bidding strategy of a campaign.
-func (r *CampaignsResource) UpdateBiddingStrategy(ctx context.Context, campaignID string, body *UpdateBiddingStrategyRequest) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opUpdateBiddingStrategy, runtime.Input{Path: []any{campaignID}, Body: body})
+func (r *CampaignsResource) UpdateBiddingStrategy(ctx context.Context, campaignID string, body *UpdateBiddingStrategyRequest) error {
+	_, err := runtime.Call[any](ctx, r.transport, opUpdateBiddingStrategy, runtime.Input{Path: []any{campaignID}, Body: body})
+	return err
 }
 
 // UpdateBudget changes the daily budget of a campaign.
@@ -370,6 +369,7 @@ func (r *CampaignsResource) UpdateBudget(ctx context.Context, campaignID string,
 }
 
 // UpdateIdentification renames a campaign or changes its dates.
-func (r *CampaignsResource) UpdateIdentification(ctx context.Context, campaignID string, body *UpdateCampaignIdentificationRequest) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opUpdateCampaignIdentification, runtime.Input{Path: []any{campaignID}, Body: body})
+func (r *CampaignsResource) UpdateIdentification(ctx context.Context, campaignID string, body *UpdateCampaignIdentificationRequest) error {
+	_, err := runtime.Call[any](ctx, r.transport, opUpdateCampaignIdentification, runtime.Input{Path: []any{campaignID}, Body: body})
+	return err
 }

@@ -46,7 +46,6 @@ var (
 		Path:        "/sell/marketing/v1/promotion/{promotion_id}/pause",
 		Resource:    "Promotions",
 		Name:        "Pause",
-		ReturnsJSON: true,
 		PathParams:  []string{"promotion_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -59,7 +58,6 @@ var (
 		Path:        "/sell/marketing/v1/promotion/{promotion_id}/resume",
 		Resource:    "Promotions",
 		Name:        "Resume",
-		ReturnsJSON: true,
 		PathParams:  []string{"promotion_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -113,11 +111,13 @@ func (r *PromotionsResource) Iter(ctx context.Context, params *PromotionsListPar
 }
 
 // Pause pauses a promotion.
-func (r *PromotionsResource) Pause(ctx context.Context, promotionID string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opPausePromotion, runtime.Input{Path: []any{promotionID}})
+func (r *PromotionsResource) Pause(ctx context.Context, promotionID string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opPausePromotion, runtime.Input{Path: []any{promotionID}})
+	return err
 }
 
 // Resume resumes a paused promotion.
-func (r *PromotionsResource) Resume(ctx context.Context, promotionID string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opResumePromotion, runtime.Input{Path: []any{promotionID}})
+func (r *PromotionsResource) Resume(ctx context.Context, promotionID string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opResumePromotion, runtime.Input{Path: []any{promotionID}})
+	return err
 }

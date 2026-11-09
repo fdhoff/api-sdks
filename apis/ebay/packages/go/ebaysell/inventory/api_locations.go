@@ -16,7 +16,6 @@ var (
 		Path:        "/sell/inventory/v1/location/{merchantLocationKey}",
 		Resource:    "Locations",
 		Name:        "Create",
-		ReturnsJSON: true,
 		PathParams:  []string{"merchantLocationKey"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -29,7 +28,6 @@ var (
 		Path:        "/sell/inventory/v1/location/{merchantLocationKey}",
 		Resource:    "Locations",
 		Name:        "Delete",
-		ReturnsJSON: true,
 		PathParams:  []string{"merchantLocationKey"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -96,7 +94,6 @@ var (
 		Path:        "/sell/inventory/v1/location/{merchantLocationKey}/update_location_details",
 		Resource:    "Locations",
 		Name:        "Update",
-		ReturnsJSON: true,
 		PathParams:  []string{"merchantLocationKey"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -110,13 +107,15 @@ type LocationsResource struct {
 }
 
 // Create creates an inventory location.
-func (r *LocationsResource) Create(ctx context.Context, merchantLocationKey string, body *InventoryLocationFull) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opCreateInventoryLocation, runtime.Input{Path: []any{merchantLocationKey}, Body: body})
+func (r *LocationsResource) Create(ctx context.Context, merchantLocationKey string, body *InventoryLocationFull) error {
+	_, err := runtime.Call[any](ctx, r.transport, opCreateInventoryLocation, runtime.Input{Path: []any{merchantLocationKey}, Body: body})
+	return err
 }
 
 // Delete deletes an inventory location.
-func (r *LocationsResource) Delete(ctx context.Context, merchantLocationKey string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opDeleteInventoryLocation, runtime.Input{Path: []any{merchantLocationKey}})
+func (r *LocationsResource) Delete(ctx context.Context, merchantLocationKey string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opDeleteInventoryLocation, runtime.Input{Path: []any{merchantLocationKey}})
+	return err
 }
 
 // Disable disables an inventory location.
@@ -151,6 +150,7 @@ func (r *LocationsResource) Iter(ctx context.Context, params *LocationsListParam
 }
 
 // Update updates the details of an inventory location.
-func (r *LocationsResource) Update(ctx context.Context, merchantLocationKey string, body *InventoryLocation) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opUpdateInventoryLocation, runtime.Input{Path: []any{merchantLocationKey}, Body: body})
+func (r *LocationsResource) Update(ctx context.Context, merchantLocationKey string, body *InventoryLocation) error {
+	_, err := runtime.Call[any](ctx, r.transport, opUpdateInventoryLocation, runtime.Input{Path: []any{merchantLocationKey}, Body: body})
+	return err
 }

@@ -27,7 +27,7 @@ const DELETE_PRODUCT_COMPATIBILITY: Operation = Operation {
     method: "DELETE",
     path: "/sell/inventory/v1/inventory_item/{sku}/product_compatibility",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -95,16 +95,15 @@ impl ProductCompatibilityApi {
     }
 
     /// Remove the vehicle list of an inventory item.
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn delete(&self, sku: &str) -> Result<Option<models::Error>, Error> {
+    pub async fn delete(&self, sku: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&DELETE_PRODUCT_COMPATIBILITY)
                     .host("api")
                     .path("sku", &sku),
             )
             .await
+            .map(drop)
     }
 
     /// Get the vehicles an inventory item fits.

@@ -29,7 +29,6 @@ var (
 		Path:        "/sell/marketing/v1/item_price_markdown/{promotion_id}",
 		Resource:    "ItemPriceMarkdowns",
 		Name:        "Delete",
-		ReturnsJSON: true,
 		PathParams:  []string{"promotion_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -74,8 +73,9 @@ func (r *ItemPriceMarkdownsResource) Create(ctx context.Context, body *ItemPrice
 }
 
 // Delete deletes a markdown sale.
-func (r *ItemPriceMarkdownsResource) Delete(ctx context.Context, promotionID string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opDeleteItemPriceMarkdownPromotion, runtime.Input{Path: []any{promotionID}})
+func (r *ItemPriceMarkdownsResource) Delete(ctx context.Context, promotionID string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opDeleteItemPriceMarkdownPromotion, runtime.Input{Path: []any{promotionID}})
+	return err
 }
 
 // Get gets one markdown sale.

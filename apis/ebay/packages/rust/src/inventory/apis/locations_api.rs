@@ -15,7 +15,7 @@ const CREATE_INVENTORY_LOCATION: Operation = Operation {
     method: "POST",
     path: "/sell/inventory/v1/location/{merchantLocationKey}",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -27,7 +27,7 @@ const DELETE_INVENTORY_LOCATION: Operation = Operation {
     method: "DELETE",
     path: "/sell/inventory/v1/location/{merchantLocationKey}",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -97,7 +97,7 @@ const UPDATE_INVENTORY_LOCATION: Operation = Operation {
     method: "POST",
     path: "/sell/inventory/v1/location/{merchantLocationKey}/update_location_details",
     query_params: &[],
-    returns_json: true,
+    returns_json: false,
     paging: None,
     security: &[&[Scheme {
         name: "api_auth",
@@ -131,37 +131,32 @@ impl LocationsApi {
     }
 
     /// Create an inventory location.
-    ///
-    /// `None` when the API answers 204 with no body.
     pub async fn create(
         &self,
         merchant_location_key: &str,
         body: &models::InventoryLocationFull,
-    ) -> Result<Option<models::Error>, Error> {
+    ) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&CREATE_INVENTORY_LOCATION)
                     .host("api")
                     .path("merchantLocationKey", &merchant_location_key)
                     .json(&body),
             )
             .await
+            .map(drop)
     }
 
     /// Delete an inventory location.
-    ///
-    /// `None` when the API answers 204 with no body.
-    pub async fn delete(
-        &self,
-        merchant_location_key: &str,
-    ) -> Result<Option<models::Error>, Error> {
+    pub async fn delete(&self, merchant_location_key: &str) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&DELETE_INVENTORY_LOCATION)
                     .host("api")
                     .path("merchantLocationKey", &merchant_location_key),
             )
             .await
+            .map(drop)
     }
 
     /// Disable an inventory location.
@@ -225,20 +220,19 @@ impl LocationsApi {
     }
 
     /// Update the details of an inventory location.
-    ///
-    /// `None` when the API answers 204 with no body.
     pub async fn update(
         &self,
         merchant_location_key: &str,
         body: &models::InventoryLocation,
-    ) -> Result<Option<models::Error>, Error> {
+    ) -> Result<(), Error> {
         self.transport
-            .call(
+            .call::<serde_json::Value>(
                 Request::new(&UPDATE_INVENTORY_LOCATION)
                     .host("api")
                     .path("merchantLocationKey", &merchant_location_key)
                     .json(&body),
             )
             .await
+            .map(drop)
     }
 }

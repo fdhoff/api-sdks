@@ -9,7 +9,6 @@ from pydantic import StrictStr
 from ebay_sell._runtime import AsyncResource, Operation, Param, Resource, Scheme, checked
 from ebay_sell.inventory.models.base_response import BaseResponse
 from ebay_sell.inventory.models.compatibility import Compatibility
-from ebay_sell.inventory.models.error import Error
 
 _create_or_replace_product_compatibility: Operation[BaseResponse] = Operation(
     id="createOrReplaceProductCompatibility",
@@ -26,15 +25,14 @@ _create_or_replace_product_compatibility: Operation[BaseResponse] = Operation(
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
-_delete_product_compatibility: Operation[Error] = Operation(
+_delete_product_compatibility: Operation[None] = Operation(
     id="deleteProductCompatibility",
     method="DELETE",
     path="/sell/inventory/v1/inventory_item/{sku}/product_compatibility",
     resource="product_compatibility",
     name="delete",
     params=(Param("sku", "sku", "path"),),
-    response=Error,
-    returns_json=True,
+    response=None,
     security=((Scheme("api_auth", ("https://api.ebay.com/oauth/api_scope/sell.inventory",)),),),
     host="api",
 )
@@ -89,7 +87,7 @@ class ProductCompatibilityApi(Resource):
     def delete(
         self,
         sku: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Remove the vehicle list of an inventory item."""
         return self._call(
             _delete_product_compatibility,
@@ -129,7 +127,7 @@ class AsyncProductCompatibilityApi(AsyncResource):
     async def delete(
         self,
         sku: StrictStr,
-    ) -> Error:
+    ) -> None:
         """Remove the vehicle list of an inventory item."""
         return await self._call(
             _delete_product_compatibility,

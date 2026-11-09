@@ -146,7 +146,6 @@ var (
 		Path:        "/sell/marketing/v1/ad_campaign/{campaign_id}/ad/{ad_id}",
 		Resource:    "Ads",
 		Name:        "Delete",
-		ReturnsJSON: true,
 		PathParams:  []string{"ad_id", "campaign_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -213,7 +212,6 @@ var (
 		Path:        "/sell/marketing/v1/ad_campaign/{campaign_id}/ad/{ad_id}/update_bid",
 		Resource:    "Ads",
 		Name:        "UpdateBid",
-		ReturnsJSON: true,
 		PathParams:  []string{"ad_id", "campaign_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -277,8 +275,9 @@ func (r *AdsResource) CreateByInventoryReference(ctx context.Context, campaignID
 }
 
 // Delete deletes an ad.
-func (r *AdsResource) Delete(ctx context.Context, adID string, campaignID string) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opDeleteAd, runtime.Input{Path: []any{adID, campaignID}})
+func (r *AdsResource) Delete(ctx context.Context, adID string, campaignID string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opDeleteAd, runtime.Input{Path: []any{adID, campaignID}})
+	return err
 }
 
 // DeleteByInventoryReference deletes a campaign's ads for one inventory reference.
@@ -322,6 +321,7 @@ func (r *AdsResource) GetByInventoryReference(ctx context.Context, campaignID st
 }
 
 // UpdateBid changes the bid of an ad.
-func (r *AdsResource) UpdateBid(ctx context.Context, adID string, campaignID string, body *UpdateBidPercentageRequest) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opUpdateBid, runtime.Input{Path: []any{adID, campaignID}, Body: body})
+func (r *AdsResource) UpdateBid(ctx context.Context, adID string, campaignID string, body *UpdateBidPercentageRequest) error {
+	_, err := runtime.Call[any](ctx, r.transport, opUpdateBid, runtime.Input{Path: []any{adID, campaignID}, Body: body})
+	return err
 }

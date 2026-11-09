@@ -83,7 +83,6 @@ var (
 		Path:        "/sell/marketing/v1/negative_keyword/{negative_keyword_id}",
 		Resource:    "NegativeKeywords",
 		Name:        "Update",
-		ReturnsJSON: true,
 		PathParams:  []string{"negative_keyword_id"},
 		QueryParams: []string{},
 		Host:        "api",
@@ -136,6 +135,7 @@ func (r *NegativeKeywordsResource) Iter(ctx context.Context, params *NegativeKey
 }
 
 // Update changes the status of a negative keyword.
-func (r *NegativeKeywordsResource) Update(ctx context.Context, negativeKeywordID string, body *UpdateNegativeKeywordRequest) (*Error, error) {
-	return runtime.Call[*Error](ctx, r.transport, opUpdateNegativeKeyword, runtime.Input{Path: []any{negativeKeywordID}, Body: body})
+func (r *NegativeKeywordsResource) Update(ctx context.Context, negativeKeywordID string, body *UpdateNegativeKeywordRequest) error {
+	_, err := runtime.Call[any](ctx, r.transport, opUpdateNegativeKeyword, runtime.Input{Path: []any{negativeKeywordID}, Body: body})
+	return err
 }
