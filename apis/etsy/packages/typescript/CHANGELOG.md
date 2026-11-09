@@ -2,7 +2,7 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
-## Unreleased
+## 0.1.0-alpha.2 (2026-11-09)
 
 * An empty 204 page ends an iteration instead of throwing `DecodeError`, as in the other languages.
 * A `Date` in a form field is sent as ISO 8601 text, not as a quoted JSON string.
