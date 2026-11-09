@@ -1,0 +1,21 @@
+# How `npm run generate:python` builds this package. Public method names are in operations.yaml.
+generator: python
+output: src/mirakl_seller
+generated: [api, models]
+resources: _resources.py
+runtime: _runtime
+# Ruff's lint fixes drop the duplicate and unused imports the generator writes, then the formatter runs.
+format: [sh, -c, 'python -m ruff check --fix-only --quiet "$1" && python -m ruff format --quiet "$1"', --]
+properties:
+  packageName: mirakl_seller
+  generateSourceCodeOnly: true
+  disallowAdditionalPropertiesIfNotPresent: false
+  mapNumberTo: float
+collapse_single_unions: true
+# `import` is a Python keyword, which the generator would otherwise rename `var_import`.
+parameter_name_mappings:
+  import: import_id
+# Deprecated camelCase duplicates of `import_id` and `payment_type`, which would share their Python names.
+name_mappings:
+  importId: deprecated_import_id
+  paymentType: deprecated_payment_type

@@ -79,3 +79,34 @@ test('the TypeScript changelog leaves the first alpha unreleased, so no tag can 
   const changelog = await readFile(new URL('CHANGELOG.md', TYPESCRIPT), 'utf8');
   assert.ok(changelog.includes(`## ${manifest.version} (unreleased)`));
 });
+
+const PYTHON = new URL('packages/python/', API);
+
+test('the Python package ships the Apache-2.0 licence and the same notice', async () => {
+  assert.equal(await readFile(new URL('LICENSE', PYTHON), 'utf8'), await readFile(new URL('LICENSE', ROOT), 'utf8'));
+  assert.equal(await readFile(new URL('NOTICE', PYTHON), 'utf8'), await readFile(new URL('NOTICE', TYPESCRIPT), 'utf8'));
+});
+
+test('the Python metadata and README say it is unofficial and not affiliated', async () => {
+  const manifest = await readFile(new URL('pyproject.toml', PYTHON), 'utf8');
+  assert.match(manifest, /^name = "mirakl-seller"$/m);
+  const description = manifest.match(/^description = "(.*)"$/m)?.[1];
+  assert.match(description, /^Unofficial /);
+  assert.ok(description.includes(AFFILIATION));
+  const init = await unwrapped(new URL('src/mirakl_seller/__init__.py', PYTHON));
+  assert.ok(init.includes(AFFILIATION));
+  const readme = await unwrapped(new URL('README.md', PYTHON));
+  assert.match(readme, /^# mirakl-seller Unofficial /);
+  assert.ok(readme.includes(AFFILIATION));
+  assert.match(readme, /no public sandbox/);
+  assert.match(readme, /Best Buy/);
+  assert.match(readme, /mirakl\/sdk-php-shop/);
+  assert.match(readme, /0\.x/);
+});
+
+test('the Python changelog leaves the first alpha unreleased, so no tag can publish it', async () => {
+  const version = (await readFile(new URL('src/mirakl_seller/__init__.py', PYTHON), 'utf8')).match(/^__version__ = "(.*)"$/m)?.[1];
+  assert.match(version, /^0\./);
+  const changelog = await readFile(new URL('CHANGELOG.md', PYTHON), 'utf8');
+  assert.ok(changelog.includes(`## ${version} (unreleased)`));
+});

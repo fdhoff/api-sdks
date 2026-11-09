@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import { stringify } from 'yaml';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
 import { applyBinary, applyHeaders, applyHosts, applyJobs, applyOperations, applyQueryDefaults, checkHeaderDefaults, checkJobs, checkQueryDefaults, collapseSingleUnions, omitOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, markMappedEnums, packageNames, relax, renameSchemas, resolveIdempotency, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
@@ -395,6 +396,13 @@ test('applyOperations passes each operation its security requirements, inherited
     { schemes: [{ scheme: 'app', scopes: ['read'] }] },
   ]);
   assert.deepEqual(securityOf({}, { security: [{ key: null }] }), [{ schemes: [{ scheme: 'key', scopes: [] }] }]);
+});
+
+test('securityOf copies scopes, so the generator input holds no YAML aliases', () => {
+  const operation = { security: [{ key: ['read'] }] };
+  const spec = { paths: { '/x': { get: { operationId: 'a', ...operation } } } };
+  applyOperations(spec, { a: { resource: 'r', method: 'a', summary: 'A.' } });
+  assert.doesNotMatch(stringify(spec), /[&*]a\d/);
 });
 
 test('omitOperations removes the operations operations.yaml omits, and their empty paths', () => {

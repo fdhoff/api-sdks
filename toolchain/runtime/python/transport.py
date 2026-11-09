@@ -260,8 +260,8 @@ def _multipart(wire: str, value: Any) -> list[tuple[str, Any]]:
         return [(wire, (value[0], bytes(value[1])))]
     if isinstance(value, (bytes, bytearray)):
         return [(wire, (wire, bytes(value)))]
-    if isinstance(value, Mapping):
-        return [(wire, (None, json.dumps(to_wire(value))))]
+    if isinstance(value, (Mapping, ApiModel)):
+        return [(wire, (None, json.dumps(to_wire(value), separators=(",", ":"))))]
     if _is_array(value):
         return [part for item in value for part in _multipart(wire, item)]
     return [(wire, (None, _text(value)))]
