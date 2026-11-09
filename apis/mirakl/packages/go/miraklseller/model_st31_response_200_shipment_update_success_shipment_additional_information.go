@@ -12,7 +12,7 @@ import (
 type ST31Response200ShipmentUpdateSuccessShipmentAdditionalInformation struct {
 	Code  *string                    `json:"code,omitempty"`
 	Type  *string                    `json:"type,omitempty"`
-	Value map[string]any             `json:"value,omitempty"`
+	Value *string                    `json:"value,omitempty"`
 	Extra map[string]json.RawMessage `json:"-"`
 }
 
