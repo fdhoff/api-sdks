@@ -168,6 +168,18 @@ Each request then carries `x-ebay-signature-key`, `Signature-Input`, `Signature`
 * Operations that send or return a raw file are not generated yet: video uploads and document downloads in Media, task input and result files in Feed, dispute evidence files in Fulfillment and report downloads in Marketing. They will follow.
 * The Feedback API's list operations have no iterator. Page them with `offset` and `limit`.
 
+## Testing
+
+Every test runs against a mock built from the contracts. The repository's eBay sandbox workflow also makes read-only calls to eBay's sandbox with an application token: `sandbox/smoke.py` mints the token, then reads the default category tree, category suggestions, a category's item aspects and a marketplace's currency. It never runs on pull requests, never uses a user token, and never uses a production keyset.
+
+To run it yourself, create a sandbox keyset in the eBay Developers Program, then from a clone of this repository:
+
+```sh
+pip install ./apis/ebay/packages/python
+EBAY_SANDBOX_CLIENT_ID=your-sandbox-app-id EBAY_SANDBOX_CLIENT_SECRET=your-sandbox-cert-id \
+  python apis/ebay/packages/python/sandbox/smoke.py
+```
+
 ## Design
 
 See the [architecture document](https://github.com/fdhoff/api-sdks/blob/main/docs/architecture.md) for the runtime contract, testing limits and the decisions behind them.
