@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* A model in a multipart body is sent as JSON, not as its Python repr, and a mapping is sent as compact JSON.
 * An empty, `.` or `..` path value raises `ValueError` before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
 * A tuple or frozenset passed as an array argument is sent as one value per item, as a list is. Before, it was sent as its Python repr.
 * An iteration whose next link returns to a page it already requested, such as page A, then B, then A again, now raises `DecodeError` instead of fetching the same pages until the rate limit runs out. Before, only a next link that repeated the one just sent was caught.

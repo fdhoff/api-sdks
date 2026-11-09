@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* A model in a multipart body is sent as JSON, not as its Python repr, and a mapping is sent as compact JSON.
 * An empty, `.` or `..` path value raises `ValueError` before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
 * A tuple or frozenset passed as an array argument is sent as one value per item, as a list is. Before, it was sent as its Python repr, in query parameters and form fields such as `listings.create_draft`'s `tags`.
 * The package ships a `py.typed` marker, so type checkers read its annotations instead of skipping it.
