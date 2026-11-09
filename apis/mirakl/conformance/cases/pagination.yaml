@@ -106,6 +106,30 @@ cases:
     expect:
       error: { kind: decode }
 
+  - name: pagination-seek-a-token-that-cycles-back-is-a-decode-error
+    request:
+      operation: ST11
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { data: [{ id: shipment-1 }], next_page_token: token-a }
+        - status: 200
+          body: { data: [{ id: shipment-2 }], next_page_token: token-b }
+        - status: 200
+          body: { data: [{ id: shipment-3 }], next_page_token: token-a }
+    wire:
+      - method: GET
+        path: /api/shipments
+      - method: GET
+        path: /api/shipments
+        query: { page_token: token-a }
+      - method: GET
+        path: /api/shipments
+        query: { page_token: token-b }
+    expect:
+      error: { kind: decode }
+
   - name: pagination-a-page-without-its-list-is-a-decode-error
     request:
       operation: OR11

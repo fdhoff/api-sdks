@@ -55,7 +55,8 @@ pub struct {{>partial_params_name}} {
     pub {{{paramName}}}: Option<{{>partial_value_type}}>,
 {{/queryParams}}
 {{#formParams}}
-    pub {{{paramName}}}: Option<{{>partial_value_type}}>,
+{{! The generator already qualifies a model-typed part with models::. }}
+    pub {{{paramName}}}: Option<{{#isModel}}{{{dataType}}}{{/isModel}}{{^isModel}}{{>partial_value_type}}{{/isModel}}>,
 {{/formParams}}
 {{#headerParams}}
 {{#vendorExtensions.x-sdk-header-default}}
@@ -136,9 +137,9 @@ impl {{classname}} {
     /// Polls every `options.interval` until the job that `{{start}}` started ends, and returns
     /// its last status, done or failed. Pass the `{{id}}` it returned. Once `options.timeout`
     /// passes, the error's kind is `JobTimeout` and [`Error::job_status`] holds the last status.
-    /// Dropping the future stops it.
+    /// Every poll sends the client's query defaults. Dropping the future stops it.
     pub async fn {{vendorExtensions.x-sdk-wait}}(&self{{#pathParams}}, {{{paramName}}}: {{>partial_path_type}}{{/pathParams}}, options: crate::runtime::WaitOptions) -> Result<{{{returnType}}}, Error> {
-        let request = Request::new(&{{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}){{#vendorExtensions.x-sdk-host}}.host("{{.}}"){{/vendorExtensions.x-sdk-host}}{{#pathParams}}.path("{{baseName}}", &{{{paramName}}}){{/pathParams}};
+        let request = Request::new(&{{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}){{#vendorExtensions.x-sdk-host}}.host("{{.}}"){{/vendorExtensions.x-sdk-host}}{{#pathParams}}.path("{{baseName}}", &{{{paramName}}}){{/pathParams}}{{#vendorExtensions.x-sdk-has-params}}.params(&{{>partial_params_name}}::default()){{/vendorExtensions.x-sdk-has-params}};
         self.transport.wait(&{{#lambda.uppercase}}{{operationIdSnakeCase}}{{/lambda.uppercase}}_JOB, request, options).await
     }
 {{/vendorExtensions.x-sdk-job}}

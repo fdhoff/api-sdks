@@ -1,0 +1,131 @@
+# Public names for every operation, keyed by operationId, which is Mirakl's API code. Summaries are ours, not
+# upstream's, and end with the code so it can be found in Mirakl's docs.
+# `iterator` adds a method that walks every page and yields `items`. Each page's list and its paging are the ones
+# ../../sdk.yaml gives under `iterators`; operations.yaml repeats them until generate.mjs reads them from there.
+# `wait` names the method that polls the job a start operation began, as ../../sdk.yaml lists under `jobs`.
+A01: { resource: Account, method: Get, summary: Get gets the shop's account (A01). }
+A02: { resource: Account, method: Update, summary: Update updates the shop's account (A02). }
+A21: { resource: Account, method: GetStatistics, summary: GetStatistics gets the shop's statistics (A21). }
+S30: { resource: Account, method: ListDocuments, summary: ListDocuments lists the shop's documents (S30). }
+S31: { resource: Account, method: DownloadDocuments, summary: DownloadDocuments downloads one or more of the shop's documents (S31). }
+S32: { resource: Account, method: UploadDocuments, summary: UploadDocuments uploads business documents to the shop (S32). }
+S33: { resource: Account, method: DeleteDocument, summary: DeleteDocument deletes one of the shop's documents (S33). }
+RO02: { resource: Account, method: ListRoles, summary: ListRoles lists the shop's user roles (RO02). }
+
+AF01: { resource: Settings, method: ListCustomFields, summary: ListCustomFields lists the operator's custom fields (AF01). }
+CH11: { resource: Settings, method: ListChannels, summary: ListChannels lists the enabled sales channels (CH11). }
+CUR01: { resource: Settings, method: ListCurrencies, summary: ListCurrencies lists currency codes and labels (CUR01). }
+DO01: { resource: Settings, method: ListDocumentTypes, summary: ListDocumentTypes lists document types (DO01). }
+L01: { resource: Settings, method: ListLocales, summary: ListLocales lists locale codes and labels (L01). }
+OF61: { resource: Settings, method: ListOfferConditions, summary: ListOfferConditions lists offer conditions (OF61). }
+PC01: { resource: Settings, method: GetConfiguration, summary: GetConfiguration gets the platform configuration (PC01). }
+RE01: { resource: Settings, method: ListReasons, summary: "ListReasons lists reasons for incidents, refunds and other actions (RE01)." }
+SH11: { resource: Settings, method: ListShippingZones, summary: ListShippingZones lists the active shipping zones (SH11). }
+SH12: { resource: Settings, method: ListShippingMethods, summary: ListShippingMethods lists the active shipping methods (SH12). }
+SH21: { resource: Settings, method: ListCarriers, summary: ListCarriers lists carriers (SH21). }
+SH31: { resource: Settings, method: ListLogisticClasses, summary: ListLogisticClasses lists logistic classes (SH31). }
+SH42: { resource: Settings, method: GetShippingConfiguration, summary: GetShippingConfiguration gets the shop's shipping configuration (SH42). }
+SH52: { resource: Settings, method: GetShippingCharges, summary: GetShippingCharges gets the shipping charges set for the shop (SH52). }
+V01: { resource: Settings, method: Version, summary: Version checks the API is up and gets its version (V01). }
+
+OF01: { resource: Offers, method: Import, summary: "Import uploads a file that creates, updates or deletes offers (OF01)." }
+OF02: { resource: Offers, method: GetImport, wait: WaitImport, summary: GetImport gets the status and statistics of an offer import (OF02). }
+OF03: { resource: Offers, method: DownloadImportErrorReport, summary: DownloadImportErrorReport downloads an offer import's error report (OF03). }
+OF04: { resource: Offers, method: ListImports, iterator: IterImports, items: OF04Response200Data, paging: { items: data }, summary: ListImports lists one page of offer imports (OF04). }
+OF21: { resource: Offers, method: List, iterator: Iter, items: OF21Response200Offers, paging: { style: offset, items: offers, total: total_count }, summary: List lists one page of the shop's offers (OF21). }
+OF22: { resource: Offers, method: Get, summary: Get gets one offer (OF22). }
+OF24: { resource: Offers, method: Update, summary: "Update creates, updates or deletes offers (OF24)." }
+OF52: { resource: Offers, method: Export, summary: Export starts an export of the shop's offers to CSV or JSON files (OF52). }
+OF53: { resource: Offers, method: GetExport, wait: WaitExport, summary: GetExport gets the status of an offer export (OF53). }
+P11: { resource: Offers, method: ListForProducts, iterator: IterForProducts, items: P11Response200Products, paging: { style: offset, items: products, total: total_count }, summary: ListForProducts lists one page of the offers on each given product (P11). }
+PRI01: { resource: Offers, method: ImportPrices, summary: ImportPrices uploads a price file (PRI01). }
+PRI02: { resource: Offers, method: ListPriceImports, iterator: IterPriceImports, items: PRI02Response200Data, paging: { items: data }, summary: ListPriceImports lists one page of price imports (PRI02). }
+PRI03: { resource: Offers, method: DownloadPriceImportErrorReport, summary: DownloadPriceImportErrorReport downloads a price import's error report as CSV (PRI03). }
+STO01: { resource: Offers, method: ImportStock, summary: ImportStock uploads a stock file (STO01). }
+STO02: { resource: Offers, method: GetStockImport, wait: WaitStockImport, summary: GetStockImport gets the status and statistics of a stock import (STO02). }
+STO03: { resource: Offers, method: DownloadStockImportErrorReport, summary: DownloadStockImportErrorReport downloads a stock import's error report as CSV (STO03). }
+
+OR04: { resource: Orders, method: Update, summary: Update updates fields of several orders (OR04). }
+OR07: { resource: Orders, method: UpdateShippingOrigin, summary: UpdateShippingOrigin updates where order lines ship from (OR07). }
+OR11: { resource: Orders, method: List, iterator: Iter, items: OR11Response200Orders, paging: { style: offset, items: orders, total: total_count }, summary: List lists one page of orders (OR11). }
+OR13: { resource: Orders, method: Export, summary: Export starts an export of orders (OR13). }
+OR14: { resource: Orders, method: GetExport, wait: WaitExport, summary: GetExport gets the status of an order export (OR14). }
+OR21: { resource: Orders, method: Accept, summary: Accept accepts or refuses an order's lines (OR21). }
+OR23: { resource: Orders, method: UpdateTracking, summary: UpdateTracking updates an order's carrier tracking (OR23). }
+OR24: { resource: Orders, method: Ship, summary: Ship marks an order as shipped (OR24). }
+OR28: { resource: Orders, method: Refund, summary: Refund refunds order lines (OR28). }
+OR29: { resource: Orders, method: Cancel, summary: Cancel cancels a whole order (OR29). }
+OR30: { resource: Orders, method: CancelLines, summary: CancelLines cancels quantities on order lines (OR30). }
+OR31: { resource: Orders, method: UpdateCustomFields, summary: UpdateCustomFields updates the custom fields of an order and its lines (OR31). }
+OR32: { resource: Orders, method: AdjustLines, summary: AdjustLines adjusts order lines (OR32). }
+OR33: { resource: Orders, method: CancelOrderLines, summary: CancelOrderLines fully cancels some of an order's lines (OR33). }
+OR43: { resource: Orders, method: CreateThread, summary: CreateThread starts a message thread on an order (OR43). }
+OR51: { resource: Orders, method: GetEvaluation, summary: GetEvaluation gets the customer's evaluation of an order (OR51). }
+OR64: { resource: Orders, method: ResolveIncident, summary: ResolveIncident marks an incident on an order line as resolved (OR64). }
+OR72: { resource: Orders, method: ListDocuments, summary: ListDocuments lists the documents of orders (OR72). }
+OR73: { resource: Orders, method: DownloadDocuments, summary: DownloadDocuments downloads documents attached to orders (OR73). }
+OR74: { resource: Orders, method: UploadDocuments, summary: UploadDocuments attaches documents to an order (OR74). }
+OR75: { resource: Orders, method: ListTaxes, summary: ListTaxes lists the order taxes the platform offers (OR75). }
+OR76: { resource: Orders, method: DeleteDocument, summary: DeleteDocument deletes an order document (OR76). }
+
+ST01: { resource: Shipments, method: Create, summary: Create creates shipments (ST01). }
+ST06: { resource: Shipments, method: Delete, summary: Delete deletes shipments (ST06). }
+ST07: { resource: Shipments, method: UpdateShippingOrigin, summary: UpdateShippingOrigin updates where shipments ship from (ST07). }
+ST11: { resource: Shipments, method: List, iterator: Iter, items: ST11Response200Data, paging: { items: data }, summary: List lists one page of shipments (ST11). }
+ST12: { resource: Shipments, method: ListItemsToShip, iterator: IterItemsToShip, items: ST12Response200Data, paging: { items: data }, summary: ListItemsToShip lists one page of items still to ship (ST12). }
+ST23: { resource: Shipments, method: UpdateTracking, summary: UpdateTracking updates shipments' carrier tracking (ST23). }
+ST24: { resource: Shipments, method: Ship, summary: Ship marks shipments as shipped (ST24). }
+ST26: { resource: Shipments, method: MarkReadyForPickup, summary: MarkReadyForPickup marks shipments as ready for pickup (ST26). }
+ST31: { resource: Shipments, method: UpdateAdditionalInformation, summary: UpdateAdditionalInformation updates shipments' additional information (ST31). }
+ST41: { resource: Shipments, method: CalculateLabelRates, summary: CalculateLabelRates starts calculating shipping label rates (ST41). }
+ST42: { resource: Shipments, method: ListLabelRates, iterator: IterLabelRates, items: ST42Response200Data, paging: { items: data }, summary: ListLabelRates lists one page of shipping label rates (ST42). }
+ST51: { resource: Shipments, method: CreateLabels, summary: CreateLabels creates shipping labels (ST51). }
+ST52: { resource: Shipments, method: ListLabels, iterator: IterLabels, items: ST52Response200Data, paging: { items: data }, summary: ListLabels lists one page of shipping labels (ST52). }
+PL11: { resource: Shipments, method: ListPicklists, iterator: IterPicklists, items: PL11Response200Data, paging: { items: data }, summary: ListPicklists lists one page of picklists (PL11). }
+
+H11: { resource: Products, method: ListHierarchies, summary: ListHierarchies lists catalog categories and their parents and children (H11). }
+P31: { resource: Products, method: List, summary: List gets the products with the given references (P31). }
+P41: { resource: Products, method: Import, summary: Import uploads a product file to the operator (P41). }
+P42: { resource: Products, method: GetImport, wait: WaitImport, summary: GetImport gets the status of a product import (P42). }
+P44: { resource: Products, method: DownloadImportErrorReport, summary: DownloadImportErrorReport downloads the report of a product import's products that were not integrated (P44). }
+P45: { resource: Products, method: DownloadNewProductReport, summary: DownloadNewProductReport downloads the report of a product import's added products (P45). }
+P46: { resource: Products, method: DownloadTransformedFile, summary: "DownloadTransformedFile downloads a product import's file, transformed to the operator's format (P46)." }
+P47: { resource: Products, method: DownloadTransformationErrorReport, summary: DownloadTransformationErrorReport downloads the errors found transforming a product import's file (P47). }
+P51: { resource: Products, method: ListImports, iterator: IterImports, items: P51Response200ProductImportTrackings, paging: { style: offset, items: product_import_trackings, total: total_count }, summary: ListImports lists one page of product imports (P51). }
+PM11: { resource: Products, method: ListAttributes, summary: ListAttributes lists the product attributes the operator configured (PM11). }
+VL11: { resource: Products, method: ListValueLists, summary: ListValueLists lists the operator's value lists (VL11). }
+
+PR01: { resource: Promotions, method: List, iterator: Iter, items: PR01Response200Promotions, paging: { style: offset, items: promotions, total: total_count }, summary: List lists one page of promotions (PR01). }
+PR03: { resource: Promotions, method: Create, summary: Create creates a promotion (PR03). }
+PR04: { resource: Promotions, method: Update, summary: Update updates a promotion (PR04). }
+
+RT01: { resource: Returns, method: Create, summary: Create creates returns (RT01). }
+RT04: { resource: Returns, method: Update, summary: Update updates fields of several returns (RT04). }
+RT11: { resource: Returns, method: List, iterator: Iter, items: RT11Response200Data, paging: { items: data }, summary: List lists one page of returns (RT11). }
+RT12: { resource: Returns, method: ListItemsToReturn, iterator: IterItemsToReturn, items: RT12Response200Data, paging: { items: data }, summary: ListItemsToReturn lists one page of items that can be returned (RT12). }
+RT21: { resource: Returns, method: Accept, summary: Accept accepts or refuses return requests (RT21). }
+RT25: { resource: Returns, method: Receive, summary: Receive marks returns as received (RT25). }
+RT26: { resource: Returns, method: SetCompliance, summary: SetCompliance marks returns as compliant or not (RT26). }
+RT27: { resource: Returns, method: Close, summary: Close marks returns as closed (RT27). }
+RT29: { resource: Returns, method: Cancel, summary: Cancel marks returns as canceled (RT29). }
+RT51: { resource: Returns, method: CreateLabels, summary: CreateLabels creates return labels (RT51). }
+RT52: { resource: Returns, method: ListLabels, iterator: IterLabels, items: RT52Response200Data, paging: { items: data }, summary: ListLabels lists one page of return labels (RT52). }
+
+M10: { resource: Threads, method: Get, summary: Get gets a message thread (M10). }
+M11: { resource: Threads, method: List, iterator: Iter, items: M11Response200Data, paging: { items: data }, summary: List lists one page of message threads (M11). }
+M12: { resource: Threads, method: Reply, summary: Reply replies to a message thread (M12). }
+M13: { resource: Threads, method: DownloadAttachment, summary: DownloadAttachment downloads a message's attachment (M13). }
+M14: { resource: Threads, method: Create, summary: Create starts a message thread with the operator (M14). }
+
+IV01: { resource: Invoices, method: List, iterator: Iter, items: IV01Response200Invoices, paging: { style: offset, items: invoices, total: total_count }, summary: List lists one page of accounting documents (IV01). }
+IV02: { resource: Invoices, method: Download, summary: Download downloads an accounting document (IV02). }
+SBC11: { resource: Invoices, method: ListBillingCycles, iterator: IterBillingCycles, items: SBC11Response200Data, paging: { items: data }, summary: ListBillingCycles lists one page of the shop's billing cycles (SBC11). }
+DR11: { resource: Invoices, method: ListDocumentRequests, iterator: IterDocumentRequests, items: DR11Response200Data, paging: { items: data }, summary: ListDocumentRequests lists one page of accounting document requests (DR11). }
+DR12: { resource: Invoices, method: ListDocumentRequestLines, iterator: IterDocumentRequestLines, items: DR12Response200Data, paging: { items: data }, summary: ListDocumentRequestLines lists one page of a document request's lines (DR12). }
+DR73: { resource: Invoices, method: DownloadDocuments, summary: DownloadDocuments downloads accounting documents (DR73). }
+DR74: { resource: Invoices, method: UploadDocuments, summary: UploadDocuments uploads accounting documents (DR74). }
+DR75: { resource: Invoices, method: ConfirmIssuance, summary: ConfirmIssuance confirms that accounting documents were issued (DR75). }
+
+TL02: { resource: Transactions, method: List, iterator: Iter, items: TL02Response200Data, paging: { items: data }, summary: List lists one page of transaction lines (TL02). }
+TL03: { resource: Transactions, method: Export, summary: Export starts an export of transaction lines to JSON files (TL03). }
+TL04: { resource: Transactions, method: GetExport, wait: WaitExport, summary: GetExport gets the status of a transaction line export (TL04). }

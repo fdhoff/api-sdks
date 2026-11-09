@@ -1,0 +1,123 @@
+# How `npm run generate:go` builds this package. Public method names are in operations.yaml.
+generator: go
+output: miraklseller
+source: .
+generated_prefixes: [model_, api_]
+resources: resources.go
+runtime: ../internal/runtime
+format: [gofmt, -s, -r, 'interface{} -> any', -w]
+properties:
+  packageName: miraklseller
+  disallowAdditionalPropertiesIfNotPresent: false
+  withGoMod: false
+  apiNameSuffix: Resource
+  modulePath: github.com/fdhoff/api-sdks/apis/mirakl/packages/go
+collapse_single_unions: true
+# Every field is a pointer here, so nil already means null or absent.
+drop_nullable: true
+# A field of several types becomes `any`.
+drop_unions: true
+type_mappings:
+  integer: int64
+  number: float64
+  file: File
+  File: File
+  binary: File
+  DateTime: Time
+# Go spells these initialisms in capitals. Keys are wire names. A deprecated camelCase field beside its
+# snake_case twin would take the same Go name, so it is marked deprecated in its name.
+name_mappings:
+  accounting_document_id: AccountingDocumentID
+  cancelation_id: CancelationID
+  carrier_url: CarrierURL
+  commercial_id: CommercialID
+  customer_group_ids: CustomerGroupIDs
+  customer_id: CustomerID
+  customer_organization_ids: CustomerOrganizationIDs
+  dam_url: DamURL
+  delivery_bill_id: DeliveryBillID
+  document_ids: DocumentIDs
+  entity_id: EntityID
+  from_id: FromID
+  id: ID
+  ids: IDs
+  importId: DeprecatedImportID
+  import_id: ImportID
+  internal_id: InternalID
+  invoice_id: InvoiceID
+  label_url: LabelURL
+  media_url: MediaURL
+  message_id: MessageID
+  "offer-id": OfferID
+  offer_id: OfferID
+  offer_sku: OfferSKU
+  order_commercial_id: OrderCommercialID
+  order_id: OrderID
+  order_line_id: OrderLineID
+  order_refund_id: OrderRefundID
+  paymentType: DeprecatedPaymentType
+  organization_id: OrganizationID
+  "producer-id[EPR category code]": ProducerIDEPRCategoryCode
+  producer_id: ProducerID
+  producer_id_owner: ProducerIDOwner
+  "product-sku": ProductSKU
+  product_id: ProductID
+  product_id_type: ProductIDType
+  product_import_id: ProductImportID
+  product_shop_sku: ProductShopSKU
+  product_sku: ProductSKU
+  quote_id: QuoteID
+  refund_id: RefundID
+  request_id: RequestID
+  return_id: ReturnID
+  reward_offer_ids: RewardOfferIDs
+  seller_billing_cycle_id: SellerBillingCycleID
+  shipment_id: ShipmentID
+  shipping_pudo_id: ShippingPudoID
+  shipping_tracking_url: ShippingTrackingURL
+  "shop-id": ShopID
+  "shop-sku": ShopSKU
+  shop_id: ShopID
+  shop_operator_internal_id: ShopOperatorInternalID
+  shop_sku: ShopSKU
+  sku: SKU
+  tax_id_number: TaxIDNumber
+  thread_id: ThreadID
+  to_customer_id: ToCustomerID
+  to_shop_id: ToShopID
+  tracking_id: TrackingID
+  tracking_url: TrackingURL
+  trigger_offer_ids: TriggerOfferIDs
+  url: URL
+  urls: URLs
+parameter_name_mappings:
+  accounting_document_id: accountingDocumentID
+  attachment_id: attachmentID
+  customer_id: customerID
+  document_id: documentID
+  document_ids: documentIDs
+  document_request_id: documentRequestID
+  entity_id: entityID
+  import_id: importID
+  import: importID
+  invoice_id: invoiceID
+  line: orderLineID
+  offer: offerID
+  order_commercial_id: orderCommercialID
+  order_id: orderID
+  order_ids: orderIDs
+  order_line_id: orderLineID
+  picklist_id: picklistID
+  pricing_customer_organization_id: pricingCustomerOrganizationID
+  product_id: productID
+  product_ids: productIDs
+  promotion_internal_id: promotionInternalID
+  return_id: returnID
+  reward_offer_ids: rewardOfferIDs
+  seller_billing_cycle_id: sellerBillingCycleID
+  shipment_id: shipmentID
+  shop_billing_cycle_id: shopBillingCycleID
+  shop_id: shopID
+  thread_id: threadID
+  tracking_id: trackingID
+  trigger_offer_ids: triggerOfferIDs
