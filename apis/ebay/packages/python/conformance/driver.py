@@ -33,6 +33,7 @@ CONTRACTS = {
     "sell_negotiation": "negotiation",
     "sell_recommendation": "recommendation",
     "sell_stores": "stores",
+    "sell_post_order": "post_order",
     "commerce_feedback": "feedback",
     "commerce_identity": "identity",
     "commerce_media": "media",
