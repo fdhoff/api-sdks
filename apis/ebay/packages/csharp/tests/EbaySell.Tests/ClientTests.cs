@@ -479,7 +479,8 @@ public sealed class ClientTests
         var generator = new Ed25519KeyPairGenerator();
         generator.Init(new Ed25519KeyGenerationParameters(new SecureRandom()));
         var body = Convert.ToBase64String(PrivateKeyInfoFactory.CreatePrivateKeyInfo(generator.GenerateKeyPair().Private).GetEncoded());
-        return ($"-----BEGIN PRIVATE KEY-----\n{body}\n-----END PRIVATE KEY-----", body);
+        var lines = body.Chunk(64).Select(line => new string(line));
+        return (string.Join('\n', ["-----BEGIN PRIVATE KEY-----", .. lines, "-----END PRIVATE KEY-----"]), body);
     }
 
     private static HttpResponseMessage Json(string body, HttpStatusCode status = HttpStatusCode.OK) =>
