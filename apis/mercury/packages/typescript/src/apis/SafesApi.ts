@@ -25,6 +25,7 @@ const getSafeRequestDocument: Operation = {
   host: 'api',
   params: [{ wire: 'safeRequestId', name: 'safeRequestId', location: 'path' }],
   returnsBinary: true,
+  accept: 'application/pdf',
   security: [[{ scheme: 'bearerAuth', scopes: [] }]],
 };
 

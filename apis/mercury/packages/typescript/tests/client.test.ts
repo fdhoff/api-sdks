@@ -189,8 +189,10 @@ test('an upload sends one multipart file part and returns the attachment', async
     file: { filename: 'receipt.txt', content: new TextEncoder().encode('synthetic receipt') },
   });
   assert.equal(attachment.attachmentId, 'att-1');
-  const form = sent[0]!.body as FormData;
-  assert.ok(form instanceof FormData);
+  const { headers, body } = sent[0]!;
+  assert.match(headers.get('content-type') ?? '', /^multipart\/form-data; boundary=/);
+  const form = await new Response(body, { headers }).formData();
+  assert.deepEqual([...form.keys()], ['file']);
   const file = form.get('file') as File;
   assert.equal(file.name, 'receipt.txt');
   assert.equal(await file.text(), 'synthetic receipt');

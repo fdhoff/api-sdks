@@ -69,6 +69,7 @@ const getInvoicePdf: Operation = {
   host: 'api',
   params: [{ wire: 'invoiceId', name: 'invoiceId', location: 'path' }],
   returnsBinary: true,
+  accept: 'application/pdf',
   security: [[{ scheme: 'bearerAuth', scopes: [] }]],
 };
 

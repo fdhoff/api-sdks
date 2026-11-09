@@ -12,6 +12,7 @@ const getStatementPdf: Operation = {
   host: 'api',
   params: [{ wire: 'statementId', name: 'statementId', location: 'path' }],
   returnsBinary: true,
+  accept: 'application/pdf',
   security: [[{ scheme: 'bearerAuth', scopes: [] }]],
 };
 
