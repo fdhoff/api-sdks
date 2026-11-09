@@ -71,6 +71,9 @@ _{{operationIdSnakeCase}}: Operation[{{{returnType}}}{{^returnType}}None{{/retur
 {{#vendorExtensions.x-sdk-host}}
     host="{{vendorExtensions.x-sdk-host}}",
 {{/vendorExtensions.x-sdk-host}}
+{{#vendorExtensions.x-sdk-idempotency-key}}
+    idempotency_key="{{vendorExtensions.x-sdk-idempotency-key}}",
+{{/vendorExtensions.x-sdk-idempotency-key}}
 )
 {{/operation}}
 

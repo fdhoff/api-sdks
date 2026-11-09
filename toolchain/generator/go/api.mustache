@@ -32,6 +32,9 @@ var (
 {{#vendorExtensions.x-sdk-raw-body}}
 		RawBody:     "{{.}}",
 {{/vendorExtensions.x-sdk-raw-body}}
+{{#vendorExtensions.x-sdk-idempotency-key}}
+		IdempotencyKey: "{{.}}",
+{{/vendorExtensions.x-sdk-idempotency-key}}
 		PathParams:  []string{ {{#pathParams}}"{{baseName}}",{{/pathParams}} },
 		QueryParams: []string{ {{#queryParams}}"{{baseName}}",{{/queryParams}} },
 {{#vendorExtensions.x-sdk-has-headers}}

@@ -205,6 +205,8 @@ pub struct Request {
     pub invalid: Option<String>,
     /// The operation's host key. `None` sends the request to the settings' `base_url`.
     pub host: Option<&'static str>,
+    /// The JSON body field the API deduplicates this write by. `None` means the write is not idempotent.
+    pub idempotency_key: Option<&'static str>,
     /// Each default-able header the operation declares, with the caller's value if it gave one.
     pub headers: Vec<(String, Option<String>)>,
     /// Set for a download, whose body is passed on as received.
@@ -406,6 +408,7 @@ impl Request {
             body: Body::Empty,
             invalid: None,
             host: None,
+            idempotency_key: None,
             headers: Vec::new(),
             download: false,
         }
@@ -416,6 +419,27 @@ impl Request {
     pub fn host(mut self, key: &'static str) -> Self {
         self.host = Some(key);
         self
+    }
+
+    /// Marks a write the API deduplicates by this field of its JSON body, so a failure is retried as
+    /// a GET's is whenever the body sets the field.
+    #[allow(dead_code, reason = "an API may mark no write as idempotent")]
+    pub fn idempotency_key(mut self, field: &'static str) -> Self {
+        self.idempotency_key = Some(field);
+        self
+    }
+
+    /// True when a 5xx, timeout or connection failure may be retried: the request is a GET, or a
+    /// write whose JSON body sets its idempotency key to something other than null or "".
+    pub(super) fn repeatable(&self) -> bool {
+        if self.operation.method == "GET" {
+            return true;
+        }
+        let (Some(field), Body::Json(bytes)) = (self.idempotency_key, &self.body) else {
+            return false;
+        };
+        let body = serde_json::from_slice::<Value>(bytes).unwrap_or(Value::Null);
+        matches!(body.get(field), Some(value) if !value.is_null() && value.as_str() != Some(""))
     }
 
     /// Declares a header that falls back to the client's default for it. Nothing is sent for `None`

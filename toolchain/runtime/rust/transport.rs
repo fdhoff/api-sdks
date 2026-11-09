@@ -363,7 +363,7 @@ impl Transport {
         Ok(Reply::Whole(answer))
     }
 
-    fn retry_delay(&self, failure: &Error, method: &Method, tries: u32) -> Option<Duration> {
+    fn retry_delay(&self, failure: &Error, repeatable: bool, tries: u32) -> Option<Duration> {
         let settings = &self.settings;
         if tries >= settings.max_retries {
             return None;
@@ -376,7 +376,7 @@ impl Transport {
         }
         let failed = matches!(failure.kind(), ErrorKind::Timeout | ErrorKind::Connection)
             || failure.status().is_some_and(|status| status >= 500);
-        (*method == Method::GET && failed)
+        (repeatable && failed)
             .then(|| settings.retry_base_delay.saturating_mul(1 << tries.min(MAX_BACKOFF_DOUBLINGS)))
     }
 
@@ -425,7 +425,7 @@ impl Transport {
                     continue;
                 }
             }
-            let Some(delay) = self.retry_delay(&failure, &method, tries) else {
+            let Some(delay) = self.retry_delay(&failure, request.repeatable(), tries) else {
                 return Err(failure);
             };
             let kind = failure.kind();
@@ -978,6 +978,36 @@ mod tests {
                 assert_eq!(line(&attempt.head, "content-type"), Some("application/octet-stream"));
             }
             assert_eq!(*credentials.bodies.lock().unwrap(), [PDF.to_vec(), PDF.to_vec()]);
+        }
+
+        const TRANSFER: Operation = Operation { id: "transfer", method: "POST", path: "/transfers", returns_json: true, ..DOWNLOAD };
+
+        async fn write_attempts(request: Request) -> Vec<Vec<u8>> {
+            let (url, log) = serve(|number| match number {
+                1 => reply(503, None, b""),
+                _ => reply(200, Some("application/json"), br#"{"id":1}"#),
+            })
+            .await;
+            let _ = quick(&url).call::<Value>(request).await;
+            log.lock().unwrap().iter().map(|sent| sent.body.clone()).collect()
+        }
+
+        #[tokio::test]
+        async fn an_idempotent_write_is_retried_after_a_server_error_with_the_same_body() {
+            let body = serde_json::json!({ "key": "k-1", "amount": 5 });
+            let sent = write_attempts(Request::new(&TRANSFER).idempotency_key("key").json(&body)).await;
+            let expected = body.to_string().into_bytes();
+            assert_eq!(sent, [expected.clone(), expected]);
+        }
+
+        #[tokio::test]
+        async fn a_write_is_not_retried_after_a_server_error_without_a_key() {
+            let unmarked = Request::new(&TRANSFER).json(&serde_json::json!({ "key": "k-1" }));
+            assert_eq!(write_attempts(unmarked).await.len(), 1);
+            for body in [serde_json::json!({ "key": "" }), serde_json::json!({ "key": null }), serde_json::json!({ "amount": 5 })] {
+                let request = Request::new(&TRANSFER).idempotency_key("key").json(&body);
+                assert_eq!(write_attempts(request).await.len(), 1, "{body}");
+            }
         }
 
         #[tokio::test]

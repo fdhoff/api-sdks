@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -247,5 +248,65 @@ func TestOperationsAreFoundByContractAndID(t *testing.T) {
 	}
 	if found, ok := Lookup("registry_test.registry-test-get"); !ok || found != scoped {
 		t.Errorf("Lookup with a contract found %v", found)
+	}
+}
+
+var createTransfer = &Operation{ID: "create-transfer", Method: "POST", Path: "/transfers", IdempotencyKey: "idempotencyKey"}
+
+// writes sends one call to a server that fails every request with a 503, and returns the bodies it received.
+func writes(t *testing.T, operation *Operation, body any) []string {
+	t.Helper()
+	var lock sync.Mutex
+	var bodies []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received, _ := io.ReadAll(r.Body)
+		lock.Lock()
+		bodies = append(bodies, string(received))
+		lock.Unlock()
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	t.Cleanup(server.Close)
+	transport := mustTransport(t, Settings{
+		BaseURL:        server.URL,
+		ToError:        func(context ErrorContext) *Error { return &Error{Kind: KindAPI, Status: context.Status} },
+		Timeout:        time.Second,
+		MaxRetries:     2,
+		RetryBaseDelay: time.Millisecond,
+	})
+	_, err := Call[any](context.Background(), transport, operation, Input{Body: body})
+	var failure *Error
+	if !errors.As(err, &failure) || failure.Status != http.StatusServiceUnavailable {
+		t.Fatalf("error is %v", err)
+	}
+	lock.Lock()
+	defer lock.Unlock()
+	return bodies
+}
+
+func TestAWriteWithItsIdempotencyKeySetIsRetriedWithTheSameBody(t *testing.T) {
+	bodies := writes(t, createTransfer, map[string]any{"idempotencyKey": "k-1", "amount": 5})
+	if len(bodies) != 3 || bodies[1] != bodies[0] || bodies[2] != bodies[0] {
+		t.Errorf("bodies are %q", bodies)
+	}
+}
+
+func TestAWriteWithoutAnIdempotencyKeyIsNotRetried(t *testing.T) {
+	unmarked := &Operation{ID: "create-item", Method: "POST", Path: "/items"}
+	cases := []struct {
+		name      string
+		operation *Operation
+		body      any
+	}{
+		{"unmarked", unmarked, map[string]any{"idempotencyKey": "k-1"}},
+		{"empty key", createTransfer, map[string]any{"idempotencyKey": "", "amount": 5}},
+		{"null key", createTransfer, map[string]any{"idempotencyKey": nil, "amount": 5}},
+		{"missing key", createTransfer, map[string]any{"amount": 5}},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			if bodies := writes(t, test.operation, test.body); len(bodies) != 1 {
+				t.Errorf("sent %d requests", len(bodies))
+			}
+		})
 	}
 }

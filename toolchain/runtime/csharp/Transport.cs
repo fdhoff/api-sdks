@@ -337,7 +337,35 @@ internal sealed class Transport : IDisposable
 
     private static string Quote(string text) => $"\"{text.Replace("\"", "\\\"")}\"";
 
-    private TimeSpan? RetryDelay(ApiException error, string method, int tries)
+    /// <summary>
+    /// A GET may be sent again after a 5xx, a timeout or a dropped connection, and so may a write whose JSON body sets
+    /// the operation's idempotency key. A write without the key could act twice.
+    /// </summary>
+    private static bool Repeatable(Operation operation, ReadOnlyMemory<byte> body)
+    {
+        if (operation.Method == "GET")
+        {
+            return true;
+        }
+        if (operation.IdempotencyKey is null || body.IsEmpty)
+        {
+            return false;
+        }
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            return document.RootElement.ValueKind == JsonValueKind.Object
+                && document.RootElement.TryGetProperty(operation.IdempotencyKey, out var key)
+                && key.ValueKind != JsonValueKind.Null
+                && !(key.ValueKind == JsonValueKind.String && key.GetString() == string.Empty);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private TimeSpan? RetryDelay(ApiException error, bool repeatable, int tries)
     {
         if (tries >= settings.MaxRetries)
         {
@@ -353,7 +381,7 @@ internal sealed class Transport : IDisposable
             return wait <= settings.MaxRetryWait.TotalSeconds ? TimeSpan.FromSeconds(wait.Value) : null;
         }
         var failed = error is ApiTimeoutException or ApiConnectionException || error.Status >= 500;
-        return method == "GET" && failed ? settings.RetryBaseDelay * Math.Pow(2, tries) : null;
+        return repeatable && failed ? settings.RetryBaseDelay * Math.Pow(2, tries) : null;
     }
 
     private void Log(LogLevel level, string message)
@@ -539,7 +567,7 @@ internal sealed class Transport : IDisposable
                         continue;
                     }
                 }
-                var delay = RetryDelay(error, operation.Method, tries);
+                var delay = RetryDelay(error, Repeatable(operation, auth.Body), tries);
                 if (delay is null)
                 {
                     throw;

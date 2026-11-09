@@ -47,6 +47,9 @@ const {{nickname}}: Operation = {
 {{#vendorExtensions.x-sdk-raw-body}}
   rawBody: '{{{vendorExtensions.x-sdk-raw-body}}}',
 {{/vendorExtensions.x-sdk-raw-body}}
+{{#vendorExtensions.x-sdk-idempotency-key}}
+  idempotencyKey: '{{vendorExtensions.x-sdk-idempotency-key}}',
+{{/vendorExtensions.x-sdk-idempotency-key}}
 {{#vendorExtensions.x-sdk-returns-json}}
   returnsJson: true,
 {{/vendorExtensions.x-sdk-returns-json}}
