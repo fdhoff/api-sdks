@@ -176,12 +176,13 @@ jobs:
           python -m pytest
       - run: npm run conformance:python
       - run: npm run conformance:python:async
-      - name: Package ships the licence and notice
+      - name: Package ships the licence, notice and type marker
         working-directory: ${{ env.PACKAGE }}
         run: |
           python -m build
           unzip -l dist/*.whl | grep -E 'licenses/LICENSE$'
           unzip -l dist/*.whl | grep -E 'licenses/NOTICE$'
+          unzip -l dist/*.whl | grep -E '/py\.typed$'
           tar tzf dist/*.tar.gz | grep -E '/LICENSE$'
           tar tzf dist/*.tar.gz | grep -E '/NOTICE$'
 
