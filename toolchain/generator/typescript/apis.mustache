@@ -44,6 +44,9 @@ const {{nickname}}: Operation = {
 {{#vendorExtensions.x-sdk-binary-response}}
   returnsBinary: true,
 {{/vendorExtensions.x-sdk-binary-response}}
+{{#vendorExtensions.x-sdk-accept}}
+  accept: '{{{.}}}',
+{{/vendorExtensions.x-sdk-accept}}
 {{#vendorExtensions.x-sdk-raw-body}}
   rawBody: '{{{vendorExtensions.x-sdk-raw-body}}}',
 {{/vendorExtensions.x-sdk-raw-body}}

@@ -74,6 +74,8 @@ export interface Operation {
   returnsText?: boolean;
   /** The success body is bytes, returned as a {@link Download}. */
   returnsBinary?: boolean;
+  /** The media types a download asks for, instead of the client's default `Accept` header. */
+  accept?: string;
   /** The media type of a raw request body, which the call takes as a {@link RawBody}. */
   rawBody?: string;
   /** The JSON body field the API deduplicates a write by. With it set, the write is retried as a GET is. */
@@ -242,6 +244,10 @@ function buildRequest(
   const search = query.size > 0 ? `?${query}` : '';
   // fetch accepts a gzip body cut short, so ask for none.
   const headers: Record<string, string> = { 'Accept-Encoding': 'identity', ...settings.headers };
+  if (operation.accept !== undefined) {
+    for (const key of sameName(headers, 'Accept')) delete headers[key];
+    headers['Accept'] = operation.accept;
+  }
   for (const [wire, value] of declared) {
     for (const key of sameName(headers, wire)) delete headers[key];
     headers[wire] = value;
