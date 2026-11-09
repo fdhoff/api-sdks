@@ -1,0 +1,18 @@
+# Public names for the Media API, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+createImageFromFile: { resource: Images, method: UploadAsync, summary: "Upload an image file to eBay's picture service." }
+createImageFromUrl: { resource: Images, method: CreateFromUrlAsync, summary: "Create an image on eBay's picture service from a public URL." }
+getImage: { resource: Images, method: GetAsync, summary: Get one image. }
+
+createVideo: { resource: Videos, method: CreateAsync, summary: Create a video resource to upload content to. }
+getVideo: { resource: Videos, method: GetAsync, summary: Get one video and its status. }
+uploadVideo: { omit: The raw request body needs binary bodies in the runtime. }
+
+createDocument: { resource: Documents, method: CreateAsync, summary: Create a document resource to upload a file to. }
+createDocumentFromUrl: { resource: Documents, method: CreateFromUrlAsync, summary: Create a document from a public URL. }
+getDocument: { resource: Documents, method: GetAsync, summary: Get one document and its status. }
+uploadDocument: { resource: Documents, method: UploadAsync, summary: Upload the file of a document. }
+downloadPostOrderDocument: { omit: The PDF response needs binary bodies in the runtime. }
+
+removePostOrderDocument: { resource: PostOrderDocuments, method: DeleteAsync, summary: Delete a post-order document. }
+uploadPostOrderDocument: { resource: PostOrderDocuments, method: UploadAsync, summary: Upload a document for a return }

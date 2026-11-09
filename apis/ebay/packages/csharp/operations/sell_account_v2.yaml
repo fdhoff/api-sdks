@@ -1,0 +1,19 @@
+# Public names for the Account API v2, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+getRateTable: { resource: RateTables, method: GetAsync, summary: Get one shipping rate table. }
+updateShippingCost: { resource: RateTables, method: UpdateShippingCostAsync, summary: Update the shipping costs in a rate table. }
+
+getPayoutSettings: { resource: PayoutSettings, method: GetAsync, summary: "Get the seller's payout settings." }
+updatePayoutPercentage: { resource: PayoutSettings, method: UpdatePercentageAsync, summary: "Split payouts between the seller's payout accounts." }
+
+getCombinedShippingRules: { resource: CombinedShippingRules, method: GetAsync, summary: "Get the seller's combined shipping rules." }
+createCalculatedShippingRules: { resource: CombinedShippingRules, method: CreateCalculatedAsync, summary: Create calculated combined shipping rules. }
+updateCalculatedShippingRules: { resource: CombinedShippingRules, method: UpdateCalculatedAsync, summary: Update calculated combined shipping rules. }
+createFlatShippingRules: { resource: CombinedShippingRules, method: CreateFlatAsync, summary: Create flat-rate combined shipping rules. }
+updateFlatShippingRules: { resource: CombinedShippingRules, method: UpdateFlatAsync, summary: Update flat-rate combined shipping rules. }
+createPromotionalShippingRule: { resource: CombinedShippingRules, method: CreatePromotionalAsync, summary: Create a promotional shipping rule. }
+updatePromotionalShippingRule: { resource: CombinedShippingRules, method: UpdatePromotionalAsync, summary: Update a promotional shipping rule. }
+updateCombinedPayments: { resource: CombinedShippingRules, method: UpdateCombinedPaymentsAsync, summary: Set whether buyers can pay for several items at once. }
+
+getUserPreferences: { resource: UserPreferences, method: GetAsync, summary: "Get the seller's account preferences." }
+setUserPreferences: { resource: UserPreferences, method: SetAsync, summary: "Update the seller's account preferences." }

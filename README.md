@@ -6,7 +6,7 @@ Unofficial, spec-driven SDKs for third-party APIs, one directory per API under `
 | --- | --- | --- |
 | Back Market Seller API | [`apis/backmarket/`](apis/backmarket/) | Alphas in Python, TypeScript, Go, C# and Rust |
 | Etsy Open API v3 | [`apis/etsy/`](apis/etsy/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
-| eBay Sell, Commerce and Developer APIs | [`apis/ebay/`](apis/ebay/) | Python, TypeScript, Go and Rust alphas, not yet published |
+| eBay Sell, Commerce and Developer APIs | [`apis/ebay/`](apis/ebay/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
 
 Every SDK here is unofficial and is not affiliated with, endorsed by, or supported by the company whose API it calls, including Back Market, Etsy and eBay.
 
@@ -149,7 +149,7 @@ The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see 
 
 ## eBay APIs
 
-The Python, TypeScript, Go and Rust SDKs are alphas, not yet published: see [`apis/ebay/packages/python/`](apis/ebay/packages/python/README.md), [`apis/ebay/packages/typescript/`](apis/ebay/packages/typescript/README.md), [`apis/ebay/packages/go/`](apis/ebay/packages/go/README.md) and [`apis/ebay/packages/rust/`](apis/ebay/packages/rust/README.md). `apis/ebay/` pins 20 of eBay's OpenAPI contracts, corrects them, and checks the conformance cases against a reference driver. eBay is a trademark of eBay Inc. This project is not affiliated with, endorsed by or sponsored by eBay Inc.
+The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see [`apis/ebay/packages/python/`](apis/ebay/packages/python/README.md), [`apis/ebay/packages/typescript/`](apis/ebay/packages/typescript/README.md), [`apis/ebay/packages/go/`](apis/ebay/packages/go/README.md), [`apis/ebay/packages/csharp/`](apis/ebay/packages/csharp/README.md) and [`apis/ebay/packages/rust/`](apis/ebay/packages/rust/README.md). `apis/ebay/` pins 20 of eBay's OpenAPI contracts, corrects them, and checks the conformance cases against a reference driver. eBay is a trademark of eBay Inc. This project is not affiliated with, endorsed by or sponsored by eBay Inc.
 
 ## Layout
 
@@ -162,7 +162,7 @@ The Python, TypeScript, Go and Rust SDKs are alphas, not yet published: see [`ap
 | `apis/backmarket/conformance/` | Language-neutral test cases and the reference driver |
 | `apis/backmarket/docs/spec-audit.md` | Known gaps in the spec and where each is handled |
 | `apis/etsy/` | The same for Etsy's Open API v3: spec pin, overlay, conformance cases, spec audit, and Python, TypeScript, Go, C# and Rust packages |
-| `apis/ebay/` | The same for eBay's Sell, Commerce and Developer APIs: one pin and overlay per contract, an overlay shared by all of them, conformance cases, spec audit, and Python, TypeScript, Go and Rust packages |
+| `apis/ebay/` | The same for eBay's Sell, Commerce and Developer APIs: one pin and overlay per contract, an overlay shared by all of them, conformance cases, spec audit, and Python, TypeScript, Go, C# and Rust packages |
 
 `toolchain/` must not name this API or contain its endpoints or schemas; a test enforces that. This boundary keeps later extraction cheap and is not a framework.
 

@@ -1,0 +1,50 @@
+# Public names for the Account API v1, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+getCustomPolicies: { resource: CustomPolicies, method: ListAsync, summary: "List the seller's custom policies." }
+createCustomPolicy: { resource: CustomPolicies, method: CreateAsync, summary: Create a custom policy. }
+getCustomPolicy: { resource: CustomPolicies, method: GetAsync, summary: Get one custom policy. }
+updateCustomPolicy: { resource: CustomPolicies, method: UpdateAsync, summary: Update a custom policy. }
+
+getFulfillmentPolicies: { resource: FulfillmentPolicies, method: ListAsync, summary: "List the seller's fulfillment policies on a marketplace." }
+createFulfillmentPolicy: { resource: FulfillmentPolicies, method: CreateAsync, summary: Create a fulfillment policy. }
+getFulfillmentPolicy: { resource: FulfillmentPolicies, method: GetAsync, summary: Get one fulfillment policy. }
+getFulfillmentPolicyByName: { resource: FulfillmentPolicies, method: GetByNameAsync, summary: Get a fulfillment policy by its name. }
+updateFulfillmentPolicy: { resource: FulfillmentPolicies, method: UpdateAsync, summary: Replace a fulfillment policy. }
+deleteFulfillmentPolicy: { resource: FulfillmentPolicies, method: DeleteAsync, summary: Delete a fulfillment policy. }
+
+getPaymentPolicies: { resource: PaymentPolicies, method: ListAsync, summary: "List the seller's payment policies on a marketplace." }
+createPaymentPolicy: { resource: PaymentPolicies, method: CreateAsync, summary: Create a payment policy. }
+getPaymentPolicy: { resource: PaymentPolicies, method: GetAsync, summary: Get one payment policy. }
+getPaymentPolicyByName: { resource: PaymentPolicies, method: GetByNameAsync, summary: Get a payment policy by its name. }
+updatePaymentPolicy: { resource: PaymentPolicies, method: UpdateAsync, summary: Replace a payment policy. }
+deletePaymentPolicy: { resource: PaymentPolicies, method: DeleteAsync, summary: Delete a payment policy. }
+
+getReturnPolicies: { resource: ReturnPolicies, method: ListAsync, summary: "List the seller's return policies on a marketplace." }
+createReturnPolicy: { resource: ReturnPolicies, method: CreateAsync, summary: Create a return policy. }
+getReturnPolicy: { resource: ReturnPolicies, method: GetAsync, summary: Get one return policy. }
+getReturnPolicyByName: { resource: ReturnPolicies, method: GetByNameAsync, summary: Get a return policy by its name. }
+updateReturnPolicy: { resource: ReturnPolicies, method: UpdateAsync, summary: Replace a return policy. }
+deleteReturnPolicy: { resource: ReturnPolicies, method: DeleteAsync, summary: Delete a return policy. }
+
+getPaymentsProgram: { resource: PaymentsPrograms, method: GetAsync, summary: "Get the seller's status in a payments program." }
+getPaymentsProgramOnboarding: { resource: PaymentsPrograms, method: GetOnboardingAsync, summary: "Get the seller's onboarding progress in a payments program." }
+
+getPrivileges: { resource: Privileges, method: GetAsync, summary: "Get the seller's selling limits and registration status." }
+
+getOptedInPrograms: { resource: Programs, method: ListOptedInAsync, summary: List the seller programs the seller has joined. }
+optInToProgram: { resource: Programs, method: OptInAsync, summary: Join a seller program. }
+optOutOfProgram: { resource: Programs, method: OptOutAsync, summary: Leave a seller program. }
+
+getRateTables: { resource: RateTables, method: ListAsync, summary: "List the seller's shipping rate tables." }
+
+getSalesTaxes: { resource: SalesTaxes, method: ListAsync, summary: "List the seller's sales tax rates for a country." }
+getSalesTax: { resource: SalesTaxes, method: GetAsync, summary: "Get the seller's sales tax rate for one jurisdiction." }
+createOrReplaceSalesTax: { resource: SalesTaxes, method: CreateOrReplaceAsync, summary: "Set the seller's sales tax rate for one jurisdiction." }
+bulkCreateOrReplaceSalesTax: { resource: SalesTaxes, method: BulkCreateOrReplaceAsync, summary: "Set the seller's sales tax rates for several jurisdictions." }
+deleteSalesTax: { resource: SalesTaxes, method: DeleteAsync, summary: "Remove the seller's sales tax rate for one jurisdiction." }
+
+getSubscription: { resource: Subscriptions, method: ListAsync, iterator: ListAllAsync, items: Subscription, paging: { items: subscriptions }, summary: "List one page of the seller's eBay subscriptions" }
+
+getKYC: { resource: Kyc, method: GetAsync, summary: List the identity checks eBay needs from the seller. }
+
+getAdvertisingEligibility: { resource: AdvertisingEligibility, method: GetAsync, summary: "Get the seller's eligibility for each advertising program." }

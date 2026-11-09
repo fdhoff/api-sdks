@@ -1,0 +1,29 @@
+# Public names for the Feed API, keyed by operationId. Summaries are ours, not upstream's.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`.
+getOrderTasks: { resource: OrderTasks, method: ListAsync, iterator: ListAllAsync, items: OrderTask, paging: { items: tasks }, summary: List one page of order report tasks. }
+createOrderTask: { resource: OrderTasks, method: CreateAsync, summary: Start a task that builds an order report. }
+getOrderTask: { resource: OrderTasks, method: GetAsync, summary: Get one order report task. }
+
+getInventoryTasks: { resource: InventoryTasks, method: ListAsync, iterator: ListAllAsync, items: InventoryTask, paging: { items: tasks }, summary: List one page of inventory report tasks. }
+createInventoryTask: { resource: InventoryTasks, method: CreateAsync, summary: Start a task that builds an inventory report. }
+getInventoryTask: { resource: InventoryTasks, method: GetAsync, summary: Get one inventory report task. }
+
+getSchedules: { resource: Schedules, method: ListAsync, iterator: ListAllAsync, items: UserScheduleResponse, paging: { items: schedules }, summary: List one page of report schedules. }
+createSchedule: { resource: Schedules, method: CreateAsync, summary: Create a schedule that builds a report regularly. }
+getSchedule: { resource: Schedules, method: GetAsync, summary: Get one schedule. }
+updateSchedule: { resource: Schedules, method: UpdateAsync, summary: Update a schedule. }
+deleteSchedule: { resource: Schedules, method: DeleteAsync, summary: Delete a schedule. }
+getLatestResultFile: { omit: The file response needs binary bodies in the runtime. }
+getScheduleTemplates: { resource: Schedules, method: ListTemplatesAsync, iterator: ListAllTemplatesAsync, items: ScheduleTemplateResponse, paging: { items: scheduleTemplates }, summary: List one page of schedule templates. }
+getScheduleTemplate: { resource: Schedules, method: GetTemplateAsync, summary: Get one schedule template. }
+
+getTasks: { resource: Tasks, method: ListAsync, iterator: ListAllAsync, items: FeedTask, paging: { items: tasks }, summary: List one page of feed tasks. }
+createTask: { resource: Tasks, method: CreateAsync, summary: Create a feed task to upload a file to. }
+getTask: { resource: Tasks, method: GetAsync, summary: Get one feed task. }
+uploadFile: { resource: Tasks, method: UploadFileAsync, summary: Upload the input file of a feed task. }
+getInputFile: { omit: The file response needs binary bodies in the runtime. }
+getResultFile: { omit: The file response needs binary bodies in the runtime. }
+
+getCustomerServiceMetricTasks: { resource: CustomerServiceMetricTasks, method: ListAsync, iterator: ListAllAsync, items: ServiceMetricsTask, paging: { items: tasks }, summary: List one page of customer service metric tasks. }
+createCustomerServiceMetricTask: { resource: CustomerServiceMetricTasks, method: CreateAsync, summary: Start a task that builds a customer service metric report. }
+getCustomerServiceMetricTask: { resource: CustomerServiceMetricTasks, method: GetAsync, summary: Get one customer service metric task. }
