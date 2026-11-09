@@ -55,6 +55,9 @@ var (
 {{#vendorExtensions.x-sdk-paging.cursor}}
 		Paging:      runtime.Cursor{Items: "{{items}}", Next: "{{next}}", Param: "{{param}}"},
 {{/vendorExtensions.x-sdk-paging.cursor}}
+{{#vendorExtensions.x-sdk-job}}
+		Job:         &runtime.Job{State: "{{state}}", Done: []string{ {{#done}}"{{.}}",{{/done}} }, Failed: []string{ {{#failed}}"{{.}}",{{/failed}} }},
+{{/vendorExtensions.x-sdk-job}}
 		Security:    []runtime.Requirement{ {{#vendorExtensions.x-sdk-security}}{ {{#schemes}}{Name: "{{scheme}}", Scopes: []string{ {{#scopes}}"{{.}}",{{/scopes}} }},{{/schemes}} },{{/vendorExtensions.x-sdk-security}} },
 	})
 {{/operation}}
@@ -135,5 +138,13 @@ func (r *{{classname}}) {{.}}({{>partial_sdk_args}}) Seq[{{vendorExtensions.x-sd
 	return runtime.Paginate[{{vendorExtensions.x-sdk-items}}](ctx, r.transport, op{{operationId}}, {{>partial_sdk_input}})
 }
 {{/vendorExtensions.x-sdk-iterator}}
+{{#vendorExtensions.x-sdk-job}}
+{{! A package with jobs aliases runtime.WaitOptions as WaitOptions. }}
+
+// {{vendorExtensions.x-sdk-wait}} polls every interval until the job that {{start}} started ends, and returns its last status, done or failed. Pass the {{id}} it returned. At the deadline it returns the last status with an error matching [ErrJobTimeout]. Nil options poll every minute for up to an hour.
+func (r *{{classname}}) {{vendorExtensions.x-sdk-wait}}(ctx context.Context{{#pathParams}}, {{paramName}} {{{dataType}}}{{/pathParams}}, options *WaitOptions) ({{>partial_sdk_return}}, error) {
+	return runtime.Wait[{{>partial_sdk_return}}](ctx, r.transport, op{{operationId}}, runtime.Input{ {{#hasPathParams}}Path: []any{ {{#pathParams}}{{paramName}},{{/pathParams}} },{{/hasPathParams}} }, options)
+}
+{{/vendorExtensions.x-sdk-job}}
 {{/operation}}
 {{/operations}}

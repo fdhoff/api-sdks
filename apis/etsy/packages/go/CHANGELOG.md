@@ -7,6 +7,7 @@ This module follows semantic versioning and stays on 0.x until outside users con
 * An iterator that gets an empty 204 page stops there instead of returning an error matching `ErrDecode`.
 * An empty 204 response returns a nil result, even where the spec also declares JSON, instead of an error matching `ErrDecode`.
 * Binary response and request bodies are read and sent as raw bytes where the spec declares them. No operation in this package does yet.
+* The runtime can poll an asynchronous job until it ends, and download a URL a response returns, sending credentials only to the base URL's origin. A wait that reaches its deadline returns an error matching the new `ErrJobTimeout`, with the last status in `APIError.Result`. No operation in this package uses either yet.
 
 ## 0.1.0-alpha.1 (2026-11-08)
 
