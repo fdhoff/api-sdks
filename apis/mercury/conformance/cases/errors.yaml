@@ -1,0 +1,124 @@
+# Mercury declares no error body, so every error keeps its status and the raw text.
+cases:
+  - name: errors-400-is-bad-request-with-the-raw-body
+    request:
+      operation: getAccounts
+      params: { limit: 5 }
+    mock:
+      responses:
+        - status: 400
+          body: { errors: { message: synthetic bad limit } }
+    wire:
+      - method: GET
+        path: /accounts
+        query: { limit: '5' }
+    expect:
+      error: { kind: bad_request, status: 400, raw_body: '{"errors":{"message":"synthetic bad limit"}}' }
+
+  - name: errors-404-is-not-found
+    request:
+      operation: getCard
+      params: { cardId: crd-0 }
+    mock:
+      responses:
+        - status: 404
+          body: ''
+    wire:
+      - method: GET
+        path: /cards/crd-0
+    expect:
+      error: { kind: not_found, status: 404, raw_body: '' }
+
+  - name: errors-403-is-permission
+    request:
+      operation: getSafeRequests
+    mock:
+      responses:
+        - status: 403
+          body: forbidden
+    wire:
+      - method: GET
+        path: /safes
+    expect:
+      error: { kind: permission, status: 403, raw_body: forbidden }
+
+  - name: errors-a-non-json-error-body-is-kept-as-text
+    client: { max_retries: 0 }
+    request:
+      operation: getOrganization
+    mock:
+      responses:
+        - status: 502
+          headers: { content-type: text/html }
+          body: '<html><body>Bad gateway</body></html>'
+    wire:
+      - method: GET
+        path: /organization
+    expect:
+      error: { kind: server, status: 502, raw_body: '<html><body>Bad gateway</body></html>' }
+
+  - name: errors-5xx-after-retries-is-server
+    client: { max_retries: 1 }
+    request:
+      operation: listCredit
+    mock:
+      responses:
+        - status: 500
+          body: ''
+        - status: 500
+          body: ''
+    wire:
+      - method: GET
+        path: /credit
+      - method: GET
+        path: /credit
+    expect:
+      error: { kind: server, status: 500 }
+
+  - name: errors-a-timeout-after-retries-is-timeout
+    client: { max_retries: 1, timeout_ms: 100 }
+    request:
+      operation: getEvent
+      params: { eventId: evt-1 }
+    mock:
+      responses:
+        - status: 200
+          delay_ms: 300
+          body: {}
+        - status: 200
+          delay_ms: 300
+          body: {}
+    wire:
+      - method: GET
+        path: /events/evt-1
+      - method: GET
+        path: /events/evt-1
+    expect:
+      error: { kind: timeout }
+
+  - name: errors-an-empty-json-success-is-a-decode-error
+    request:
+      operation: getOrganization
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/json }
+          body: ''
+    wire:
+      - method: GET
+        path: /organization
+    expect:
+      error: { kind: decode, status: 200 }
+
+  - name: errors-a-204-has-no-result
+    request:
+      operation: deleteRecipient
+      params: { recipientId: rcp-1 }
+    mock:
+      responses:
+        - status: 204
+    wire:
+      - method: DELETE
+        path: /recipient/rcp-1
+    expect:
+      result: null

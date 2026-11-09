@@ -1,0 +1,103 @@
+# revealCardPan goes to the `vault` host key and every other operation to `api`. Production and sandbox are full
+# host maps; with `environment`, the recorded host is the hostname it names.
+cases:
+  - name: hosts-production-goes-to-the-api-host
+    client: { environment: production }
+    request:
+      operation: getUsers
+    mock:
+      responses:
+        - status: 200
+          body: { users: [], page: {} }
+    wire:
+      - method: GET
+        host: api.mercury.com
+        path: /users
+    expect:
+      result: { users: [] }
+
+  - name: hosts-sandbox-goes-to-the-sandbox-host
+    client: { environment: sandbox }
+    request:
+      operation: getAccounts
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        host: api-sandbox.mercury.com
+        path: /accounts
+        headers: { authorization: 'Bearer {{token}}' }
+    expect:
+      result_keys: [accounts, page]
+
+  - name: hosts-sandbox-pages-stay-on-the-sandbox-host
+    client: { environment: sandbox }
+    request:
+      operation: getRecipients
+      params: { limit: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: { total: 2, recipients: [{ id: rcp-1 }], page: { nextPage: rcp-1 } }
+        - status: 200
+          body: { total: 2, recipients: [{ id: rcp-2 }], page: { nextPage: null } }
+    wire:
+      - method: GET
+        host: api-sandbox.mercury.com
+        path: /recipients
+        query: { limit: '1' }
+      - method: GET
+        host: api-sandbox.mercury.com
+        path: /recipients
+        query: { limit: '1', start_after: rcp-1 }
+    expect:
+      result: [{ id: rcp-1 }, { id: rcp-2 }]
+
+  - name: hosts-reveal-goes-to-the-vault-host
+    request:
+      operation: revealCardPan
+      params: { cardId: crd-1 }
+    mock:
+      responses:
+        - status: 200
+          body: { cardNumber: '0000111122223333', cvc: '0417', expiration: '2030-01' }
+    wire:
+      - method: GET
+        host: vault
+        path: /cards/crd-1/reveal
+        headers: { authorization: 'Bearer {{token}}' }
+    expect:
+      result: { cardNumber: '0000111122223333' }
+
+  - name: hosts-production-reveal-goes-to-the-vault-hostname
+    client: { environment: production }
+    request:
+      operation: revealCardPan
+      params: { cardId: crd-1 }
+    mock:
+      responses:
+        - status: 200
+          body: { cardNumber: '0000111122223333', cvc: '0417', expiration: '2030-01' }
+    wire:
+      - method: GET
+        host: vault-api.mercury.com
+        path: /cards/crd-1/reveal
+    expect:
+      result: { cvc: '0417' }
+
+  - name: hosts-sandbox-reveal-stays-on-the-sandbox-host
+    client: { environment: sandbox }
+    request:
+      operation: revealCardPan
+      params: { cardId: crd-1 }
+    mock:
+      responses:
+        - status: 404
+          body: ''
+    wire:
+      - method: GET
+        host: api-sandbox.mercury.com
+        path: /cards/crd-1/reveal
+    expect:
+      error: { kind: not_found, status: 404 }

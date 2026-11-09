@@ -1,0 +1,4 @@
+# Synthetic credentials. Mercury tokens carry a `secret-token:` prefix, which is part of the token.
+client:
+  token: secret-token:conformance-synthetic-token
+  retry_base_delay_ms: 1

@@ -1,0 +1,49 @@
+# Corrections to the pinned upstream spec, in OpenAPI Overlay 1.0.0 format.
+# Every action must justify itself in ../docs/spec-audit.md, and every action must
+# match something: the build fails on one that no longer applies.
+overlay: 1.0.0
+info:
+  title: Corrections to the Mercury API spec
+  version: 0.1.0
+actions:
+  - description: M1. Operations marked x-internal are not part of the public API.
+    target: $.paths.*[?(@['x-internal'])]
+    remove: true
+
+  - description: M2. Public operations with no page in the API reference.
+    target: $.paths.*[?(@.operationId == 'getAccount')]
+    remove: true
+  - description: M2.
+    target: $.paths.*[?(@.operationId == 'getInvest')]
+    remove: true
+  - description: M2.
+    target: $.paths.*[?(@.operationId == 'getInvestActivity')]
+    remove: true
+  - description: M2.
+    target: $.paths.*[?(@.operationId == 'submitOnboardingData')]
+    remove: true
+
+  - description: M3. A path left with no operation by M1 or M2.
+    target: $.paths[?(!@.get && !@.put && !@.post && !@.delete && !@.patch)]
+    remove: true
+
+  - description: M4. Every operation can answer 401 and 429, but none declares either.
+    target: $.components
+    update:
+      responses:
+        Unauthorized:
+          description: The token is missing, invalid or revoked.
+        RateLimited:
+          description: Too many requests.
+  - description: M4.
+    target: $.paths.*.*.responses
+    update:
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+      '429':
+        $ref: '#/components/responses/RateLimited'
+
+  - description: M5. The scheme's description holds a sample token; ours names none.
+    target: $.components.securitySchemes.bearerAuth
+    update:
+      description: A Mercury API token, sent as a bearer token.

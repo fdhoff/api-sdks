@@ -7,8 +7,9 @@ Unofficial, spec-driven SDKs for third-party APIs, one directory per API under `
 | Back Market Seller API | [`apis/backmarket/`](apis/backmarket/) | Alphas in Python, TypeScript, Go, C# and Rust |
 | Etsy Open API v3 | [`apis/etsy/`](apis/etsy/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
 | eBay Sell, Commerce and Developer APIs | [`apis/ebay/`](apis/ebay/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
+| Mercury API | [`apis/mercury/`](apis/mercury/) | Spec pipeline and conformance cases; no package yet |
 
-Every SDK here is unofficial and is not affiliated with, endorsed by, or supported by the company whose API it calls, including Back Market, Etsy and eBay.
+Every SDK here is unofficial and is not affiliated with, endorsed by, or supported by the company whose API it calls, including Back Market, Etsy, eBay and Mercury.
 
 ## Back Market Seller API
 
@@ -151,6 +152,10 @@ The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see 
 
 The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see [`apis/ebay/packages/python/`](apis/ebay/packages/python/README.md), [`apis/ebay/packages/typescript/`](apis/ebay/packages/typescript/README.md), [`apis/ebay/packages/go/`](apis/ebay/packages/go/README.md), [`apis/ebay/packages/csharp/`](apis/ebay/packages/csharp/README.md) and [`apis/ebay/packages/rust/`](apis/ebay/packages/rust/README.md). `apis/ebay/` pins 20 of eBay's OpenAPI contracts, corrects them, and checks the conformance cases against a reference driver. eBay is a trademark of eBay Inc. This project is not affiliated with, endorsed by or sponsored by eBay Inc.
 
+## Mercury API
+
+`apis/mercury/` pins Mercury's public API spec, corrects it, and checks the conformance cases against a reference driver. No language package exists yet. Mercury is a financial technology company, not a bank; its banking services come through partner banks. This project is not affiliated with, endorsed by or sponsored by Mercury Technologies, Inc.
+
 ## Layout
 
 | Path | Contents |
@@ -163,6 +168,7 @@ The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see 
 | `apis/backmarket/docs/spec-audit.md` | Known gaps in the spec and where each is handled |
 | `apis/etsy/` | The same for Etsy's Open API v3: spec pin, overlay, conformance cases, spec audit, and Python, TypeScript, Go, C# and Rust packages |
 | `apis/ebay/` | The same for eBay's Sell, Commerce and Developer APIs: one pin and overlay per contract, an overlay shared by all of them, conformance cases, spec audit, and Python, TypeScript, Go, C# and Rust packages |
+| `apis/mercury/` | The same for the Mercury API: spec pin, a check that the pin is still current, overlay, conformance cases, webhook signature vectors and spec audit |
 
 `toolchain/` must not name this API or contain its endpoints or schemas; a test enforces that. This boundary keeps later extraction cheap and is not a framework.
 
@@ -212,6 +218,6 @@ All tests run against the mock. The project uses no live credentials.
 
 Apache-2.0: see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). The licence covers only this project's own code.
 
-The upstream OpenAPI specs are not in this repository. They are fetched at build time, belong to Back Market, Etsy and eBay, and are not covered by this licence. The licence grants no right to the Back Market, Etsy or eBay names.
+The upstream OpenAPI specs are not in this repository. They are fetched at build time, belong to Back Market, Etsy, eBay and Mercury, and are not covered by this licence. The licence grants no right to the Back Market, Etsy, eBay or Mercury names.
 
-This project is unofficial and is not affiliated with Back Market, Etsy or eBay.
+This project is unofficial and is not affiliated with Back Market, Etsy, eBay or Mercury.

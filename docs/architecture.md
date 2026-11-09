@@ -86,6 +86,7 @@ Some vendors publish one OpenAPI file per API rather than one for everything. Su
 | `apis/backmarket/` | Spec pin, overlay, package config, conformance cases and spec audit |
 | `apis/etsy/` | The same for Etsy's Open API v3, with Python, TypeScript, Go, C# and Rust packages so far |
 | `apis/ebay/` | The same for eBay's Sell, Commerce and Developer APIs, built from 20 contracts, with Python, TypeScript, Go, C# and Rust packages so far |
+| `apis/mercury/` | The same for the Mercury API, with no package yet |
 
 `toolchain/` must not name this API or contain its endpoints or schemas. `apis/backmarket/tests/boundary.test.mjs` enforces that. API-specific values the toolchain needs arrive as configuration or case data: the conformance error kinds, for example, are defined by the cases, not by the runner.
 
@@ -332,6 +333,8 @@ To move the pin by hand, run `npm run spec:pin`, review what changed, and commit
 The pull request goes through ordinary CI, which restores the new spec from the cache, verifies it against the new hash, then runs the build, lint and conformance. If upstream changed something the overlay corrected, CI goes red, which is the signal to fix it on that branch. If upstream changes again before merge, the next run resets the branch to the newer spec. The job never merges its own pull request.
 
 A pull request opened with the default workflow token does not trigger `pull_request` workflows, and that token can open one only if the repository allows Actions to create pull requests. The job uses the `SPEC_DRIFT_TOKEN` secret when it is set: a fine-grained token for this repository with contents and pull request write access. Without it, the job falls back to the default token and the pull request says to close and reopen it to start CI. Only the final step, which pushes and calls `gh`, receives that token; checkout does not persist credentials, so dependency installs and generators never see it.
+
+A pinned URL can also go stale while still answering, with an old copy that matches the pin. An API where that can happen adds `spec/check-upstream.mjs`, and the workflow's `upstream` job runs it for each API that has one, apart from the pin comparison. The script needs only Node's own modules and exits non-zero, failing the run, when its URL no longer serves a spec or upstream no longer names it as current. Its URLs and patterns stay under that API's directory.
 
 `apis/backmarket/tests/drift.test.mjs` fails if a package with a `generate.yaml` has no `generate:<language>` script for the job's regeneration step to run, if the write token reaches any other step, or if a failed regeneration would skip the pull request.
 

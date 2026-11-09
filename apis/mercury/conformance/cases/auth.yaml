@@ -1,0 +1,38 @@
+# Every request sends the token as a bearer token, verbatim, with its `secret-token:` prefix.
+cases:
+  - name: auth-sends-the-token-as-a-bearer-token
+    request:
+      operation: getAccounts
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        host: api
+        path: /accounts
+        headers: { authorization: 'Bearer {{token}}', accept: application/json }
+    expect:
+      result_keys: [accounts, page]
+
+  - name: auth-a-token-of-another-shape-is-sent-unchanged
+    client: { token: secret-token:conformance-other-synthetic-token }
+    request:
+      operation: getOrganization
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /organization
+        headers: { authorization: 'Bearer secret-token:conformance-other-synthetic-token' }
+    expect:
+      result_keys: [organization]
+
+  - name: auth-a-refused-token-is-an-authentication-error
+    request:
+      operation: listCredit
+    mock:
+      prism: { code: 401 }
+    wire:
+      - method: GET
+        path: /credit
+    expect:
+      error: { kind: authentication, status: 401 }
