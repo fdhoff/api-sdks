@@ -16,9 +16,8 @@ SECRET = VECTORS["secret"]
 @pytest.mark.parametrize("case", VECTORS["cases"], ids=lambda case: case["name"])
 def test_vector(case: dict[str, Any]) -> None:
     def verify() -> None:
-        verify_webhook(
-            case["body"].encode(), case["header"], SECRET, tolerance=case.get("tolerance", 300), now=case["now"]
-        )
+        tolerance = float(case.get("tolerance", 300))
+        verify_webhook(case["body"].encode(), case["header"], SECRET, tolerance=tolerance, now=case["now"])
 
     if case["error"] is None:
         verify()
@@ -46,9 +45,3 @@ def test_missing_header() -> None:
     with pytest.raises(WebhookSignatureError) as caught:
         verify_webhook(b"{}", None, SECRET)
     assert caught.value.reason == "malformed_header"
-
-
-def test_tolerance_must_be_positive() -> None:
-    case = VECTORS["cases"][0]
-    with pytest.raises(ValueError, match="positive"):
-        verify_webhook(case["body"].encode(), case["header"], SECRET, tolerance=0, now=case["now"])

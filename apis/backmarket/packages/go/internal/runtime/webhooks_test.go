@@ -18,7 +18,7 @@ type webhookCase struct {
 	Header    string  `json:"header"`
 	Body      string  `json:"body"`
 	Now       int64   `json:"now"`
-	Tolerance int64   `json:"tolerance"`
+	Tolerance any     `json:"tolerance"`
 	Error     *string `json:"error"`
 }
 
@@ -41,14 +41,22 @@ func readWebhookVectors(t *testing.T) (string, []webhookCase) {
 func TestVerifyWebhookVectors(t *testing.T) {
 	secret, cases := readWebhookVectors(t)
 	reasons := map[string]error{
-		"malformed_header": ErrWebhookMalformedHeader,
-		"too_old":          ErrWebhookTooOld,
-		"bad_signature":    ErrWebhookBadSignature,
+		"malformed_header":  ErrWebhookMalformedHeader,
+		"too_old":           ErrWebhookTooOld,
+		"bad_signature":     ErrWebhookBadSignature,
+		"invalid_tolerance": ErrWebhookInvalidTolerance,
 	}
 	for _, c := range cases {
 		t.Run(c.Name, func(t *testing.T) {
-			options := WebhookOptions{Tolerance: time.Duration(c.Tolerance) * time.Second, Now: time.Unix(c.Now, 0)}
-			err := VerifyWebhook([]byte(c.Body), c.Header, secret, options)
+			options := []WebhookOption{WithWebhookNow(time.Unix(c.Now, 0))}
+			switch tolerance := c.Tolerance.(type) {
+			case nil:
+			case float64:
+				options = append(options, WithWebhookTolerance(time.Duration(tolerance)*time.Second))
+			default:
+				t.Skip("a time.Duration cannot hold NaN or infinity")
+			}
+			err := VerifyWebhook([]byte(c.Body), c.Header, secret, options...)
 			if c.Error == nil {
 				if err != nil {
 					t.Fatalf("got %v, want no error", err)
@@ -68,10 +76,7 @@ func TestVerifyWebhookVectors(t *testing.T) {
 func TestVerifyWebhookDefaults(t *testing.T) {
 	secret, cases := readWebhookVectors(t)
 	c := cases[0]
-	if err := VerifyWebhook([]byte(c.Body), c.Header, secret, WebhookOptions{}); !errors.Is(err, ErrWebhookTooOld) {
+	if err := VerifyWebhook([]byte(c.Body), c.Header, secret); !errors.Is(err, ErrWebhookTooOld) {
 		t.Fatalf("got %v, want %v", err, ErrWebhookTooOld)
-	}
-	if err := VerifyWebhook([]byte(c.Body), c.Header, secret, WebhookOptions{Tolerance: -time.Second}); err == nil {
-		t.Fatal("a negative tolerance was accepted")
 	}
 }

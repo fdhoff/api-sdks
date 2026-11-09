@@ -10,13 +10,15 @@ public enum WebhookFailure
     MalformedHeader,
     TooOld,
     BadSignature,
+    InvalidTolerance,
 }
 
-/// <summary>A webhook failed verification. The message never holds the secret or the body.</summary>
+/// <summary>A webhook failed verification, or the tolerance is invalid. The message never holds the secret or the body.</summary>
 public sealed class WebhookSignatureException(WebhookFailure reason) : Exception(reason switch
 {
     WebhookFailure.MalformedHeader => "The webhook signature header is malformed.",
     WebhookFailure.TooOld => "The webhook timestamp is older than the tolerance.",
+    WebhookFailure.InvalidTolerance => "The webhook tolerance must be greater than zero.",
     _ => "No webhook signature matches the body.",
 })
 {
@@ -36,15 +38,15 @@ public static class WebhookVerifier
     /// Checks a webhook's signature header against its raw body as received, never re-serialised. Any one matching
     /// <c>v1</c> value is enough, so a header may carry several while a secret rotates.
     /// </summary>
-    /// <param name="tolerance">The oldest timestamp to accept, by default <see cref="DefaultTolerance"/>.</param>
+    /// <param name="tolerance">The oldest timestamp to accept, greater than zero, by default <see cref="DefaultTolerance"/>.</param>
     /// <param name="now">The time to check against, by default the clock.</param>
-    /// <exception cref="WebhookSignatureException">The header is malformed, too old or matches no signature.</exception>
+    /// <exception cref="WebhookSignatureException">The tolerance is invalid, or the header is malformed, too old or matches no signature.</exception>
     public static void Verify(ReadOnlySpan<byte> payload, string? header, string secret, TimeSpan? tolerance = null, DateTimeOffset? now = null)
     {
         var limit = tolerance ?? DefaultTolerance;
         if (limit <= TimeSpan.Zero)
         {
-            throw new ArgumentOutOfRangeException(nameof(tolerance), "The webhook tolerance must be positive.");
+            throw new WebhookSignatureException(WebhookFailure.InvalidTolerance);
         }
 
         var (timestamp, signatures) = Parse(header);

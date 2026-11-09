@@ -1,9 +1,9 @@
 export const DEFAULT_WEBHOOK_TOLERANCE_SECONDS = 300;
 
-export type WebhookFailure = 'malformed-header' | 'too-old' | 'bad-signature';
+export type WebhookFailure = 'malformed-header' | 'too-old' | 'bad-signature' | 'invalid-tolerance';
 
 export interface VerifyWebhookOptions {
-  /** The oldest timestamp to accept, in seconds. */
+  /** The oldest timestamp to accept, in seconds: finite and greater than zero. */
   toleranceSeconds?: number;
   /** Milliseconds since the epoch. */
   now?: number;
@@ -15,9 +15,13 @@ const MESSAGES: Record<WebhookFailure, string> = {
   'malformed-header': 'The webhook signature header is malformed',
   'too-old': 'The webhook timestamp is older than the tolerance',
   'bad-signature': 'No webhook signature matches the body',
+  'invalid-tolerance': 'The webhook tolerance must be finite and greater than zero',
 };
 
-/** A webhook failed verification. `reason` says why; the message never holds the secret or the body. */
+/**
+ * A webhook failed verification, or the tolerance is invalid. `reason` says why; the message never holds the secret or
+ * the body.
+ */
 export class WebhookSignatureError extends Error {
   readonly reason: WebhookFailure;
 
@@ -65,7 +69,7 @@ export async function verifyWebhook(
   options: VerifyWebhookOptions = {},
 ): Promise<void> {
   const tolerance = options.toleranceSeconds ?? DEFAULT_WEBHOOK_TOLERANCE_SECONDS;
-  if (!(tolerance > 0)) throw new RangeError('The webhook tolerance must be positive');
+  if (!(Number.isFinite(tolerance) && tolerance > 0)) throw new WebhookSignatureError('invalid-tolerance');
   const [timestamp, signatures] = parse(header);
   const key = await crypto.subtle.importKey('raw', encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, [
     'verify',

@@ -9,13 +9,14 @@ use aws_lc_rs::hmac;
 /// The oldest webhook timestamp [`verify_webhook`] accepts by default.
 pub const DEFAULT_WEBHOOK_TOLERANCE: Duration = Duration::from_secs(300);
 
-/// Why [`verify_webhook`] rejected a webhook. None of them holds the secret or the body.
+/// Why [`verify_webhook`] rejected a webhook or its options. None of them holds the secret or the body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum WebhookError {
     MalformedHeader,
     TooOld,
     BadSignature,
+    InvalidTolerance,
 }
 
 impl fmt::Display for WebhookError {
@@ -24,13 +25,15 @@ impl fmt::Display for WebhookError {
             Self::MalformedHeader => "the webhook signature header is malformed",
             Self::TooOld => "the webhook timestamp is older than the tolerance",
             Self::BadSignature => "no webhook signature matches the body",
+            Self::InvalidTolerance => "the webhook tolerance must be greater than zero",
         })
     }
 }
 
 impl std::error::Error for WebhookError {}
 
-/// Settings for [`verify_webhook`]. `now` is the clock when it is `None`.
+/// Settings for [`verify_webhook`]. `tolerance` must be greater than zero, and `now` is the clock when
+/// it is `None`.
 #[derive(Clone, Debug)]
 pub struct WebhookOptions {
     pub tolerance: Duration,
@@ -87,20 +90,15 @@ fn decode_hex(value: &str) -> Option<Vec<u8>> {
 
 /// Checks a webhook's signature header against its raw body as received, never re-serialised. Any
 /// one matching `v1` value is enough, so a header may carry several while a secret rotates.
-///
-/// # Panics
-///
-/// If `options.tolerance` is zero.
 pub fn verify_webhook(
     payload: &[u8],
     header: &str,
     secret: impl AsRef<[u8]>,
     options: &WebhookOptions,
 ) -> Result<(), WebhookError> {
-    assert!(
-        !options.tolerance.is_zero(),
-        "the webhook tolerance must be positive"
-    );
+    if options.tolerance.is_zero() {
+        return Err(WebhookError::InvalidTolerance);
+    }
     let (timestamp, signatures) = parse(header)?;
     let key = hmac::Key::new(hmac::HMAC_SHA256, secret.as_ref());
     let mut message = Vec::with_capacity(timestamp.len() + 1 + payload.len());
@@ -154,10 +152,16 @@ mod tests {
         for case in vectors["cases"].as_array().unwrap() {
             let name = case["name"].as_str().unwrap();
             let body = case["body"].as_str().unwrap();
+            let tolerance = match case.get("tolerance") {
+                None => DEFAULT_WEBHOOK_TOLERANCE,
+                // A Duration cannot hold a negative value, NaN or infinity.
+                Some(seconds) => match seconds.as_u64() {
+                    Some(seconds) => Duration::from_secs(seconds),
+                    None => continue,
+                },
+            };
             let options = WebhookOptions {
-                tolerance: case["tolerance"]
-                    .as_u64()
-                    .map_or(DEFAULT_WEBHOOK_TOLERANCE, Duration::from_secs),
+                tolerance,
                 now: Some(UNIX_EPOCH + Duration::from_secs(case["now"].as_u64().unwrap())),
             };
             let result = verify_webhook(
@@ -171,6 +175,7 @@ mod tests {
                 Some("malformed_header") => Err(WebhookError::MalformedHeader),
                 Some("too_old") => Err(WebhookError::TooOld),
                 Some("bad_signature") => Err(WebhookError::BadSignature),
+                Some("invalid_tolerance") => Err(WebhookError::InvalidTolerance),
                 Some(other) => panic!("unknown error {other}"),
             };
             assert_eq!(result, expected, "{name}");
@@ -195,15 +200,5 @@ mod tests {
             &WebhookOptions::default(),
         );
         assert_eq!(result, Err(WebhookError::TooOld));
-    }
-
-    #[test]
-    #[should_panic(expected = "tolerance must be positive")]
-    fn the_tolerance_must_be_positive() {
-        let options = WebhookOptions {
-            tolerance: Duration::ZERO,
-            now: None,
-        };
-        let _ = verify_webhook(b"{}", "t=1,v1=00", "secret", &options);
     }
 }
