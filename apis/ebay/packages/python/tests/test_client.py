@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import importlib
+import json
 import logging
 import threading
 from collections.abc import Callable
@@ -57,6 +58,7 @@ MODULES = (
     "negotiation",
     "recommendation",
     "stores",
+    "post_order",
     "feedback",
     "identity",
     "media",
@@ -169,7 +171,7 @@ def test_every_operation_has_a_public_method() -> None:
                 assert callable(getattr(resource, operation.iterator))
                 iterators += 1
         total += len(operations)
-    assert total == 310
+    assert total == 339
     assert iterators == 35
 
 
@@ -374,6 +376,18 @@ def test_header_defaults_apply_unless_a_call_passes_its_own() -> None:
     assert second.headers["x-ebay-c-marketplace-id"] == "EBAY_DE"
     assert "content-language" not in first.headers
     assert third.headers["content-language"] == "en-US"
+
+
+def test_a_post_order_upload_sends_the_user_token_marketplace_and_a_json_file() -> None:
+    server = Server()
+    client = client_for(server, user_token=USER_TOKEN, marketplace_id="EBAY_GB")
+    client.post_order.returns.upload_file("5000000001", {"data": "c3ludGhldGlj", "filePurpose": "LABEL_RELATED"})
+    (request,) = server.requests
+    assert request.url == "http://api.mock.invalid/post-order/v2/return/5000000001/file/upload"
+    assert request.headers["authorization"] == f"Bearer {USER_TOKEN}"
+    assert request.headers["x-ebay-c-marketplace-id"] == "EBAY_GB"
+    assert request.headers["content-type"] == "application/json"
+    assert json.loads(request.content) == {"data": "c3ludGhldGlj", "filePurpose": "LABEL_RELATED"}
 
 
 def test_a_signing_key_signs_each_request() -> None:

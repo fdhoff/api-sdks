@@ -25,6 +25,7 @@ from . import (
     metadata,
     negotiation,
     notification,
+    post_order,
     recommendation,
     stores,
     taxonomy,
@@ -229,6 +230,7 @@ class EbayClient:
         self.negotiation = negotiation.Resources(transport)
         self.recommendation = recommendation.Resources(transport)
         self.stores = stores.Resources(transport)
+        self.post_order = post_order.Resources(transport)
         self.feedback = feedback.Resources(transport)
         self.identity = identity.Resources(transport)
         self.media = media.Resources(transport)
@@ -319,6 +321,7 @@ class AsyncEbayClient:
         self.negotiation = negotiation.AsyncResources(transport)
         self.recommendation = recommendation.AsyncResources(transport)
         self.stores = stores.AsyncResources(transport)
+        self.post_order = post_order.AsyncResources(transport)
         self.feedback = feedback.AsyncResources(transport)
         self.identity = identity.AsyncResources(transport)
         self.media = media.AsyncResources(transport)

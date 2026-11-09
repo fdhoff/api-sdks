@@ -26,7 +26,7 @@ contracts:
   sell_negotiation: { output: src/ebay_sell/negotiation, operations: operations/sell_negotiation.yaml, properties: { packageName: ebay_sell.negotiation } }
   sell_recommendation: { output: src/ebay_sell/recommendation, operations: operations/sell_recommendation.yaml, properties: { packageName: ebay_sell.recommendation } }
   sell_stores: { output: src/ebay_sell/stores, operations: operations/sell_stores.yaml, properties: { packageName: ebay_sell.stores } }
-  sell_post_order: { omit: Added in a later release. }
+  sell_post_order: { output: src/ebay_sell/post_order, operations: operations/sell_post_order.yaml, properties: { packageName: ebay_sell.post_order }, schema_names: { DateTime: Timestamp } }
   commerce_feedback: { output: src/ebay_sell/feedback, operations: operations/commerce_feedback.yaml, properties: { packageName: ebay_sell.feedback } }
   commerce_identity: { output: src/ebay_sell/identity, operations: operations/commerce_identity.yaml, properties: { packageName: ebay_sell.identity } }
   commerce_media: { output: src/ebay_sell/media, operations: operations/commerce_media.yaml, properties: { packageName: ebay_sell.media } }

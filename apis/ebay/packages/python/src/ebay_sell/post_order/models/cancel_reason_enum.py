@@ -1,0 +1,27 @@
+# coding: utf-8
+
+# Generated code. Do not edit by hand; change the templates, the overlay or the runtime instead.
+
+
+from __future__ import annotations
+
+from enum import Enum
+
+
+class CancelReasonEnum(str, Enum):
+    """Allowed values of CancelReasonEnum."""
+
+    ORDER_MISTAKE = "ORDER_MISTAKE"
+    FOUND_CHEAPER_PRICE = "FOUND_CHEAPER_PRICE"
+    WONT_ARRIVE_IN_TIME = "WONT_ARRIVE_IN_TIME"
+    WRONG_SHIPPING_ADDRESS = "WRONG_SHIPPING_ADDRESS"
+    WRONG_SHIPPING_METHOD = "WRONG_SHIPPING_METHOD"
+    WRONG_PAYMENT_METHOD = "WRONG_PAYMENT_METHOD"
+    UNKNOWN = "UNKNOWN"
+    PRICE_TOO_HIGH = "PRICE_TOO_HIGH"
+    OTHER = "OTHER"
+    BUYER_CANCEL_OR_ADDRESS_ISSUE = "BUYER_CANCEL_OR_ADDRESS_ISSUE"
+    OUT_OF_STOCK_OR_CANNOT_FULFILL = "OUT_OF_STOCK_OR_CANNOT_FULFILL"
+    BUYER_ASKED_CANCEL = "BUYER_ASKED_CANCEL"
+    ADDRESS_ISSUES = "ADDRESS_ISSUES"
+    ORDER_UNPAID = "ORDER_UNPAID"

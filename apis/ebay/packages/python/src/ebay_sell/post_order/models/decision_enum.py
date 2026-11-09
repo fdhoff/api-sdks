@@ -1,0 +1,26 @@
+# coding: utf-8
+
+# Generated code. Do not edit by hand; change the templates, the overlay or the runtime instead.
+
+
+from __future__ import annotations
+
+from enum import Enum
+
+
+class DecisionEnum(str, Enum):
+    """Allowed values of DecisionEnum."""
+
+    PROVIDE_RMA = "PROVIDE_RMA"
+    APPROVE = "APPROVE"
+    APPROVE_WITHOUT_EBAY_LABEL = "APPROVE_WITHOUT_EBAY_LABEL"
+    DECLINE = "DECLINE"
+    OFFER_RETURN = "OFFER_RETURN"
+    OFFER_RETURN_WITHOUT_LABEL = "OFFER_RETURN_WITHOUT_LABEL"
+    OFFER_PARTIAL_REFUND = "OFFER_PARTIAL_REFUND"
+    ACCEPT_PARTIAL_REFUND = "ACCEPT_PARTIAL_REFUND"
+    DECLINE_PARTIAL_REFUND = "DECLINE_PARTIAL_REFUND"
+    OFFER_REPLACEMENT = "OFFER_REPLACEMENT"
+    ACCEPT_REPLACEMENT_OFFER = "ACCEPT_REPLACEMENT_OFFER"
+    DECLINE_REPLACEMENT_OFFER = "DECLINE_REPLACEMENT_OFFER"
+    UNKNOWN = "UNKNOWN"
