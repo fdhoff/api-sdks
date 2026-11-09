@@ -24,7 +24,7 @@ Mercury publishes an official Go SDK, and none for Python. This package is gener
 * a verifier for the `Mercury-Signature` webhook header;
 * your token kept out of every error and log line.
 
-If you write Go, prefer Mercury's official SDK.
+If you write Go, [this repository's Go module](https://github.com/fdhoff/api-sdks/tree/main/apis/mercury/packages/go) explains how it differs from Mercury's official SDK.
 
 ## Install
 

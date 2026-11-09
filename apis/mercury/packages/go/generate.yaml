@@ -1,0 +1,116 @@
+# How `npm run generate:go` builds this package. Public method names are in operations.yaml.
+generator: go
+output: mercurybanking
+source: .
+generated_prefixes: [model_, api_]
+resources: resources.go
+runtime: ../internal/runtime
+format: [gofmt, -s, -r, 'interface{} -> any', -w]
+properties:
+  packageName: mercurybanking
+  disallowAdditionalPropertiesIfNotPresent: false
+  withGoMod: false
+  apiNameSuffix: Resource
+  modulePath: github.com/fdhoff/api-sdks/apis/mercury/packages/go
+collapse_single_unions: true
+# Every field is a pointer here, so nil already means null or absent.
+drop_nullable: true
+# A field of several types becomes `any`.
+drop_unions: true
+type_mappings:
+  integer: int64
+  number: float64
+  file: File
+  File: File
+  binary: File
+  DateTime: Time
+# Go spells these initialisms in capitals. Keys are wire names.
+name_mappings:
+  accountId: AccountID
+  accrualAdjustmentId: AccrualAdjustmentID
+  accrualSourceId: AccrualSourceID
+  attachmentId: AttachmentID
+  booksId: BooksID
+  cardId: CardID
+  categoryId: CategoryID
+  controlledAccountId: ControlledAccountID
+  counterpartyId: CounterpartyID
+  creditAccountId: CreditAccountID
+  creditAccountPeriodId: CreditAccountPeriodID
+  creditCardId: CreditCardID
+  creditPeriodId: CreditPeriodID
+  customCategoryId: CustomCategoryID
+  customerId: CustomerID
+  debitAccountId: DebitAccountID
+  debitCardId: DebitCardID
+  depositCounterpartyId: DepositCounterpartyID
+  destinationAccountId: DestinationAccountID
+  documentUrl: DocumentURL
+  downloadUrl: DownloadURL
+  expenseId: ExpenseID
+  externalId: ExternalID
+  externalMetadataId: ExternalMetadataID
+  externalPartyId: ExternalPartyID
+  feeId: FeeID
+  feeTransactionId: FeeTransactionID
+  id: ID
+  inviteId: InviteID
+  journalEntryId: JournalEntryID
+  journalEntryIds: JournalEntryIDs
+  ledgerId: LedgerID
+  ledgerIds: LedgerIDs
+  legalId: LegalID
+  legalIdType: LegalIDType
+  lineEntryId: LineEntryID
+  lineEntryIds: LineEntryIDs
+  linePaymentApplicationId: LinePaymentApplicationID
+  matchedTransactionId: MatchedTransactionID
+  mcpSessionId: McpSessionID
+  onboardingDataId: OnboardingDataID
+  onboardingUrl: OnboardingURL
+  opposingLedgerIds: OpposingLedgerIDs
+  opposingLineEntryIds: OpposingLineEntryIDs
+  orgUserId: OrgUserID
+  organizationId: OrganizationID
+  parentId: ParentID
+  paymentApplicationId: PaymentApplicationID
+  recipientId: RecipientID
+  relatedLineEntryId: RelatedLineEntryID
+  requestId: RequestID
+  requestedByUserId: RequestedByUserID
+  reservoirAccountId: ReservoirAccountID
+  resourceId: ResourceID
+  reviewerUserId: ReviewerUserID
+  ruleId: RuleID
+  sourceAccountId: SourceAccountID
+  submitterUserId: SubmitterUserID
+  tagGroupId: TagGroupID
+  tagIds: TagIDs
+  teamMemberId: TeamMemberID
+  transactionId: TransactionID
+  url: URL
+  userId: UserID
+  withdrawalCounterpartyId: WithdrawalCounterpartyID
+parameter_name_mappings:
+  accountId: accountID
+  attachmentId: attachmentID
+  budgetId: budgetID
+  cardId: cardID
+  categoryId: categoryID
+  customerId: customerID
+  destinationAccountId: destinationAccountID
+  eventId: eventID
+  expenseCategoryId: expenseCategoryID
+  inviteId: inviteID
+  invoiceId: invoiceID
+  receiptId: receiptID
+  recipientId: recipientID
+  requestId: requestID
+  resourceId: resourceID
+  safeRequestId: safeRequestID
+  sourceAccountId: sourceAccountID
+  statementId: statementID
+  transactionId: transactionID
+  treasuryId: treasuryID
+  userId: userID
+  webhookEndpointId: webhookEndpointID

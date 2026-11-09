@@ -29,6 +29,9 @@ var (
 {{#vendorExtensions.x-sdk-binary-response}}
 		BinaryResponse: true,
 {{/vendorExtensions.x-sdk-binary-response}}
+{{#vendorExtensions.x-sdk-accept}}
+		Accept:      "{{{.}}}",
+{{/vendorExtensions.x-sdk-accept}}
 {{#vendorExtensions.x-sdk-raw-body}}
 		RawBody:     "{{.}}",
 {{/vendorExtensions.x-sdk-raw-body}}

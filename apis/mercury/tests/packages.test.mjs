@@ -32,3 +32,27 @@ test('each package pages and retries exactly as sdk.yaml says', () => {
     assert.deepEqual(idempotent, sdk.idempotency, name);
   }
 });
+
+const ROOT = new URL('../../../', import.meta.url);
+const GO = new URL('packages/go/', API);
+const AFFILIATION = 'Not affiliated with, endorsed by or sponsored by Mercury Technologies, Inc.';
+const unwrapped = async (url) => (await readFile(url, 'utf8')).replace(/\s+/g, ' ');
+
+test('the Go module ships the Apache-2.0 licence and the Python notice', async () => {
+  assert.equal(await readFile(new URL('LICENSE', GO), 'utf8'), await readFile(new URL('LICENSE', ROOT), 'utf8'));
+  assert.equal(await readFile(new URL('NOTICE', GO), 'utf8'), await readFile(new URL('packages/python/NOTICE', API), 'utf8'));
+});
+
+test('the Go manifest, package doc and README say it is unofficial and not affiliated', async () => {
+  const manifest = await readFile(new URL('go.mod', GO), 'utf8');
+  assert.match(manifest, /^\/\/ SPDX-License-Identifier: Apache-2\.0$/m);
+  assert.ok(manifest.includes(`// Unofficial client for the Mercury API. ${AFFILIATION}`));
+  assert.match(manifest, /^module github\.com\/fdhoff\/api-sdks\/apis\/mercury\/packages\/go$/m);
+  const doc = (await unwrapped(new URL('mercurybanking/doc.go', GO))).replaceAll(' // ', ' ');
+  assert.match(doc, /^\/\/ Package mercurybanking is an unofficial client/);
+  const readme = await unwrapped(new URL('README.md', GO));
+  assert.ok(readme.includes(AFFILIATION));
+  assert.match(readme, /not a bank/);
+  assert.match(readme, /How this differs from Mercury's Go SDK/);
+  assert.match(readme, /0\.x/);
+});
