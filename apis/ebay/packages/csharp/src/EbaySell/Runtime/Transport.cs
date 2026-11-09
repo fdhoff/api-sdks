@@ -18,6 +18,8 @@ namespace EbaySell.Runtime;
 internal sealed class Transport : IDisposable
 {
     private const string Redacted = "***";
+    // The largest integer a JavaScript number holds exactly, so every runtime accepts the same numeric cursors.
+    private const double MaxSafeInteger = 9007199254740991;
     private static readonly string[] Months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
     /// <summary>RFC 5322, RFC 850 and asctime dates, as leniently as Python's <c>email.utils</c>.</summary>
@@ -284,9 +286,9 @@ internal sealed class Transport : IDisposable
             return null;
         }
         string position;
-        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var integer))
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var whole) && Math.Abs(whole) <= MaxSafeInteger && Math.Floor(whole) == whole)
         {
-            position = integer.ToString(CultureInfo.InvariantCulture);
+            position = ((long)whole).ToString(CultureInfo.InvariantCulture);
         }
         else if (value.ValueKind == JsonValueKind.String)
         {

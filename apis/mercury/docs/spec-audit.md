@@ -48,7 +48,7 @@ The spec lists production only; the sandbox host comes from Mercury's sandbox gu
 
 * **Cursor**, the default in `sdk.yaml`: 24 list operations take `start_after`, an exclusive ID, and answer `page.nextPage`. The iterator sends `page.nextPage` back as `start_after` until it is null or absent. They also take `end_before` and answer `page.previousPage`; iterators page forward only.
 * **Offset**: `listAccountTransactions` takes `offset` and answers `total`.
-* **Integer cursor**: `getTreasuryTransactions` answers a top-level `cursor`, an integer of 0 or more, and takes it back in the `cursor` query parameter. The toolchain's `cursor` style accepts only a string next value. TODO: accept an integer next value in every runtime, sent as its decimal digits, before any language can pass the treasury paging cases.
+* **Integer cursor**: `getTreasuryTransactions` answers a top-level `cursor`, an integer of 0 or more, and takes it back in the `cursor` query parameter. The toolchain's `cursor` style accepts an integer next value and sends it as its decimal digits, so the same style covers it.
 
 ## Retries
 

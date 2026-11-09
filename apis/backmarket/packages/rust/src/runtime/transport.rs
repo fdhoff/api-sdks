@@ -22,6 +22,9 @@ use crate::ErrorKind;
 /// A backoff doubles per retry, and this keeps the shift in range for any retry count.
 const MAX_BACKOFF_DOUBLINGS: u32 = 20;
 
+/// The largest integer a JavaScript number holds exactly, so every runtime accepts the same numeric cursors.
+const MAX_SAFE_INTEGER: f64 = 9_007_199_254_740_991.0;
+
 /// A stream of every item across all pages. It ends after yielding an error.
 pub type Items<T> = Pin<Box<dyn Stream<Item = Result<T, Error>> + Send>>;
 
@@ -786,14 +789,18 @@ impl Transport {
         let position = match value {
             Value::Null => return Ok(None),
             Value::String(position) if position.is_empty() => return Ok(None),
-            Value::String(position) => position.clone(),
-            Value::Number(position) if position.is_i64() => position.to_string(),
-            _ => {
-                return Err(self.decode_error(
-                    &format!("the {path} value of a page is not a string or an integer"),
-                    answer,
-                ));
-            }
+            Value::String(position) => Some(position.clone()),
+            Value::Number(position) => position
+                .as_f64()
+                .filter(|whole| whole.fract() == 0.0 && whole.abs() <= MAX_SAFE_INTEGER)
+                .map(|whole| (whole as i64).to_string()),
+            _ => None,
+        };
+        let Some(position) = position else {
+            return Err(self.decode_error(
+                &format!("the {path} value of a page is not a string or an integer"),
+                answer,
+            ));
         };
         if request.query_value(param) == Some(position.as_str()) {
             return Err(self.decode_error(
@@ -1133,9 +1140,22 @@ mod tests {
 
     #[test]
     fn cursor_paging_sends_an_integer_next_value_back_as_its_digits() {
-        for (position, url) in [(0, "/items?start_after=0"), (7, "/items?start_after=7")] {
-            let page = serde_json::json!({ "data": [1], "page": { "next_page": position } });
-            assert_eq!(next_url(&CURSOR_LIST, &[], page, 1).as_deref(), Some(url));
+        for (position, url) in [
+            ("0", "/items?start_after=0"),
+            ("7", "/items?start_after=7"),
+            ("1.0", "/items?start_after=1"),
+            ("-0", "/items?start_after=0"),
+            ("9007199254740991", "/items?start_after=9007199254740991"),
+        ] {
+            let page = serde_json::from_str(&format!(
+                r#"{{ "data": [1], "page": {{ "next_page": {position} }} }}"#
+            ))
+            .unwrap();
+            assert_eq!(
+                next_url(&CURSOR_LIST, &[], page, 1).as_deref(),
+                Some(url),
+                "{position}"
+            );
         }
     }
 
@@ -1181,6 +1201,9 @@ mod tests {
         for page in [
             serde_json::json!({ "page": { "next_page": "b" } }),
             serde_json::json!({ "data": [1], "page": { "next_page": 2.5 } }),
+            serde_json::json!({ "data": [1], "page": { "next_page": 9_007_199_254_740_992_u64 } }),
+            serde_json::json!({ "data": [1], "page": { "next_page": u64::MAX } }),
+            serde_json::json!({ "data": [1], "page": { "next_page": i64::MIN } }),
             serde_json::json!({ "data": [1], "page": { "next_page": true } }),
             serde_json::json!({ "data": [1], "page": { "next_page": { "id": "b" } } }),
             serde_json::json!({ "data": [1], "page": "b" }),

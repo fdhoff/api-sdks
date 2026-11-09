@@ -684,11 +684,13 @@ def test_cursor_paging_sends_an_integer_next_value_back_as_its_digits() -> None:
     pages = [
         {"data": [{"n": 0}], "page": {"next_page": 0}},
         {"data": [{"n": 1}], "page": {"next_page": 7}},
+        {"data": [{"n": 2}], "page": {"next_page": 1.0}},
+        {"data": [{"n": 3}], "page": {"next_page": 2**53 - 1}},
         {"data": [], "page": {"next_page": None}},
     ]
     items, queries = cursor_pages(pages)
-    assert items == [{"n": 0}, {"n": 1}]
-    assert queries == ["", "start_after=0", "start_after=7"]
+    assert items == [{"n": 0}, {"n": 1}, {"n": 2}, {"n": 3}]
+    assert queries == ["", "start_after=0", "start_after=7", "start_after=1", "start_after=9007199254740991"]
 
 
 @pytest.mark.parametrize(("sent", "next_page"), [("a", "a"), ("3", 3), (3, 3)])
@@ -702,6 +704,8 @@ def test_cursor_paging_rejects_a_next_value_equal_to_the_one_sent(sent: Any, nex
     [
         {"page": {"next_page": "b"}},
         {"data": [{"n": 1}], "page": {"next_page": 2.5}},
+        {"data": [{"n": 1}], "page": {"next_page": 2**53}},
+        {"data": [{"n": 1}], "page": {"next_page": -(2**63)}},
         {"data": [{"n": 1}], "page": {"next_page": True}},
         {"data": [{"n": 1}], "page": {"next_page": {"id": "b"}}},
         {"data": [{"n": 1}], "page": "b"},

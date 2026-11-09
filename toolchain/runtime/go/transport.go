@@ -28,6 +28,10 @@ const redacted = "***"
 // A backoff doubles per retry, and this keeps the shift in range for any retry count.
 const maxBackoffDoublings = 20
 
+// maxSafeInteger is the largest integer a JavaScript number holds exactly, so every runtime accepts the same
+// numeric cursors.
+const maxSafeInteger = 1<<53 - 1
+
 // Paging is how an iterator walks pages: a [NextLink], an [Offset] or a [Cursor].
 type Paging interface{ itemsField() string }
 
@@ -689,8 +693,8 @@ func (t *Transport) nextCursor(paging Cursor, query url.Values, page map[string]
 		return nil, nil
 	}
 	if number, isNumber := value.(json.Number); isNumber {
-		if integer, err := strconv.ParseInt(string(number), 10, 64); err == nil {
-			value = strconv.FormatInt(integer, 10)
+		if whole, err := strconv.ParseFloat(string(number), 64); err == nil && whole == math.Trunc(whole) && math.Abs(whole) <= maxSafeInteger {
+			value = strconv.FormatInt(int64(whole), 10)
 		}
 	}
 	text, isText := value.(string)
