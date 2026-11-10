@@ -3,7 +3,9 @@
 //! The client adds `/api/v1` to the instance URL, while the cases name each path as the spec
 //! declares it, because the mock serves them without the prefix. The driver sends the client's
 //! requests through a local HTTP proxy that removes the prefix on the way out. A request without it
-//! goes out unchanged, so its path fails the case's wire check.
+//! goes out unchanged, so its path fails the case's wire check. With `--live`, for the live scenarios
+//! against a disposable Gitea container, every request goes out unchanged. See
+//! `apis/gitea/docs/live.md`.
 
 mod dispatch;
 
@@ -25,7 +27,7 @@ const API_PATH: &str = "/api/v1";
 #[derive(Deserialize)]
 struct Settings {
     base_url: String,
-    token: String,
+    token: Option<String>,
     username: Option<String>,
     password: Option<String>,
     otp: Option<String>,
@@ -244,17 +246,18 @@ async fn proxy() -> String {
 }
 
 /// A case that sets `username` uses Basic, with the one-time password unless it is null. Otherwise
-/// the token.
-fn client(settings: Settings, proxy: &str) -> Client {
-    let http = gitea_rest::reqwest::Client::builder()
-        .proxy(gitea_rest::reqwest::Proxy::http(proxy).expect("a proxy URL"))
-        .pool_max_idle_per_host(0)
-        .redirect(gitea_rest::reqwest::redirect::Policy::none())
-        .build()
-        .expect("an HTTP client");
-    let mut builder = Client::builder()
-        .base_url(&settings.base_url)
-        .http_client(http);
+/// the token. Without a proxy, the client sends with its own HTTP client.
+fn client(settings: Settings, proxy: Option<&str>) -> Client {
+    let mut builder = Client::builder().base_url(&settings.base_url);
+    if let Some(proxy) = proxy {
+        let http = gitea_rest::reqwest::Client::builder()
+            .proxy(gitea_rest::reqwest::Proxy::http(proxy).expect("a proxy URL"))
+            .pool_max_idle_per_host(0)
+            .redirect(gitea_rest::reqwest::redirect::Policy::none())
+            .build()
+            .expect("an HTTP client");
+        builder = builder.http_client(http);
+    }
     builder = match settings.username {
         Some(username) => {
             let builder = builder.basic_auth(username, settings.password.unwrap_or_default());
@@ -263,7 +266,10 @@ fn client(settings: Settings, proxy: &str) -> Client {
                 None => builder,
             }
         }
-        None => builder.token(&settings.token),
+        None => match settings.token {
+            Some(token) => builder.token(token),
+            None => builder,
+        },
     };
     if let Some(sudo) = settings.sudo {
         builder = builder.sudo(sudo);
@@ -313,13 +319,14 @@ fn main() {
         .enable_all()
         .build()
         .expect("a runtime");
-    let proxy = runtime.block_on(proxy());
+    let live = std::env::args().skip(1).any(|arg| arg == "--live");
+    let proxy = (!live).then(|| runtime.block_on(proxy()));
     let stdout = std::io::stdout();
     for line in std::io::stdin().lock().lines() {
         let message: Message =
             serde_json::from_str(&line.expect("stdin is readable")).expect("a valid message");
         LOGS.lock().unwrap().clear();
-        let client = client(message.client, &proxy);
+        let client = client(message.client, proxy.as_deref());
         let result = runtime.block_on(dispatch::dispatch(&client, &message.request));
         let logs = std::mem::take(&mut *LOGS.lock().unwrap());
         let reply = match result {
