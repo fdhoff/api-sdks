@@ -1,5 +1,7 @@
 // Keeps an API's pinned upstream specs in a local, gitignored cache.
 // No flag fetches each from its lock URL if absent; `--verify` checks the cache offline; `--pin` re-pins.
+// `--pin --url <url> [--tag <tag>]` moves a single-source lock to another URL, and records the upstream release
+// tag it names, for upstreams that publish each release at its own URL.
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
@@ -67,16 +69,22 @@ export async function ensureSpecs(apiDir) {
   return specs;
 }
 
-// Downloads every source before writing anything, so one failure leaves the old pins and caches in place.
-export async function pin(apiDir) {
+// Downloads every source before writing anything, so one failure leaves the old pins and caches in place. A lock
+// keeps its `tag` unless `tag` replaces it.
+export async function pin(apiDir, { url, tag } = {}) {
   const lock = await readLock(apiDir);
   const retrievedOn = new Date().toISOString().slice(0, 10);
+  const sources = lockSources(lock);
+  if ((url !== undefined || tag !== undefined) && sources[0].name !== null) throw new Error('--url and --tag move a single-source lock only');
+  if (tag !== undefined && url === undefined) throw new Error('--tag needs --url');
   const pinned = [];
-  for (const source of lockSources(lock)) {
+  for (const original of sources) {
+    const source = url === undefined ? original : { ...original, url, tag };
     const { response, bytes } = await download(source.url);
     const entry = {
       ...(source.name === null ? {} : { name: source.name }),
       url: source.url,
+      ...(source.tag ? { tag: source.tag } : {}),
       sha256: sha256(bytes),
       infoVersion: parse(bytes.toString('utf8')).info.version,
       lastModified: response.headers.get('last-modified'),
@@ -104,9 +112,18 @@ export async function verify(apiDir) {
   }
 }
 
+// The value after `--<name>`, if the flag is given.
+function option(argv, name) {
+  const index = argv.indexOf(`--${name}`);
+  if (index === -1) return undefined;
+  const value = argv[index + 1];
+  if (value === undefined || value.startsWith('--') || value === '') throw new Error(`--${name} needs a value`);
+  return value;
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const apiDir = apiDirFromArgs(process.argv);
-  if (process.argv.includes('--pin')) await pin(apiDir);
+  if (process.argv.includes('--pin')) await pin(apiDir, { url: option(process.argv, 'url'), tag: option(process.argv, 'tag') });
   else if (process.argv.includes('--verify')) await verify(apiDir);
   else {
     for (const { paths } of await ensureSpecs(apiDir)) console.log(`Spec ready: ${paths.spec}`);
