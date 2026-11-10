@@ -91,10 +91,10 @@ test('every list that takes start_after is iterated by cursor, and the two other
   const paged = operations.filter((operation) => queryParams(operation).some((name) => ['start_after', 'offset', 'cursor'].includes(name)));
   assert.deepEqual(ids(paged), Object.keys(sdk.iterators).sort());
   const byStyle = (style) => Object.keys(sdk.iterators).filter((id) => (sdk.iterators[id].paging?.style ?? sdk.paging.style) === style).sort();
-  assert.equal(byStyle('cursor').length, 25);
+  assert.equal(byStyle('cursor').length, 26);
   assert.deepEqual(byStyle('offset'), ['listAccountTransactions']);
   const startAfter = byStyle('cursor').filter((id) => !sdk.iterators[id].paging);
-  assert.equal(startAfter.length, 24);
+  assert.equal(startAfter.length, 25);
   assert.ok(startAfter.every((id) => queryParams(byId.get(id)).includes('start_after')));
 });
 
