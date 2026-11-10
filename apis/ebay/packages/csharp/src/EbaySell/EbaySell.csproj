@@ -9,7 +9,7 @@
     <!-- Generated models carry no upstream prose, so most public members have no XML docs. -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <PackageId>EbaySell</PackageId>
-    <Version>0.1.0-alpha.1</Version>
+    <Version>0.1.0-alpha.2</Version>
     <Authors>api-sdks contributors</Authors>
     <Description>Unofficial client for eBay's Sell, Commerce and Developer REST APIs. Not affiliated with, endorsed by or sponsored by eBay Inc.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

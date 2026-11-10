@@ -2,7 +2,7 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
-## Unreleased
+## 0.1.0a2 (2026-11-10)
 
 * `client.products.list`, `client.products.iter` and `client.products.create`, for the invoicing product catalog Mercury added to its API reference.
 * `duplicate_check_override` on `SendMoneyAPIRequest` and `PostTransactionAPIRequest`, to send a payment that repeats one from the last 24 hours, and `ReimbursementPaymentStatus.PAIDOUTSIDEMERCURY`.

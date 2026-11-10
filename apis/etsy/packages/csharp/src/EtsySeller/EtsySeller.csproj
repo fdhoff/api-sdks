@@ -9,7 +9,7 @@
     <!-- Generated models carry no upstream prose, so most public members have no XML docs. -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <PackageId>EtsySeller</PackageId>
-    <Version>0.1.0-alpha.1</Version>
+    <Version>0.1.0-alpha.2</Version>
     <Authors>api-sdks contributors</Authors>
     <Description>Unofficial client for the Etsy Open API v3. Not affiliated with Etsy.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

@@ -2,7 +2,7 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
-## Unreleased
+## 0.1.0-alpha.2 (2026-11-10)
 
 * An empty, `.` or `..` path value throws `ArgumentException`, and a `null` one `ArgumentNullException`, before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`, or with the `{name}` placeholder left in for `null`.
 * An iteration whose next link returns to a page it already requested, such as page A, then B, then A again, now throws `ApiDecodeException` instead of fetching the same pages until the rate limit runs out. Before, only a next link that repeated the one just sent was caught.
