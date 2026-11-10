@@ -3,7 +3,7 @@ name: Gitea live
 # Runs the live scenarios in apis/gitea/conformance/live against a disposable Gitea container at the pinned release.
 # The admin, user and token are synthetic and made per run inside the container, and no repository secret is used,
 # so this is safe on pull requests from forks. It never calls gitea.com or any other instance.
-# TODO: add the TypeScript, Go, C# and Rust live drivers as each Gitea package lands.
+# TODO: add the TypeScript, Go and Rust live drivers as each Gitea package lands.
 on:
   workflow_dispatch:
   schedule:
@@ -56,6 +56,42 @@ jobs:
         run: node apis/gitea/conformance/live/run.mjs --settings "$SETTINGS" --driver "python apis/gitea/packages/python/live/live_driver.py --mode sync"
       - name: Live scenarios, async client
         run: node apis/gitea/conformance/live/run.mjs --settings "$SETTINGS" --driver "python apis/gitea/packages/python/live/live_driver.py --mode async"
+      - name: Gitea log
+        if: failure()
+        run: docker logs gitea-live 2>&1 | tail -n 200
+      - if: always()
+        run: |
+          docker rm --force gitea-live > /dev/null 2>&1 || true
+          rm -f "$SETTINGS"
+
+  csharp:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+      DRIVER: apis/gitea/packages/csharp/conformance/bin/live
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+      - run: npm ci --ignore-scripts
+      - run: echo "SETTINGS=$RUNNER_TEMP/gitea-live.json" >> "$GITHUB_ENV"
+      - run: dotnet build apis/gitea/packages/csharp/conformance/Driver -c Release -f net10.0 -o "$DRIVER"
+      - name: Start Gitea and make synthetic users and a token
+        run: apis/gitea/conformance/live/bootstrap.sh "$SETTINGS"
+      - name: Live scenarios
+        run: node apis/gitea/conformance/live/run.mjs --settings "$SETTINGS" --driver "dotnet $DRIVER/GiteaRest.Conformance.dll --live"
       - name: Gitea log
         if: failure()
         run: docker logs gitea-live 2>&1 | tail -n 200

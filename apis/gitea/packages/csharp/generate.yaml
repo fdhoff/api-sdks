@@ -1,0 +1,39 @@
+# How `npm run generate:csharp` builds this package. Public method names are in operations.yaml.
+generator: csharp
+output: src/GiteaRest
+source: src/GiteaRest
+generated: [Api, Models]
+resources: ClientResources.cs
+runtime: Runtime
+# The runtime's namespaces are written with a placeholder, because C# has no relative imports.
+runtime_package: GiteaRest
+format: [dotnet, format, whitespace, --folder]
+properties:
+  packageName: GiteaRest
+  library: httpclient
+  apiPackage: Api
+  modelPackage: Models
+  apiNameSuffix: Resource
+  disallowAdditionalPropertiesIfNotPresent: false
+  nullableReferenceTypes: true
+  useDateTimeOffset: true
+# A union of one schema is typed as that schema.
+collapse_single_unions: true
+# Every property is nullable here, so null already means null or absent.
+drop_nullable: true
+# A value of several types becomes `object`, which reads as a JsonElement.
+drop_unions: true
+type_mappings:
+  integer: long
+  float: double
+  AnyType: object
+  object: object
+  file: UploadFile
+  binary: UploadFile
+ignore: [src/GiteaRest/Models/AbstractOpenAPISchema.cs]
+# C# keywords, which the generator would otherwise rename `varRef` and so on. `private` sits beside `is_private`.
+parameter_name_mappings:
+  base: baseBranch
+  event: eventName
+  private: includePrivate
+  ref: gitRef

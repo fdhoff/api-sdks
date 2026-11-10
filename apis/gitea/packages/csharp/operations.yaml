@@ -1,0 +1,540 @@
+# Public names for every operation, keyed by operationId. Summaries are ours, not upstream's, and each ends with the
+# operationId so it can be found in Gitea's API docs. Names are the Python package's, in .NET case with an Async suffix.
+# `iterator` adds a method that returns every item across all pages as an IAsyncEnumerable of `items`. Each page's list
+# is the one ../../sdk.yaml gives under `iterators`; operations.yaml repeats it until generate.mjs reads it from there.
+# Operations on an organization's or your own resources, where a repository's have the same name, end in `ForOrg`
+# and `ForUser`.
+# TODO: split this file by resource once generate.mjs reads several operations files for one contract.
+repoSearch: { resource: Repos, method: SearchAsync, iterator: SearchAllAsync, items: Repository, paging: { items: 'data' }, summary: Get one page of the repositories that match a search (repoSearch). }
+repoMigrate: { resource: Repos, method: MigrateAsync, summary: Migrate a repository from another service (repoMigrate). }
+generateRepo: { resource: Repos, method: GenerateAsync, summary: Create a repository from a template repository (generateRepo). }
+repoGet: { resource: Repos, method: GetAsync, summary: Get a repository (repoGet). }
+repoGetByID: { resource: Repos, method: GetByIdAsync, summary: Get a repository by its ID (repoGetByID). }
+repoEdit: { resource: Repos, method: UpdateAsync, summary: Change a repository's settings (repoEdit). }
+repoDelete: { resource: Repos, method: DeleteAsync, summary: Delete a repository (repoDelete). }
+listForks: { resource: Repos, method: ListForksAsync, iterator: ListAllForksAsync, items: Repository, paging: { items: '$' }, summary: List one page of a repository's forks (listForks). }
+createFork: { resource: Repos, method: ForkAsync, summary: Fork a repository (createFork). }
+repoTransfer: { resource: Repos, method: TransferAsync, summary: Start transferring a repository to a new owner (repoTransfer). }
+acceptRepoTransfer: { resource: Repos, method: AcceptTransferAsync, summary: Accept a repository transfer (acceptRepoTransfer). }
+rejectRepoTransfer: { resource: Repos, method: RejectTransferAsync, summary: Reject a repository transfer (rejectRepoTransfer). }
+repoUpdateAvatar: { resource: Repos, method: UpdateAvatarAsync, summary: Set a repository's avatar (repoUpdateAvatar). }
+repoDeleteAvatar: { resource: Repos, method: DeleteAvatarAsync, summary: Remove a repository's avatar (repoDeleteAvatar). }
+repoListActivityFeeds: { resource: Repos, method: ListActivityFeedsAsync, iterator: ListAllActivityFeedsAsync, items: Activity, paging: { items: '$' }, summary: List one page of a repository's activity (repoListActivityFeeds). }
+repoGetArchive: { resource: Repos, method: DownloadArchiveAsync, summary: Download an archive of a repository at a ref (repoGetArchive). }
+repoGetAssignees: { resource: Repos, method: ListAssigneesAsync, summary: List the users that issues and pull requests can be assigned to (repoGetAssignees). }
+repoCheckAssignee: { resource: Repos, method: CheckAssigneeAsync, summary: Check whether a user can be assigned issues and pull requests (repoCheckAssignee). }
+repoGetReviewers: { resource: Repos, method: ListReviewersAsync, summary: List the users that can be asked to review pull requests (repoGetReviewers). }
+repoListCollaborators: { resource: Repos, method: ListCollaboratorsAsync, iterator: ListAllCollaboratorsAsync, items: User, paging: { items: '$' }, summary: List one page of a repository's collaborators (repoListCollaborators). }
+repoCheckCollaborator: { resource: Repos, method: CheckCollaboratorAsync, summary: Check whether a user is a collaborator (repoCheckCollaborator). }
+repoAddCollaborator: { resource: Repos, method: AddCollaboratorAsync, summary: "Add a collaborator, or change a collaborator's permission (repoAddCollaborator)." }
+repoDeleteCollaborator: { resource: Repos, method: RemoveCollaboratorAsync, summary: Remove a collaborator (repoDeleteCollaborator). }
+repoGetRepoPermissions: { resource: Repos, method: GetPermissionsAsync, summary: Get a user's permissions on a repository (repoGetRepoPermissions). }
+repoListTeams: { resource: Repos, method: ListTeamsAsync, summary: List the teams that have access to a repository (repoListTeams). }
+repoCheckTeam: { resource: Repos, method: CheckTeamAsync, summary: Check whether a team has access to a repository (repoCheckTeam). }
+repoAddTeam: { resource: Repos, method: AddTeamAsync, summary: Give a team access to a repository (repoAddTeam). }
+repoDeleteTeam: { resource: Repos, method: RemoveTeamAsync, summary: Remove a team's access to a repository (repoDeleteTeam). }
+repoListStargazers: { resource: Repos, method: ListStargazersAsync, iterator: ListAllStargazersAsync, items: User, paging: { items: '$' }, summary: List one page of the users who starred a repository (repoListStargazers). }
+repoListSubscribers: { resource: Repos, method: ListWatchersAsync, iterator: ListAllWatchersAsync, items: User, paging: { items: '$' }, summary: List one page of the users who watch a repository (repoListSubscribers). }
+repoListTopics: { resource: Repos, method: ListTopicsAsync, iterator: ListAllTopicsAsync, items: string, paging: { items: 'topics' }, summary: List a page of a repository's topics (repoListTopics). }
+repoUpdateTopics: { resource: Repos, method: ReplaceTopicsAsync, summary: Replace a repository's topics (repoUpdateTopics). }
+repoAddTopic: { resource: Repos, method: AddTopicAsync, summary: Add a topic to a repository (repoAddTopic). }
+repoDeleteTopic: { resource: Repos, method: RemoveTopicAsync, summary: Remove a topic from a repository (repoDeleteTopic). }
+topicSearch: { resource: Repos, method: SearchTopicsAsync, iterator: SearchAllTopicsAsync, items: TopicResponse, paging: { items: 'topics' }, summary: Get one page of the topics that match a keyword (topicSearch). }
+repoGetLanguages: { resource: Repos, method: GetLanguagesAsync, summary: Get how many bytes of each language a repository holds (repoGetLanguages). }
+repoGetLicenses: { resource: Repos, method: ListLicensesAsync, summary: List the licenses found in a repository (repoGetLicenses). }
+repoMirrorSync: { resource: Repos, method: SyncMirrorAsync, summary: Sync a mirror repository from its remote (repoMirrorSync). }
+repoMergeUpstream: { resource: Repos, method: MergeUpstreamAsync, summary: Merge a branch from a fork's upstream repository (repoMergeUpstream). }
+repoListPushMirrors: { resource: Repos, method: ListPushMirrorsAsync, iterator: ListAllPushMirrorsAsync, items: PushMirror, paging: { items: '$' }, summary: List one page of a repository's push mirrors (repoListPushMirrors). }
+repoAddPushMirror: { resource: Repos, method: AddPushMirrorAsync, summary: Add a push mirror (repoAddPushMirror). }
+repoPushMirrorSync: { resource: Repos, method: SyncPushMirrorsAsync, summary: Push a repository to all of its push mirrors (repoPushMirrorSync). }
+repoGetPushMirrorByRemoteName: { resource: Repos, method: GetPushMirrorAsync, summary: Get a push mirror by its remote name (repoGetPushMirrorByRemoteName). }
+repoDeletePushMirror: { resource: Repos, method: DeletePushMirrorAsync, summary: Delete a push mirror (repoDeletePushMirror). }
+repoListKeys: { resource: Repos, method: ListDeployKeysAsync, iterator: ListAllDeployKeysAsync, items: DeployKey, paging: { items: '$' }, summary: List one page of a repository's deploy keys (repoListKeys). }
+repoCreateKey: { resource: Repos, method: AddDeployKeyAsync, summary: Add a deploy key (repoCreateKey). }
+repoGetKey: { resource: Repos, method: GetDeployKeyAsync, summary: Get a deploy key (repoGetKey). }
+repoDeleteKey: { resource: Repos, method: DeleteDeployKeyAsync, summary: Delete a deploy key (repoDeleteKey). }
+repoCreateDeployToken: { resource: Repos, method: CreateDeployTokenAsync, summary: "Create a deploy token, for Git over HTTPS (repoCreateDeployToken)." }
+repoGetIssueConfig: { resource: Repos, method: GetIssueConfigAsync, summary: Get a repository's issue template configuration (repoGetIssueConfig). }
+repoValidateIssueConfig: { resource: Repos, method: ValidateIssueConfigAsync, summary: Check a repository's issue template configuration (repoValidateIssueConfig). }
+repoGetIssueTemplates: { resource: Repos, method: ListIssueTemplatesAsync, summary: List a repository's issue templates (repoGetIssueTemplates). }
+repoNewPinAllowed: { resource: Repos, method: CheckPinAllowedAsync, summary: Check whether more issues and pull requests can be pinned (repoNewPinAllowed). }
+repoSigningKey: { resource: Repos, method: GetSigningKeyAsync, summary: Get the GPG key a repository signs commits with (repoSigningKey). }
+repoSigningKeySSH: { resource: Repos, method: GetSshSigningKeyAsync, summary: Get the SSH key a repository signs commits with (repoSigningKeySSH). }
+repoTrackedTimes: { resource: Repos, method: ListTrackedTimesAsync, iterator: ListAllTrackedTimesAsync, items: TrackedTime, paging: { items: '$' }, summary: List one page of the time tracked on a repository (repoTrackedTimes). }
+repoListHooks: { resource: Hooks, method: ListAsync, iterator: ListAllAsync, items: Hook, paging: { items: '$' }, summary: List one page of a repository's webhooks (repoListHooks). }
+repoCreateHook: { resource: Hooks, method: CreateAsync, summary: Create a repository webhook (repoCreateHook). }
+repoGetHook: { resource: Hooks, method: GetAsync, summary: Get a repository webhook (repoGetHook). }
+repoEditHook: { resource: Hooks, method: UpdateAsync, summary: Change a repository webhook (repoEditHook). }
+repoDeleteHook: { resource: Hooks, method: DeleteAsync, summary: Delete a repository webhook (repoDeleteHook). }
+repoTestHook: { resource: Hooks, method: TestAsync, summary: Send a test push event to a repository webhook (repoTestHook). }
+repoListGitHooks: { resource: Hooks, method: ListGitHooksAsync, summary: List a repository's Git hooks (repoListGitHooks). }
+repoGetGitHook: { resource: Hooks, method: GetGitHookAsync, summary: Get a Git hook (repoGetGitHook). }
+repoEditGitHook: { resource: Hooks, method: UpdateGitHookAsync, summary: Change a Git hook's content (repoEditGitHook). }
+repoDeleteGitHook: { resource: Hooks, method: DeleteGitHookAsync, summary: Clear a Git hook's content (repoDeleteGitHook). }
+orgListHooks: { resource: Hooks, method: ListForOrgAsync, iterator: ListAllForOrgAsync, items: Hook, paging: { items: '$' }, summary: List one page of an organization's webhooks (orgListHooks). }
+orgCreateHook: { resource: Hooks, method: CreateForOrgAsync, summary: Create an organization webhook (orgCreateHook). }
+orgGetHook: { resource: Hooks, method: GetForOrgAsync, summary: Get an organization webhook (orgGetHook). }
+orgEditHook: { resource: Hooks, method: UpdateForOrgAsync, summary: Change an organization webhook (orgEditHook). }
+orgDeleteHook: { resource: Hooks, method: DeleteForOrgAsync, summary: Delete an organization webhook (orgDeleteHook). }
+userListHooks: { resource: Hooks, method: ListForUserAsync, iterator: ListAllForUserAsync, items: Hook, paging: { items: '$' }, summary: List one page of your own webhooks (userListHooks). }
+userCreateHook: { resource: Hooks, method: CreateForUserAsync, summary: Create a webhook of your own (userCreateHook). }
+userGetHook: { resource: Hooks, method: GetForUserAsync, summary: Get one of your webhooks (userGetHook). }
+userEditHook: { resource: Hooks, method: UpdateForUserAsync, summary: Change one of your webhooks (userEditHook). }
+userDeleteHook: { resource: Hooks, method: DeleteForUserAsync, summary: Delete one of your webhooks (userDeleteHook). }
+repoListBranches: { resource: Branches, method: ListAsync, iterator: ListAllAsync, items: Branch, paging: { items: '$' }, summary: List one page of a repository's branches (repoListBranches). }
+repoCreateBranch: { resource: Branches, method: CreateAsync, summary: Create a branch (repoCreateBranch). }
+repoGetBranch: { resource: Branches, method: GetAsync, summary: Get a branch (repoGetBranch). }
+repoUpdateBranch: { resource: Branches, method: UpdateAsync, summary: Point a branch at another commit (repoUpdateBranch). }
+repoRenameBranch: { resource: Branches, method: RenameAsync, summary: Rename a branch (repoRenameBranch). }
+repoDeleteBranch: { resource: Branches, method: DeleteAsync, summary: Delete a branch (repoDeleteBranch). }
+repoListBranchProtection: { resource: Branches, method: ListProtectionsAsync, summary: List a repository's branch protection rules (repoListBranchProtection). }
+repoCreateBranchProtection: { resource: Branches, method: CreateProtectionAsync, summary: Create a branch protection rule (repoCreateBranchProtection). }
+repoGetBranchProtection: { resource: Branches, method: GetProtectionAsync, summary: Get a branch protection rule (repoGetBranchProtection). }
+repoEditBranchProtection: { resource: Branches, method: UpdateProtectionAsync, summary: Change a branch protection rule (repoEditBranchProtection). }
+repoDeleteBranchProtection: { resource: Branches, method: DeleteProtectionAsync, summary: Delete a branch protection rule (repoDeleteBranchProtection). }
+repoUpdateBranchProtectionPriories: { resource: Branches, method: ReorderProtectionsAsync, summary: Set the order in which branch protection rules apply (repoUpdateBranchProtectionPriories). }
+repoListTags: { resource: Tags, method: ListAsync, iterator: ListAllAsync, items: Tag, paging: { items: '$' }, summary: List one page of a repository's tags (repoListTags). }
+repoCreateTag: { resource: Tags, method: CreateAsync, summary: Create a tag (repoCreateTag). }
+repoGetTag: { resource: Tags, method: GetAsync, summary: Get a tag (repoGetTag). }
+repoDeleteTag: { resource: Tags, method: DeleteAsync, summary: Delete a tag (repoDeleteTag). }
+repoListTagProtection: { resource: Tags, method: ListProtectionsAsync, summary: List a repository's tag protection rules (repoListTagProtection). }
+repoCreateTagProtection: { resource: Tags, method: CreateProtectionAsync, summary: Create a tag protection rule (repoCreateTagProtection). }
+repoGetTagProtection: { resource: Tags, method: GetProtectionAsync, summary: Get a tag protection rule (repoGetTagProtection). }
+repoEditTagProtection: { resource: Tags, method: UpdateProtectionAsync, summary: Change a tag protection rule (repoEditTagProtection). }
+repoDeleteTagProtection: { resource: Tags, method: DeleteProtectionAsync, summary: Delete a tag protection rule (repoDeleteTagProtection). }
+repoGetContentsList: { resource: Contents, method: ListRootAsync, summary: List the entries at the root of a repository (repoGetContentsList). }
+repoGetContents: { resource: Contents, method: GetAsync, summary: "Get a file's content and metadata, or a directory's entries (repoGetContents)." }
+repoGetContentsExt: { resource: Contents, method: GetExtendedAsync, summary: "Get a file's or directory's metadata, with content as asked (repoGetContentsExt)." }
+repoGetFileContents: { resource: Contents, method: GetFilesAsync, summary: Get the content and metadata of several files (repoGetFileContents). }
+repoGetFileContentsPost: { resource: Contents, method: GetFilesByBodyAsync, summary: Get the content and metadata of several files named in the body (repoGetFileContentsPost). }
+repoCreateFile: { resource: Contents, method: CreateFileAsync, summary: Create a file in a new commit (repoCreateFile). }
+repoUpdateFile: { resource: Contents, method: UpdateFileAsync, summary: Change a file in a new commit (repoUpdateFile). }
+repoDeleteFile: { resource: Contents, method: DeleteFileAsync, summary: Delete a file in a new commit (repoDeleteFile). }
+repoChangeFiles: { resource: Contents, method: ChangeFilesAsync, summary: "Create, change or delete several files in one commit (repoChangeFiles)." }
+repoApplyDiffPatch: { resource: Contents, method: ApplyPatchAsync, summary: Apply a diff in a new commit (repoApplyDiffPatch). }
+repoGetRawFile: { resource: Contents, method: DownloadRawAsync, summary: Download a file's raw content (repoGetRawFile). }
+repoGetRawFileOrLFS: { resource: Contents, method: DownloadMediaAsync, summary: "Download a file's content, from Git LFS when it is stored there (repoGetRawFileOrLFS)." }
+repoGetEditorConfig: { resource: Contents, method: GetEditorconfigAsync, summary: Get the EditorConfig settings that apply to a file (repoGetEditorConfig). }
+repoGetAllCommits: { resource: Commits, method: ListAsync, iterator: ListAllAsync, items: Commit, paging: { items: '$' }, summary: List one page of a repository's commits (repoGetAllCommits). }
+repoGetSingleCommit: { resource: Commits, method: GetAsync, summary: Get a commit (repoGetSingleCommit). }
+repoDownloadCommitDiffOrPatch: { resource: Commits, method: GetDiffAsync, summary: Get a commit's diff or patch as text (repoDownloadCommitDiffOrPatch). }
+repoCompareDiff: { resource: Commits, method: CompareAsync, summary: Compare two refs (repoCompareDiff). }
+repoGetCommitPullRequest: { resource: Commits, method: GetPullRequestAsync, summary: Get the pull request that a commit was merged in (repoGetCommitPullRequest). }
+repoListStatuses: { resource: Commits, method: ListStatusesAsync, iterator: ListAllStatusesAsync, items: CommitStatus, paging: { items: '$' }, summary: List one page of a commit's statuses (repoListStatuses). }
+repoListStatusesByRef: { resource: Commits, method: ListStatusesForRefAsync, iterator: ListAllStatusesForRefAsync, items: CommitStatus, paging: { items: '$' }, summary: "List one page of the statuses of a branch, tag or commit (repoListStatusesByRef)." }
+repoGetCombinedStatusByRef: { resource: Commits, method: GetCombinedStatusAsync, iterator: ListAllCombinedStatusesAsync, items: CommitStatus, paging: { items: 'statuses' }, summary: "Get the combined status of a branch, tag or commit, with one page of its statuses (repoGetCombinedStatusByRef)." }
+repoCreateStatus: { resource: Commits, method: CreateStatusAsync, summary: Set a commit status (repoCreateStatus). }
+GetBlob: { resource: Git, method: GetBlobAsync, summary: Get a blob (GetBlob). }
+GetTree: { resource: Git, method: GetTreeAsync, summary: Get a tree (GetTree). }
+GetAnnotatedTag: { resource: Git, method: GetTagAsync, summary: Get an annotated tag object (GetAnnotatedTag). }
+repoGetNote: { resource: Git, method: GetNoteAsync, summary: Get the note attached to a commit (repoGetNote). }
+repoListAllGitRefs: { resource: Git, method: ListRefsAsync, summary: List a repository's refs (repoListAllGitRefs). }
+repoListGitRefs: { resource: Git, method: ListRefsMatchingAsync, summary: "List the refs that start with a prefix, such as heads (repoListGitRefs)." }
+repoListPullRequests: { resource: Pulls, method: ListAsync, iterator: ListAllAsync, items: PullRequest, paging: { items: '$' }, summary: List one page of a repository's pull requests (repoListPullRequests). }
+repoCreatePullRequest: { resource: Pulls, method: CreateAsync, summary: Open a pull request (repoCreatePullRequest). }
+repoGetPullRequest: { resource: Pulls, method: GetAsync, summary: Get a pull request (repoGetPullRequest). }
+repoGetPullRequestByBaseHead: { resource: Pulls, method: GetByBranchesAsync, summary: Get the pull request from a head branch into a base branch (repoGetPullRequestByBaseHead). }
+repoEditPullRequest: { resource: Pulls, method: UpdateAsync, summary: Change a pull request (repoEditPullRequest). }
+repoListPinnedPullRequests: { resource: Pulls, method: ListPinnedAsync, summary: List a repository's pinned pull requests (repoListPinnedPullRequests). }
+repoDownloadPullDiffOrPatch: { resource: Pulls, method: GetDiffAsync, summary: Get a pull request's diff or patch as text (repoDownloadPullDiffOrPatch). }
+repoGetPullRequestCommits: { resource: Pulls, method: ListCommitsAsync, iterator: ListAllCommitsAsync, items: Commit, paging: { items: '$' }, summary: List one page of a pull request's commits (repoGetPullRequestCommits). }
+repoGetPullRequestFiles: { resource: Pulls, method: ListFilesAsync, iterator: ListAllFilesAsync, items: ChangedFile, paging: { items: '$' }, summary: List one page of the files a pull request changes (repoGetPullRequestFiles). }
+repoPullRequestIsMerged: { resource: Pulls, method: CheckMergedAsync, summary: Check whether a pull request is merged (repoPullRequestIsMerged). }
+repoMergePullRequest: { resource: Pulls, method: MergeAsync, summary: Merge a pull request (repoMergePullRequest). }
+repoCancelScheduledAutoMerge: { resource: Pulls, method: CancelAutoMergeAsync, summary: Cancel a pull request's scheduled merge (repoCancelScheduledAutoMerge). }
+repoUpdatePullRequest: { resource: Pulls, method: UpdateBranchAsync, summary: Merge or rebase a pull request's base branch into its head branch (repoUpdatePullRequest). }
+repoCreatePullReviewRequests: { resource: Pulls, method: RequestReviewsAsync, summary: Ask users or teams to review a pull request (repoCreatePullReviewRequests). }
+repoDeletePullReviewRequests: { resource: Pulls, method: CancelReviewRequestsAsync, summary: Withdraw review requests from a pull request (repoDeletePullReviewRequests). }
+repoListPullReviews: { resource: Pulls, method: ListReviewsAsync, iterator: ListAllReviewsAsync, items: PullReview, paging: { items: '$' }, summary: List one page of a pull request's reviews (repoListPullReviews). }
+repoCreatePullReview: { resource: Pulls, method: CreateReviewAsync, summary: Start a review of a pull request (repoCreatePullReview). }
+repoGetPullReview: { resource: Pulls, method: GetReviewAsync, summary: Get a pull request review (repoGetPullReview). }
+repoSubmitPullReview: { resource: Pulls, method: SubmitReviewAsync, summary: Submit a pending pull request review (repoSubmitPullReview). }
+repoDeletePullReview: { resource: Pulls, method: DeleteReviewAsync, summary: Delete a pull request review (repoDeletePullReview). }
+repoDismissPullReview: { resource: Pulls, method: DismissReviewAsync, summary: Dismiss a pull request review (repoDismissPullReview). }
+repoUnDismissPullReview: { resource: Pulls, method: UndismissReviewAsync, summary: Restore a dismissed pull request review (repoUnDismissPullReview). }
+repoGetPullReviewComments: { resource: Pulls, method: ListReviewCommentsAsync, summary: List a review's comments (repoGetPullReviewComments). }
+repoCreatePullReviewCommentReply: { resource: Pulls, method: ReplyToReviewCommentAsync, summary: Reply to a review comment (repoCreatePullReviewCommentReply). }
+repoResolvePullReviewComment: { resource: Pulls, method: ResolveReviewCommentAsync, summary: Mark a review comment's conversation resolved (repoResolvePullReviewComment). }
+repoUnresolvePullReviewComment: { resource: Pulls, method: UnresolveReviewCommentAsync, summary: Mark a review comment's conversation unresolved (repoUnresolvePullReviewComment). }
+repoListReleases: { resource: Releases, method: ListAsync, iterator: ListAllAsync, items: Release, paging: { items: '$' }, summary: List one page of a repository's releases (repoListReleases). }
+repoCreateRelease: { resource: Releases, method: CreateAsync, summary: Create a release (repoCreateRelease). }
+repoGetRelease: { resource: Releases, method: GetAsync, summary: Get a release (repoGetRelease). }
+repoGetLatestRelease: { resource: Releases, method: GetLatestAsync, summary: Get the latest release that is not a draft or prerelease (repoGetLatestRelease). }
+repoGetReleaseByTag: { resource: Releases, method: GetByTagAsync, summary: Get a release by its tag name (repoGetReleaseByTag). }
+repoEditRelease: { resource: Releases, method: UpdateAsync, summary: Change a release (repoEditRelease). }
+repoDeleteRelease: { resource: Releases, method: DeleteAsync, summary: Delete a release (repoDeleteRelease). }
+repoDeleteReleaseByTag: { resource: Releases, method: DeleteByTagAsync, summary: Delete a release by its tag name (repoDeleteReleaseByTag). }
+repoListReleaseAttachments: { resource: Releases, method: ListAttachmentsAsync, summary: List a release's attachments (repoListReleaseAttachments). }
+repoCreateReleaseAttachment: { resource: Releases, method: UploadAttachmentAsync, summary: Upload an attachment to a release (repoCreateReleaseAttachment). }
+repoGetReleaseAttachment: { resource: Releases, method: GetAttachmentAsync, summary: Get a release attachment (repoGetReleaseAttachment). }
+repoEditReleaseAttachment: { resource: Releases, method: UpdateAttachmentAsync, summary: Rename a release attachment (repoEditReleaseAttachment). }
+repoDeleteReleaseAttachment: { resource: Releases, method: DeleteAttachmentAsync, summary: Delete a release attachment (repoDeleteReleaseAttachment). }
+repoGetWikiPages: { resource: Wiki, method: ListPagesAsync, iterator: ListAllPagesAsync, items: WikiPageMetaData, paging: { items: '$' }, summary: List one page of a repository's wiki pages (repoGetWikiPages). }
+repoCreateWikiPage: { resource: Wiki, method: CreatePageAsync, summary: Create a wiki page (repoCreateWikiPage). }
+repoGetWikiPage: { resource: Wiki, method: GetPageAsync, summary: Get a wiki page (repoGetWikiPage). }
+repoEditWikiPage: { resource: Wiki, method: UpdatePageAsync, summary: Change a wiki page (repoEditWikiPage). }
+repoDeleteWikiPage: { resource: Wiki, method: DeletePageAsync, summary: Delete a wiki page (repoDeleteWikiPage). }
+repoGetWikiPageRevisions: { resource: Wiki, method: ListPageRevisionsAsync, summary: List a wiki page's revisions (repoGetWikiPageRevisions). }
+getArtifacts: { resource: Actions, method: ListArtifactsAsync, summary: List a repository's artifacts (getArtifacts). }
+getArtifact: { resource: Actions, method: GetArtifactAsync, summary: Get an artifact (getArtifact). }
+deleteArtifact: { resource: Actions, method: DeleteArtifactAsync, summary: Delete an artifact (deleteArtifact). }
+downloadArtifact: { resource: Actions, method: DownloadArtifactAsync, summary: "Download an artifact, through a redirect to its file (downloadArtifact)." }
+getWorkflowRuns: { resource: Actions, method: ListRunsAsync, iterator: ListAllRunsAsync, items: ActionWorkflowRun, paging: { items: 'workflow_runs' }, summary: List one page of a repository's workflow runs (getWorkflowRuns). }
+GetWorkflowRun: { resource: Actions, method: GetRunAsync, summary: Get a workflow run (GetWorkflowRun). }
+deleteActionRun: { resource: Actions, method: DeleteRunAsync, summary: Delete a workflow run (deleteActionRun). }
+approveWorkflowRun: { resource: Actions, method: ApproveRunAsync, summary: Approve a workflow run that waits for approval (approveWorkflowRun). }
+cancelWorkflowRun: { resource: Actions, method: CancelRunAsync, summary: Cancel a workflow run (cancelWorkflowRun). }
+forceCancelWorkflowRun: { resource: Actions, method: ForceCancelRunAsync, summary: Cancel a workflow run at once (forceCancelWorkflowRun). }
+rerunWorkflowRun: { resource: Actions, method: RerunRunAsync, summary: Run a workflow run again (rerunWorkflowRun). }
+rerunFailedWorkflowRun: { resource: Actions, method: RerunFailedJobsAsync, summary: Run a workflow run's failed jobs again (rerunFailedWorkflowRun). }
+getArtifactsOfRun: { resource: Actions, method: ListRunArtifactsAsync, summary: List a workflow run's artifacts (getArtifactsOfRun). }
+getWorkflowRunLogs: { resource: Actions, method: DownloadRunLogsAsync, summary: Download a workflow run's logs (getWorkflowRunLogs). }
+getWorkflowRunAttempt: { resource: Actions, method: GetRunAttemptAsync, summary: Get one attempt of a workflow run (getWorkflowRunAttempt). }
+listWorkflowRunAttemptJobs: { resource: Actions, method: ListRunAttemptJobsAsync, iterator: ListAllRunAttemptJobsAsync, items: ActionWorkflowJob, paging: { items: 'jobs' }, summary: List one page of the jobs in one attempt of a workflow run (listWorkflowRunAttemptJobs). }
+listWorkflowRunJobs: { resource: Actions, method: ListRunJobsAsync, iterator: ListAllRunJobsAsync, items: ActionWorkflowJob, paging: { items: 'jobs' }, summary: List one page of a workflow run's jobs (listWorkflowRunJobs). }
+listWorkflowJobs: { resource: Actions, method: ListJobsAsync, iterator: ListAllJobsAsync, items: ActionWorkflowJob, paging: { items: 'jobs' }, summary: List one page of a repository's workflow jobs (listWorkflowJobs). }
+getWorkflowJob: { resource: Actions, method: GetJobAsync, summary: Get a workflow job (getWorkflowJob). }
+rerunWorkflowJob: { resource: Actions, method: RerunJobAsync, summary: Run a workflow job again (rerunWorkflowJob). }
+downloadActionsRunJobLogs: { resource: Actions, method: DownloadJobLogsAsync, summary: Download a workflow job's logs (downloadActionsRunJobLogs). }
+ListActionTasks: { resource: Actions, method: ListTasksAsync, iterator: ListAllTasksAsync, items: ActionTask, paging: { items: 'workflow_runs' }, summary: List one page of a repository's action tasks (ListActionTasks). }
+ActionsListRepositoryWorkflows: { resource: Actions, method: ListWorkflowsAsync, summary: List a repository's workflows (ActionsListRepositoryWorkflows). }
+ActionsGetWorkflow: { resource: Actions, method: GetWorkflowAsync, summary: Get a workflow (ActionsGetWorkflow). }
+ActionsEnableWorkflow: { resource: Actions, method: EnableWorkflowAsync, summary: Enable a workflow (ActionsEnableWorkflow). }
+ActionsDisableWorkflow: { resource: Actions, method: DisableWorkflowAsync, summary: Disable a workflow (ActionsDisableWorkflow). }
+ActionsDispatchWorkflow: { resource: Actions, method: DispatchWorkflowAsync, summary: Start a workflow run by hand (ActionsDispatchWorkflow). }
+ActionsListWorkflowRuns: { resource: Actions, method: ListWorkflowRunsAsync, iterator: ListAllWorkflowRunsAsync, items: ActionWorkflowRun, paging: { items: 'workflow_runs' }, summary: List one page of a workflow's runs (ActionsListWorkflowRuns). }
+getRepoRunners: { resource: Actions, method: ListRunnersAsync, summary: List a repository's runners (getRepoRunners). }
+getRepoRunner: { resource: Actions, method: GetRunnerAsync, summary: Get a repository runner (getRepoRunner). }
+updateRepoRunner: { resource: Actions, method: UpdateRunnerAsync, summary: Change a repository runner (updateRepoRunner). }
+deleteRepoRunner: { resource: Actions, method: DeleteRunnerAsync, summary: Delete a repository runner (deleteRepoRunner). }
+repoCreateRunnerRegistrationToken: { resource: Actions, method: CreateRunnerRegistrationTokenAsync, summary: Create a token that registers a repository runner (repoCreateRunnerRegistrationToken). }
+repoListActionsSecrets: { resource: Actions, method: ListSecretsAsync, iterator: ListAllSecretsAsync, items: Secret, paging: { items: '$' }, summary: List one page of a repository's secrets (repoListActionsSecrets). }
+updateRepoSecret: { resource: Actions, method: SetSecretAsync, summary: Create or change a repository secret (updateRepoSecret). }
+deleteRepoSecret: { resource: Actions, method: DeleteSecretAsync, summary: Delete a repository secret (deleteRepoSecret). }
+getRepoVariablesList: { resource: Actions, method: ListVariablesAsync, iterator: ListAllVariablesAsync, items: ActionVariable, paging: { items: '$' }, summary: List one page of a repository's variables (getRepoVariablesList). }
+getRepoVariable: { resource: Actions, method: GetVariableAsync, summary: Get a repository variable (getRepoVariable). }
+createRepoVariable: { resource: Actions, method: CreateVariableAsync, summary: Create a repository variable (createRepoVariable). }
+updateRepoVariable: { resource: Actions, method: UpdateVariableAsync, summary: Change a repository variable (updateRepoVariable). }
+deleteRepoVariable: { resource: Actions, method: DeleteVariableAsync, summary: Delete a repository variable (deleteRepoVariable). }
+getOrgWorkflowRuns: { resource: Actions, method: ListRunsForOrgAsync, iterator: ListAllRunsForOrgAsync, items: ActionWorkflowRun, paging: { items: 'workflow_runs' }, summary: List one page of an organization's workflow runs (getOrgWorkflowRuns). }
+getOrgWorkflowJobs: { resource: Actions, method: ListJobsForOrgAsync, iterator: ListAllJobsForOrgAsync, items: ActionWorkflowJob, paging: { items: 'jobs' }, summary: List one page of an organization's workflow jobs (getOrgWorkflowJobs). }
+getOrgRunners: { resource: Actions, method: ListRunnersForOrgAsync, summary: List an organization's runners (getOrgRunners). }
+getOrgRunner: { resource: Actions, method: GetRunnerForOrgAsync, summary: Get an organization runner (getOrgRunner). }
+updateOrgRunner: { resource: Actions, method: UpdateRunnerForOrgAsync, summary: Change an organization runner (updateOrgRunner). }
+deleteOrgRunner: { resource: Actions, method: DeleteRunnerForOrgAsync, summary: Delete an organization runner (deleteOrgRunner). }
+orgCreateRunnerRegistrationToken: { resource: Actions, method: CreateRunnerRegistrationTokenForOrgAsync, summary: Create a token that registers an organization runner (orgCreateRunnerRegistrationToken). }
+orgListActionsSecrets: { resource: Actions, method: ListSecretsForOrgAsync, iterator: ListAllSecretsForOrgAsync, items: Secret, paging: { items: '$' }, summary: List one page of an organization's secrets (orgListActionsSecrets). }
+updateOrgSecret: { resource: Actions, method: SetSecretForOrgAsync, summary: Create or change an organization secret (updateOrgSecret). }
+deleteOrgSecret: { resource: Actions, method: DeleteSecretForOrgAsync, summary: Delete an organization secret (deleteOrgSecret). }
+getOrgVariablesList: { resource: Actions, method: ListVariablesForOrgAsync, iterator: ListAllVariablesForOrgAsync, items: ActionVariable, paging: { items: '$' }, summary: List one page of an organization's variables (getOrgVariablesList). }
+getOrgVariable: { resource: Actions, method: GetVariableForOrgAsync, summary: Get an organization variable (getOrgVariable). }
+createOrgVariable: { resource: Actions, method: CreateVariableForOrgAsync, summary: Create an organization variable (createOrgVariable). }
+updateOrgVariable: { resource: Actions, method: UpdateVariableForOrgAsync, summary: Change an organization variable (updateOrgVariable). }
+deleteOrgVariable: { resource: Actions, method: DeleteVariableForOrgAsync, summary: Delete an organization variable (deleteOrgVariable). }
+getUserWorkflowRuns: { resource: Actions, method: ListRunsForUserAsync, iterator: ListAllRunsForUserAsync, items: ActionWorkflowRun, paging: { items: 'workflow_runs' }, summary: List one page of your own workflow runs (getUserWorkflowRuns). }
+getUserWorkflowJobs: { resource: Actions, method: ListJobsForUserAsync, iterator: ListAllJobsForUserAsync, items: ActionWorkflowJob, paging: { items: 'jobs' }, summary: List one page of your own workflow jobs (getUserWorkflowJobs). }
+getUserRunners: { resource: Actions, method: ListRunnersForUserAsync, summary: List your own runners (getUserRunners). }
+getUserRunner: { resource: Actions, method: GetRunnerForUserAsync, summary: Get one of your runners (getUserRunner). }
+updateUserRunner: { resource: Actions, method: UpdateRunnerForUserAsync, summary: Change one of your runners (updateUserRunner). }
+deleteUserRunner: { resource: Actions, method: DeleteRunnerForUserAsync, summary: Delete one of your runners (deleteUserRunner). }
+userCreateRunnerRegistrationToken: { resource: Actions, method: CreateRunnerRegistrationTokenForUserAsync, summary: Create a token that registers a runner of your own (userCreateRunnerRegistrationToken). }
+updateUserSecret: { resource: Actions, method: SetSecretForUserAsync, summary: Create or change one of your secrets (updateUserSecret). }
+deleteUserSecret: { resource: Actions, method: DeleteSecretForUserAsync, summary: Delete one of your secrets (deleteUserSecret). }
+getUserVariablesList: { resource: Actions, method: ListVariablesForUserAsync, iterator: ListAllVariablesForUserAsync, items: ActionVariable, paging: { items: '$' }, summary: List one page of your own variables (getUserVariablesList). }
+getUserVariable: { resource: Actions, method: GetVariableForUserAsync, summary: Get one of your variables (getUserVariable). }
+createUserVariable: { resource: Actions, method: CreateVariableForUserAsync, summary: Create a variable of your own (createUserVariable). }
+updateUserVariable: { resource: Actions, method: UpdateVariableForUserAsync, summary: Change one of your variables (updateUserVariable). }
+deleteUserVariable: { resource: Actions, method: DeleteVariableForUserAsync, summary: Delete one of your variables (deleteUserVariable). }
+issueSearchIssues: { resource: Issues, method: SearchAsync, iterator: SearchAllAsync, items: Issue, paging: { items: '$' }, summary: "Get one page of the issues and pull requests that match a search, across repositories (issueSearchIssues)." }
+issueListIssues: { resource: Issues, method: ListAsync, iterator: ListAllAsync, items: Issue, paging: { items: '$' }, summary: List one page of a repository's issues and pull requests (issueListIssues). }
+issueCreateIssue: { resource: Issues, method: CreateAsync, summary: Open an issue (issueCreateIssue). }
+issueGetIssue: { resource: Issues, method: GetAsync, summary: Get an issue or pull request (issueGetIssue). }
+issueEditIssue: { resource: Issues, method: UpdateAsync, summary: Change an issue or pull request (issueEditIssue). }
+issueDelete: { resource: Issues, method: DeleteAsync, summary: Delete an issue (issueDelete). }
+repoListPinnedIssues: { resource: Issues, method: ListPinnedAsync, summary: List a repository's pinned issues (repoListPinnedIssues). }
+issueEditIssueDeadline: { resource: Issues, method: SetDeadlineAsync, summary: Set or clear an issue's due date (issueEditIssueDeadline). }
+issueLockIssue: { resource: Issues, method: LockAsync, summary: Lock an issue's conversation (issueLockIssue). }
+issueUnlockIssue: { resource: Issues, method: UnlockAsync, summary: Unlock an issue's conversation (issueUnlockIssue). }
+pinIssue: { resource: Issues, method: PinAsync, summary: Pin an issue (pinIssue). }
+unpinIssue: { resource: Issues, method: UnpinAsync, summary: Unpin an issue (unpinIssue). }
+moveIssuePin: { resource: Issues, method: MovePinAsync, summary: Move a pinned issue to another position (moveIssuePin). }
+issueGetCommentsAndTimeline: { resource: Issues, method: ListTimelineAsync, iterator: ListAllTimelineAsync, items: TimelineComment, paging: { items: '$' }, summary: List one page of an issue's comments and events (issueGetCommentsAndTimeline). }
+issueGetComments: { resource: Issues, method: ListCommentsAsync, summary: List an issue's comments (issueGetComments). }
+issueCreateComment: { resource: Issues, method: CreateCommentAsync, summary: Comment on an issue (issueCreateComment). }
+issueGetRepoComments: { resource: Issues, method: ListRepoCommentsAsync, iterator: ListAllRepoCommentsAsync, items: Comment, paging: { items: '$' }, summary: List one page of the comments on a repository's issues (issueGetRepoComments). }
+issueGetComment: { resource: Issues, method: GetCommentAsync, summary: Get an issue comment (issueGetComment). }
+issueEditComment: { resource: Issues, method: UpdateCommentAsync, summary: Change an issue comment (issueEditComment). }
+issueDeleteComment: { resource: Issues, method: DeleteCommentAsync, summary: Delete an issue comment (issueDeleteComment). }
+issueListIssueAttachments: { resource: Issues, method: ListAttachmentsAsync, summary: List an issue's attachments (issueListIssueAttachments). }
+issueCreateIssueAttachment: { resource: Issues, method: UploadAttachmentAsync, summary: Upload an attachment to an issue (issueCreateIssueAttachment). }
+issueGetIssueAttachment: { resource: Issues, method: GetAttachmentAsync, summary: Get an issue attachment (issueGetIssueAttachment). }
+issueEditIssueAttachment: { resource: Issues, method: UpdateAttachmentAsync, summary: Rename an issue attachment (issueEditIssueAttachment). }
+issueDeleteIssueAttachment: { resource: Issues, method: DeleteAttachmentAsync, summary: Delete an issue attachment (issueDeleteIssueAttachment). }
+issueListIssueCommentAttachments: { resource: Issues, method: ListCommentAttachmentsAsync, summary: List an issue comment's attachments (issueListIssueCommentAttachments). }
+issueCreateIssueCommentAttachment: { resource: Issues, method: UploadCommentAttachmentAsync, summary: Upload an attachment to an issue comment (issueCreateIssueCommentAttachment). }
+issueGetIssueCommentAttachment: { resource: Issues, method: GetCommentAttachmentAsync, summary: Get an issue comment attachment (issueGetIssueCommentAttachment). }
+issueEditIssueCommentAttachment: { resource: Issues, method: UpdateCommentAttachmentAsync, summary: Rename an issue comment attachment (issueEditIssueCommentAttachment). }
+issueDeleteIssueCommentAttachment: { resource: Issues, method: DeleteCommentAttachmentAsync, summary: Delete an issue comment attachment (issueDeleteIssueCommentAttachment). }
+issueGetIssueReactions: { resource: Issues, method: ListReactionsAsync, iterator: ListAllReactionsAsync, items: Reaction, paging: { items: '$' }, summary: List one page of an issue's reactions (issueGetIssueReactions). }
+issuePostIssueReaction: { resource: Issues, method: AddReactionAsync, summary: React to an issue (issuePostIssueReaction). }
+issueDeleteIssueReaction: { resource: Issues, method: RemoveReactionAsync, summary: Remove a reaction from an issue (issueDeleteIssueReaction). }
+issueGetCommentReactions: { resource: Issues, method: ListCommentReactionsAsync, summary: List an issue comment's reactions (issueGetCommentReactions). }
+issuePostCommentReaction: { resource: Issues, method: AddCommentReactionAsync, summary: React to an issue comment (issuePostCommentReaction). }
+issueDeleteCommentReaction: { resource: Issues, method: RemoveCommentReactionAsync, summary: Remove a reaction from an issue comment (issueDeleteCommentReaction). }
+issueAddAssignees: { resource: Issues, method: AddAssigneesAsync, summary: Assign users to an issue (issueAddAssignees). }
+issueRemoveAssignees: { resource: Issues, method: RemoveAssigneesAsync, summary: Unassign users from an issue (issueRemoveAssignees). }
+issueCheckAssignee: { resource: Issues, method: CheckAssigneeAsync, summary: Check whether a user is assigned to an issue (issueCheckAssignee). }
+issueGetLabels: { resource: Issues, method: ListLabelsAsync, summary: List an issue's labels (issueGetLabels). }
+issueAddLabel: { resource: Issues, method: AddLabelsAsync, summary: Add labels to an issue (issueAddLabel). }
+issueReplaceLabels: { resource: Issues, method: ReplaceLabelsAsync, summary: Replace an issue's labels (issueReplaceLabels). }
+issueRemoveLabel: { resource: Issues, method: RemoveLabelAsync, summary: Remove a label from an issue (issueRemoveLabel). }
+issueClearLabels: { resource: Issues, method: ClearLabelsAsync, summary: Remove every label from an issue (issueClearLabels). }
+issueListIssueDependencies: { resource: Issues, method: ListDependenciesAsync, iterator: ListAllDependenciesAsync, items: Issue, paging: { items: '$' }, summary: List one page of the issues that block an issue (issueListIssueDependencies). }
+issueCreateIssueDependencies: { resource: Issues, method: AddDependencyAsync, summary: Make an issue depend on another (issueCreateIssueDependencies). }
+issueRemoveIssueDependencies: { resource: Issues, method: RemoveDependencyAsync, summary: Stop an issue depending on another (issueRemoveIssueDependencies). }
+issueListBlocks: { resource: Issues, method: ListBlockedAsync, iterator: ListAllBlockedAsync, items: Issue, paging: { items: '$' }, summary: List one page of the issues that an issue blocks (issueListBlocks). }
+issueCreateIssueBlocking: { resource: Issues, method: AddBlockedAsync, summary: Make an issue block another (issueCreateIssueBlocking). }
+issueRemoveIssueBlocking: { resource: Issues, method: RemoveBlockedAsync, summary: Stop an issue blocking another (issueRemoveIssueBlocking). }
+issueSubscriptions: { resource: Issues, method: ListSubscribersAsync, iterator: ListAllSubscribersAsync, items: User, paging: { items: '$' }, summary: List one page of an issue's subscribers (issueSubscriptions). }
+issueCheckSubscription: { resource: Issues, method: CheckSubscriptionAsync, summary: Check whether you are subscribed to an issue (issueCheckSubscription). }
+issueAddSubscription: { resource: Issues, method: SubscribeAsync, summary: Subscribe a user to an issue (issueAddSubscription). }
+issueDeleteSubscription: { resource: Issues, method: UnsubscribeAsync, summary: Unsubscribe a user from an issue (issueDeleteSubscription). }
+issueTrackedTimes: { resource: Issues, method: ListTrackedTimesAsync, iterator: ListAllTrackedTimesAsync, items: TrackedTime, paging: { items: '$' }, summary: List one page of the time tracked on an issue (issueTrackedTimes). }
+issueAddTime: { resource: Issues, method: AddTrackedTimeAsync, summary: Track time spent on an issue (issueAddTime). }
+issueDeleteTime: { resource: Issues, method: DeleteTrackedTimeAsync, summary: Delete one tracked time entry from an issue (issueDeleteTime). }
+issueResetTime: { resource: Issues, method: ResetTrackedTimeAsync, summary: Delete all of your tracked time on an issue (issueResetTime). }
+issueStartStopWatch: { resource: Issues, method: StartStopwatchAsync, summary: Start a stopwatch on an issue (issueStartStopWatch). }
+issueStopStopWatch: { resource: Issues, method: StopStopwatchAsync, summary: Stop an issue's stopwatch and track its time (issueStopStopWatch). }
+issueDeleteStopWatch: { resource: Issues, method: DeleteStopwatchAsync, summary: Cancel an issue's stopwatch without tracking its time (issueDeleteStopWatch). }
+issueListLabels: { resource: Labels, method: ListAsync, iterator: ListAllAsync, items: Label, paging: { items: '$' }, summary: List one page of a repository's labels (issueListLabels). }
+issueCreateLabel: { resource: Labels, method: CreateAsync, summary: Create a repository label (issueCreateLabel). }
+issueGetLabel: { resource: Labels, method: GetAsync, summary: Get a repository label (issueGetLabel). }
+issueEditLabel: { resource: Labels, method: UpdateAsync, summary: Change a repository label (issueEditLabel). }
+issueDeleteLabel: { resource: Labels, method: DeleteAsync, summary: Delete a repository label (issueDeleteLabel). }
+orgListLabels: { resource: Labels, method: ListForOrgAsync, iterator: ListAllForOrgAsync, items: Label, paging: { items: '$' }, summary: List one page of an organization's labels (orgListLabels). }
+orgCreateLabel: { resource: Labels, method: CreateForOrgAsync, summary: Create an organization label (orgCreateLabel). }
+orgGetLabel: { resource: Labels, method: GetForOrgAsync, summary: Get an organization label (orgGetLabel). }
+orgEditLabel: { resource: Labels, method: UpdateForOrgAsync, summary: Change an organization label (orgEditLabel). }
+orgDeleteLabel: { resource: Labels, method: DeleteForOrgAsync, summary: Delete an organization label (orgDeleteLabel). }
+issueGetMilestonesList: { resource: Milestones, method: ListAsync, iterator: ListAllAsync, items: Milestone, paging: { items: '$' }, summary: List one page of a repository's milestones (issueGetMilestonesList). }
+issueCreateMilestone: { resource: Milestones, method: CreateAsync, summary: Create a milestone (issueCreateMilestone). }
+issueGetMilestone: { resource: Milestones, method: GetAsync, summary: Get a milestone (issueGetMilestone). }
+issueEditMilestone: { resource: Milestones, method: UpdateAsync, summary: Change a milestone (issueEditMilestone). }
+issueDeleteMilestone: { resource: Milestones, method: DeleteAsync, summary: Delete a milestone (issueDeleteMilestone). }
+repoListProjects: { resource: Projects, method: ListAsync, iterator: ListAllAsync, items: Project, paging: { items: '$' }, summary: List one page of a repository's projects (repoListProjects). }
+repoCreateProject: { resource: Projects, method: CreateAsync, summary: Create a repository project (repoCreateProject). }
+repoGetProject: { resource: Projects, method: GetAsync, summary: Get a repository project (repoGetProject). }
+repoEditProject: { resource: Projects, method: UpdateAsync, summary: Change a repository project (repoEditProject). }
+repoDeleteProject: { resource: Projects, method: DeleteAsync, summary: Delete a repository project (repoDeleteProject). }
+repoListProjectColumns: { resource: Projects, method: ListColumnsAsync, iterator: ListAllColumnsAsync, items: ProjectColumn, paging: { items: '$' }, summary: List one page of a repository project's columns (repoListProjectColumns). }
+repoCreateProjectColumn: { resource: Projects, method: CreateColumnAsync, summary: Add a column to a repository project (repoCreateProjectColumn). }
+repoGetProjectColumn: { resource: Projects, method: GetColumnAsync, summary: Get a repository project column (repoGetProjectColumn). }
+repoEditProjectColumn: { resource: Projects, method: UpdateColumnAsync, summary: Change a repository project column (repoEditProjectColumn). }
+repoDeleteProjectColumn: { resource: Projects, method: DeleteColumnAsync, summary: Delete a repository project column (repoDeleteProjectColumn). }
+repoMoveProjectColumns: { resource: Projects, method: ReorderColumnsAsync, summary: Reorder a repository project's columns (repoMoveProjectColumns). }
+repoSetDefaultProjectColumn: { resource: Projects, method: SetDefaultColumnAsync, summary: Make a column the default of a repository project (repoSetDefaultProjectColumn). }
+repoListProjectColumnIssues: { resource: Projects, method: ListColumnIssuesAsync, iterator: ListAllColumnIssuesAsync, items: Issue, paging: { items: '$' }, summary: List one page of the issues in a repository project column (repoListProjectColumnIssues). }
+repoAddIssueToProjectColumn: { resource: Projects, method: AddIssueToColumnAsync, summary: Add an issue to a repository project column (repoAddIssueToProjectColumn). }
+repoRemoveIssueFromProjectColumn: { resource: Projects, method: RemoveIssueFromColumnAsync, summary: Remove an issue from a repository project column (repoRemoveIssueFromProjectColumn). }
+repoMoveProjectIssue: { resource: Projects, method: MoveIssueAsync, summary: Move an issue within a repository project (repoMoveProjectIssue). }
+orgListProjects: { resource: Projects, method: ListForOrgAsync, iterator: ListAllForOrgAsync, items: Project, paging: { items: '$' }, summary: List one page of an organization's projects (orgListProjects). }
+orgCreateProject: { resource: Projects, method: CreateForOrgAsync, summary: Create an organization project (orgCreateProject). }
+orgGetProject: { resource: Projects, method: GetForOrgAsync, summary: Get an organization project (orgGetProject). }
+orgEditProject: { resource: Projects, method: UpdateForOrgAsync, summary: Change an organization project (orgEditProject). }
+orgDeleteProject: { resource: Projects, method: DeleteForOrgAsync, summary: Delete an organization project (orgDeleteProject). }
+orgListProjectColumns: { resource: Projects, method: ListColumnsForOrgAsync, iterator: ListAllColumnsForOrgAsync, items: ProjectColumn, paging: { items: '$' }, summary: List one page of an organization project's columns (orgListProjectColumns). }
+orgCreateProjectColumn: { resource: Projects, method: CreateColumnForOrgAsync, summary: Add a column to an organization project (orgCreateProjectColumn). }
+orgGetProjectColumn: { resource: Projects, method: GetColumnForOrgAsync, summary: Get an organization project column (orgGetProjectColumn). }
+orgEditProjectColumn: { resource: Projects, method: UpdateColumnForOrgAsync, summary: Change an organization project column (orgEditProjectColumn). }
+orgDeleteProjectColumn: { resource: Projects, method: DeleteColumnForOrgAsync, summary: Delete an organization project column (orgDeleteProjectColumn). }
+orgMoveProjectColumns: { resource: Projects, method: ReorderColumnsForOrgAsync, summary: Reorder an organization project's columns (orgMoveProjectColumns). }
+orgSetDefaultProjectColumn: { resource: Projects, method: SetDefaultColumnForOrgAsync, summary: Make a column the default of an organization project (orgSetDefaultProjectColumn). }
+orgListProjectColumnIssues: { resource: Projects, method: ListColumnIssuesForOrgAsync, iterator: ListAllColumnIssuesForOrgAsync, items: Issue, paging: { items: '$' }, summary: List one page of the issues in an organization project column (orgListProjectColumnIssues). }
+orgAddIssueToProjectColumn: { resource: Projects, method: AddIssueToColumnForOrgAsync, summary: Add an issue to an organization project column (orgAddIssueToProjectColumn). }
+orgRemoveIssueFromProjectColumn: { resource: Projects, method: RemoveIssueFromColumnForOrgAsync, summary: Remove an issue from an organization project column (orgRemoveIssueFromProjectColumn). }
+orgMoveProjectIssue: { resource: Projects, method: MoveIssueForOrgAsync, summary: Move an issue within an organization project (orgMoveProjectIssue). }
+userCurrentListProjects: { resource: Projects, method: ListForUserAsync, iterator: ListAllForUserAsync, items: Project, paging: { items: '$' }, summary: List one page of your own projects (userCurrentListProjects). }
+userCurrentCreateProject: { resource: Projects, method: CreateForUserAsync, summary: Create a project of your own (userCurrentCreateProject). }
+userCurrentGetProject: { resource: Projects, method: GetForUserAsync, summary: Get one of your projects (userCurrentGetProject). }
+userCurrentEditProject: { resource: Projects, method: UpdateForUserAsync, summary: Change one of your projects (userCurrentEditProject). }
+userCurrentDeleteProject: { resource: Projects, method: DeleteForUserAsync, summary: Delete one of your projects (userCurrentDeleteProject). }
+userCurrentListProjectColumns: { resource: Projects, method: ListColumnsForUserAsync, iterator: ListAllColumnsForUserAsync, items: ProjectColumn, paging: { items: '$' }, summary: List one page of the columns of one of your projects (userCurrentListProjectColumns). }
+userCurrentCreateProjectColumn: { resource: Projects, method: CreateColumnForUserAsync, summary: Add a column to one of your projects (userCurrentCreateProjectColumn). }
+userCurrentGetProjectColumn: { resource: Projects, method: GetColumnForUserAsync, summary: Get a column of one of your projects (userCurrentGetProjectColumn). }
+userCurrentEditProjectColumn: { resource: Projects, method: UpdateColumnForUserAsync, summary: Change a column of one of your projects (userCurrentEditProjectColumn). }
+userCurrentDeleteProjectColumn: { resource: Projects, method: DeleteColumnForUserAsync, summary: Delete a column of one of your projects (userCurrentDeleteProjectColumn). }
+userCurrentMoveProjectColumns: { resource: Projects, method: ReorderColumnsForUserAsync, summary: Reorder the columns of one of your projects (userCurrentMoveProjectColumns). }
+userCurrentSetDefaultProjectColumn: { resource: Projects, method: SetDefaultColumnForUserAsync, summary: Make a column the default of one of your projects (userCurrentSetDefaultProjectColumn). }
+userCurrentListProjectColumnIssues: { resource: Projects, method: ListColumnIssuesForUserAsync, iterator: ListAllColumnIssuesForUserAsync, items: Issue, paging: { items: '$' }, summary: List one page of the issues in a column of one of your projects (userCurrentListProjectColumnIssues). }
+userCurrentAddIssueToProjectColumn: { resource: Projects, method: AddIssueToColumnForUserAsync, summary: Add an issue to a column of one of your projects (userCurrentAddIssueToProjectColumn). }
+userCurrentRemoveIssueFromProjectColumn: { resource: Projects, method: RemoveIssueFromColumnForUserAsync, summary: Remove an issue from a column of one of your projects (userCurrentRemoveIssueFromProjectColumn). }
+userCurrentMoveProjectIssue: { resource: Projects, method: MoveIssueForUserAsync, summary: Move an issue within one of your projects (userCurrentMoveProjectIssue). }
+orgGetAll: { resource: Orgs, method: ListAsync, iterator: ListAllAsync, items: Organization, paging: { items: '$' }, summary: List one page of the organizations you can see (orgGetAll). }
+orgCreate: { resource: Orgs, method: CreateAsync, summary: Create an organization (orgCreate). }
+orgGet: { resource: Orgs, method: GetAsync, summary: Get an organization (orgGet). }
+orgEdit: { resource: Orgs, method: UpdateAsync, summary: Change an organization (orgEdit). }
+orgDelete: { resource: Orgs, method: DeleteAsync, summary: Delete an organization (orgDelete). }
+renameOrg: { resource: Orgs, method: RenameAsync, summary: Rename an organization (renameOrg). }
+orgUpdateAvatar: { resource: Orgs, method: UpdateAvatarAsync, summary: Set an organization's avatar (orgUpdateAvatar). }
+orgDeleteAvatar: { resource: Orgs, method: DeleteAvatarAsync, summary: Remove an organization's avatar (orgDeleteAvatar). }
+orgListActivityFeeds: { resource: Orgs, method: ListActivityFeedsAsync, iterator: ListAllActivityFeedsAsync, items: Activity, paging: { items: '$' }, summary: List one page of an organization's activity (orgListActivityFeeds). }
+orgListRepos: { resource: Orgs, method: ListReposAsync, iterator: ListAllReposAsync, items: Repository, paging: { items: '$' }, summary: List one page of an organization's repositories (orgListRepos). }
+createOrgRepo: { resource: Orgs, method: CreateRepoAsync, summary: Create a repository in an organization (createOrgRepo). }
+orgDeleteRepos: { resource: Orgs, method: DeleteReposAsync, summary: Delete every repository in an organization (orgDeleteRepos). }
+orgListMembers: { resource: Orgs, method: ListMembersAsync, iterator: ListAllMembersAsync, items: User, paging: { items: '$' }, summary: List one page of an organization's members (orgListMembers). }
+orgIsMember: { resource: Orgs, method: CheckMemberAsync, summary: Check whether a user is a member of an organization (orgIsMember). }
+orgDeleteMember: { resource: Orgs, method: RemoveMemberAsync, summary: Remove a member from an organization (orgDeleteMember). }
+orgListPublicMembers: { resource: Orgs, method: ListPublicMembersAsync, iterator: ListAllPublicMembersAsync, items: User, paging: { items: '$' }, summary: List one page of an organization's public members (orgListPublicMembers). }
+orgIsPublicMember: { resource: Orgs, method: CheckPublicMemberAsync, summary: Check whether a user's membership of an organization is public (orgIsPublicMember). }
+orgPublicizeMember: { resource: Orgs, method: PublicizeMemberAsync, summary: Make a user's membership of an organization public (orgPublicizeMember). }
+orgConcealMember: { resource: Orgs, method: ConcealMemberAsync, summary: Make a user's membership of an organization private (orgConcealMember). }
+organizationListBlocks: { resource: Orgs, method: ListBlockedUsersAsync, iterator: ListAllBlockedUsersAsync, items: User, paging: { items: '$' }, summary: List one page of the users an organization blocks (organizationListBlocks). }
+organizationCheckUserBlock: { resource: Orgs, method: CheckBlockedUserAsync, summary: Check whether an organization blocks a user (organizationCheckUserBlock). }
+organizationBlockUser: { resource: Orgs, method: BlockUserAsync, summary: Block a user from an organization (organizationBlockUser). }
+organizationUnblockUser: { resource: Orgs, method: UnblockUserAsync, summary: Unblock a user from an organization (organizationUnblockUser). }
+orgListTeams: { resource: Teams, method: ListAsync, iterator: ListAllAsync, items: Team, paging: { items: '$' }, summary: List one page of an organization's teams (orgListTeams). }
+teamSearch: { resource: Teams, method: SearchAsync, iterator: SearchAllAsync, items: Team, paging: { items: 'data' }, summary: Get one page of an organization's teams that match a search (teamSearch). }
+orgCreateTeam: { resource: Teams, method: CreateAsync, summary: Create a team (orgCreateTeam). }
+orgGetTeam: { resource: Teams, method: GetAsync, summary: Get a team (orgGetTeam). }
+orgEditTeam: { resource: Teams, method: UpdateAsync, summary: Change a team (orgEditTeam). }
+orgDeleteTeam: { resource: Teams, method: DeleteAsync, summary: Delete a team (orgDeleteTeam). }
+orgListTeamActivityFeeds: { resource: Teams, method: ListActivityFeedsAsync, iterator: ListAllActivityFeedsAsync, items: Activity, paging: { items: '$' }, summary: List one page of a team's activity (orgListTeamActivityFeeds). }
+orgListTeamMembers: { resource: Teams, method: ListMembersAsync, iterator: ListAllMembersAsync, items: User, paging: { items: '$' }, summary: List one page of a team's members (orgListTeamMembers). }
+orgListTeamMember: { resource: Teams, method: GetMemberAsync, summary: Get a member of a team (orgListTeamMember). }
+orgAddTeamMember: { resource: Teams, method: AddMemberAsync, summary: Add a member to a team (orgAddTeamMember). }
+orgRemoveTeamMember: { resource: Teams, method: RemoveMemberAsync, summary: Remove a member from a team (orgRemoveTeamMember). }
+orgListTeamRepos: { resource: Teams, method: ListReposAsync, iterator: ListAllReposAsync, items: Repository, paging: { items: '$' }, summary: List one page of a team's repositories (orgListTeamRepos). }
+orgListTeamRepo: { resource: Teams, method: GetRepoAsync, summary: Get a repository that a team has access to (orgListTeamRepo). }
+orgAddTeamRepository: { resource: Teams, method: AddRepoAsync, summary: Give a team access to a repository (orgAddTeamRepository). }
+orgRemoveTeamRepository: { resource: Teams, method: RemoveRepoAsync, summary: Remove a team's access to a repository (orgRemoveTeamRepository). }
+userSearch: { resource: Users, method: SearchAsync, iterator: SearchAllAsync, items: User, paging: { items: 'data' }, summary: Get one page of the users that match a search (userSearch). }
+userGet: { resource: Users, method: GetAsync, summary: Get a user (userGet). }
+userGetHeatmapData: { resource: Users, method: GetHeatmapAsync, summary: Get a user's contribution heatmap (userGetHeatmapData). }
+userListActivityFeeds: { resource: Users, method: ListActivityFeedsAsync, iterator: ListAllActivityFeedsAsync, items: Activity, paging: { items: '$' }, summary: List one page of a user's activity (userListActivityFeeds). }
+userListFollowers: { resource: Users, method: ListFollowersAsync, iterator: ListAllFollowersAsync, items: User, paging: { items: '$' }, summary: List one page of a user's followers (userListFollowers). }
+userListFollowing: { resource: Users, method: ListFollowingAsync, iterator: ListAllFollowingAsync, items: User, paging: { items: '$' }, summary: List one page of the users a user follows (userListFollowing). }
+userCheckFollowing: { resource: Users, method: CheckFollowingAsync, summary: Check whether a user follows another (userCheckFollowing). }
+userListKeys: { resource: Users, method: ListKeysAsync, iterator: ListAllKeysAsync, items: PublicKey, paging: { items: '$' }, summary: List one page of a user's SSH keys (userListKeys). }
+userListGPGKeys: { resource: Users, method: ListGpgKeysAsync, iterator: ListAllGpgKeysAsync, items: GPGKey, paging: { items: '$' }, summary: List one page of a user's GPG keys (userListGPGKeys). }
+userListRepos: { resource: Users, method: ListReposAsync, iterator: ListAllReposAsync, items: Repository, paging: { items: '$' }, summary: List one page of a user's repositories (userListRepos). }
+userListStarred: { resource: Users, method: ListStarredAsync, iterator: ListAllStarredAsync, items: Repository, paging: { items: '$' }, summary: List one page of the repositories a user starred (userListStarred). }
+userListSubscriptions: { resource: Users, method: ListWatchedAsync, iterator: ListAllWatchedAsync, items: Repository, paging: { items: '$' }, summary: List one page of the repositories a user watches (userListSubscriptions). }
+userListProjects: { resource: Users, method: ListProjectsAsync, iterator: ListAllProjectsAsync, items: Project, paging: { items: '$' }, summary: List one page of a user's projects (userListProjects). }
+orgListUserOrgs: { resource: Users, method: ListOrgsAsync, iterator: ListAllOrgsAsync, items: Organization, paging: { items: '$' }, summary: List one page of a user's organizations (orgListUserOrgs). }
+orgGetUserPermissions: { resource: Users, method: GetOrgPermissionsAsync, summary: Get a user's permissions in an organization (orgGetUserPermissions). }
+userGetTokens: { resource: Users, method: ListTokensAsync, iterator: ListAllTokensAsync, items: AccessToken, paging: { items: '$' }, summary: List one page of a user's access tokens (userGetTokens). }
+userCreateToken: { resource: Users, method: CreateTokenAsync, summary: Create an access token for a user (userCreateToken). }
+userDeleteAccessToken: { resource: Users, method: DeleteTokenAsync, summary: Delete one of a user's access tokens (userDeleteAccessToken). }
+userGetCurrent: { resource: CurrentUser, method: GetAsync, summary: Get the user you are authenticated as (userGetCurrent). }
+getCurrentToken: { resource: CurrentUser, method: GetTokenAsync, summary: Get the access token you are authenticated with (getCurrentToken). }
+deleteCurrentToken: { resource: CurrentUser, method: DeleteTokenAsync, summary: Delete the access token you are authenticated with (deleteCurrentToken). }
+getUserSettings: { resource: CurrentUser, method: GetSettingsAsync, summary: Get your user settings (getUserSettings). }
+updateUserSettings: { resource: CurrentUser, method: UpdateSettingsAsync, summary: Change your user settings (updateUserSettings). }
+userUpdateAvatar: { resource: CurrentUser, method: UpdateAvatarAsync, summary: Set your avatar (userUpdateAvatar). }
+userDeleteAvatar: { resource: CurrentUser, method: DeleteAvatarAsync, summary: Remove your avatar (userDeleteAvatar). }
+userListEmails: { resource: CurrentUser, method: ListEmailsAsync, summary: List your email addresses (userListEmails). }
+userAddEmail: { resource: CurrentUser, method: AddEmailsAsync, summary: Add email addresses (userAddEmail). }
+userDeleteEmail: { resource: CurrentUser, method: DeleteEmailsAsync, summary: Remove email addresses (userDeleteEmail). }
+userCurrentListFollowers: { resource: CurrentUser, method: ListFollowersAsync, iterator: ListAllFollowersAsync, items: User, paging: { items: '$' }, summary: List one page of your followers (userCurrentListFollowers). }
+userCurrentListFollowing: { resource: CurrentUser, method: ListFollowingAsync, iterator: ListAllFollowingAsync, items: User, paging: { items: '$' }, summary: List one page of the users you follow (userCurrentListFollowing). }
+userCurrentCheckFollowing: { resource: CurrentUser, method: CheckFollowingAsync, summary: Check whether you follow a user (userCurrentCheckFollowing). }
+userCurrentPutFollow: { resource: CurrentUser, method: FollowAsync, summary: Follow a user (userCurrentPutFollow). }
+userCurrentDeleteFollow: { resource: CurrentUser, method: UnfollowAsync, summary: Stop following a user (userCurrentDeleteFollow). }
+userListBlocks: { resource: CurrentUser, method: ListBlockedUsersAsync, iterator: ListAllBlockedUsersAsync, items: User, paging: { items: '$' }, summary: List one page of the users you block (userListBlocks). }
+userCheckUserBlock: { resource: CurrentUser, method: CheckBlockedUserAsync, summary: Check whether you block a user (userCheckUserBlock). }
+userBlockUser: { resource: CurrentUser, method: BlockUserAsync, summary: Block a user (userBlockUser). }
+userUnblockUser: { resource: CurrentUser, method: UnblockUserAsync, summary: Unblock a user (userUnblockUser). }
+userCurrentListKeys: { resource: CurrentUser, method: ListKeysAsync, iterator: ListAllKeysAsync, items: PublicKey, paging: { items: '$' }, summary: List one page of your SSH keys (userCurrentListKeys). }
+userCurrentPostKey: { resource: CurrentUser, method: AddKeyAsync, summary: Add an SSH key (userCurrentPostKey). }
+userCurrentGetKey: { resource: CurrentUser, method: GetKeyAsync, summary: Get one of your SSH keys (userCurrentGetKey). }
+userCurrentDeleteKey: { resource: CurrentUser, method: DeleteKeyAsync, summary: Delete one of your SSH keys (userCurrentDeleteKey). }
+userCurrentListGPGKeys: { resource: CurrentUser, method: ListGpgKeysAsync, iterator: ListAllGpgKeysAsync, items: GPGKey, paging: { items: '$' }, summary: List one page of your GPG keys (userCurrentListGPGKeys). }
+userCurrentPostGPGKey: { resource: CurrentUser, method: AddGpgKeyAsync, summary: Add a GPG key (userCurrentPostGPGKey). }
+userCurrentGetGPGKey: { resource: CurrentUser, method: GetGpgKeyAsync, summary: Get one of your GPG keys (userCurrentGetGPGKey). }
+userCurrentDeleteGPGKey: { resource: CurrentUser, method: DeleteGpgKeyAsync, summary: Delete one of your GPG keys (userCurrentDeleteGPGKey). }
+getVerificationToken: { resource: CurrentUser, method: GetGpgVerificationTokenAsync, summary: Get the token to sign to verify a GPG key (getVerificationToken). }
+userVerifyGPGKey: { resource: CurrentUser, method: VerifyGpgKeyAsync, summary: Verify a GPG key with a signed token (userVerifyGPGKey). }
+userGetOauth2Application: { resource: CurrentUser, method: ListOAuth2AppsAsync, iterator: ListAllOAuth2AppsAsync, items: OAuth2Application, paging: { items: '$' }, summary: List one page of your OAuth2 applications (userGetOauth2Application). }
+userCreateOAuth2Application: { resource: CurrentUser, method: CreateOAuth2AppAsync, summary: Create an OAuth2 application (userCreateOAuth2Application). }
+userGetOAuth2Application: { resource: CurrentUser, method: GetOAuth2AppAsync, summary: Get one of your OAuth2 applications (userGetOAuth2Application). }
+userUpdateOAuth2Application: { resource: CurrentUser, method: UpdateOAuth2AppAsync, summary: Change one of your OAuth2 applications (userUpdateOAuth2Application). }
+userDeleteOAuth2Application: { resource: CurrentUser, method: DeleteOAuth2AppAsync, summary: Delete one of your OAuth2 applications (userDeleteOAuth2Application). }
+orgListCurrentUserOrgs: { resource: CurrentUser, method: ListOrgsAsync, iterator: ListAllOrgsAsync, items: Organization, paging: { items: '$' }, summary: List one page of your organizations (orgListCurrentUserOrgs). }
+userListTeams: { resource: CurrentUser, method: ListTeamsAsync, iterator: ListAllTeamsAsync, items: Team, paging: { items: '$' }, summary: List one page of the teams you are in (userListTeams). }
+userCurrentListRepos: { resource: CurrentUser, method: ListReposAsync, iterator: ListAllReposAsync, items: Repository, paging: { items: '$' }, summary: List one page of the repositories you own or can access (userCurrentListRepos). }
+createCurrentUserRepo: { resource: CurrentUser, method: CreateRepoAsync, summary: Create a repository of your own (createCurrentUserRepo). }
+userCurrentListStarred: { resource: CurrentUser, method: ListStarredAsync, iterator: ListAllStarredAsync, items: Repository, paging: { items: '$' }, summary: List one page of the repositories you starred (userCurrentListStarred). }
+userCurrentCheckStarring: { resource: CurrentUser, method: CheckStarredAsync, summary: Check whether you starred a repository (userCurrentCheckStarring). }
+userCurrentPutStar: { resource: CurrentUser, method: StarAsync, summary: Star a repository (userCurrentPutStar). }
+userCurrentDeleteStar: { resource: CurrentUser, method: UnstarAsync, summary: Unstar a repository (userCurrentDeleteStar). }
+userCurrentListSubscriptions: { resource: CurrentUser, method: ListWatchedAsync, iterator: ListAllWatchedAsync, items: Repository, paging: { items: '$' }, summary: List one page of the repositories you watch (userCurrentListSubscriptions). }
+userCurrentCheckSubscription: { resource: CurrentUser, method: CheckWatchingAsync, summary: Check whether you watch a repository (userCurrentCheckSubscription). }
+userCurrentPutSubscription: { resource: CurrentUser, method: WatchAsync, summary: Watch a repository (userCurrentPutSubscription). }
+userCurrentDeleteSubscription: { resource: CurrentUser, method: UnwatchAsync, summary: Stop watching a repository (userCurrentDeleteSubscription). }
+userGetStopWatches: { resource: CurrentUser, method: ListStopwatchesAsync, iterator: ListAllStopwatchesAsync, items: StopWatch, paging: { items: '$' }, summary: List one page of your running stopwatches (userGetStopWatches). }
+userCurrentTrackedTimes: { resource: CurrentUser, method: ListTrackedTimesAsync, iterator: ListAllTrackedTimesAsync, items: TrackedTime, paging: { items: '$' }, summary: List one page of the time you tracked (userCurrentTrackedTimes). }
+adminSearchUsers: { resource: Admin, method: SearchUsersAsync, iterator: SearchAllUsersAsync, items: User, paging: { items: '$' }, summary: Get one page of the users on the instance that match a search (adminSearchUsers). }
+adminCreateUser: { resource: Admin, method: CreateUserAsync, summary: Create a user (adminCreateUser). }
+adminEditUser: { resource: Admin, method: UpdateUserAsync, summary: Change a user (adminEditUser). }
+adminDeleteUser: { resource: Admin, method: DeleteUserAsync, summary: Delete a user (adminDeleteUser). }
+adminRenameUser: { resource: Admin, method: RenameUserAsync, summary: Rename a user (adminRenameUser). }
+adminCreatePublicKey: { resource: Admin, method: AddUserKeyAsync, summary: Add an SSH key to a user (adminCreatePublicKey). }
+adminDeleteUserPublicKey: { resource: Admin, method: DeleteUserKeyAsync, summary: Delete a user's SSH key (adminDeleteUserPublicKey). }
+adminListUserBadges: { resource: Admin, method: ListUserBadgesAsync, summary: List a user's badges (adminListUserBadges). }
+adminAddUserBadges: { resource: Admin, method: AddUserBadgesAsync, summary: Add badges to a user (adminAddUserBadges). }
+adminDeleteUserBadges: { resource: Admin, method: DeleteUserBadgesAsync, summary: Remove badges from a user (adminDeleteUserBadges). }
+adminCreateOrg: { resource: Admin, method: CreateOrgAsync, summary: Create an organization owned by a user (adminCreateOrg). }
+adminCreateRepo: { resource: Admin, method: CreateRepoAsync, summary: Create a repository owned by a user (adminCreateRepo). }
+adminGetAllOrgs: { resource: Admin, method: ListOrgsAsync, iterator: ListAllOrgsAsync, items: Organization, paging: { items: '$' }, summary: List one page of every organization (adminGetAllOrgs). }
+adminGetAllEmails: { resource: Admin, method: ListEmailsAsync, iterator: ListAllEmailsAsync, items: Email, paging: { items: '$' }, summary: List one page of every user's email addresses (adminGetAllEmails). }
+adminSearchEmails: { resource: Admin, method: SearchEmailsAsync, iterator: SearchAllEmailsAsync, items: Email, paging: { items: '$' }, summary: Get one page of the email addresses that match a search (adminSearchEmails). }
+adminListPackages: { resource: Admin, method: ListPackagesAsync, iterator: ListAllPackagesAsync, items: Package, paging: { items: '$' }, summary: List one page of every package (adminListPackages). }
+adminUnadoptedList: { resource: Admin, method: ListUnadoptedReposAsync, iterator: ListAllUnadoptedReposAsync, items: string, paging: { items: '$' }, summary: List a page of the repositories on disk that no user or organization owns (adminUnadoptedList). }
+adminAdoptRepository: { resource: Admin, method: AdoptRepoAsync, summary: Adopt an unadopted repository (adminAdoptRepository). }
+adminDeleteUnadoptedRepository: { resource: Admin, method: DeleteUnadoptedRepoAsync, summary: Delete an unadopted repository's files (adminDeleteUnadoptedRepository). }
+adminCronList: { resource: Admin, method: ListCronTasksAsync, iterator: ListAllCronTasksAsync, items: Cron, paging: { items: '$' }, summary: List one page of the instance's cron tasks (adminCronList). }
+adminCronRun: { resource: Admin, method: RunCronTaskAsync, summary: Run a cron task now (adminCronRun). }
+adminListHooks: { resource: Admin, method: ListHooksAsync, iterator: ListAllHooksAsync, items: Hook, paging: { items: '$' }, summary: List one page of the instance's system and default webhooks (adminListHooks). }
+adminCreateHook: { resource: Admin, method: CreateHookAsync, summary: Create a system or default webhook (adminCreateHook). }
+adminGetHook: { resource: Admin, method: GetHookAsync, summary: Get a system or default webhook (adminGetHook). }
+adminEditHook: { resource: Admin, method: UpdateHookAsync, summary: Change a system or default webhook (adminEditHook). }
+adminDeleteHook: { resource: Admin, method: DeleteHookAsync, summary: Delete a system or default webhook (adminDeleteHook). }
+listAdminWorkflowRuns: { resource: Admin, method: ListRunsAsync, iterator: ListAllRunsAsync, items: ActionWorkflowRun, paging: { items: 'workflow_runs' }, summary: List one page of every workflow run on the instance (listAdminWorkflowRuns). }
+listAdminWorkflowJobs: { resource: Admin, method: ListJobsAsync, iterator: ListAllJobsAsync, items: ActionWorkflowJob, paging: { items: 'jobs' }, summary: List one page of every workflow job on the instance (listAdminWorkflowJobs). }
+getAdminRunners: { resource: Admin, method: ListRunnersAsync, summary: List the instance's global runners (getAdminRunners). }
+getAdminRunner: { resource: Admin, method: GetRunnerAsync, summary: Get a global runner (getAdminRunner). }
+updateAdminRunner: { resource: Admin, method: UpdateRunnerAsync, summary: Change a global runner (updateAdminRunner). }
+deleteAdminRunner: { resource: Admin, method: DeleteRunnerAsync, summary: Delete a global runner (deleteAdminRunner). }
+adminCreateRunnerRegistrationToken: { resource: Admin, method: CreateRunnerRegistrationTokenAsync, summary: Create a token that registers a global runner (adminCreateRunnerRegistrationToken). }
+listPackages: { resource: Packages, method: ListAsync, iterator: ListAllAsync, items: Package, paging: { items: '$' }, summary: List one page of an owner's packages (listPackages). }
+listPackageVersions: { resource: Packages, method: ListVersionsAsync, iterator: ListAllVersionsAsync, items: Package, paging: { items: '$' }, summary: List one page of a package's versions (listPackageVersions). }
+getPackage: { resource: Packages, method: GetAsync, summary: Get a package version (getPackage). }
+getLatestPackageVersion: { resource: Packages, method: GetLatestVersionAsync, summary: Get a package's latest version (getLatestPackageVersion). }
+listPackageFiles: { resource: Packages, method: ListFilesAsync, summary: List a package version's files (listPackageFiles). }
+deletePackage: { resource: Packages, method: DeleteAsync, summary: Delete a package and all its versions (deletePackage). }
+deletePackageVersion: { resource: Packages, method: DeleteVersionAsync, summary: Delete a package version (deletePackageVersion). }
+linkPackage: { resource: Packages, method: LinkAsync, summary: Link a package to a repository (linkPackage). }
+unlinkPackage: { resource: Packages, method: UnlinkAsync, summary: Unlink a package from its repository (unlinkPackage). }
+notifyGetList: { resource: Notifications, method: ListAsync, iterator: ListAllAsync, items: NotificationThread, paging: { items: '$' }, summary: List one page of your notification threads (notifyGetList). }
+notifyReadList: { resource: Notifications, method: MarkReadAsync, summary: Mark your notification threads read (notifyReadList). }
+notifyNewAvailable: { resource: Notifications, method: CountUnreadAsync, summary: Count your unread notification threads (notifyNewAvailable). }
+notifyGetThread: { resource: Notifications, method: GetThreadAsync, summary: Get a notification thread (notifyGetThread). }
+notifyReadThread: { resource: Notifications, method: MarkThreadReadAsync, summary: Mark a notification thread read (notifyReadThread). }
+notifyGetRepoList: { resource: Notifications, method: ListForRepoAsync, iterator: ListAllForRepoAsync, items: NotificationThread, paging: { items: '$' }, summary: List one page of your notification threads on a repository (notifyGetRepoList). }
+notifyReadRepoList: { resource: Notifications, method: MarkRepoReadAsync, summary: Mark your notification threads on a repository read (notifyReadRepoList). }
+getVersion: { resource: Misc, method: GetVersionAsync, summary: Get the instance's Gitea version (getVersion). }
+getGeneralAPISettings: { resource: Misc, method: GetApiSettingsAsync, summary: Get the instance's API settings (getGeneralAPISettings). }
+getGeneralAttachmentSettings: { resource: Misc, method: GetAttachmentSettingsAsync, summary: Get the instance's attachment settings (getGeneralAttachmentSettings). }
+getGeneralRepositorySettings: { resource: Misc, method: GetRepositorySettingsAsync, summary: Get the instance's repository settings (getGeneralRepositorySettings). }
+getGeneralUISettings: { resource: Misc, method: GetUiSettingsAsync, summary: Get the instance's UI settings (getGeneralUISettings). }
+getSigningKey: { resource: Misc, method: GetSigningKeyAsync, summary: Get the GPG key the instance signs commits with (getSigningKey). }
+getSigningKeySSH: { resource: Misc, method: GetSshSigningKeyAsync, summary: Get the SSH key the instance signs commits with (getSigningKeySSH). }
+listGitignoresTemplates: { resource: Misc, method: ListGitignoreTemplatesAsync, summary: List the .gitignore templates (listGitignoresTemplates). }
+getGitignoreTemplateInfo: { resource: Misc, method: GetGitignoreTemplateAsync, summary: Get a .gitignore template (getGitignoreTemplateInfo). }
+listLabelTemplates: { resource: Misc, method: ListLabelTemplatesAsync, summary: List the label templates (listLabelTemplates). }
+getLabelTemplateInfo: { resource: Misc, method: GetLabelTemplateAsync, summary: Get a label template (getLabelTemplateInfo). }
+listLicenseTemplates: { resource: Misc, method: ListLicenseTemplatesAsync, summary: List the license templates (listLicenseTemplates). }
+getLicenseTemplateInfo: { resource: Misc, method: GetLicenseTemplateAsync, summary: Get a license template (getLicenseTemplateInfo). }
+renderMarkdown: { resource: Misc, method: RenderMarkdownAsync, summary: Render Markdown as HTML (renderMarkdown). }
+renderMarkdownRaw: { resource: Misc, method: RenderMarkdownRawAsync, summary: Render a raw Markdown body as HTML (renderMarkdownRaw). }
+renderMarkup: { resource: Misc, method: RenderMarkupAsync, summary: "Render a markup language, such as Markdown or AsciiDoc, as HTML (renderMarkup)." }

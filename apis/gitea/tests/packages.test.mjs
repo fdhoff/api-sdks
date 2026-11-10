@@ -12,7 +12,7 @@ for (const entry of await readdir(new URL('packages/', API), { withFileTypes: tr
   if (text) packages.push({ name: entry.name, operations: parse(text) });
 }
 
-// Pages of strings, which the templates cannot iterate yet.
+// Pages of strings, which only some languages' templates can iterate. Those check them in their own tests.
 const STRING_PAGES = ['adminUnadoptedList', 'repoListTopics'];
 
 // Until generate.mjs reads `iterators` from sdk.yaml, each package repeats them.
@@ -22,7 +22,7 @@ test('each package pages exactly as sdk.yaml says', () => {
   for (const { name, operations } of packages) {
     const iterated = Object.fromEntries(
       Object.entries(operations)
-        .filter(([, entry]) => entry.iterator)
+        .filter(([id, entry]) => entry.iterator && !STRING_PAGES.includes(id))
         .map(([id, entry]) => [id, { items: entry.paging?.items }]),
     );
     assert.deepEqual(iterated, expected, name);
