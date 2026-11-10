@@ -4,6 +4,8 @@
 // The client adds /api/v1 to the instance URL, while the cases name each path as the spec declares
 // it, because the mock serves them without the prefix. The driver's transport removes the prefix on
 // the way out. A request without it goes out unchanged, so its path fails the case's wire check.
+// With -live, for the live scenarios against a disposable Gitea container, every request goes out
+// unchanged. See apis/gitea/docs/live.md.
 package main
 
 import (
@@ -12,6 +14,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -112,8 +115,8 @@ func credentials(config settings) gitearest.Credentials {
 	}
 }
 
-func newClient(config settings, logs *capture) (*gitearest.Client, error) {
-	options := []gitearest.Option{gitearest.WithLogger(slog.New(logs)), gitearest.WithHTTPTransport(unprefixed{})}
+func newClient(config settings, logs *capture, transport http.RoundTripper) (*gitearest.Client, error) {
+	options := []gitearest.Option{gitearest.WithLogger(slog.New(logs)), gitearest.WithHTTPTransport(transport)}
 	if config.Sudo != nil {
 		options = append(options, gitearest.WithSudo(*config.Sudo))
 	}
@@ -336,13 +339,13 @@ func errorOutput(failure *gitearest.APIError) map[string]any {
 	return output
 }
 
-func run(line []byte) map[string]any {
+func run(line []byte, transport http.RoundTripper) map[string]any {
 	var input message
 	if err := json.Unmarshal(line, &input); err != nil {
 		log.Fatal(err)
 	}
 	logs := &capture{lines: []string{}}
-	client, err := newClient(input.Client, logs)
+	client, err := newClient(input.Client, logs, transport)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -358,11 +361,17 @@ func run(line []byte) map[string]any {
 }
 
 func main() {
+	live := flag.Bool("live", false, "send each request unchanged, /api/v1 included")
+	flag.Parse()
+	var transport http.RoundTripper = unprefixed{}
+	if *live {
+		transport = http.DefaultTransport
+	}
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Buffer(make([]byte, 1024*1024), 64*1024*1024)
 	output := json.NewEncoder(os.Stdout)
 	for scanner.Scan() {
-		if err := output.Encode(run(scanner.Bytes())); err != nil {
+		if err := output.Encode(run(scanner.Bytes(), transport)); err != nil {
 			log.Fatal(err)
 		}
 	}

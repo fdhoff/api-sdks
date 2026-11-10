@@ -12,3 +12,4 @@ The first alpha.
 * Iterators on all 112 paged operations, following the `Link` header without fetching it, including the two whose pages hold strings.
 * Raw files, media and archives download as their exact bytes; diffs, patches and signing keys return text.
 * Typed errors with the status, Gitea's error message in `Detail` and the raw body, and retries and rate-limit handling.
+* Tested against a disposable Gitea v28.3.0 container in CI, as well as the mock.
