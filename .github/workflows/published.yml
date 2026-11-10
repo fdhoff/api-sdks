@@ -28,6 +28,10 @@ on:
       version:
         description: This version instead of the latest. Needs an API and a language.
         type: string
+      current_program:
+        description: Run this checkout's smoke programs instead of each release tag's, such as to check a fixed one.
+        type: boolean
+        default: false
   schedule:
     - cron: "23 7 * * 1"
   push:
@@ -97,7 +101,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Use the smoke program the version was released with
-        if: matrix.ref != ''
+        if: matrix.ref != '' && !inputs.current_program
         env:
           REF: ${{ matrix.ref }}
         run: |
