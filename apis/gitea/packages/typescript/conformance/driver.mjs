@@ -1,11 +1,14 @@
 // Conformance driver: reads cases as JSON lines and calls the public client. See the runner's README.
 // The client adds `/api/v1` to the instance URL, while the cases name each path as the spec declares it, because the
 // mock serves them without the prefix. The driver's `fetch` removes the prefix on the way out. A request without it
-// goes out unchanged, so its path fails the case's wire check.
+// goes out unchanged, so its path fails the case's wire check. With --live, for the live scenarios against a
+// disposable Gitea container, every request goes out unchanged. See apis/gitea/docs/live.md.
 import { createInterface } from 'node:readline';
 import { parseArgs } from 'node:util';
 
-const { values } = parseArgs({ options: { format: { type: 'string', default: 'esm' } } });
+const { values } = parseArgs({
+  options: { format: { type: 'string', default: 'esm' }, live: { type: 'boolean', default: false } },
+});
 const dist = new URL(`../dist/${values.format}/`, import.meta.url);
 const { ApiError, GiteaClient, HttpError } = await import(new URL('index.js', dist).href);
 const { API_PATH } = await import(new URL('client.js', dist).href);
@@ -36,7 +39,7 @@ function options(settings, logs) {
     retryBaseDelayMs: settings.retry_base_delay_ms,
     rateLimitWaitMs: settings.rate_limit_wait_ms,
     maxRetryWaitMs: settings.max_retry_wait_ms,
-    fetch: unprefixed,
+    fetch: values.live ? globalThis.fetch : unprefixed,
     logger: { debug: log, info: log },
   };
 }
