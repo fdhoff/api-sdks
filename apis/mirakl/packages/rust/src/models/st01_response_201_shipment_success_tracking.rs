@@ -10,6 +10,7 @@ pub struct St01Response201ShipmentSuccessTracking {
     pub carrier_expected_delivery_date:
         Option<Box<models::St01Response201ShipmentSuccessTrackingCarrierExpectedDeliveryDate>>,
     pub carrier_name: Option<String>,
+    pub carrier_scac_code: Option<String>,
     pub carrier_standard_code: Option<String>,
     pub last_known_location:
         Option<Box<models::St01Response201ShipmentSuccessTrackingLastKnownLocation>>,
@@ -24,6 +25,7 @@ crate::runtime::tolerant_model!(St01Response201ShipmentSuccessTracking {
     carrier_code: "carrier_code",
     carrier_expected_delivery_date: "carrier_expected_delivery_date",
     carrier_name: "carrier_name",
+    carrier_scac_code: "carrier_scac_code",
     carrier_standard_code: "carrier_standard_code",
     last_known_location: "last_known_location",
     milestones: "milestones",

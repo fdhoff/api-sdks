@@ -10,6 +10,7 @@ pub struct St11Response200DataTracking {
     pub carrier_expected_delivery_date:
         Option<Box<models::St11Response200DataTrackingCarrierExpectedDeliveryDate>>,
     pub carrier_name: Option<String>,
+    pub carrier_scac_code: Option<String>,
     pub carrier_standard_code: Option<String>,
     pub last_known_location: Option<Box<models::St11Response200DataTrackingLastKnownLocation>>,
     pub milestones: Option<Vec<models::St11Response200DataTrackingMilestones>>,
@@ -23,6 +24,7 @@ crate::runtime::tolerant_model!(St11Response200DataTracking {
     carrier_code: "carrier_code",
     carrier_expected_delivery_date: "carrier_expected_delivery_date",
     carrier_name: "carrier_name",
+    carrier_scac_code: "carrier_scac_code",
     carrier_standard_code: "carrier_standard_code",
     last_known_location: "last_known_location",
     milestones: "milestones",

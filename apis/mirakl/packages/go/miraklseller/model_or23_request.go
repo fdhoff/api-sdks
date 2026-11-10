@@ -12,6 +12,7 @@ import (
 type OR23Request struct {
 	CarrierCode         *string                    `json:"carrier_code,omitempty"`
 	CarrierName         *string                    `json:"carrier_name,omitempty"`
+	CarrierScacCode     *string                    `json:"carrier_scac_code,omitempty"`
 	CarrierStandardCode *string                    `json:"carrier_standard_code,omitempty"`
 	CarrierURL          *string                    `json:"carrier_url,omitempty"`
 	TrackingNumber      *string                    `json:"tracking_number,omitempty"`

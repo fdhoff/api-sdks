@@ -13,6 +13,7 @@ type ST11Response200DataTracking struct {
 	CarrierCode                 *string                                                 `json:"carrier_code,omitempty"`
 	CarrierExpectedDeliveryDate *ST11Response200DataTrackingCarrierExpectedDeliveryDate `json:"carrier_expected_delivery_date,omitempty"`
 	CarrierName                 *string                                                 `json:"carrier_name,omitempty"`
+	CarrierScacCode             *string                                                 `json:"carrier_scac_code,omitempty"`
 	CarrierStandardCode         *string                                                 `json:"carrier_standard_code,omitempty"`
 	LastKnownLocation           *ST11Response200DataTrackingLastKnownLocation           `json:"last_known_location,omitempty"`
 	Milestones                  []ST11Response200DataTrackingMilestones                 `json:"milestones,omitempty"`

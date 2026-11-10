@@ -25,6 +25,7 @@ class ST01Response201ShipmentSuccessTracking(ApiModel):
     carrier_code: Optional[StrictStr] = None
     carrier_expected_delivery_date: Optional[ST01Response201ShipmentSuccessTrackingCarrierExpectedDeliveryDate] = None
     carrier_name: Optional[StrictStr] = None
+    carrier_scac_code: Optional[StrictStr] = None
     carrier_standard_code: Optional[StrictStr] = None
     last_known_location: Optional[ST01Response201ShipmentSuccessTrackingLastKnownLocation] = None
     milestones: Optional[List[ST01Response201ShipmentSuccessTrackingMilestones]] = None

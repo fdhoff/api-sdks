@@ -13,6 +13,7 @@ type ST01Response201ShipmentSuccessTracking struct {
 	CarrierCode                 *string                                                            `json:"carrier_code,omitempty"`
 	CarrierExpectedDeliveryDate *ST01Response201ShipmentSuccessTrackingCarrierExpectedDeliveryDate `json:"carrier_expected_delivery_date,omitempty"`
 	CarrierName                 *string                                                            `json:"carrier_name,omitempty"`
+	CarrierScacCode             *string                                                            `json:"carrier_scac_code,omitempty"`
 	CarrierStandardCode         *string                                                            `json:"carrier_standard_code,omitempty"`
 	LastKnownLocation           *ST01Response201ShipmentSuccessTrackingLastKnownLocation           `json:"last_known_location,omitempty"`
 	Milestones                  []ST01Response201ShipmentSuccessTrackingMilestones                 `json:"milestones,omitempty"`

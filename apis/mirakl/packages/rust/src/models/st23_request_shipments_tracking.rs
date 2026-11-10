@@ -8,6 +8,7 @@ use crate::models;
 pub struct St23RequestShipmentsTracking {
     pub carrier_code: Option<String>,
     pub carrier_name: Option<String>,
+    pub carrier_scac_code: Option<String>,
     pub carrier_standard_code: Option<String>,
     pub tracking_number: Option<String>,
     pub tracking_url: Option<String>,
@@ -17,6 +18,7 @@ pub struct St23RequestShipmentsTracking {
 crate::runtime::tolerant_model!(St23RequestShipmentsTracking {
     carrier_code: "carrier_code",
     carrier_name: "carrier_name",
+    carrier_scac_code: "carrier_scac_code",
     carrier_standard_code: "carrier_standard_code",
     tracking_number: "tracking_number",
     tracking_url: "tracking_url",

@@ -102,6 +102,7 @@ class OR15Response200ExtFileStructureOrders(ApiModel):
     quote_id: Optional[StrictStr] = None
     references: Optional[OR15Response200ExtFileStructureOrdersReferences] = None
     shipping_carrier_code: Optional[StrictStr] = None
+    shipping_carrier_scac_code: Optional[StrictStr] = None
     shipping_carrier_standard_code: Optional[StrictStr] = None
     shipping_company: Optional[StrictStr] = None
     shipping_deadline: Optional[datetime] = None

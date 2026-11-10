@@ -127,6 +127,9 @@ public sealed class OR15Response200ExtFileStructureOrders : ApiModel
     [JsonPropertyName("shipping_carrier_code")]
     public string? ShippingCarrierCode { get; set; }
 
+    [JsonPropertyName("shipping_carrier_scac_code")]
+    public string? ShippingCarrierScacCode { get; set; }
+
     [JsonPropertyName("shipping_carrier_standard_code")]
     public string? ShippingCarrierStandardCode { get; set; }
 
