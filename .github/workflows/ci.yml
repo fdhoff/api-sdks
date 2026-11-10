@@ -355,6 +355,16 @@ jobs:
           dotnet format *.slnx --verify-no-changes
           dotnet build *.slnx -c Release
           dotnet test --solution *.slnx -c Release --no-build
+      - name: Published smoke program builds against this package
+        run: |
+          NAME=$(basename "$PACKAGE"/src/*/*.csproj .csproj)
+          smoke="$RUNNER_TEMP/smoke"
+          mkdir -p "$smoke"
+          cp "$PACKAGE/published/Program.cs" "$smoke/"
+          sed -e 's/{{frameworks}}/net8.0;net10.0/' \
+            -e "s|<PackageReference .*/>|<ProjectReference Include=\"$GITHUB_WORKSPACE/$PACKAGE/src/$NAME/$NAME.csproj\" />|" \
+            toolchain/published/csharp/Smoke.csproj > "$smoke/Smoke.csproj"
+          dotnet build "$smoke" -c Release
       - run: npm run conformance:csharp
       - run: npm run conformance:csharp:net8
       - name: Package ships the licence and notice

@@ -17,7 +17,8 @@ using var client = new EbayClient(new EbayClientOptions
     Hosts = new Dictionary<string, string> { ["api"] = mock, ["apiz"] = mock, ["apim"] = mock },
     MarketplaceId = "EBAY_US",
 });
-var tree = await client.Taxonomy.CategoryTrees.GetDefaultIdAsync("EBAY_US");
+var tree = await client.Taxonomy.CategoryTrees.GetDefaultIdAsync("EBAY_US")
+    ?? throw new InvalidOperationException("The mock returned no category tree");
 if (tree.CategoryTreeId is null)
 {
     throw new InvalidOperationException("The category tree has no categoryTreeId");

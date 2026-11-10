@@ -15,7 +15,7 @@ var mock = Environment.GetEnvironmentVariable("SMOKE_BASE_URL")!;
 using var handler = new Unprefixed();
 using var client = new GiteaClient(mock, GiteaCredentials.Token("smoke-synthetic-access-token"), new GiteaClientOptions { HttpHandler = handler });
 var version = await client.Misc.GetVersionAsync();
-Console.WriteLine($"GiteaRest {expected} on {Environment.Version}: the mock reports version {version.Version}");
+Console.WriteLine($"GiteaRest {expected} on {Environment.Version}: the mock reports version {version.VarVersion}");
 
 internal sealed class Unprefixed() : DelegatingHandler(new SocketsHttpHandler { AllowAutoRedirect = false })
 {
