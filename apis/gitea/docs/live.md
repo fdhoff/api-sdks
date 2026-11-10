@@ -9,7 +9,7 @@ The suite never touches gitea.com or any other real instance. The runner refuses
 * `conformance/live/image.json` pins the official `gitea/gitea` image by digest, at the tag in `spec/upstream/lock.json`.
 * `conformance/live/bootstrap.sh` starts it with SQLite, `INSTALL_LOCK=true` and a fixed `ROOT_URL`, and fails unless `/api/v1/version` reports the pinned version. It then creates a synthetic admin with `gitea admin user create` inside the container, a plain user, and an admin access token through the API with Basic auth. The passwords are random per run, and in CI they and the token are masked in the log.
 * `conformance/live/run.mjs` runs every scenario in `conformance/live/scenarios/` through a driver, using the driver protocol of the mock cases. Requests go through a small proxy that passes everything through, response headers included, and records each request, so a step can count its pages.
-* Each package has its own live driver. Python's is `packages/python/live/live_driver.py`, and C#'s is its conformance driver run with `--live`: each is the conformance driver, sending each request unchanged. TODO: TypeScript, Go and Rust add theirs as each package lands.
+* Each package has its own live driver. Python's is `packages/python/live/live_driver.py`, and Go's and C#'s are their conformance drivers run with `-live` and `--live`: each is the conformance driver, sending each request unchanged. TODO: TypeScript and Rust add theirs as each package lands.
 
 ## Scenario format
 
@@ -57,6 +57,13 @@ python -m pip install ./apis/gitea/packages/python
 apis/gitea/conformance/live/bootstrap.sh "${TMPDIR:-/tmp}/gitea-live.json"
 node apis/gitea/conformance/live/run.mjs --settings "${TMPDIR:-/tmp}/gitea-live.json" --driver "python apis/gitea/packages/python/live/live_driver.py --mode sync"
 docker rm --force gitea-live && rm "${TMPDIR:-/tmp}/gitea-live.json"
+```
+
+For Go, with Go 1.24 or later, build its driver and run the scenarios through it with `-live`, before removing the container:
+
+```sh
+go -C apis/gitea/packages/go build -o bin/driver ./conformance/driver
+node apis/gitea/conformance/live/run.mjs --settings "${TMPDIR:-/tmp}/gitea-live.json" --driver "apis/gitea/packages/go/bin/driver -live"
 ```
 
 For C#, with the .NET 10 SDK, build its driver and run the scenarios through it with `--live`, before removing the container:

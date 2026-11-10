@@ -3,7 +3,7 @@ name: Gitea live
 # Runs the live scenarios in apis/gitea/conformance/live against a disposable Gitea container at the pinned release.
 # The admin, user and token are synthetic and made per run inside the container, and no repository secret is used,
 # so this is safe on pull requests from forks. It never calls gitea.com or any other instance.
-# TODO: add the TypeScript, Go and Rust live drivers as each Gitea package lands.
+# TODO: add the TypeScript and Rust live drivers as each Gitea package lands.
 on:
   workflow_dispatch:
   schedule:
@@ -56,6 +56,39 @@ jobs:
         run: node apis/gitea/conformance/live/run.mjs --settings "$SETTINGS" --driver "python apis/gitea/packages/python/live/live_driver.py --mode sync"
       - name: Live scenarios, async client
         run: node apis/gitea/conformance/live/run.mjs --settings "$SETTINGS" --driver "python apis/gitea/packages/python/live/live_driver.py --mode async"
+      - name: Gitea log
+        if: failure()
+        run: docker logs gitea-live 2>&1 | tail -n 200
+      - if: always()
+        run: |
+          docker rm --force gitea-live > /dev/null 2>&1 || true
+          rm -f "$SETTINGS"
+
+  go:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.24"
+          cache: false
+      - run: npm ci --ignore-scripts
+      - run: echo "SETTINGS=$RUNNER_TEMP/gitea-live.json" >> "$GITHUB_ENV"
+      - run: go -C apis/gitea/packages/go build -o bin/driver ./conformance/driver
+      - name: Start Gitea and make synthetic users and a token
+        run: apis/gitea/conformance/live/bootstrap.sh "$SETTINGS"
+      - name: Live scenarios
+        run: node apis/gitea/conformance/live/run.mjs --settings "$SETTINGS" --driver "apis/gitea/packages/go/bin/driver -live"
       - name: Gitea log
         if: failure()
         run: docker logs gitea-live 2>&1 | tail -n 200
