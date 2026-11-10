@@ -53,9 +53,9 @@ jobs:
       - name: Start Gitea and make synthetic users and a token
         run: apis/gitea/conformance/live/bootstrap.sh "$SETTINGS"
       - name: Live scenarios, sync client
-        run: node apis/gitea/conformance/live/run.mjs --settings "$SETTINGS" --driver "python apis/gitea/packages/python/live/driver.py --mode sync"
+        run: node apis/gitea/conformance/live/run.mjs --settings "$SETTINGS" --driver "python apis/gitea/packages/python/live/live_driver.py --mode sync"
       - name: Live scenarios, async client
-        run: node apis/gitea/conformance/live/run.mjs --settings "$SETTINGS" --driver "python apis/gitea/packages/python/live/driver.py --mode async"
+        run: node apis/gitea/conformance/live/run.mjs --settings "$SETTINGS" --driver "python apis/gitea/packages/python/live/live_driver.py --mode async"
       - name: Gitea log
         if: failure()
         run: docker logs gitea-live 2>&1 | tail -n 200

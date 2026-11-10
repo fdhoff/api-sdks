@@ -44,12 +44,13 @@ steps:
       result: { content_type: { $regex: '^text/plain' }, base64: c3ludGhldGljIGxpbmUgb25lCnN5bnRoZXRpYyBsaW5lIHR3bwo= }
       wire: { path_match: '/raw/docs%2Flive%2Fnotes\.md$' }
 
+  # Gitea v28.3.0 sends a zip archive as `application/octet-stream`, not `application/zip`.
   - name: download-an-archive
     request:
       operation: repoGetArchive
       params: { owner: '{{admin}}', repo: 'files-{{run}}', archive: main.zip }
     expect:
-      result: { content_type: application/zip, base64: { $regex: '^UEsDB' } }
+      result: { content_type: application/octet-stream, base64: { $regex: '^UEsDB' } }
 
   # The client asks for a diff with its default `Accept: application/json`, as the mock cases allow. This confirms
   # that Gitea returns the text anyway. See the TODO in ../README.md.
