@@ -1,0 +1,125 @@
+# Settings every language's package shares.
+
+# Every Gitea instance has its own URL, so there are no hosts or environments: the caller always supplies the
+# base URL.
+
+# Link header paging: each page's `rel="next"` link gives the next `page` and `limit`, which go into our own next
+# request. The link itself is never fetched.
+paging: { style: link_header, rel: next, params: [page, limit] }
+
+# The list each iterated operation's pages hold. `$` is a page that is itself the list. A package's
+# operations.yaml names the same `items` for each.
+iterators:
+  adminCronList: { items: '$' }
+  adminGetAllEmails: { items: '$' }
+  adminGetAllOrgs: { items: '$' }
+  adminListHooks: { items: '$' }
+  adminListPackages: { items: '$' }
+  adminSearchEmails: { items: '$' }
+  adminSearchUsers: { items: '$' }
+  adminUnadoptedList: { items: '$' }
+  getOrgVariablesList: { items: '$' }
+  getRepoVariablesList: { items: '$' }
+  getUserVariablesList: { items: '$' }
+  issueGetCommentsAndTimeline: { items: '$' }
+  issueGetIssueReactions: { items: '$' }
+  issueGetMilestonesList: { items: '$' }
+  issueGetRepoComments: { items: '$' }
+  issueListBlocks: { items: '$' }
+  issueListIssueDependencies: { items: '$' }
+  issueListIssues: { items: '$' }
+  issueListLabels: { items: '$' }
+  issueSearchIssues: { items: '$' }
+  issueSubscriptions: { items: '$' }
+  issueTrackedTimes: { items: '$' }
+  listForks: { items: '$' }
+  listPackages: { items: '$' }
+  listPackageVersions: { items: '$' }
+  notifyGetList: { items: '$' }
+  notifyGetRepoList: { items: '$' }
+  organizationListBlocks: { items: '$' }
+  orgGetAll: { items: '$' }
+  orgListActionsSecrets: { items: '$' }
+  orgListActivityFeeds: { items: '$' }
+  orgListCurrentUserOrgs: { items: '$' }
+  orgListHooks: { items: '$' }
+  orgListLabels: { items: '$' }
+  orgListMembers: { items: '$' }
+  orgListProjectColumnIssues: { items: '$' }
+  orgListProjectColumns: { items: '$' }
+  orgListProjects: { items: '$' }
+  orgListPublicMembers: { items: '$' }
+  orgListRepos: { items: '$' }
+  orgListTeamActivityFeeds: { items: '$' }
+  orgListTeamMembers: { items: '$' }
+  orgListTeamRepos: { items: '$' }
+  orgListTeams: { items: '$' }
+  orgListUserOrgs: { items: '$' }
+  repoGetAllCommits: { items: '$' }
+  repoGetPullRequestCommits: { items: '$' }
+  repoGetPullRequestFiles: { items: '$' }
+  repoGetWikiPages: { items: '$' }
+  repoListActionsSecrets: { items: '$' }
+  repoListActivityFeeds: { items: '$' }
+  repoListBranches: { items: '$' }
+  repoListCollaborators: { items: '$' }
+  repoListHooks: { items: '$' }
+  repoListKeys: { items: '$' }
+  repoListProjectColumnIssues: { items: '$' }
+  repoListProjectColumns: { items: '$' }
+  repoListProjects: { items: '$' }
+  repoListPullRequests: { items: '$' }
+  repoListPullReviews: { items: '$' }
+  repoListPushMirrors: { items: '$' }
+  repoListReleases: { items: '$' }
+  repoListStargazers: { items: '$' }
+  repoListStatuses: { items: '$' }
+  repoListStatusesByRef: { items: '$' }
+  repoListSubscribers: { items: '$' }
+  repoListTags: { items: '$' }
+  repoTrackedTimes: { items: '$' }
+  userCurrentListFollowers: { items: '$' }
+  userCurrentListFollowing: { items: '$' }
+  userCurrentListGPGKeys: { items: '$' }
+  userCurrentListKeys: { items: '$' }
+  userCurrentListProjectColumnIssues: { items: '$' }
+  userCurrentListProjectColumns: { items: '$' }
+  userCurrentListProjects: { items: '$' }
+  userCurrentListRepos: { items: '$' }
+  userCurrentListStarred: { items: '$' }
+  userCurrentListSubscriptions: { items: '$' }
+  userCurrentTrackedTimes: { items: '$' }
+  userGetOauth2Application: { items: '$' }
+  userGetStopWatches: { items: '$' }
+  userGetTokens: { items: '$' }
+  userListActivityFeeds: { items: '$' }
+  userListBlocks: { items: '$' }
+  userListFollowers: { items: '$' }
+  userListFollowing: { items: '$' }
+  userListGPGKeys: { items: '$' }
+  userListHooks: { items: '$' }
+  userListKeys: { items: '$' }
+  userListProjects: { items: '$' }
+  userListRepos: { items: '$' }
+  userListStarred: { items: '$' }
+  userListSubscriptions: { items: '$' }
+  userListTeams: { items: '$' }
+  # Object pages hold their items under a field.
+  ActionsListWorkflowRuns: { items: workflow_runs }
+  getOrgWorkflowJobs: { items: jobs }
+  getOrgWorkflowRuns: { items: workflow_runs }
+  getUserWorkflowJobs: { items: jobs }
+  getUserWorkflowRuns: { items: workflow_runs }
+  getWorkflowRuns: { items: workflow_runs }
+  ListActionTasks: { items: workflow_runs }
+  listAdminWorkflowJobs: { items: jobs }
+  listAdminWorkflowRuns: { items: workflow_runs }
+  listWorkflowJobs: { items: jobs }
+  listWorkflowRunAttemptJobs: { items: jobs }
+  listWorkflowRunJobs: { items: jobs }
+  repoGetCombinedStatusByRef: { items: statuses }
+  repoListTopics: { items: topics }
+  repoSearch: { items: data }
+  teamSearch: { items: data }
+  topicSearch: { items: topics }
+  userSearch: { items: data }

@@ -1,0 +1,10 @@
+# Schema names shared by every package, so a model has the same name in every language. A package's
+# generate.yaml may add names for schemas only it sees, but cannot rename these.
+# The attachment uploads and two search results are inline, so generators would name them after their
+# operationId. Both issue attachment uploads send the same one-file body, which generators share under the
+# first one's name.
+inline_schema_names:
+  issueCreateIssueCommentAttachment_request: AttachmentUpload
+  repoCreateReleaseAttachment_request: ReleaseAttachmentUpload
+  teamSearch_200_response: TeamSearchResults
+  userSearch_200_response: UserSearchResults
