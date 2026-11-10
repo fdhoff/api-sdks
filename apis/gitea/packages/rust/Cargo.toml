@@ -19,7 +19,7 @@ rustls = ["reqwest/rustls"]
 native-tls = ["reqwest/native-tls"]
 
 [dependencies]
-base64 = "0.23"
+base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["serde", "std"] }
 flate2 = "1.1"
 futures-core = "0.3"
