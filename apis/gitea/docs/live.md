@@ -9,7 +9,7 @@ The suite never touches gitea.com or any other real instance. The runner refuses
 * `conformance/live/image.json` pins the official `gitea/gitea` image by digest, at the tag in `spec/upstream/lock.json`.
 * `conformance/live/bootstrap.sh` starts it with SQLite, `INSTALL_LOCK=true` and a fixed `ROOT_URL`, and fails unless `/api/v1/version` reports the pinned version. It then creates a synthetic admin with `gitea admin user create` inside the container, a plain user, and an admin access token through the API with Basic auth. The passwords are random per run, and in CI they and the token are masked in the log.
 * `conformance/live/run.mjs` runs every scenario in `conformance/live/scenarios/` through a driver, using the driver protocol of the mock cases. Requests go through a small proxy that passes everything through, response headers included, and records each request, so a step can count its pages.
-* Each package has its own live driver. Python's is `packages/python/live/live_driver.py`, and Go's, C#'s and TypeScript's are their conformance drivers run with `-live`, `--live` and `--live`: each is the conformance driver, sending each request unchanged. TODO: Rust adds its own.
+* Each package has its own live driver. Python's is `packages/python/live/live_driver.py`, Go's is its conformance driver run with `-live`, and C#'s, TypeScript's and Rust's are theirs run with `--live`: each is the conformance driver, sending each request unchanged.
 
 ## Scenario format
 
@@ -78,6 +78,13 @@ For TypeScript, build the package and run the scenarios through its driver with 
 ```sh
 (cd apis/gitea/packages/typescript && npm ci --ignore-scripts && npm run build)
 node apis/gitea/conformance/live/run.mjs --settings "${TMPDIR:-/tmp}/gitea-live.json" --driver "node apis/gitea/packages/typescript/conformance/driver.mjs --live"
+```
+
+For Rust, with Rust 1.85 or later, build its driver and run the scenarios through it with `--live`, before removing the container:
+
+```sh
+cargo build --locked --manifest-path apis/gitea/packages/rust/Cargo.toml --example conformance-driver
+node apis/gitea/conformance/live/run.mjs --settings "${TMPDIR:-/tmp}/gitea-live.json" --driver "apis/gitea/packages/rust/target/debug/examples/conformance-driver --live"
 ```
 
 The container listens on `127.0.0.1:3000`. Set `GITEA_LIVE_PORT` or `GITEA_LIVE_CONTAINER` to use another port or container name. The settings file holds the run's synthetic credentials; delete it with the container.
