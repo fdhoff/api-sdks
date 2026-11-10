@@ -1,0 +1,80 @@
+# A file at a nested path is created, written and read back. Every client sends a path parameter as one segment,
+# so `docs/live/notes.md` goes as `docs%2Flive%2Fnotes.md`, and this checks that the pinned version accepts it.
+# Then a raw file, an archive, a commit diff and an issue attachment.
+scenario: files
+steps:
+  - name: create-a-repository
+    request:
+      operation: createCurrentUserRepo
+      body: { name: 'files-{{run}}', auto_init: true, default_branch: main }
+    expect:
+      result: { name: 'files-{{run}}', full_name: '{{admin}}/files-{{run}}' }
+
+  - name: create-a-file-at-a-nested-path
+    request:
+      operation: repoCreateFile
+      params: { owner: '{{admin}}', repo: 'files-{{run}}', filepath: docs/live/notes.md }
+      body: { content: c3ludGhldGljIGxpbmUgb25lCg==, message: Add notes, branch: main }
+    save: created
+    expect:
+      result: { content: { path: docs/live/notes.md, type: file } }
+      wire: { path_match: '/contents/docs%2Flive%2Fnotes\.md$' }
+
+  - name: write-the-file
+    request:
+      operation: repoUpdateFile
+      params: { owner: '{{admin}}', repo: 'files-{{run}}', filepath: docs/live/notes.md }
+      body: { content: c3ludGhldGljIGxpbmUgb25lCnN5bnRoZXRpYyBsaW5lIHR3bwo=, sha: '{{created.content.sha}}', message: Update notes, branch: main }
+    save: updated
+    expect:
+      result: { content: { path: docs/live/notes.md } }
+
+  - name: read-the-file
+    request:
+      operation: repoGetContents
+      params: { owner: '{{admin}}', repo: 'files-{{run}}', filepath: docs/live/notes.md, ref: main }
+    expect:
+      result: { path: docs/live/notes.md, type: file, encoding: base64, content: c3ludGhldGljIGxpbmUgb25lCnN5bnRoZXRpYyBsaW5lIHR3bwo= }
+
+  - name: download-the-raw-file
+    request:
+      operation: repoGetRawFile
+      params: { owner: '{{admin}}', repo: 'files-{{run}}', filepath: docs/live/notes.md, ref: main }
+    expect:
+      result: { content_type: { $regex: '^text/plain' }, base64: c3ludGhldGljIGxpbmUgb25lCnN5bnRoZXRpYyBsaW5lIHR3bwo= }
+      wire: { path_match: '/raw/docs%2Flive%2Fnotes\.md$' }
+
+  # Gitea v28.3.0 sends a zip archive as `application/octet-stream`, not `application/zip`.
+  - name: download-an-archive
+    request:
+      operation: repoGetArchive
+      params: { owner: '{{admin}}', repo: 'files-{{run}}', archive: main.zip }
+    expect:
+      result: { content_type: application/octet-stream, base64: { $regex: '^UEsDB' } }
+
+  # The client asks for a diff with its default `Accept: application/json`, as the mock cases allow. This confirms
+  # that Gitea returns the text anyway. See the TODO in ../README.md.
+  - name: download-a-commit-diff-as-text
+    request:
+      operation: repoDownloadCommitDiffOrPatch
+      params: { owner: '{{admin}}', repo: 'files-{{run}}', sha: '{{updated.commit.sha}}', diffType: diff }
+    expect:
+      result: { $regex: '^diff --git a/docs/live/notes\.md b/docs/live/notes\.md\n[\s\S]*\+synthetic line two' }
+      wire: { headers_match: { accept: '^application/json$' } }
+
+  - name: open-an-issue-for-the-attachment
+    request:
+      operation: issueCreateIssue
+      params: { owner: '{{admin}}', repo: 'files-{{run}}' }
+      body: { title: Synthetic attachment issue }
+    save: issue
+    expect:
+      result: { title: Synthetic attachment issue }
+
+  - name: upload-an-attachment
+    request:
+      operation: issueCreateIssueAttachment
+      params: { owner: '{{admin}}', repo: 'files-{{run}}', index: '{{issue.number}}', name: notes.txt }
+      multipart: { attachment: synthetic attachment }
+    expect:
+      result: { name: notes.txt, size: 20 }

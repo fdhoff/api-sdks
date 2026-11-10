@@ -1,0 +1,16 @@
+# Gitea's own error responses map to typed errors.
+scenario: errors
+steps:
+  - name: a-missing-repository-is-a-typed-404
+    request:
+      operation: repoGet
+      params: { owner: '{{admin}}', repo: 'missing-{{run}}' }
+    expect:
+      error: { kind: not_found, status: 404 }
+
+  - name: an-invalid-repository-name-is-a-typed-422
+    request:
+      operation: createCurrentUserRepo
+      body: { name: 'not a valid name {{run}}' }
+    expect:
+      error: { kind: validation, status: 422 }

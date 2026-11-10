@@ -1,0 +1,28 @@
+# Five issues, two to a page: the iterator follows the `Link` header across three pages and sees each issue once.
+scenario: pagination
+steps:
+  - name: create-a-repository
+    request:
+      operation: createCurrentUserRepo
+      body: { name: 'paging-{{run}}' }
+    expect:
+      result: { name: 'paging-{{run}}' }
+
+  - name: create-an-issue
+    repeat: 5
+    request:
+      operation: issueCreateIssue
+      params: { owner: '{{admin}}', repo: 'paging-{{run}}' }
+      body: { title: 'Synthetic issue {{i}}' }
+    expect:
+      result: { number: '{{i}}' }
+
+  - name: iterate-two-to-a-page
+    request:
+      operation: issueListIssues
+      params: { owner: '{{admin}}', repo: 'paging-{{run}}', state: open, type: issues, limit: 2 }
+      paginate: true
+    expect:
+      count: 5
+      unique: number
+      requests: 3

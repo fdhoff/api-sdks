@@ -56,6 +56,6 @@ A driver reports these in `error.kind`, with the HTTP `status` where there was o
 ## Limits
 
 * Not every operation has a case yet. TODO: cover each operation once a language package names them.
-* A diff or patch is asked for with the client's default `Accept: application/json`, as every text response is in this toolchain. The container suite is to confirm that Gitea returns the text anyway. TODO: ask for a text response's own media type, across the toolchain.
+* A diff or patch is asked for with the client's default `Accept: application/json`, as every text response is in this toolchain. The live suite confirms that Gitea returns the text anyway. TODO: ask for a text response's own media type, across the toolchain.
 
-These cases are checked against the mock only. A later stage runs live scenarios against a disposable Gitea container.
+These cases are checked against the mock. The scenarios in `live/` also run each package against a disposable Gitea container: see `../docs/live.md`.

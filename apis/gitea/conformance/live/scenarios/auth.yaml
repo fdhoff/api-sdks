@@ -1,0 +1,27 @@
+# Each credential reaches the instance and acts as the user it names. A wrong token is a typed 401.
+scenario: auth
+steps:
+  - name: an-access-token-acts-as-its-owner
+    request: { operation: userGetCurrent }
+    expect:
+      result: { login: '{{admin}}', is_admin: true }
+      wire: { headers_match: { authorization: '^token ' } }
+
+  - name: basic-acts-as-the-user
+    client: { username: '{{user}}', password: '{{user_password}}' }
+    request: { operation: userGetCurrent }
+    expect:
+      result: { login: '{{user}}', is_admin: false }
+      wire: { headers_match: { authorization: '^Basic ' } }
+
+  - name: sudo-acts-as-another-user
+    client: { token: '{{token}}', sudo: '{{user}}' }
+    request: { operation: userGetCurrent }
+    expect:
+      result: { login: '{{user}}' }
+
+  - name: a-wrong-token-is-a-typed-401
+    client: { token: live-synthetic-wrong-token }
+    request: { operation: userGetCurrent }
+    expect:
+      error: { kind: authentication, status: 401 }
