@@ -1,0 +1,21 @@
+# coding: utf-8
+
+# Generated code. Do not edit by hand; change the templates, the overlay or the runtime instead.
+
+
+from __future__ import annotations
+
+from pydantic import BaseModel, ConfigDict, StrictBool, StrictStr
+from typing import Any, ClassVar, Dict, List, Optional
+from gitea_rest._runtime import ApiModel
+
+
+class EditHookOption(ApiModel):
+    """EditHookOption model."""
+
+    active: Optional[StrictBool] = None
+    authorization_header: Optional[StrictStr] = None
+    branch_filter: Optional[StrictStr] = None
+    config: Optional[Dict[str, StrictStr]] = None
+    events: Optional[List[StrictStr]] = None
+    name: Optional[StrictStr] = None

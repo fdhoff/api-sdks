@@ -45,7 +45,6 @@ cases:
     wire:
       - method: GET
         path: /repos/synthetic-owner/synthetic-repo/git/commits/0123456789abcdef0123456789abcdef01234567.diff
-        headers: { accept: text/plain }
     expect:
       result: "diff --git a/README.md b/README.md\n+synthetic line\n"
 
@@ -61,7 +60,6 @@ cases:
     wire:
       - method: GET
         path: /repos/synthetic-owner/synthetic-repo/pulls/7.patch
-        headers: { accept: text/plain }
     expect:
       result: "From 0123456789abcdef0123456789abcdef01234567\nSubject: [PATCH] synthetic\n"
 

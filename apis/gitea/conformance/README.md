@@ -11,7 +11,7 @@ API=gitea npm run conformance  # runs the reference driver
 
 ## Base URL
 
-Prism serves each path without the server's `/api/v1` prefix, so cases name paths as the spec declares them, and `base_url` stands for an instance's URL with `/api/v1` already on it. TODO: when a package appends `/api/v1` to the instance URL itself, settle there how its driver meets these paths, and pin the prefix in its unit tests.
+Prism serves each path without the server's `/api/v1` prefix, so cases name paths as the spec declares them. A package takes the instance's URL and adds `/api/v1` itself, so its driver passes `base_url` as the instance URL and removes the prefix from each request on its way to the harness. A request without the prefix goes out unchanged and fails the case's path check, so the cases also pin it. Each package's unit tests pin the full path, sub-path installs included.
 
 ## Credentials
 
@@ -56,5 +56,6 @@ A driver reports these in `error.kind`, with the HTTP `status` where there was o
 ## Limits
 
 * Not every operation has a case yet. TODO: cover each operation once a language package names them.
+* A diff or patch is asked for with the client's default `Accept: application/json`, as every text response is in this toolchain. The container suite is to confirm that Gitea returns the text anyway. TODO: ask for a text response's own media type, across the toolchain.
 
 These cases are checked against the mock only. A later stage runs live scenarios against a disposable Gitea container.
