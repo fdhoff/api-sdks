@@ -9,7 +9,7 @@ Unofficial, spec-driven SDKs for third-party APIs, one directory per API under `
 | eBay Sell, Commerce and Developer APIs | [`apis/ebay/`](apis/ebay/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
 | Mercury API | [`apis/mercury/`](apis/mercury/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
 | Mirakl seller API | [`apis/mirakl/`](apis/mirakl/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
-| Gitea API | [`apis/gitea/`](apis/gitea/) | Python, Go, C# and Rust alphas, not yet published |
+| Gitea API | [`apis/gitea/`](apis/gitea/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
 
 Every SDK here is unofficial and is not affiliated with, endorsed by, or supported by the company whose API it calls, including Back Market, Etsy, eBay, Mercury and Mirakl, and the Gitea project and Gitea Limited.
 
@@ -164,7 +164,7 @@ The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see 
 
 ## Gitea API
 
-`apis/gitea/` pins the public spec of the Gitea API at a Gitea release tag, corrects it, and checks the conformance cases against a reference driver. The Python, Go, C# and Rust SDKs are alphas, not yet published: see [`apis/gitea/packages/python/`](apis/gitea/packages/python/README.md), [`apis/gitea/packages/go/`](apis/gitea/packages/go/README.md), [`apis/gitea/packages/csharp/`](apis/gitea/packages/csharp/README.md) and [`apis/gitea/packages/rust/`](apis/gitea/packages/rust/README.md). Every Gitea instance has its own URL, so the caller always supplies the base URL, to which the SDK adds `/api/v1`, and an access token or a username and password. This project is not affiliated with, endorsed by or sponsored by the Gitea project or Gitea Limited.
+`apis/gitea/` pins the public spec of the Gitea API at a Gitea release tag, corrects it, and checks the conformance cases against a reference driver. The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see [`apis/gitea/packages/python/`](apis/gitea/packages/python/README.md), [`apis/gitea/packages/typescript/`](apis/gitea/packages/typescript/README.md), [`apis/gitea/packages/go/`](apis/gitea/packages/go/README.md), [`apis/gitea/packages/csharp/`](apis/gitea/packages/csharp/README.md) and [`apis/gitea/packages/rust/`](apis/gitea/packages/rust/README.md). Every Gitea instance has its own URL, so the caller always supplies the base URL, to which the SDK adds `/api/v1`, and an access token or a username and password. This project is not affiliated with, endorsed by or sponsored by the Gitea project or Gitea Limited.
 
 ## Layout
 

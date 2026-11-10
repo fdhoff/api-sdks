@@ -3,7 +3,7 @@ name: Gitea live
 # Runs the live scenarios in apis/gitea/conformance/live against a disposable Gitea container at the pinned release.
 # The admin, user and token are synthetic and made per run inside the container, and no repository secret is used,
 # so this is safe on pull requests from forks. It never calls gitea.com or any other instance.
-# TODO: add the TypeScript and Rust live drivers as each Gitea package lands.
+# TODO: add the Rust live driver.
 on:
   workflow_dispatch:
   schedule:
@@ -125,6 +125,43 @@ jobs:
         run: apis/gitea/conformance/live/bootstrap.sh "$SETTINGS"
       - name: Live scenarios
         run: node apis/gitea/conformance/live/run.mjs --settings "$SETTINGS" --driver "dotnet $DRIVER/GiteaRest.Conformance.dll --live"
+      - name: Gitea log
+        if: failure()
+        run: docker logs gitea-live 2>&1 | tail -n 200
+      - if: always()
+        run: |
+          docker rm --force gitea-live > /dev/null 2>&1 || true
+          rm -f "$SETTINGS"
+
+  typescript:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PACKAGE: apis/gitea/packages/typescript
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apis/gitea/packages/typescript/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: echo "SETTINGS=$RUNNER_TEMP/gitea-live.json" >> "$GITHUB_ENV"
+      - run: npm ci --ignore-scripts && npm run build
+        working-directory: ${{ env.PACKAGE }}
+      - name: Start Gitea and make synthetic users and a token
+        run: apis/gitea/conformance/live/bootstrap.sh "$SETTINGS"
+      - name: Live scenarios, ESM
+        run: node apis/gitea/conformance/live/run.mjs --settings "$SETTINGS" --driver "node $PACKAGE/conformance/driver.mjs --format esm --live"
+      - name: Live scenarios, CommonJS
+        run: node apis/gitea/conformance/live/run.mjs --settings "$SETTINGS" --driver "node $PACKAGE/conformance/driver.mjs --format cjs --live"
       - name: Gitea log
         if: failure()
         run: docker logs gitea-live 2>&1 | tail -n 200

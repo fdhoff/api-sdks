@@ -76,3 +76,38 @@ test('the Python changelog leaves the first alpha unreleased, so no tag can publ
   const changelog = await readFile(new URL('CHANGELOG.md', PYTHON), 'utf8');
   assert.ok(changelog.includes(`## ${version} (unreleased)`));
 });
+
+const TYPESCRIPT = new URL('packages/typescript/', API);
+
+test('the TypeScript package ships the Apache-2.0 licence and the same notice', async () => {
+  assert.equal(await readFile(new URL('LICENSE', TYPESCRIPT), 'utf8'), await readFile(new URL('LICENSE', ROOT), 'utf8'));
+  assert.equal(await readFile(new URL('NOTICE', TYPESCRIPT), 'utf8'), await readFile(new URL('NOTICE', PYTHON), 'utf8'));
+});
+
+test('the TypeScript package and README say it is unofficial and not affiliated', async () => {
+  const manifest = JSON.parse(await readFile(new URL('package.json', TYPESCRIPT), 'utf8'));
+  assert.equal(manifest.name, 'gitea-rest');
+  assert.equal(manifest.license, 'Apache-2.0');
+  assert.match(manifest.description, /^Unofficial /);
+  assert.ok(manifest.description.includes(AFFILIATION));
+  const index = await unwrapped(new URL('src/index.ts', TYPESCRIPT));
+  assert.ok(index.replaceAll(' * ', ' ').includes(AFFILIATION));
+  const readme = await unwrapped(new URL('README.md', TYPESCRIPT));
+  assert.match(readme, /^# gitea-rest Unofficial /);
+  assert.ok(readme.includes(AFFILIATION));
+  assert.match(readme, /code\.gitea\.io\/sdk\/gitea/);
+  assert.match(readme, /gitea-js/);
+  assert.match(readme, /0\.x/);
+});
+
+test('the TypeScript README names the pinned Gitea release', async () => {
+  const { tag } = JSON.parse(await readFile(new URL('spec/upstream/lock.json', API), 'utf8'));
+  assert.ok((await readFile(new URL('README.md', TYPESCRIPT), 'utf8')).includes(`pinned Gitea release, ${tag},`));
+});
+
+test('the TypeScript changelog leaves the first alpha unreleased, so no tag can publish it', async () => {
+  const manifest = JSON.parse(await readFile(new URL('package.json', TYPESCRIPT), 'utf8'));
+  assert.match(manifest.version, /^0\./);
+  const changelog = await readFile(new URL('CHANGELOG.md', TYPESCRIPT), 'utf8');
+  assert.ok(changelog.includes(`## ${manifest.version} (unreleased)`));
+});
