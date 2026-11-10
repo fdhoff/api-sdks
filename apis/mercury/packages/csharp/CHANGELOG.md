@@ -2,7 +2,7 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
-## Unreleased
+## 0.1.0-alpha.2 (2026-11-10)
 
 * `client.Products.ListAsync`, `client.Products.ListAllAsync` and `client.Products.CreateAsync`, for the invoicing product catalog Mercury added to its API reference.
 * `DuplicateCheckOverride` on `SendMoneyAPIRequest` and `PostTransactionAPIRequest`, to send a payment that repeats one from the last 24 hours, and `ReimbursementPaymentStatus.PaidOutsideMercury`.

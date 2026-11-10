@@ -2,7 +2,7 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
-## Unreleased
+## 0.1.0a3 (2026-11-10)
 
 * A model in a multipart body is sent as JSON, not as its Python repr, and a mapping is sent as compact JSON.
 * An empty, `.` or `..` path value raises `ValueError` before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`.

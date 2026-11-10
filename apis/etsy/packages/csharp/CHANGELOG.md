@@ -2,7 +2,7 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
-## Unreleased
+## 0.1.0-alpha.2 (2026-11-10)
 
 * An empty, `.` or `..` path value throws `ArgumentException`, and a `null` one `ArgumentNullException`, before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`, or with the `{name}` placeholder left in for `null`.
 * A `ListAll…Async` iterator stops at an empty 204 page instead of throwing `ApiDecodeException` partway through `await foreach`.
