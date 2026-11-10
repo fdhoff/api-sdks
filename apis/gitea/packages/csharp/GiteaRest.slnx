@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/GiteaRest/GiteaRest.csproj" />
+  <Project Path="tests/GiteaRest.Tests/GiteaRest.Tests.csproj" />
+  <Project Path="conformance/Driver/GiteaRest.Conformance.csproj" />
+</Solution>
