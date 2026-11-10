@@ -1,0 +1,139 @@
+# How `npm run generate:go` builds this package. Public method names are in operations.yaml.
+generator: go
+output: gitearest
+source: .
+generated_prefixes: [model_, api_]
+resources: resources.go
+runtime: ../internal/runtime
+format: [gofmt, -s, -r, 'interface{} -> any', -w]
+properties:
+  packageName: gitearest
+  disallowAdditionalPropertiesIfNotPresent: false
+  withGoMod: false
+  apiNameSuffix: Resource
+  modulePath: github.com/fdhoff/api-sdks/apis/gitea/packages/go
+# APIError is this package's error type, so Gitea's error body takes another name.
+schema_names:
+  APIError: ErrorBody
+collapse_single_unions: true
+# Every field is a pointer here, so nil already means null or absent.
+drop_nullable: true
+# A field of several types becomes `any`.
+drop_unions: true
+type_mappings:
+  integer: int64
+  number: float64
+  file: File
+  File: File
+  binary: File
+  DateTime: Time
+# Go spells these initialisms in capitals. Keys are wire names.
+name_mappings:
+  act_user_id: ActUserID
+  archive_download_url: ArchiveDownloadURL
+  artifacts_url: ArtifactsURL
+  avatar_url: AvatarURL
+  aws_access_key_id: AWSAccessKeyID
+  aws_secret_access_key: AWSSecretAccessKey
+  badge_url: BadgeURL
+  browser_download_url: BrowserDownloadURL
+  cancel_url: CancelURL
+  client_id: ClientID
+  clone_url: CloneURL
+  column_id: ColumnID
+  column_ids: ColumnIDs
+  comment_id: CommentID
+  commit_id: CommitID
+  commit_url: CommitURL
+  contents_url: ContentsURL
+  creator_id: CreatorID
+  diff_url: DiffURL
+  download_url: DownloadURL
+  external_tracker_url: ExternalTrackerURL
+  external_wiki_url: ExternalWikiURL
+  git_url: GitURL
+  head_commit_id: HeadCommitID
+  head_sha: HeadSHA
+  html: HTML
+  html_url: HTMLURL
+  http_git_disabled: HTTPGitDisabled
+  id: ID
+  ids: IDs
+  image_url: ImageURL
+  issue_id: IssueID
+  issue_url: IssueURL
+  jobs_url: JobsURL
+  key_id: KeyID
+  languages_url: LanguagesURL
+  last_commit_sha: LastCommitSHA
+  latest_comment_html_url: LatestCommentHTMLURL
+  latest_comment_url: LatestCommentURL
+  lfs: LFS
+  lfs_disabled: LFSDisabled
+  lfs_endpoint: LFSEndpoint
+  lfs_oid: LFSOID
+  lfs_size: LFSSize
+  logs_url: LogsURL
+  md5: MD5
+  merge_commit_id: MergeCommitID
+  merge_commit_sha: MergeCommitSHA
+  new_commit_id: NewCommitID
+  old_commit_id: OldCommitID
+  old_project_id: OldProjectID
+  original_author_id: OriginalAuthorID
+  original_commit_id: OriginalCommitID
+  original_url: OriginalURL
+  owner_id: OwnerID
+  patch_url: PatchURL
+  previous_attempt_url: PreviousAttemptURL
+  primary_key_id: PrimaryKeyID
+  project_id: ProjectID
+  pull_request_review_id: PullRequestReviewID
+  pull_request_url: PullRequestURL
+  raw_url: RawURL
+  redirect_uris: RedirectURIs
+  ref_commit_sha: RefCommitSHA
+  repo_id: RepoID
+  repository_id: RepositoryID
+  repository_url: RepositoryURL
+  rerun_url: RerunURL
+  review_id: ReviewID
+  run_id: RunID
+  run_url: RunURL
+  runner_id: RunnerID
+  sha: SHA
+  sha1: SHA1
+  sha256: SHA256
+  sha512: SHA512
+  source_id: SourceID
+  ssh_url: SSHURL
+  sub_url: SubURL
+  submodule_git_url: SubmoduleGitURL
+  tarball_url: TarballURL
+  target_url: TargetURL
+  team_ids: TeamIDs
+  uid: UID
+  upload_url: UploadURL
+  url: URL
+  user_id: UserID
+  uuid: UUID
+  workflow_id: WorkflowID
+  workflow_run_id: WorkflowRunID
+  zipball_url: ZipballURL
+parameter_name_mappings:
+  artifact_id: artifactID
+  attachment_id: attachmentID
+  column_id: columnID
+  head_sha: headSHA
+  id: id
+  is_2fa_enabled: is2FAEnabled
+  issue_id: issueID
+  job_id: jobID
+  key_id: keyID
+  priority_owner_id: priorityOwnerID
+  runner_id: runnerID
+  scoped_workflow_source_repo_id: scopedWorkflowSourceRepoID
+  sha: sha
+  source_id: sourceID
+  team_id: teamID
+  workflow_id: workflowID

@@ -1,0 +1,14 @@
+api-sdks
+Copyright 2026 Foster Hoff
+
+This project is unofficial. It is not affiliated with, endorsed by or
+sponsored by the Gitea project or Gitea Limited, or by any operator of a
+Gitea instance.
+
+The Apache License, Version 2.0 covers only this project's own code.
+
+Gitea's OpenAPI specification is not included in this repository. It is
+fetched at build time from the Gitea repository's release tag, where it is
+published under the MIT licence, and is not covered by this licence.
+
+This licence grants no right to the Gitea name.
