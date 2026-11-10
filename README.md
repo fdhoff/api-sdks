@@ -9,8 +9,9 @@ Unofficial, spec-driven SDKs for third-party APIs, one directory per API under `
 | eBay Sell, Commerce and Developer APIs | [`apis/ebay/`](apis/ebay/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
 | Mercury API | [`apis/mercury/`](apis/mercury/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
 | Mirakl seller API | [`apis/mirakl/`](apis/mirakl/) | Python, TypeScript, Go, C# and Rust alphas, not yet published |
+| Gitea API | [`apis/gitea/`](apis/gitea/) | Spec pipeline and conformance cases; no language package yet |
 
-Every SDK here is unofficial and is not affiliated with, endorsed by, or supported by the company whose API it calls, including Back Market, Etsy, eBay, Mercury and Mirakl.
+Every SDK here is unofficial and is not affiliated with, endorsed by, or supported by the company whose API it calls, including Back Market, Etsy, eBay, Mercury and Mirakl, and the Gitea project and Gitea Limited.
 
 ## Back Market Seller API
 
@@ -161,6 +162,10 @@ The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see 
 
 `apis/mirakl/` pins the public spec of Mirakl's marketplace seller API, corrects it, and checks the conformance cases against a reference driver. The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see [`apis/mirakl/packages/python/`](apis/mirakl/packages/python/README.md), [`apis/mirakl/packages/typescript/`](apis/mirakl/packages/typescript/README.md), [`apis/mirakl/packages/go/`](apis/mirakl/packages/go/README.md), [`apis/mirakl/packages/csharp/`](apis/mirakl/packages/csharp/README.md) and [`apis/mirakl/packages/rust/`](apis/mirakl/packages/rust/README.md). Every operator runs its own Mirakl instance, so the caller always supplies the base URL and a shop API key. This project is not affiliated with, endorsed by or sponsored by Mirakl.
 
+## Gitea API
+
+`apis/gitea/` pins the public spec of the Gitea API at a Gitea release tag, corrects it, and checks the conformance cases against a reference driver. There is no language package yet. Every Gitea instance has its own URL, so the caller always supplies the base URL, and an access token or a username and password. This project is not affiliated with, endorsed by or sponsored by the Gitea project or Gitea Limited.
+
 ## Layout
 
 | Path | Contents |
@@ -175,6 +180,7 @@ The Python, TypeScript, Go, C# and Rust SDKs are alphas, not yet published: see 
 | `apis/ebay/` | The same for eBay's Sell, Commerce and Developer APIs: one pin and overlay per contract, an overlay shared by all of them, conformance cases, spec audit, and Python, TypeScript, Go, C# and Rust packages |
 | `apis/mercury/` | The same for the Mercury API: spec pin, a check that the pin is still current, overlay, conformance cases, webhook signature vectors and spec audit |
 | `apis/mirakl/` | The same for Mirakl's seller API: spec pin, a check that the URL still serves a spec, overlay, shared settings, conformance cases and spec audit |
+| `apis/gitea/` | The same for the Gitea API: spec pin by release tag, a check for a newer release, overlay, shared settings, conformance cases and spec audit |
 
 `toolchain/` must not name this API or contain its endpoints or schemas; a test enforces that. This boundary keeps later extraction cheap and is not a framework.
 
@@ -224,6 +230,6 @@ All tests run against the mock. The project uses no live credentials.
 
 Apache-2.0: see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). The licence covers only this project's own code.
 
-The upstream OpenAPI specs are not in this repository. They are fetched at build time, belong to Back Market, Etsy, eBay, Mercury and Mirakl, and are not covered by this licence. The licence grants no right to the Back Market, Etsy, eBay, Mercury or Mirakl names.
+The upstream OpenAPI specs are not in this repository. They are fetched at build time, belong to Back Market, Etsy, eBay, Mercury, Mirakl and the Gitea project, and are not covered by this licence. The licence grants no right to the Back Market, Etsy, eBay, Mercury, Mirakl or Gitea names.
 
-This project is unofficial and is not affiliated with Back Market, Etsy, eBay, Mercury or Mirakl.
+This project is unofficial and is not affiliated with Back Market, Etsy, eBay, Mercury, Mirakl, the Gitea project or Gitea Limited.

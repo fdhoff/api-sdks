@@ -1,0 +1,105 @@
+# Corrections to the pinned upstream spec, in OpenAPI Overlay 1.0.0 format.
+# Every action must justify itself in ../docs/spec-audit.md, and every action must
+# match something: the build fails on one that no longer applies.
+overlay: 1.0.0
+info:
+  title: Corrections to the Gitea API spec
+  version: 0.1.0
+actions:
+  - description: G1. Deprecated operations, each with a replacement named in the audit.
+    target: $.paths.*[?(@.operationId == 'createOrgRepoDeprecated' || @.operationId == 'issueDeleteCommentDeprecated' || @.operationId == 'issueEditCommentDeprecated' || @.operationId == 'userTrackedTimes')]
+    remove: true
+  - description: G1. A path left with no operation.
+    target: $.paths[?(!@.get && !@.put && !@.post && !@.delete && !@.patch)]
+    remove: true
+
+  - description: G2. A build placeholder. Every instance has its own URL, which the caller supplies.
+    target: $.servers[0]
+    update:
+      url: https://gitea.example.com/api/v1
+
+  - description: G3. Credentials in a query string. Two are deprecated upstream, and the third duplicates the Sudo header.
+    target: $.components.securitySchemes[?(@.in == 'query')]
+    remove: true
+  - description: G3. Each upstream requirement names one scheme alone, so OTP and Sudo never join a credential.
+    target: $.security
+    remove: true
+  - description: G3.
+    target: $
+    update:
+      security:
+        - AuthorizationHeaderToken: []
+        - AuthorizationHeaderToken: []
+          SudoHeader: []
+        - BasicAuth: []
+        - BasicAuth: []
+          TOTPHeader: []
+        - BasicAuth: []
+          SudoHeader: []
+        - BasicAuth: []
+          TOTPHeader: []
+          SudoHeader: []
+
+  - description: G4. Error responses declare the fields of their JSON body as headers, or declare no body.
+    target: $.components.responses[?(@.headers && @.headers.message)]
+    update:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/APIError'
+  - description: G4.
+    target: $.components.responses[?(@.headers && @.headers.message)].headers
+    remove: true
+  - description: G4.
+    target: $.components.responses.notFound
+    update:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/APIError'
+  - description: G4.
+    target: $.components.responses.conflict
+    update:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/APIError'
+  - description: G4. Operations that declare no error response.
+    target: $.paths.*[?(!@.responses['400'] && !@.responses['401'] && !@.responses['403'] && !@.responses['404'] && !@.responses['405'] && !@.responses['409'] && !@.responses['412'] && !@.responses['413'] && !@.responses['422'] && !@.responses['423'] && !@.responses['500'])].responses
+    update:
+      '400':
+        $ref: '#/components/responses/error'
+      '401':
+        $ref: '#/components/responses/unauthorized'
+      '403':
+        $ref: '#/components/responses/forbidden'
+      '404':
+        $ref: '#/components/responses/notFound'
+      '422':
+        $ref: '#/components/responses/validationError'
+      5XX:
+        $ref: '#/components/responses/error'
+
+  - description: G5. A diff or patch is text, not a JSON string.
+    target: $.paths.*[?(@.operationId == 'repoDownloadCommitDiffOrPatch' || @.operationId == 'repoDownloadPullDiffOrPatch')].responses['200']
+    remove: true
+  - description: G5.
+    target: $.paths.*[?(@.operationId == 'repoDownloadCommitDiffOrPatch' || @.operationId == 'repoDownloadPullDiffOrPatch')].responses
+    update:
+      '200':
+        description: The diff or patch.
+        content:
+          text/plain:
+            schema:
+              type: string
+  - description: G5. An archive declares no body.
+    target: $.paths.*[?(@.operationId == 'repoGetArchive')].responses['200']
+    update:
+      content:
+        application/octet-stream:
+          schema:
+            type: string
+            format: binary
+  - description: G5. A raw body declared as an object, beside the multipart form that carries the same file.
+    target: $.paths.*[?(@.operationId == 'repoCreateReleaseAttachment')].requestBody.content['application/octet-stream']
+    remove: true

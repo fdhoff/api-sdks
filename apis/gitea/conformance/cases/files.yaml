@@ -1,0 +1,84 @@
+# Raw files and archives keep every byte, a diff is text, and attachments go as one multipart `attachment` part.
+cases:
+  - name: files-a-raw-file-keeps-every-byte
+    request:
+      operation: repoGetRawFile
+      params: { owner: synthetic-owner, repo: synthetic-repo, filepath: assets/logo.bin, ref: main }
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/octet-stream }
+          body_base64: c3ludGhldGljIHJhdyBieXRlcyD/AA==
+    wire:
+      - method: GET
+        path: /repos/synthetic-owner/synthetic-repo/raw/assets%2Flogo.bin
+        query: { ref: main }
+        headers: { accept: application/octet-stream }
+    expect:
+      result: { content_type: application/octet-stream, base64: c3ludGhldGljIHJhdyBieXRlcyD/AA== }
+
+  - name: files-an-archive-keeps-every-byte
+    request:
+      operation: repoGetArchive
+      params: { owner: synthetic-owner, repo: synthetic-repo, archive: main.zip }
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: application/zip }
+          body_base64: UEsDBBQAAAAIAP8A
+    wire:
+      - method: GET
+        path: /repos/synthetic-owner/synthetic-repo/archive/main.zip
+        headers: { accept: application/octet-stream }
+    expect:
+      result: { content_type: application/zip, base64: UEsDBBQAAAAIAP8A }
+
+  - name: files-a-commit-diff-is-text
+    request:
+      operation: repoDownloadCommitDiffOrPatch
+      params: { owner: synthetic-owner, repo: synthetic-repo, sha: 0123456789abcdef0123456789abcdef01234567, diffType: diff }
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: text/plain; charset=utf-8 }
+          body: "diff --git a/README.md b/README.md\n+synthetic line\n"
+    wire:
+      - method: GET
+        path: /repos/synthetic-owner/synthetic-repo/git/commits/0123456789abcdef0123456789abcdef01234567.diff
+        headers: { accept: text/plain }
+    expect:
+      result: "diff --git a/README.md b/README.md\n+synthetic line\n"
+
+  - name: files-a-pull-request-patch-is-text
+    request:
+      operation: repoDownloadPullDiffOrPatch
+      params: { owner: synthetic-owner, repo: synthetic-repo, index: 7, diffType: patch }
+    mock:
+      responses:
+        - status: 200
+          headers: { content-type: text/plain; charset=utf-8 }
+          body: "From 0123456789abcdef0123456789abcdef01234567\nSubject: [PATCH] synthetic\n"
+    wire:
+      - method: GET
+        path: /repos/synthetic-owner/synthetic-repo/pulls/7.patch
+        headers: { accept: text/plain }
+    expect:
+      result: "From 0123456789abcdef0123456789abcdef01234567\nSubject: [PATCH] synthetic\n"
+
+  - name: files-an-issue-attachment-is-one-multipart-part
+    request:
+      operation: issueCreateIssueAttachment
+      params: { owner: synthetic-owner, repo: synthetic-repo, index: 1, name: notes.txt }
+      multipart: { attachment: synthetic attachment }
+    mock:
+      responses:
+        - status: 201
+          body: { id: 41, name: notes.txt, size: 20 }
+    wire:
+      - method: POST
+        path: /repos/synthetic-owner/synthetic-repo/issues/1/assets
+        query: { name: notes.txt }
+        headers_match: { content-type: '^multipart/form-data' }
+        parts: { attachment: [synthetic attachment] }
+    expect:
+      result: { id: 41, name: notes.txt, size: 20 }

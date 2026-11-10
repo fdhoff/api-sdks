@@ -141,6 +141,27 @@ test('pin keeps a single-source lock in its single form', async (t) => {
   assert.deepEqual(await readFile(join(dir, 'spec/upstream/openapi.yaml')), ALPHA);
 });
 
+test('pin moves a single-source lock to a new URL and tag, and keeps the tag on a plain re-pin', async (t) => {
+  const dir = await apiDir(t, { url: URLS.alpha, tag: 'v1.0.0', sha256: 'old' });
+  const lockPath = join(dir, 'spec/upstream/lock.json');
+  serve(t, { [URLS.alpha]: ALPHA, [URLS.beta]: BETA });
+  t.mock.method(console, 'log', () => {});
+  await pin(dir);
+  assert.deepEqual(Object.keys(JSON.parse(await readFile(lockPath, 'utf8'))), ['url', 'tag', 'sha256', 'infoVersion', 'lastModified', 'retrievedOn']);
+  await pin(dir, { url: URLS.beta, tag: 'v1.1.0' });
+  const lock = JSON.parse(await readFile(lockPath, 'utf8'));
+  assert.deepEqual([lock.url, lock.tag, lock.sha256], [URLS.beta, 'v1.1.0', sha256(BETA)]);
+  assert.deepEqual(await readFile(join(dir, 'spec/upstream/openapi.yaml')), BETA);
+  await pin(dir, { url: URLS.alpha });
+  assert.equal(JSON.parse(await readFile(lockPath, 'utf8')).tag, undefined);
+  await assert.rejects(pin(dir, { tag: 'v2.0.0' }), /--tag needs --url/);
+});
+
+test('pin refuses to move a lock with several contracts', async (t) => {
+  const dir = await apiDir(t, twoSourceLock());
+  await assert.rejects(pin(dir, { url: URLS.alpha }), /single-source lock only/);
+});
+
 test('inlineServerPath moves the server path into every path and keeps each server its host', () => {
   const spec = contract('/alpha/v1', 'items');
   spec.paths['/items'].get.servers = [{ url: 'https://files.example.test{basePath}', variables: { basePath: { default: '/alpha/v1/' } } }];

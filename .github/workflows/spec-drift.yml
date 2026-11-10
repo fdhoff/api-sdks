@@ -110,7 +110,16 @@ jobs:
           CACHED: ${{ steps.lock.outputs.path }}
         run: |
           if [ -e "$CACHED" ]; then cp -R "$CACHED" "$RUNNER_TEMP/pinned"; fi
-          npm run spec:pin
+          # An API that publishes each release at its own URL prints the newest one's `url=` and `tag=`.
+          if [ -e "apis/$API/spec/upstream-url.mjs" ]; then
+            node "apis/$API/spec/upstream-url.mjs" > "$RUNNER_TEMP/upstream-url"
+            url=$(sed -n 's/^url=//p' "$RUNNER_TEMP/upstream-url")
+            tag=$(sed -n 's/^tag=//p' "$RUNNER_TEMP/upstream-url")
+            if [ -z "$url" ]; then echo "::error title=No upstream URL::apis/$API/spec/upstream-url.mjs printed no url= line."; exit 1; fi
+            npm run spec:pin -- --url "$url" ${tag:+--tag "$tag"}
+          else
+            npm run spec:pin
+          fi
           key() { node toolchain/pipeline/spec-cache.mjs "apis/$API" "$@" | sed -n 's/^key=//p'; }
           upstream=$(key)
           echo "key=$upstream" >> "$GITHUB_OUTPUT"

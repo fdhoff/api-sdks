@@ -1,0 +1,8 @@
+{
+  "url": "https://raw.githubusercontent.com/go-gitea/gitea/v28.3.0/templates/swagger/v1-openapi3.generated.json",
+  "tag": "v28.3.0",
+  "sha256": "92ae169339a0ea96efdcc1732c964cfe9dbd21eaf92bfcc3e51ded8d7284b021",
+  "infoVersion": "0.0.0+GITEA-API-APP-VERSION",
+  "lastModified": null,
+  "retrievedOn": "2026-11-10"
+}
