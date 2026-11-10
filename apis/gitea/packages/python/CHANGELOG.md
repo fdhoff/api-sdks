@@ -11,3 +11,4 @@ The first alpha.
 * An access token, or Basic authentication with an optional one-time password, and an optional `sudo` user, all redacted from errors and logs. A custom `credentials` provider can replace them.
 * Iterators on 110 paged operations, following the `Link` header without fetching it.
 * Typed errors with the status, Gitea's error message and the raw body, and retries and rate-limit handling.
+* Tested against a disposable Gitea v28.3.0 container in CI, as well as the mock.

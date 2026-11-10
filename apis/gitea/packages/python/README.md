@@ -4,7 +4,7 @@ Unofficial Python client for the Gitea API. Not affiliated with, endorsed by or 
 
 Gitea is a self-hosted Git service. This client talks to any Gitea instance, your own or [gitea.com](https://gitea.com), at the URL you give it. Its methods and models are generated from the API spec of one pinned Gitea release, v28.3.0, so an older or newer instance may lack an operation or send other fields.
 
-**Alpha.** It is tested against a mock built from the spec, and a disposable Gitea container is next. It has not yet been confirmed against real instances. If you use it, please report what you find, working or not, as a GitHub issue. Those reports are what move it past 0.x.
+**Alpha.** It is tested against a mock built from the spec, and against a disposable Gitea v28.3.0 container in CI. It has not yet been confirmed against real instances. If you use it, please report what you find, working or not, as a GitHub issue. Those reports are what move it past 0.x.
 
 ## Before you start
 
@@ -119,7 +119,7 @@ with GiteaClient(
 
 ## Testing
 
-Every test runs against a mock built from the spec, with synthetic credentials. The tests never use a real account or call a real instance. A suite that runs against a disposable Gitea container in CI is next.
+Every test runs against a mock built from the spec, with synthetic credentials, and a live suite runs against a disposable Gitea container in CI, with users and a token made for that run. The tests never use a real account or call a real instance. See [the live suite](https://github.com/fdhoff/api-sdks/blob/main/apis/gitea/docs/live.md).
 
 ## Design
 

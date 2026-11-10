@@ -13,7 +13,7 @@ import base64
 import json
 import logging
 import sys
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from typing import Any, get_args, get_type_hints
 
 import httpx
@@ -54,6 +54,10 @@ class AsyncPrefixTransport(httpx.AsyncBaseTransport):
 
     async def aclose(self) -> None:
         await self.inner.aclose()
+
+
+Transports = tuple[Callable[[], httpx.BaseTransport], Callable[[], httpx.AsyncBaseTransport]]
+PREFIXED: Transports = (SyncPrefixTransport, AsyncPrefixTransport)
 
 
 class Capture(logging.Handler):
@@ -143,9 +147,9 @@ def download_output(content_type: str, body: bytes) -> dict[str, str]:
     return {"content_type": content_type, "base64": base64.b64encode(body).decode()}
 
 
-def run_sync(message: dict[str, Any]) -> Any:
+def run_sync(message: dict[str, Any], transport: Callable[[], httpx.BaseTransport]) -> Any:
     request = message["request"]
-    with GiteaClient(**client_options(message["client"]), http_transport=SyncPrefixTransport()) as client:
+    with GiteaClient(**client_options(message["client"]), http_transport=transport()) as client:
         operation = OPERATIONS[request["operation"]]
         call = target(client, operation, request)
         result = call(**arguments(operation, request, call))
@@ -159,9 +163,9 @@ async def collect(items: AsyncIterator[Any]) -> list[Any]:
     return [item async for item in items]
 
 
-async def run_async(message: dict[str, Any]) -> Any:
+async def run_async(message: dict[str, Any], transport: Callable[[], httpx.AsyncBaseTransport]) -> Any:
     request = message["request"]
-    async with AsyncGiteaClient(**client_options(message["client"]), http_transport=AsyncPrefixTransport()) as client:
+    async with AsyncGiteaClient(**client_options(message["client"]), http_transport=transport()) as client:
         operation = OPERATIONS[request["operation"]]
         call = target(client, operation, request)
         args = arguments(operation, request, call)
@@ -174,16 +178,21 @@ async def run_async(message: dict[str, Any]) -> Any:
         return result
 
 
-def output(message: dict[str, Any], capture: Capture, loop: asyncio.AbstractEventLoop | None) -> dict[str, Any]:
+def output(
+    message: dict[str, Any], capture: Capture, loop: asyncio.AbstractEventLoop | None, transports: Transports
+) -> dict[str, Any]:
     capture.lines = []
+    sync_transport, async_transport = transports
     try:
-        result = loop.run_until_complete(run_async(message)) if loop else run_sync(message)
+        result = (
+            loop.run_until_complete(run_async(message, async_transport)) if loop else run_sync(message, sync_transport)
+        )
     except ApiError as error:
         return {"error": error_output(error), "logs": capture.lines}
     return {"result": to_wire(result), "logs": capture.lines}
 
 
-def main() -> None:
+def main(transports: Transports = PREFIXED) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["sync", "async"], default="sync")
     mode = parser.parse_args().mode
@@ -196,7 +205,7 @@ def main() -> None:
 
     loop = asyncio.new_event_loop() if mode == "async" else None
     for line in sys.stdin:
-        reply = output(json.loads(line), capture, loop)
+        reply = output(json.loads(line), capture, loop, transports)
         print(json.dumps(reply), flush=True)
 
 

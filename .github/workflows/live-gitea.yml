@@ -1,0 +1,65 @@
+name: Gitea live
+
+# Runs the live scenarios in apis/gitea/conformance/live against a disposable Gitea container at the pinned release.
+# The admin, user and token are synthetic and made per run inside the container, and no repository secret is used,
+# so this is safe on pull requests from forks. It never calls gitea.com or any other instance.
+# TODO: add the TypeScript, Go, C# and Rust live drivers as each Gitea package lands.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "37 7 * * 1"
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/live-gitea.yml
+      - apis/gitea/**
+      - toolchain/conformance/**
+      - toolchain/runtime/**
+  pull_request:
+    paths:
+      - .github/workflows/live-gitea.yml
+      - apis/gitea/**
+      - toolchain/conformance/**
+      - toolchain/runtime/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-gitea-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.14"
+      - run: npm ci --ignore-scripts
+      - run: echo "SETTINGS=$RUNNER_TEMP/gitea-live.json" >> "$GITHUB_ENV"
+      - run: python -m pip install ./apis/gitea/packages/python
+      - name: Start Gitea and make synthetic users and a token
+        run: apis/gitea/conformance/live/bootstrap.sh "$SETTINGS"
+      - name: Live scenarios, sync client
+        run: node apis/gitea/conformance/live/run.mjs --settings "$SETTINGS" --driver "python apis/gitea/packages/python/live/driver.py --mode sync"
+      - name: Live scenarios, async client
+        run: node apis/gitea/conformance/live/run.mjs --settings "$SETTINGS" --driver "python apis/gitea/packages/python/live/driver.py --mode async"
+      - name: Gitea log
+        if: failure()
+        run: docker logs gitea-live 2>&1 | tail -n 200
+      - if: always()
+        run: |
+          docker rm --force gitea-live > /dev/null 2>&1 || true
+          rm -f "$SETTINGS"

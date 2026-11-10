@@ -1,0 +1,5 @@
+{
+  "image": "gitea/gitea",
+  "tag": "28.3.0",
+  "digest": "sha256:8967bf9deaf3c5c4adae13519436dc1b20c646ac83fe37ae810c933a1045227d"
+}
