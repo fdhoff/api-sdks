@@ -1,0 +1,50 @@
+[package]
+name = "gitea-rest"
+version = "0.1.0-alpha.1"
+edition = "2024"
+rust-version = "1.85"
+description = "Unofficial Rust client for the Gitea API. Not affiliated with, endorsed by or sponsored by the Gitea project or Gitea Limited."
+license = "Apache-2.0"
+repository = "https://github.com/fdhoff/api-sdks"
+readme = "README.md"
+keywords = ["api", "client", "gitea", "git", "forge"]
+categories = ["api-bindings", "asynchronous"]
+include = ["/src", "/Cargo.toml", "/README.md", "/CHANGELOG.md", "/LICENSE", "/NOTICE"]
+
+[features]
+default = ["rustls"]
+# TLS through rustls, with the platform's certificate verifier.
+rustls = ["reqwest/rustls"]
+# TLS through the platform's library: OpenSSL on Linux, Security.framework on macOS, SChannel on Windows.
+native-tls = ["reqwest/native-tls"]
+
+[dependencies]
+base64 = "0.23"
+chrono = { version = "0.4", default-features = false, features = ["serde", "std"] }
+flate2 = "1.1"
+futures-core = "0.3"
+futures-util = { version = "0.3", default-features = false }
+httpdate = "1.0"
+log = "0.4"
+percent-encoding = "2.3"
+reqwest = { version = "0.13", default-features = false, features = ["http2", "multipart"] }
+serde = "1.0"
+serde_json = "1.0"
+tokio = { version = "1.43", features = ["sync", "time"] }
+url = "2.5"
+
+[dev-dependencies]
+aws-lc-rs = { version = "1.19", default-features = false, features = ["aws-lc-sys", "prebuilt-nasm"] }
+serde = { version = "1.0", features = ["derive"] }
+futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
+tokio = { version = "1.43", features = ["io-util", "macros", "net", "rt"] }
+
+# The runtime's message signer and webhook verifier build only under `signing` and `webhooks`
+# features, which this package does not need. Their tests still build them, with the dev-dependencies
+# above.
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("signing", "webhooks"))'] }
+
+[[example]]
+name = "conformance-driver"
+path = "conformance/driver.rs"

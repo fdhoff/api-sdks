@@ -1,0 +1,13 @@
+# Changelog
+
+This crate follows semantic versioning and stays on 0.x until outside users confirm its behaviour against real Gitea instances.
+
+## 0.1.0-alpha.1 (unreleased)
+
+The first alpha.
+
+* An async client with typed models for the 533 current operations of the Gitea API at v28.3.0, generated from the spec, with each method's documentation naming its operationId.
+* An instance URL you supply, with no default, to which the client adds `/api/v1`, so sub-path installs work.
+* An access token, or Basic authentication with an optional one-time password, and an optional `sudo` user, all redacted from errors and logs.
+* Streams on 110 paged operations, following the `Link` header without fetching it.
+* Typed errors with the status, Gitea's error message and the raw body, retries, rate-limit handling and redacted logging, with rustls or native TLS and your own `reqwest::Client`.
