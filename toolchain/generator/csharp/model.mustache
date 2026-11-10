@@ -21,7 +21,7 @@ public sealed class {{classname}} : ApiModel
 {
 {{#vars}}
     [JsonPropertyName("{{baseName}}")]
-    public {{{dataType}}}? {{name}} { get; set; }
+    public {{#isArray}}{{#items.isEnum}}List<string>{{/items.isEnum}}{{^items.isEnum}}{{{dataType}}}{{/items.isEnum}}{{/isArray}}{{^isArray}}{{{dataType}}}{{/isArray}}? {{name}} { get; set; }
 {{^-last}}
 
 {{/-last}}
