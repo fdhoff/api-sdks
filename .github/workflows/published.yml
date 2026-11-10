@@ -3,8 +3,9 @@ name: Published packages
 # Installs published packages from their public registries, as a user would, into an empty project outside the
 # checkout, checks the version each reports, and makes one call against the Prism mock. The checkout only serves the
 # mock. Each release workflow calls this after it publishes, and a Go module tag runs it directly. A weekly run, a manual
-# run and a pull request check the latest published version of every package. A failure, except on a pull request,
-# opens an issue; published versions are never yanked. See toolchain/published/README.md.
+# run and a pull request check the latest published version of every package; a pull request, which may change the
+# smoke programs, runs its own. A failure, except on a pull request, opens an issue; published versions are never yanked.
+# See toolchain/published/README.md.
 on:
   workflow_call:
     inputs:
@@ -101,7 +102,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Use the smoke program the version was released with
-        if: matrix.ref != '' && !inputs.current_program
+        if: matrix.ref != '' && !inputs.current_program && github.event_name != 'pull_request'
         env:
           REF: ${{ matrix.ref }}
         run: |
