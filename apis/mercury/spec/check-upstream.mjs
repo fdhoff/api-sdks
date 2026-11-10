@@ -1,6 +1,6 @@
-// Checks that the pinned registry URL is still Mercury's current spec, for the spec drift job. A superseded
-// registry ID keeps answering with an old copy, so a healthy response alone proves nothing: the API reference
-// must still name the pinned ID. Uses only Node's own modules.
+// Checks that the pinned registry URL is still Mercury's current spec, for the spec drift job, and finds the current
+// one for upstream-url.mjs. A superseded registry ID keeps answering with an old copy, so a healthy response alone
+// proves nothing: the API reference must still name the pinned ID. Uses only Node's own modules.
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url';
 export const DOCS_PAGE = 'https://docs.mercury.com/reference/getaccounts';
 const NAMED_ID = /"oasPublicUrl"\s*:\s*"@mercurytechnologies\/v1#([A-Za-z0-9]+)"/g;
 const REGISTRY_URL = /^https:\/\/dash\.readme\.com\/api\/v1\/api-registry\/([A-Za-z0-9]+)$/;
+
+export const registryUrl = (id) => `https://dash.readme.com/api/v1/api-registry/${id}`;
 
 export function registryId(url) {
   const match = REGISTRY_URL.exec(url);
@@ -31,6 +33,15 @@ export function specProblem(status, text) {
 
 export const namedIds = (html) => [...new Set([...html.matchAll(NAMED_ID)].map((match) => match[1]))];
 
+// The registry URL of the one ID the API reference names.
+export async function currentRegistryUrl(get = fetch) {
+  const docs = await get(DOCS_PAGE);
+  if (!docs.ok) throw new Error(`${DOCS_PAGE} answered HTTP ${docs.status}`);
+  const ids = namedIds(await docs.text());
+  if (ids.length !== 1) throw new Error(`${DOCS_PAGE} names ${ids.length === 0 ? 'no registry ID' : `registry IDs ${ids.join(', ')}`}, not one`);
+  return registryUrl(ids[0]);
+}
+
 // Every problem found, as a sentence each. None means the pin is current.
 export async function checkUpstream(lock, get = fetch) {
   const pinned = registryId(lock.url);
@@ -43,7 +54,7 @@ export async function checkUpstream(lock, get = fetch) {
   if (!docs.ok) problems.push(`${DOCS_PAGE} answered HTTP ${docs.status}, so the pinned registry ID could not be checked.`);
   else if (ids.length === 0) problems.push(`${DOCS_PAGE} names no registry ID, so the pinned one could not be checked.`);
   else if (!ids.includes(pinned)) {
-    problems.push(`The API reference names registry ID ${ids.join(', ')}, not the pinned ${pinned}. Point lock.json at the new ID and run \`npm run spec:pin\`.`);
+    problems.push(`The API reference names registry ID ${ids.join(', ')}, not the pinned ${pinned}. The spec drift pull request moves the pin to it.`);
   }
   return problems;
 }
