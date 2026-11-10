@@ -450,6 +450,30 @@ export interface ApiV1ArLineItemData {
   unitPrice: number;
 }
 
+export interface ApiV1ArProductCreateRequest {
+  description?: string | null;
+  name: string;
+  unitPrice: number;
+}
+
+export interface ApiV1ArProductPaginatedResponseData {
+  page: ApiV1ArProductPaginatedResponseDataPage;
+  products: Array<ApiV1ArProductResponseData>;
+}
+
+export interface ApiV1ArProductPaginatedResponseDataPage {
+  nextPage?: string;
+  previousPage?: string;
+}
+
+export interface ApiV1ArProductResponseData {
+  description?: string | null;
+  id: string;
+  name: string;
+  unitPrice: number;
+  updatedAt: string;
+}
+
 export interface ApiV1AssignTransactionRequest {
   allowOverspend?: boolean | null;
   transactionId: string;
@@ -953,6 +977,40 @@ export interface BooksAPIInstance {
 
 export type BooksAPIInstanceRelationship = 'self' | 'client';
 
+export interface BooksAPIInvoice {
+  amountRemaining: number;
+  customer?: BooksAPIInvoiceCustomer | null;
+  displayStatus: BooksAccrualSourceDisplayStatus;
+  dueDate?: string | null;
+  effectiveDate: string;
+  grossAmount: number;
+  id: string;
+  lines: Array<BooksAPIInvoiceLine>;
+  notes?: string | null;
+  paymentApplications: Array<BooksAPIInvoicePaymentApplication>;
+  referenceNumber?: string | null;
+  status: BooksAccrualSourceStatus;
+}
+
+export interface BooksAPIInvoiceCustomer {
+  id: string;
+  name: string;
+}
+
+export interface BooksAPIInvoiceLine {
+  amount: number;
+  description: string;
+  id: string;
+  ledgerId: string;
+}
+
+export interface BooksAPIInvoicePaymentApplication {
+  amount: number;
+  lineEntryId: string;
+}
+
+export type BooksAPIInvoiceSyncStatus = 'pending';
+
 export interface BooksAPILedger {
   debitCredit: BooksDebitCredit;
   deletable: boolean;
@@ -1018,6 +1076,16 @@ export interface BooksAPILineEntry {
   ledgerName: string;
   opposingLedgerIds: Array<string>;
   tags: Array<BooksTag>;
+}
+
+export interface BooksAPIPendingInvoice {
+  customer: BooksAPIInvoiceCustomer;
+  dueDate: string;
+  effectiveDate: string;
+  grossAmount: number;
+  message: string;
+  referenceNumber: string;
+  syncStatus: BooksAPIInvoiceSyncStatus;
 }
 
 export interface BooksAPIReport {
@@ -1645,6 +1713,21 @@ export interface CreateBooksAPICategorizationRuleResponse {
   rule: BooksAPICategorizationRule;
 }
 
+export interface CreateBooksAPIInvoiceLine {
+  amount: number;
+  description: string;
+  ledgerId: string;
+}
+
+export interface CreateBooksAPIInvoiceRequest {
+  customer: string;
+  dueDate: string;
+  effectiveDate: string;
+  lines: Array<CreateBooksAPIInvoiceLine>;
+  notes?: string | null;
+  referenceNumber: string;
+}
+
 export interface CreateBooksAPIJournalEntriesBulkResponse {
   journalEntries: Array<BooksJournalEntry>;
 }
@@ -1882,6 +1965,12 @@ export interface GetBooksAPICategorizationRulesResponse {
 export interface GetBooksAPIInstancesResponse {
   instances: Array<BooksAPIInstance>;
   nextPageToken?: string | null;
+}
+
+export interface GetBooksAPIInvoicesResponse {
+  invoices: Array<BooksAPIInvoice>;
+  nextPageToken?: string | null;
+  prevPageToken?: string | null;
 }
 
 export interface GetBooksAPIJournalEntriesResponse {
@@ -2338,6 +2427,7 @@ export type PhysicalCardStatus = 'inactive' | 'active' | 'locked';
 
 export interface PostTransactionAPIRequest {
   amount: number;
+  duplicateCheckOverride?: boolean;
   externalMemo?: string;
   idempotencyKey: string;
   note?: string;
@@ -2452,7 +2542,7 @@ export interface RecipientsPaginatedResponsePage {
   previousPage?: string;
 }
 
-export type ReimbursementPaymentStatus = 'pending' | 'initiated' | 'paid' | 'failed';
+export type ReimbursementPaymentStatus = 'pending' | 'initiated' | 'paid' | 'failed' | 'paidOutsideMercury';
 
 export type ReimbursementReviewStatus = 'submitted' | 'updatesRequested' | 'approved' | 'denied' | 'canceled';
 
@@ -2506,6 +2596,7 @@ export type SecurityIdType = 'cusip';
 export interface SendMoneyAPIRequest {
   amount: number;
   chargeType?: SendMoneyAPIRequestChargeTypeEnum;
+  duplicateCheckOverride?: boolean;
   externalMemo?: string;
   idempotencyKey: string;
   note?: string;

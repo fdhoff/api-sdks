@@ -12,6 +12,7 @@ from mercury_banking.api.events_api import EventsApi
 from mercury_banking.api.invoices_api import InvoicesApi
 from mercury_banking.api.merchants_api import MerchantsApi
 from mercury_banking.api.organization_api import OrganizationApi
+from mercury_banking.api.products_api import ProductsApi
 from mercury_banking.api.receipts_api import ReceiptsApi
 from mercury_banking.api.recipient_invites_api import RecipientInvitesApi
 from mercury_banking.api.recipients_api import RecipientsApi

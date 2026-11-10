@@ -20,7 +20,7 @@ Mercury maintains an official Go SDK, [mercury-go](https://github.com/MercuryTec
 
 * **Retries never repeat a write that could act twice.** mercury-go retries connection errors, 408, 409, 429 and 5xx on every method, including writes such as issuing a card or adding a recipient, which carry no idempotency key. This module retries those failures only on GET and on the four money-moving writes when their `idempotencyKey` is set, and other writes only on 429.
 * **Webhook verification.** `VerifyWebhook` checks the `Mercury-Signature` header. mercury-go has no helper for it.
-* **Coverage:** all 87 operations in Mercury's API reference, against mercury-go's 80.
+* **Coverage:** all 89 operations in Mercury's API reference, against mercury-go's 80.
 * **No dependencies** outside the standard library.
 
 ## Install
@@ -151,7 +151,7 @@ A `Client` is safe for concurrent use.
 
 ## Behaviour
 
-* **Methods** are grouped by resource, such as `client.Accounts`, `client.Transactions`, `client.Recipients`, `client.Cards` and `client.Invoices`. All 87 operations in the API reference have a method.
+* **Methods** are grouped by resource, such as `client.Accounts`, `client.Transactions`, `client.Recipients`, `client.Cards` and `client.Invoices`. All 89 operations in the API reference have a method.
 * **Context:** every method takes a `context.Context`. Cancelling it stops the call, including any wait before a retry, and the call returns the context's error, not an `APIError`. Use it for an overall deadline; `WithTimeout` applies to each attempt.
 * **Hosts:** every operation goes to `api.mercury.com`, except `Cards.Reveal`, which goes to `vault-api.mercury.com`. In the sandbox both go to `api-sandbox.mercury.com`.
 * **Pagination:** `List` methods return one page, and `Iter` methods return an iterator for `range` over every item. Most send each page's `page.nextPage` back as `start_after`. `Accounts.IterTransactions` pages by `offset`, and `Treasury.IterTransactions` by its `cursor`. Iterators start where your own `StartAfter`, `Offset` or `Cursor` says, page forward only, and stop after yielding an error.

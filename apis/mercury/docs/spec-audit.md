@@ -1,6 +1,6 @@
 # Spec audit
 
-Audit of the pinned upstream spec (`apis/mercury/spec/upstream/lock.json`, `info.version` 1.0.0): OpenAPI 3.0.0, 132 operations, 427 schemas, one server plus a second on one operation. It was written from the public spec, the public API reference and the Prism mock only; nothing here has been checked against the live API.
+Audit of the pinned upstream spec (`apis/mercury/spec/upstream/lock.json`, `info.version` 1.0.0): OpenAPI 3.0.0, 136 operations, 440 schemas, one server plus a second on one operation. It was written from the public spec, the public API reference and the Prism mock only; nothing here has been checked against the live API.
 
 Mercury is a financial technology company, not a bank. This project is not affiliated with, endorsed by or sponsored by Mercury Technologies, Inc.
 
@@ -8,14 +8,14 @@ Mercury is a financial technology company, not a bank. This project is not affil
 
 Mercury publishes the spec through ReadMe's API registry, at `https://dash.readme.com/api/v1/api-registry/<id>`. The spec carries no `info.license`, so it is never committed: the build fetches it from the URL in `lock.json` and checks its SHA-256. It is served as JSON, which the pipeline reads as YAML, so the cache keeps the `openapi.yaml` name. The overlay quotes no upstream prose.
 
-The registry ID changes when Mercury republishes, and a superseded ID keeps answering with its old copy, so a pin can go stale while every request still succeeds. Each page of the API reference names the current ID in its `oasPublicUrl`. `spec/check-upstream.mjs` runs in the spec drift workflow and fails when:
+The registry ID changes when Mercury republishes, and a superseded ID keeps answering with its old copy, so a pin can go stale while every request still succeeds. Each page of the API reference names the current ID in its `oasPublicUrl`. `spec/upstream-url.mjs` prints that ID's registry URL, and the drift job pins it, which moves `lock.json` to the new URL and hash and regenerates. `spec/check-upstream.mjs` runs in the spec drift workflow's `upstream` job and fails when:
 
 * the registry URL fails, or answers with an empty body, a body that is not JSON, or JSON that is not an OpenAPI document;
-* the reference page names a registry ID other than the pinned one, or none.
+* the reference page names a registry ID other than the pinned one, which the drift pull request then proposes, or none.
 
 The drift job itself fails when upstream removes an operation.
 
-To re-pin, point `lock.json` at the ID the reference names, run `API=mercury npm run spec:pin`, and check the operations against the reference index at `https://docs.mercury.com/llms.txt`: every operation the build keeps should have a page there.
+To re-pin by hand, run `API=mercury npm run spec:pin -- --url <registry URL>` with the URL `spec/upstream-url.mjs` prints, and check the operations against the reference index at `https://docs.mercury.com/llms.txt`: every operation the build keeps should have a page there.
 
 OAuth2 lives in a separate registry file on `oauth2.mercury.com`. Mercury approves each OAuth2 integration individually and offers no test path besides the mock, so it is left out. TODO: add the OAuth2 contract, with PKCE and refresh, if users ask.
 
@@ -23,9 +23,9 @@ OAuth2 lives in a separate registry file on `oauth2.mercury.com`. Mercury approv
 
 | ID | Gap | Correction |
 | --- | --- | --- |
-| M1 | 41 operations carry `x-internal`: Books, reimbursements and the MCP feedback endpoint. None has a page in the API reference. | Removed. The filter matches the key's presence, since its value is the string `true`. |
-| M2 | Four operations without `x-internal` have no page in the API reference: `getAccount`, `getInvest`, `getInvestActivity` and `submitOnboardingData`. | Removed, leaving 87 operations. |
-| M3 | M1 and M2 leave 31 paths with no operation, whose path parameters then have nothing to declare them. | Removed. |
+| M1 | 43 operations carry `x-internal`: Books, reimbursements and the MCP feedback endpoint. None has a page in the API reference. | Removed. The filter matches the key's presence, since its value is the string `true`. |
+| M2 | Four operations without `x-internal` have no page in the API reference: `getAccount`, `getInvest`, `getInvestActivity` and `submitOnboardingData`. | Removed, leaving 89 operations. |
+| M3 | M1 and M2 leave 32 paths with no operation, whose path parameters then have nothing to declare them. | Removed. |
 | M4 | Every operation can answer 401 for a missing, invalid or revoked token, and 429 when rate limited, but none declares either. `listCredit`, `getOrganization` and `getSafeRequests` declare no error response at all. | Shared `Unauthorized` and `RateLimited` responses on every operation. Like Mercury's own error responses, they declare no body, so the typed error keeps the status and the raw body. |
 | M5 | The bearer scheme's description embeds a sample token string. | Replaced with our own description, so no token-shaped string reaches the build. |
 | M6 | `uploadRecipientAttachment` and `uploadTransactionAttachment` describe a reply holding the attachment's ID and download URL, but declare no body. | An `UploadedAttachment` JSON body with optional `attachmentId` and `downloadUrl` strings, so the reply is returned rather than dropped. |

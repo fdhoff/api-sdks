@@ -22,6 +22,8 @@ mod merchants_api;
 pub use self::merchants_api::*;
 mod organization_api;
 pub use self::organization_api::*;
+mod products_api;
+pub use self::products_api::*;
 mod receipts_api;
 pub use self::receipts_api::*;
 mod recipient_invites_api;

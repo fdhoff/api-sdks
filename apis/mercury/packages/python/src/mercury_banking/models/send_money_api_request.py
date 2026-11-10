@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional
 from typing_extensions import Annotated
 from uuid import UUID
@@ -19,6 +19,7 @@ class SendMoneyAPIRequest(ApiModel):
 
     amount: Annotated[float, Field(ge=0.01)]
     charge_type: Optional[StrictStr] = Field(default=None, alias="chargeType")
+    duplicate_check_override: Optional[StrictBool] = Field(default=None, alias="duplicateCheckOverride")
     external_memo: Optional[StrictStr] = Field(default=None, alias="externalMemo")
     idempotency_key: StrictStr = Field(alias="idempotencyKey")
     note: Optional[StrictStr] = None

@@ -508,6 +508,28 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             collect(client.merchants().iter(&params)).await
         }
         ("getOrganization", false) => output(client.organization().get().await),
+        ("createProduct", false) => {
+            let body: Option<models::ApiV1ArProductCreateRequest> = body(case);
+            output(client.products().create(body.as_ref()).await)
+        }
+        ("listProducts", false) => {
+            let params = ProductsListParams {
+                limit: param(&case.params, "limit"),
+                start_after: param(&case.params, "start_after"),
+                end_before: param(&case.params, "end_before"),
+                order: param(&case.params, "order"),
+            };
+            output(client.products().list(&params).await)
+        }
+        ("listProducts", true) => {
+            let params = ProductsListParams {
+                limit: param(&case.params, "limit"),
+                start_after: param(&case.params, "start_after"),
+                end_before: param(&case.params, "end_before"),
+                order: param(&case.params, "order"),
+            };
+            collect(client.products().iter(&params)).await
+        }
         ("createReceiptUploadUrl", false) => {
             let body: Option<models::ApiV1ReceiptUploadUrlRequest> = body(case);
             output(client.receipts().create_upload_url(body.as_ref()).await)

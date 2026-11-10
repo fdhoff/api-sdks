@@ -25,6 +25,7 @@ iterators:
   listCustomers: { items: customers }
   listInvoices: { items: invoices }
   listMerchants: { items: data }
+  listProducts: { items: products }
   listReceipts: { items: receipts }
   listRecipientInvites: { items: invites }
   listRecipientsAttachments: { items: attachments }

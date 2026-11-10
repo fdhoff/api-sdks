@@ -10,14 +10,15 @@ import (
 
 // PostTransactionAPIRequest is an API object. Extra holds unknown fields and any value that did not fit its field.
 type PostTransactionAPIRequest struct {
-	Amount         *float64                         `json:"amount,omitempty"`
-	ExternalMemo   *string                          `json:"externalMemo,omitempty"`
-	IdempotencyKey *string                          `json:"idempotencyKey,omitempty"`
-	Note           *string                          `json:"note,omitempty"`
-	PaymentMethod  *PostTransactionPaymentMethod    `json:"paymentMethod,omitempty"`
-	Purpose        *PostTransactionSendMoneyPurpose `json:"purpose,omitempty"`
-	RecipientID    *string                          `json:"recipientId,omitempty"`
-	Extra          map[string]json.RawMessage       `json:"-"`
+	Amount                 *float64                         `json:"amount,omitempty"`
+	DuplicateCheckOverride *bool                            `json:"duplicateCheckOverride,omitempty"`
+	ExternalMemo           *string                          `json:"externalMemo,omitempty"`
+	IdempotencyKey         *string                          `json:"idempotencyKey,omitempty"`
+	Note                   *string                          `json:"note,omitempty"`
+	PaymentMethod          *PostTransactionPaymentMethod    `json:"paymentMethod,omitempty"`
+	Purpose                *PostTransactionSendMoneyPurpose `json:"purpose,omitempty"`
+	RecipientID            *string                          `json:"recipientId,omitempty"`
+	Extra                  map[string]json.RawMessage       `json:"-"`
 }
 
 // UnmarshalJSON decodes tolerantly: a field that does not fit stays unset and its raw value goes to Extra.

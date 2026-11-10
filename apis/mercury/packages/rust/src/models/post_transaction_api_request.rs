@@ -7,6 +7,7 @@ use crate::models;
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PostTransactionApiRequest {
     pub amount: Option<f64>,
+    pub duplicate_check_override: Option<bool>,
     pub external_memo: Option<String>,
     pub idempotency_key: Option<String>,
     pub note: Option<String>,
@@ -18,6 +19,7 @@ pub struct PostTransactionApiRequest {
 
 crate::runtime::tolerant_model!(PostTransactionApiRequest {
     amount: "amount",
+    duplicate_check_override: "duplicateCheckOverride",
     external_memo: "externalMemo",
     idempotency_key: "idempotencyKey",
     note: "note",

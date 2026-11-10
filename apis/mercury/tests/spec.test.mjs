@@ -32,15 +32,15 @@ test('the cached spec matches its lock and is not tracked', async () => {
   assert.equal(execFileSync('git', ['ls-files', paths.spec], { encoding: 'utf8' }), '');
 });
 
-test('the build keeps the 87 public, documented operations', () => {
+test('the build keeps the 89 public, documented operations', () => {
   const internal = operationsOf(upstream).filter((operation) => operation['x-internal'] !== undefined);
-  assert.equal(operationsOf(upstream).length, 132);
-  assert.equal(internal.length, 41);
-  assert.equal(operations.length, 87);
+  assert.equal(operationsOf(upstream).length, 136);
+  assert.equal(internal.length, 43);
+  assert.equal(operations.length, 89);
   const kept = new Set(ids(operations));
   assert.deepEqual(ids(internal).filter((id) => kept.has(id)), []);
   assert.deepEqual(DROPPED.filter((id) => kept.has(id)), []);
-  assert.equal(operations.length, 132 - internal.length - DROPPED.length);
+  assert.equal(operations.length, 136 - internal.length - DROPPED.length);
   assert.ok(Object.values(built.paths).every((item) => METHODS.some((method) => item[method])));
 });
 
@@ -91,10 +91,10 @@ test('every list that takes start_after is iterated by cursor, and the two other
   const paged = operations.filter((operation) => queryParams(operation).some((name) => ['start_after', 'offset', 'cursor'].includes(name)));
   assert.deepEqual(ids(paged), Object.keys(sdk.iterators).sort());
   const byStyle = (style) => Object.keys(sdk.iterators).filter((id) => (sdk.iterators[id].paging?.style ?? sdk.paging.style) === style).sort();
-  assert.equal(byStyle('cursor').length, 25);
+  assert.equal(byStyle('cursor').length, 26);
   assert.deepEqual(byStyle('offset'), ['listAccountTransactions']);
   const startAfter = byStyle('cursor').filter((id) => !sdk.iterators[id].paging);
-  assert.equal(startAfter.length, 24);
+  assert.equal(startAfter.length, 25);
   assert.ok(startAfter.every((id) => queryParams(byId.get(id)).includes('start_after')));
 });
 

@@ -61,6 +61,9 @@ listMerchants: { resource: merchants, method: list, iterator: iter, items: Merch
 
 getOrganization: { resource: organization, method: get, summary: Get your organization. }
 
+listProducts: { resource: products, method: list, iterator: iter, items: ApiV1ArProductResponseData, paging: { items: products }, summary: List one page of invoicing products. }
+createProduct: { resource: products, method: create, summary: Create an invoicing product. }
+
 listReceipts: { resource: receipts, method: list, iterator: iter, items: ApiV1ReceiptResponse, paging: { items: receipts }, summary: List one page of receipts. }
 getReceipt: { resource: receipts, method: get, summary: Get one receipt. }
 createReceiptUploadUrl: { resource: receipts, method: createUploadUrl, summary: Get a short-lived URL to upload a receipt file to. }
