@@ -238,8 +238,8 @@ test('iterators follow the next link without fetching it', async () => {
     sent.map(({ url }) => url.href),
     [
       `${BASE}/api/v1/user/repos?limit=2`,
-      `${BASE}/api/v1/user/repos?limit=2&page=2`,
-      `${BASE}/api/v1/user/repos?limit=2&page=3`,
+      `${BASE}/api/v1/user/repos?page=2&limit=2`,
+      `${BASE}/api/v1/user/repos?page=3&limit=2`,
     ],
   );
 });
