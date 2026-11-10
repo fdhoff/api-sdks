@@ -240,8 +240,8 @@ def test_iterators_follow_the_next_link_without_fetching_it() -> None:
     assert [repo.id for repo in repos] == [1, 2, 3, 4, 5]
     assert [str(request.url) for request in sent] == [
         f"{BASE}/api/v1/user/repos?limit=2",
-        f"{BASE}/api/v1/user/repos?limit=2&page=2",
-        f"{BASE}/api/v1/user/repos?limit=2&page=3",
+        f"{BASE}/api/v1/user/repos?page=2&limit=2",
+        f"{BASE}/api/v1/user/repos?page=3&limit=2",
     ]
 
 
