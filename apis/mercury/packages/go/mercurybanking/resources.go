@@ -17,6 +17,7 @@ type Resources struct {
 	Invoices          *InvoicesResource
 	Merchants         *MerchantsResource
 	Organization      *OrganizationResource
+	Products          *ProductsResource
 	Receipts          *ReceiptsResource
 	RecipientInvites  *RecipientInvitesResource
 	Recipients        *RecipientsResource
@@ -43,6 +44,7 @@ func newResources(transport *runtime.Transport) Resources {
 		Invoices:          &InvoicesResource{transport},
 		Merchants:         &MerchantsResource{transport},
 		Organization:      &OrganizationResource{transport},
+		Products:          &ProductsResource{transport},
 		Receipts:          &ReceiptsResource{transport},
 		RecipientInvites:  &RecipientInvitesResource{transport},
 		Recipients:        &RecipientsResource{transport},

@@ -44,13 +44,13 @@ def async_client_for(handler: Handler, **options: Any) -> AsyncMercuryClient:
 
 def test_every_operation_has_a_public_method() -> None:
     client = client_for(lambda request: httpx.Response(200))
-    assert len(OPERATIONS) == 87
+    assert len(OPERATIONS) == 89
     for operation in OPERATIONS.values():
         resource = getattr(client, operation.resource)
         assert callable(getattr(resource, operation.name))
         if operation.iterator:
             assert callable(getattr(resource, operation.iterator))
-    assert sum(1 for operation in OPERATIONS.values() if operation.iterator) == 26
+    assert sum(1 for operation in OPERATIONS.values() if operation.iterator) == 27
 
 
 def test_only_the_money_moving_writes_are_idempotent() -> None:

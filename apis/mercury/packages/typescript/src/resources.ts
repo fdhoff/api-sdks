@@ -11,6 +11,7 @@ import { EventsApi, OPERATIONS as EventsApiOperations } from './apis/EventsApi.j
 import { InvoicesApi, OPERATIONS as InvoicesApiOperations } from './apis/InvoicesApi.js';
 import { MerchantsApi, OPERATIONS as MerchantsApiOperations } from './apis/MerchantsApi.js';
 import { OrganizationApi, OPERATIONS as OrganizationApiOperations } from './apis/OrganizationApi.js';
+import { ProductsApi, OPERATIONS as ProductsApiOperations } from './apis/ProductsApi.js';
 import { ReceiptsApi, OPERATIONS as ReceiptsApiOperations } from './apis/ReceiptsApi.js';
 import { RecipientInvitesApi, OPERATIONS as RecipientInvitesApiOperations } from './apis/RecipientInvitesApi.js';
 import { RecipientsApi, OPERATIONS as RecipientsApiOperations } from './apis/RecipientsApi.js';
@@ -37,6 +38,7 @@ export const OPERATIONS: ReadonlyMap<string, Operation> = new Map(
     ...InvoicesApiOperations,
     ...MerchantsApiOperations,
     ...OrganizationApiOperations,
+    ...ProductsApiOperations,
     ...ReceiptsApiOperations,
     ...RecipientInvitesApiOperations,
     ...RecipientsApiOperations,
@@ -63,6 +65,7 @@ export class Resources {
   readonly invoices: InvoicesApi;
   readonly merchants: MerchantsApi;
   readonly organization: OrganizationApi;
+  readonly products: ProductsApi;
   readonly receipts: ReceiptsApi;
   readonly recipientInvites: RecipientInvitesApi;
   readonly recipients: RecipientsApi;
@@ -87,6 +90,7 @@ export class Resources {
     this.invoices = new InvoicesApi(transport);
     this.merchants = new MerchantsApi(transport);
     this.organization = new OrganizationApi(transport);
+    this.products = new ProductsApi(transport);
     this.receipts = new ReceiptsApi(transport);
     this.recipientInvites = new RecipientInvitesApi(transport);
     this.recipients = new RecipientsApi(transport);

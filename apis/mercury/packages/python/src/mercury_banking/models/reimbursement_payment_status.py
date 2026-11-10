@@ -15,3 +15,4 @@ class ReimbursementPaymentStatus(str, Enum):
     INITIATED = "initiated"
     PAID = "paid"
     FAILED = "failed"
+    PAIDOUTSIDEMERCURY = "paidOutsideMercury"

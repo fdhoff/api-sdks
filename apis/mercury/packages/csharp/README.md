@@ -128,7 +128,7 @@ A client is safe for concurrent use.
 
 ## Behaviour
 
-* **Methods** are grouped by resource, such as `client.Accounts`, `client.Transactions`, `client.Recipients`, `client.Cards` and `client.Invoices`. All 87 operations in the API reference have a method. Every method is asynchronous and takes a `CancellationToken`.
+* **Methods** are grouped by resource, such as `client.Accounts`, `client.Transactions`, `client.Recipients`, `client.Cards` and `client.Invoices`. All 89 operations in the API reference have a method. Every method is asynchronous and takes a `CancellationToken`.
 * **Cancellation:** cancelling a call stops it, including any wait before a retry, and throws `OperationCanceledException`.
 * **Hosts:** every operation goes to `api.mercury.com`, except `Cards.RevealAsync`, which goes to `vault-api.mercury.com`. In the sandbox both go to `api-sandbox.mercury.com`.
 * **Pagination:** `List…Async` methods return one page and `ListAll…Async` methods return an `IAsyncEnumerable` over every item. Most send each page's `page.nextPage` back as `start_after`. `Accounts.ListAllTransactionsAsync` pages by `offset`, and `Treasury.ListAllTransactionsAsync` by its `cursor`. They start where your own `startAfter`, `offset` or `cursor` says, and page forward only.

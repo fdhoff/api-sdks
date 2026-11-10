@@ -59,6 +59,12 @@ from mercury_banking.models.api_v1_ar_invoices_data import ApiV1ArInvoicesData
 from mercury_banking.models.api_v1_ar_invoices_paginated_response import ApiV1ArInvoicesPaginatedResponse
 from mercury_banking.models.api_v1_ar_invoices_paginated_response_page import ApiV1ArInvoicesPaginatedResponsePage
 from mercury_banking.models.api_v1_ar_line_item_data import ApiV1ArLineItemData
+from mercury_banking.models.api_v1_ar_product_create_request import ApiV1ArProductCreateRequest
+from mercury_banking.models.api_v1_ar_product_paginated_response_data import ApiV1ArProductPaginatedResponseData
+from mercury_banking.models.api_v1_ar_product_paginated_response_data_page import (
+    ApiV1ArProductPaginatedResponseDataPage,
+)
+from mercury_banking.models.api_v1_ar_product_response_data import ApiV1ArProductResponseData
 from mercury_banking.models.api_v1_assign_transaction_request import ApiV1AssignTransactionRequest
 from mercury_banking.models.api_v1_budget_expenditure import ApiV1BudgetExpenditure
 from mercury_banking.models.api_v1_budget_expenditures_response import ApiV1BudgetExpendituresResponse
@@ -174,12 +180,18 @@ from mercury_banking.models.books_api_create_ledger_result import BooksAPICreate
 from mercury_banking.models.books_api_delete_ledger_result import BooksAPIDeleteLedgerResult
 from mercury_banking.models.books_api_instance import BooksAPIInstance
 from mercury_banking.models.books_api_instance_relationship import BooksAPIInstanceRelationship
+from mercury_banking.models.books_api_invoice import BooksAPIInvoice
+from mercury_banking.models.books_api_invoice_customer import BooksAPIInvoiceCustomer
+from mercury_banking.models.books_api_invoice_line import BooksAPIInvoiceLine
+from mercury_banking.models.books_api_invoice_payment_application import BooksAPIInvoicePaymentApplication
+from mercury_banking.models.books_api_invoice_sync_status import BooksAPIInvoiceSyncStatus
 from mercury_banking.models.books_api_ledger import BooksAPILedger
 from mercury_banking.models.books_api_ledger_balance import BooksAPILedgerBalance
 from mercury_banking.models.books_api_ledger_delete_blocked_reason import BooksAPILedgerDeleteBlockedReason
 from mercury_banking.models.books_api_ledger_write_error import BooksAPILedgerWriteError
 from mercury_banking.models.books_api_ledger_write_error_code import BooksAPILedgerWriteErrorCode
 from mercury_banking.models.books_api_line_entry import BooksAPILineEntry
+from mercury_banking.models.books_api_pending_invoice import BooksAPIPendingInvoice
 from mercury_banking.models.books_api_report import BooksAPIReport
 from mercury_banking.models.books_api_report_column import BooksAPIReportColumn
 from mercury_banking.models.books_api_report_row import BooksAPIReportRow
@@ -273,6 +285,8 @@ from mercury_banking.models.create_books_api_categorization_rule_request import 
 from mercury_banking.models.create_books_api_categorization_rule_response import (
     CreateBooksAPICategorizationRuleResponse,
 )
+from mercury_banking.models.create_books_api_invoice_line import CreateBooksAPIInvoiceLine
+from mercury_banking.models.create_books_api_invoice_request import CreateBooksAPIInvoiceRequest
 from mercury_banking.models.create_books_api_journal_entries_bulk_response import (
     CreateBooksAPIJournalEntriesBulkResponse,
 )
@@ -315,6 +329,7 @@ from mercury_banking.models.get_books_api_bill_response import GetBooksAPIBillRe
 from mercury_banking.models.get_books_api_bills_response import GetBooksAPIBillsResponse
 from mercury_banking.models.get_books_api_categorization_rules_response import GetBooksAPICategorizationRulesResponse
 from mercury_banking.models.get_books_api_instances_response import GetBooksAPIInstancesResponse
+from mercury_banking.models.get_books_api_invoices_response import GetBooksAPIInvoicesResponse
 from mercury_banking.models.get_books_api_journal_entries_response import GetBooksAPIJournalEntriesResponse
 from mercury_banking.models.get_books_api_journal_entry_response import GetBooksAPIJournalEntryResponse
 from mercury_banking.models.get_books_api_ledger_balances_response import GetBooksAPILedgerBalancesResponse
@@ -550,6 +565,10 @@ __all__ = [
     "ApiV1ArInvoicesPaginatedResponse",
     "ApiV1ArInvoicesPaginatedResponsePage",
     "ApiV1ArLineItemData",
+    "ApiV1ArProductCreateRequest",
+    "ApiV1ArProductPaginatedResponseData",
+    "ApiV1ArProductPaginatedResponseDataPage",
+    "ApiV1ArProductResponseData",
     "ApiV1AssignTransactionRequest",
     "ApiV1BudgetExpenditure",
     "ApiV1BudgetExpendituresResponse",
@@ -631,12 +650,18 @@ __all__ = [
     "BooksAPIDeleteLedgerResult",
     "BooksAPIInstance",
     "BooksAPIInstanceRelationship",
+    "BooksAPIInvoice",
+    "BooksAPIInvoiceCustomer",
+    "BooksAPIInvoiceLine",
+    "BooksAPIInvoicePaymentApplication",
+    "BooksAPIInvoiceSyncStatus",
     "BooksAPILedger",
     "BooksAPILedgerBalance",
     "BooksAPILedgerDeleteBlockedReason",
     "BooksAPILedgerWriteError",
     "BooksAPILedgerWriteErrorCode",
     "BooksAPILineEntry",
+    "BooksAPIPendingInvoice",
     "BooksAPIReport",
     "BooksAPIReportColumn",
     "BooksAPIReportRow",
@@ -722,6 +747,8 @@ __all__ = [
     "CreateBooksAPIBillVendorRecipientId",
     "CreateBooksAPICategorizationRuleRequest",
     "CreateBooksAPICategorizationRuleResponse",
+    "CreateBooksAPIInvoiceLine",
+    "CreateBooksAPIInvoiceRequest",
     "CreateBooksAPIJournalEntriesBulkResponse",
     "CreateBooksAPIJournalEntryRequest",
     "CreateBooksAPILedger",
@@ -758,6 +785,7 @@ __all__ = [
     "GetBooksAPIBillsResponse",
     "GetBooksAPICategorizationRulesResponse",
     "GetBooksAPIInstancesResponse",
+    "GetBooksAPIInvoicesResponse",
     "GetBooksAPIJournalEntriesResponse",
     "GetBooksAPIJournalEntryResponse",
     "GetBooksAPILedgerBalancesResponse",

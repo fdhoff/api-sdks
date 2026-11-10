@@ -4,6 +4,8 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* `client.Products.ListAsync`, `client.Products.ListAllAsync` and `client.Products.CreateAsync`, for the invoicing product catalog Mercury added to its API reference.
+* `DuplicateCheckOverride` on `SendMoneyAPIRequest` and `PostTransactionAPIRequest`, to send a payment that repeats one from the last 24 hours, and `ReimbursementPaymentStatus.PaidOutsideMercury`.
 * An empty, `.` or `..` path value throws `ArgumentException`, and a `null` one `ArgumentNullException`, before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`, or with the `{name}` placeholder left in for `null`.
 * An iteration whose cursor returns to a page it already requested, such as page A, then B, then A again, now throws `ApiDecodeException` instead of fetching the same pages until the rate limit runs out. Before, only a cursor that repeated the one just sent was caught.
 * A `ListAll…Async` iterator stops at an empty 204 page instead of throwing `ApiDecodeException` partway through `await foreach`.

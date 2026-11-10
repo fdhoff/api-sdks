@@ -7,5 +7,6 @@ crate::runtime::open_enum! {
         Initiated = "initiated",
         Paid = "paid",
         Failed = "failed",
+        PaidOutsideMercury = "paidOutsideMercury",
     }
 }

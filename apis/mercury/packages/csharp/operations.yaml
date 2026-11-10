@@ -62,6 +62,9 @@ listMerchants: { resource: Merchants, method: ListAsync, iterator: ListAllAsync,
 
 getOrganization: { resource: Organization, method: GetAsync, summary: Get your organization. }
 
+listProducts: { resource: Products, method: ListAsync, iterator: ListAllAsync, items: ApiV1ArProductResponseData, paging: { items: products }, summary: List one page of invoicing products. }
+createProduct: { resource: Products, method: CreateAsync, summary: Create an invoicing product. }
+
 listReceipts: { resource: Receipts, method: ListAsync, iterator: ListAllAsync, items: ApiV1ReceiptResponse, paging: { items: receipts }, summary: List one page of receipts. }
 getReceipt: { resource: Receipts, method: GetAsync, summary: Get one receipt. }
 createReceiptUploadUrl: { resource: Receipts, method: CreateUploadUrlAsync, summary: Get a short-lived URL to upload a receipt file to. }

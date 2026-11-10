@@ -13,6 +13,9 @@ public sealed class PostTransactionAPIRequest : ApiModel
     [JsonPropertyName("amount")]
     public double? Amount { get; set; }
 
+    [JsonPropertyName("duplicateCheckOverride")]
+    public bool? DuplicateCheckOverride { get; set; }
+
     [JsonPropertyName("externalMemo")]
     public string? ExternalMemo { get; set; }
 

@@ -10,15 +10,16 @@ import (
 
 // SendMoneyAPIRequest is an API object. Extra holds unknown fields and any value that did not fit its field.
 type SendMoneyAPIRequest struct {
-	Amount         *float64                         `json:"amount,omitempty"`
-	ChargeType     *string                          `json:"chargeType,omitempty"`
-	ExternalMemo   *string                          `json:"externalMemo,omitempty"`
-	IdempotencyKey *string                          `json:"idempotencyKey,omitempty"`
-	Note           *string                          `json:"note,omitempty"`
-	PaymentMethod  *RequestSendMoneyPaymentMethod   `json:"paymentMethod,omitempty"`
-	Purpose        *PostTransactionSendMoneyPurpose `json:"purpose,omitempty"`
-	RecipientID    *string                          `json:"recipientId,omitempty"`
-	Extra          map[string]json.RawMessage       `json:"-"`
+	Amount                 *float64                         `json:"amount,omitempty"`
+	ChargeType             *string                          `json:"chargeType,omitempty"`
+	DuplicateCheckOverride *bool                            `json:"duplicateCheckOverride,omitempty"`
+	ExternalMemo           *string                          `json:"externalMemo,omitempty"`
+	IdempotencyKey         *string                          `json:"idempotencyKey,omitempty"`
+	Note                   *string                          `json:"note,omitempty"`
+	PaymentMethod          *RequestSendMoneyPaymentMethod   `json:"paymentMethod,omitempty"`
+	Purpose                *PostTransactionSendMoneyPurpose `json:"purpose,omitempty"`
+	RecipientID            *string                          `json:"recipientId,omitempty"`
+	Extra                  map[string]json.RawMessage       `json:"-"`
 }
 
 // UnmarshalJSON decodes tolerantly: a field that does not fit stays unset and its raw value goes to Extra.

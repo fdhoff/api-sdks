@@ -6,8 +6,9 @@ package mercurybanking
 type ReimbursementPaymentStatus string
 
 const (
-	ReimbursementPaymentStatusPending   ReimbursementPaymentStatus = "pending"
-	ReimbursementPaymentStatusInitiated ReimbursementPaymentStatus = "initiated"
-	ReimbursementPaymentStatusPaid      ReimbursementPaymentStatus = "paid"
-	ReimbursementPaymentStatusFailed    ReimbursementPaymentStatus = "failed"
+	ReimbursementPaymentStatusPending            ReimbursementPaymentStatus = "pending"
+	ReimbursementPaymentStatusInitiated          ReimbursementPaymentStatus = "initiated"
+	ReimbursementPaymentStatusPaid               ReimbursementPaymentStatus = "paid"
+	ReimbursementPaymentStatusFailed             ReimbursementPaymentStatus = "failed"
+	ReimbursementPaymentStatusPaidOutsideMercury ReimbursementPaymentStatus = "paidOutsideMercury"
 )

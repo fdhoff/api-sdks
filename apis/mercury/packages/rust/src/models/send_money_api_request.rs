@@ -8,6 +8,7 @@ use crate::models;
 pub struct SendMoneyApiRequest {
     pub amount: Option<f64>,
     pub charge_type: Option<String>,
+    pub duplicate_check_override: Option<bool>,
     pub external_memo: Option<String>,
     pub idempotency_key: Option<String>,
     pub note: Option<String>,
@@ -20,6 +21,7 @@ pub struct SendMoneyApiRequest {
 crate::runtime::tolerant_model!(SendMoneyApiRequest {
     amount: "amount",
     charge_type: "chargeType",
+    duplicate_check_override: "duplicateCheckOverride",
     external_memo: "externalMemo",
     idempotency_key: "idempotencyKey",
     note: "note",

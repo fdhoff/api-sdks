@@ -11,6 +11,7 @@ export { EventsApi } from './EventsApi.js';
 export { InvoicesApi } from './InvoicesApi.js';
 export { MerchantsApi } from './MerchantsApi.js';
 export { OrganizationApi } from './OrganizationApi.js';
+export { ProductsApi } from './ProductsApi.js';
 export { ReceiptsApi } from './ReceiptsApi.js';
 export { RecipientInvitesApi } from './RecipientInvitesApi.js';
 export { RecipientsApi } from './RecipientsApi.js';

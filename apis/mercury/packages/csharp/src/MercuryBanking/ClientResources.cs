@@ -9,7 +9,7 @@ namespace MercuryBanking;
 /// <summary>Every API operation, grouped by resource.</summary>
 public abstract class ClientResources
 {
-    internal static readonly Operation[] Operations = [.. AccountsResource.Operations, .. AutoTransferRulesResource.Operations, .. BudgetsResource.Operations, .. CardsResource.Operations, .. CategoriesResource.Operations, .. CreditResource.Operations, .. CustomersResource.Operations, .. EventsResource.Operations, .. InvoicesResource.Operations, .. MerchantsResource.Operations, .. OrganizationResource.Operations, .. ReceiptsResource.Operations, .. RecipientInvitesResource.Operations, .. RecipientsResource.Operations, .. SafesResource.Operations, .. SendMoneyRequestsResource.Operations, .. StatementsResource.Operations, .. TransactionsResource.Operations, .. TransferRequestsResource.Operations, .. TreasuryResource.Operations, .. UsersResource.Operations, .. WebhooksResource.Operations,];
+    internal static readonly Operation[] Operations = [.. AccountsResource.Operations, .. AutoTransferRulesResource.Operations, .. BudgetsResource.Operations, .. CardsResource.Operations, .. CategoriesResource.Operations, .. CreditResource.Operations, .. CustomersResource.Operations, .. EventsResource.Operations, .. InvoicesResource.Operations, .. MerchantsResource.Operations, .. OrganizationResource.Operations, .. ProductsResource.Operations, .. ReceiptsResource.Operations, .. RecipientInvitesResource.Operations, .. RecipientsResource.Operations, .. SafesResource.Operations, .. SendMoneyRequestsResource.Operations, .. StatementsResource.Operations, .. TransactionsResource.Operations, .. TransferRequestsResource.Operations, .. TreasuryResource.Operations, .. UsersResource.Operations, .. WebhooksResource.Operations,];
 
     private protected ClientResources(Transport transport)
     {
@@ -25,6 +25,7 @@ public abstract class ClientResources
         Invoices = new InvoicesResource(transport);
         Merchants = new MerchantsResource(transport);
         Organization = new OrganizationResource(transport);
+        Products = new ProductsResource(transport);
         Receipts = new ReceiptsResource(transport);
         RecipientInvites = new RecipientInvitesResource(transport);
         Recipients = new RecipientsResource(transport);
@@ -72,6 +73,9 @@ public abstract class ClientResources
 
     /// <summary>The Organization operations.</summary>
     public OrganizationResource Organization { get; }
+
+    /// <summary>The Products operations.</summary>
+    public ProductsResource Products { get; }
 
     /// <summary>The Receipts operations.</summary>
     public ReceiptsResource Receipts { get; }

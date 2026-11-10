@@ -17,6 +17,7 @@ from mercury_banking.api import (
     invoices_api,
     merchants_api,
     organization_api,
+    products_api,
     receipts_api,
     recipient_invites_api,
     recipients_api,
@@ -44,6 +45,7 @@ OPERATIONS: Dict[str, Operation[Any]] = {
         invoices_api.OPERATIONS,
         merchants_api.OPERATIONS,
         organization_api.OPERATIONS,
+        products_api.OPERATIONS,
         receipts_api.OPERATIONS,
         recipient_invites_api.OPERATIONS,
         recipients_api.OPERATIONS,
@@ -73,6 +75,7 @@ class Resources:
         self.invoices = invoices_api.InvoicesApi(transport)
         self.merchants = merchants_api.MerchantsApi(transport)
         self.organization = organization_api.OrganizationApi(transport)
+        self.products = products_api.ProductsApi(transport)
         self.receipts = receipts_api.ReceiptsApi(transport)
         self.recipient_invites = recipient_invites_api.RecipientInvitesApi(transport)
         self.recipients = recipients_api.RecipientsApi(transport)
@@ -99,6 +102,7 @@ class AsyncResources:
         self.invoices = invoices_api.AsyncInvoicesApi(transport)
         self.merchants = merchants_api.AsyncMerchantsApi(transport)
         self.organization = organization_api.AsyncOrganizationApi(transport)
+        self.products = products_api.AsyncProductsApi(transport)
         self.receipts = receipts_api.AsyncReceiptsApi(transport)
         self.recipient_invites = recipient_invites_api.AsyncRecipientInvitesApi(transport)
         self.recipients = recipients_api.AsyncRecipientsApi(transport)

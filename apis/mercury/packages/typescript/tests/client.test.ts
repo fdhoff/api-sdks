@@ -50,13 +50,13 @@ const text = (body: RequestInit['body']): string =>
 
 test('every operation has a public method', () => {
   const { client } = clientFor(() => json({}));
-  assert.equal(OPERATIONS.size, 87);
+  assert.equal(OPERATIONS.size, 89);
   for (const operation of OPERATIONS.values()) {
     const resource = (client as unknown as Record<string, Record<string, unknown>>)[operation.resource];
     assert.equal(typeof resource?.[operation.name], 'function', operation.id);
     if (operation.iterator) assert.equal(typeof resource?.[operation.iterator], 'function', operation.id);
   }
-  assert.equal([...OPERATIONS.values()].filter((operation) => operation.iterator).length, 26);
+  assert.equal([...OPERATIONS.values()].filter((operation) => operation.iterator).length, 27);
 });
 
 test('only the money-moving writes are idempotent', () => {

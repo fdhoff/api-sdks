@@ -48,6 +48,10 @@ impl Client {
     pub fn organization(&self) -> OrganizationApi {
         OrganizationApi::new(self.transport.clone())
     }
+    /// The `products` operations.
+    pub fn products(&self) -> ProductsApi {
+        ProductsApi::new(self.transport.clone())
+    }
     /// The `receipts` operations.
     pub fn receipts(&self) -> ReceiptsApi {
         ReceiptsApi::new(self.transport.clone())

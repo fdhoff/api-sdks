@@ -16,6 +16,9 @@ public sealed class SendMoneyAPIRequest : ApiModel
     [JsonPropertyName("chargeType")]
     public string? ChargeType { get; set; }
 
+    [JsonPropertyName("duplicateCheckOverride")]
+    public bool? DuplicateCheckOverride { get; set; }
+
     [JsonPropertyName("externalMemo")]
     public string? ExternalMemo { get; set; }
 

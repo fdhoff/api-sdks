@@ -18,4 +18,6 @@ public enum ReimbursementPaymentStatus
     Paid,
     [JsonStringEnumMemberName("failed")]
     Failed,
+    [JsonStringEnumMemberName("paidOutsideMercury")]
+    PaidOutsideMercury,
 }
