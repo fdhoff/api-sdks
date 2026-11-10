@@ -27,7 +27,7 @@ const API_PATH: &str = "/api/v1";
 #[derive(Deserialize)]
 struct Settings {
     base_url: String,
-    token: String,
+    token: Option<String>,
     username: Option<String>,
     password: Option<String>,
     otp: Option<String>,
@@ -266,7 +266,10 @@ fn client(settings: Settings, proxy: Option<&str>) -> Client {
                 None => builder,
             }
         }
-        None => builder.token(&settings.token),
+        None => match settings.token {
+            Some(token) => builder.token(token),
+            None => builder,
+        },
     };
     if let Some(sudo) = settings.sudo {
         builder = builder.sudo(sudo);
