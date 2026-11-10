@@ -15,6 +15,7 @@ class ST23RequestShipmentsTracking(ApiModel):
 
     carrier_code: Optional[StrictStr] = None
     carrier_name: Optional[StrictStr] = None
+    carrier_scac_code: Optional[StrictStr] = None
     carrier_standard_code: Optional[StrictStr] = None
     tracking_number: Optional[StrictStr] = None
     tracking_url: Optional[StrictStr] = None

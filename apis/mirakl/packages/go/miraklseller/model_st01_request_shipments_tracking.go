@@ -12,6 +12,7 @@ import (
 type ST01RequestShipmentsTracking struct {
 	CarrierCode         *string                    `json:"carrier_code,omitempty"`
 	CarrierName         *string                    `json:"carrier_name,omitempty"`
+	CarrierScacCode     *string                    `json:"carrier_scac_code,omitempty"`
 	CarrierStandardCode *string                    `json:"carrier_standard_code,omitempty"`
 	TrackingNumber      *string                    `json:"tracking_number,omitempty"`
 	TrackingURL         *string                    `json:"tracking_url,omitempty"`

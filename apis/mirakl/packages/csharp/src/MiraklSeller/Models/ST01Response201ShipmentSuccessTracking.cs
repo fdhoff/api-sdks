@@ -19,6 +19,9 @@ public sealed class ST01Response201ShipmentSuccessTracking : ApiModel
     [JsonPropertyName("carrier_name")]
     public string? CarrierName { get; set; }
 
+    [JsonPropertyName("carrier_scac_code")]
+    public string? CarrierScacCode { get; set; }
+
     [JsonPropertyName("carrier_standard_code")]
     public string? CarrierStandardCode { get; set; }
 

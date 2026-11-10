@@ -49,6 +49,7 @@ type OR15Response200ExtFileStructureOrders struct {
 	QuoteID                     *string                                                      `json:"quote_id,omitempty"`
 	References                  *OR15Response200ExtFileStructureOrdersReferences             `json:"references,omitempty"`
 	ShippingCarrierCode         *string                                                      `json:"shipping_carrier_code,omitempty"`
+	ShippingCarrierScacCode     *string                                                      `json:"shipping_carrier_scac_code,omitempty"`
 	ShippingCarrierStandardCode *string                                                      `json:"shipping_carrier_standard_code,omitempty"`
 	ShippingCompany             *string                                                      `json:"shipping_company,omitempty"`
 	ShippingDeadline            *Time                                                        `json:"shipping_deadline,omitempty"`

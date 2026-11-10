@@ -3791,6 +3791,7 @@ export interface OR11Response200Orders {
   quote_id?: string;
   references?: OR11Response200OrdersReferences;
   shipping_carrier_code?: string;
+  shipping_carrier_scac_code?: string;
   shipping_carrier_standard_code?: string;
   shipping_company?: string;
   shipping_deadline?: string;
@@ -4750,6 +4751,7 @@ export interface OR15Response200ExtFileStructureOrders {
   quote_id?: string;
   references?: OR15Response200ExtFileStructureOrdersReferences;
   shipping_carrier_code?: string;
+  shipping_carrier_scac_code?: string;
   shipping_carrier_standard_code?: string;
   shipping_company?: string;
   shipping_deadline?: string;
@@ -5506,6 +5508,7 @@ export interface OR21RequestOrderLines {
 export interface OR23Request {
   carrier_code?: string;
   carrier_name?: string;
+  carrier_scac_code?: string;
   carrier_standard_code?: string;
   carrier_url?: string;
   tracking_number?: string;
@@ -8155,6 +8158,7 @@ export interface ST01RequestShipmentsShippingFromWarehouse {
 export interface ST01RequestShipmentsTracking {
   carrier_code?: string;
   carrier_name?: string;
+  carrier_scac_code?: string;
   carrier_standard_code?: string;
   tracking_number?: string;
   tracking_url?: string;
@@ -8234,6 +8238,7 @@ export interface ST01Response201ShipmentSuccessTracking {
   carrier_code?: string;
   carrier_expected_delivery_date?: ST01Response201ShipmentSuccessTrackingCarrierExpectedDeliveryDate;
   carrier_name?: string;
+  carrier_scac_code?: string;
   carrier_standard_code?: string;
   last_known_location?: ST01Response201ShipmentSuccessTrackingLastKnownLocation;
   milestones?: Array<ST01Response201ShipmentSuccessTrackingMilestones>;
@@ -8435,6 +8440,7 @@ export interface ST11Response200DataTracking {
   carrier_code?: string;
   carrier_expected_delivery_date?: ST11Response200DataTrackingCarrierExpectedDeliveryDate;
   carrier_name?: string;
+  carrier_scac_code?: string;
   carrier_standard_code?: string;
   last_known_location?: ST11Response200DataTrackingLastKnownLocation;
   milestones?: Array<ST11Response200DataTrackingMilestones>;
@@ -8564,6 +8570,7 @@ export interface ST23RequestShipments {
 export interface ST23RequestShipmentsTracking {
   carrier_code?: string;
   carrier_name?: string;
+  carrier_scac_code?: string;
   carrier_standard_code?: string;
   tracking_number?: string;
   tracking_url?: string;

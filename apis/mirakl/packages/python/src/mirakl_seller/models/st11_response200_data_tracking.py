@@ -23,6 +23,7 @@ class ST11Response200DataTracking(ApiModel):
     carrier_code: Optional[StrictStr] = None
     carrier_expected_delivery_date: Optional[ST11Response200DataTrackingCarrierExpectedDeliveryDate] = None
     carrier_name: Optional[StrictStr] = None
+    carrier_scac_code: Optional[StrictStr] = None
     carrier_standard_code: Optional[StrictStr] = None
     last_known_location: Optional[ST11Response200DataTrackingLastKnownLocation] = None
     milestones: Optional[List[ST11Response200DataTrackingMilestones]] = None
