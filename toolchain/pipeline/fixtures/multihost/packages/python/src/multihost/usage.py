@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from ._resources import Resources
+from .models.bin import Bin
 from .models.import_status import ImportStatus
+from .models.part import Part
 from .models.uploads import Uploads
 from .models.widget import Widget
 
@@ -12,3 +14,7 @@ def use(resources: Resources) -> tuple[Widget, Uploads, Uploads]:
 
 def wait(resources: Resources) -> ImportStatus:
     return resources.imports.wait(7, interval=1, timeout=60)
+
+
+def iterate(resources: Resources) -> tuple[list[Part], list[Bin]]:
+    return list(resources.parts.iter(limit=2)), list(resources.bins.iter(zone="a"))

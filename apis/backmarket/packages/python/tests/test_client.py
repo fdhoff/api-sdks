@@ -5,6 +5,7 @@ import gzip
 import logging
 import time
 from collections.abc import AsyncIterator, Callable, Iterator
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime
 from typing import Any, cast
@@ -29,7 +30,16 @@ from backmarket_seller import (
 )
 from backmarket_seller._resources import OPERATIONS
 from backmarket_seller._runtime.model import ApiModel, parse_response
-from backmarket_seller._runtime.transport import Cursor, NextLink, Offset, Operation, Param, Resource, _retry_after
+from backmarket_seller._runtime.transport import (
+    Cursor,
+    LinkHeader,
+    NextLink,
+    Offset,
+    Operation,
+    Param,
+    Resource,
+    _retry_after,
+)
 from backmarket_seller.models import CategoryTree, Order, OrderPage, UpdateOrder
 
 TOKEN = "synthetic-token"
@@ -816,6 +826,112 @@ def test_next_link_paging_rejects_a_page_without_an_items_list(page: Any) -> Non
     client = client_for(lambda request: httpx.Response(200, json=page))
     with pytest.raises(DecodeError, match="`results` field of a page is not a list"):
         list(client.orders.iter())
+
+
+LINK_PARAMS = (Param("page", "page", "query"), Param("limit", "limit", "query"), Param("state", "state", "query"))
+LINK_LIST: Operation[Any] = Operation(
+    id="list-items",
+    method="GET",
+    path="/items",
+    resource="items",
+    name="list",
+    params=LINK_PARAMS,
+    iterator="iter",
+    item=dict[str, Any],
+    paging=LinkHeader(),
+)
+LINK_OBJECT_LIST: Operation[Any] = replace(LINK_LIST, paging=LinkHeader(items="bins"))
+
+
+def link_pages(
+    operation: Operation[Any], pages: list[tuple[Any, list[str]]], **params: Any
+) -> tuple[list[dict[str, Any]], list[str]]:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        body, links = pages[len(requests) - 1]
+        return httpx.Response(200, json=body, headers=[("Link", link) for link in links])
+
+    items = list(Resource(client_for(handler)._transport)._paginate(operation, **params))
+    assert {request.url.host for request in requests} <= {"mock.invalid"}
+    return items, [request.url.query.decode() for request in requests]
+
+
+def test_link_header_paging_follows_next_until_a_page_has_none() -> None:
+    pages = [
+        ([{"n": 1}, {"n": 2}], ['<https://mock.invalid/items?page=2&limit=2>; rel="next"']),
+        (
+            [{"n": 3}, {"n": 4}],
+            [
+                '<https://mock.invalid/items?page=3&limit=2>; rel="next", <https://mock.invalid/items?page=1&limit=2>; rel="prev"'
+            ],
+        ),
+        ([{"n": 5}], ['<https://mock.invalid/items?page=2&limit=2>; rel="prev"']),
+    ]
+    items, queries = link_pages(LINK_LIST, pages, limit=2, state="open")
+    assert items == [{"n": n} for n in range(1, 6)]
+    assert queries == ["limit=2&state=open", "page=2&limit=2&state=open", "page=3&limit=2&state=open"]
+
+
+def test_link_header_paging_reads_items_from_a_field_of_an_object_page() -> None:
+    pages = [
+        ({"total_count": 2, "bins": [{"n": 1}]}, ["</items?page=2>; rel=next"]),
+        ({"total_count": 2, "bins": [{"n": 2}]}, []),
+    ]
+    items, queries = link_pages(LINK_OBJECT_LIST, pages)
+    assert items == [{"n": 1}, {"n": 2}]
+    assert queries == ["", "page=2"]
+
+
+def test_link_header_paging_never_fetches_a_link_to_another_host() -> None:
+    pages = [([{"n": 1}], ['<https://elsewhere.example/api/items?page=2&token=leak>; rel="next"']), ([{"n": 2}], [])]
+    items, queries = link_pages(LINK_LIST, pages)
+    assert items == [{"n": 1}, {"n": 2}]
+    assert queries == ["", "page=2"]
+
+
+def test_link_header_paging_reads_several_headers_entries_and_relations() -> None:
+    pages = [
+        (
+            [{"n": 1}],
+            [
+                '<https://mock.invalid/items?page=9>; rel="prev first"',
+                (
+                    '<https://mock.invalid/items?page=5&limit=1>; title="a, b; c"; REL="Last", '
+                    '<https://mock.invalid/items?page=%32&limit=1>; Rel="last NEXT"'
+                ),
+            ],
+        ),
+        ([{"n": 2}], ['<https://mock.invalid/items?page=3>; rel=next; rel="prev"']),
+        ([{"n": 3}], ['<https://mock.invalid/items?page=4>; rel="prev"; rel="next"', "not a link; rel=next"]),
+    ]
+    items, queries = link_pages(LINK_LIST, pages, limit=1)
+    assert items == [{"n": 1}, {"n": 2}, {"n": 3}]
+    assert queries == ["limit=1", "page=2&limit=1", "page=3&limit=1"]
+
+
+def test_link_header_paging_rejects_a_position_already_requested() -> None:
+    pages = [
+        ([{"n": 1}], ["</items?page=2>; rel=next"]),
+        ([{"n": 2}], ["</items?page=1>; rel=next"]),
+        ([{"n": 3}], ["</items?page=2>; rel=next"]),
+    ]
+    with pytest.raises(DecodeError, match="already requested"):
+        link_pages(LINK_LIST, pages, page=1)
+
+
+def test_link_header_paging_rejects_a_next_link_that_does_not_advance() -> None:
+    with pytest.raises(DecodeError, match="does not advance the iteration"):
+        link_pages(LINK_LIST, [([{"n": 1}], ["</items?other=2>; rel=next"])])
+
+
+@pytest.mark.parametrize(
+    ("operation", "page"), [(LINK_LIST, {"data": []}), (LINK_OBJECT_LIST, []), (LINK_OBJECT_LIST, {"bins": None})]
+)
+def test_link_header_paging_rejects_a_page_without_its_items_list(operation: Operation[Any], page: Any) -> None:
+    with pytest.raises(DecodeError):
+        link_pages(operation, [(page, [])])
 
 
 def test_an_object_in_a_form_encoded_field_is_sent_as_json() -> None:

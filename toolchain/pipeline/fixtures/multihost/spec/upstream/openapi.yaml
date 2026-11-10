@@ -116,8 +116,45 @@ paths:
           content:
             text/csv:
               schema: { type: string, format: binary }
+  /parts:
+    get:
+      operationId: listParts
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Part' }
+  /bins:
+    get:
+      operationId: listBins
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: zone
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Bins' }
 components:
   parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer }
     Site:
       name: site
       in: query
@@ -167,6 +204,23 @@ components:
           type: object
           properties:
             next_page: { type: string, nullable: true }
+    Part:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string }
+    Bin:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string }
+    Bins:
+      type: object
+      properties:
+        total_count: { type: integer }
+        bins:
+          type: array
+          items: { $ref: '#/components/schemas/Bin' }
     ImportInput:
       type: object
       properties:

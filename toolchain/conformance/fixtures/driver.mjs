@@ -79,6 +79,72 @@ async function cursorPages(client, request) {
   }
 }
 
+// Synthetic operations for the link mode: `$` pages are lists, and `bins` pages hold their items under `bins`.
+const LINK_OPERATIONS = {
+  'list-items': { path: '/items', items: '$' },
+  'list-bins': { path: '/bins', items: 'bins' },
+};
+const LINK_PARAMS = ['page', 'limit'];
+
+// Splits on `separator` outside <URI> and quoted strings, as the runtimes read an RFC 8288 Link header.
+function splitOutside(text, separator) {
+  const parts = [];
+  let [start, quoted, bracketed, escaped] = [0, false, false, false];
+  [...text].forEach((char, index) => {
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') quoted = false;
+    } else if (bracketed) bracketed = char !== '>';
+    else if (char === '"') quoted = true;
+    else if (char === '<') bracketed = true;
+    else if (char === separator) {
+      parts.push(text.slice(start, index));
+      start = index + 1;
+    }
+  });
+  return [...parts, text.slice(start)];
+}
+
+// The URI of the first link whose first `rel` holds `next`, in any case. Entries not in <> are skipped.
+function nextLink(header) {
+  for (const entry of splitOutside(header ?? '', ',').map((part) => part.trim())) {
+    const end = entry.indexOf('>');
+    if (!entry.startsWith('<') || end < 0) continue;
+    const rel = splitOutside(entry.slice(end + 1), ';').slice(1).map((param) => param.split('=')).find(([name]) => name.trim().toLowerCase() === 'rel');
+    const value = rel?.slice(1).join('=').trim().replace(/^"(.*)"$/, '$1').replace(/\\(.)/g, '$1') ?? '';
+    if (value.toLowerCase().split(/\s+/).includes('next')) return entry.slice(1, end);
+  }
+  return undefined;
+}
+
+// Walks Link header pages as the runtimes do: copy only `page` and `limit` out of the `next` link into our own
+// request, never fetching it, until no link is `next`. A page without its items list, or a position already
+// requested, is a decode error.
+async function linkPages(client, request) {
+  const operation = LINK_OPERATIONS[request.operation];
+  const items = [];
+  const query = { ...request.params };
+  const seen = new Set();
+  for (;;) {
+    const position = JSON.stringify(LINK_PARAMS.map((name) => (query[name] === undefined ? null : String(query[name]))));
+    if (seen.has(position)) return { error: { kind: 'decode' } };
+    seen.add(position);
+    const search = new URLSearchParams(Object.entries(query).map(([name, value]) => [name, String(value)]));
+    const response = await fetch(`${client.base_url}${operation.path}${search.size > 0 ? `?${search}` : ''}`, {
+      headers: { authorization: `Basic ${client.token}` },
+    });
+    const page = await response.json();
+    const received = operation.items === '$' ? page : page?.[operation.items];
+    if (!Array.isArray(received)) return { error: { kind: 'decode' } };
+    items.push(...received);
+    const link = nextLink(response.headers.get('link'));
+    if (link === undefined) return { result: items };
+    const next = new URL(link, 'http://next.invalid').searchParams;
+    for (const name of LINK_PARAMS) if (next.get(name)) query[name] = next.get(name);
+  }
+}
+
 const { privateKey } = generateKeyPairSync('ed25519');
 const digest = (bytes) => `sha-256=:${createHash('sha256').update(bytes).digest('base64')}:`;
 
@@ -238,6 +304,10 @@ for await (const line of createInterface({ input: process.stdin })) {
   }
   if (mode === 'cursor') {
     console.log(JSON.stringify({ ...(await cursorPages(client, request)), logs: [] }));
+    continue;
+  }
+  if (mode === 'link') {
+    console.log(JSON.stringify({ ...(await linkPages(client, request)), logs: [] }));
     continue;
   }
   if (mode === 'offset') {

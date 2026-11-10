@@ -31,3 +31,22 @@ func use(ctx context.Context, resources Resources) error {
 	_, err := resources.Uploads.List(ctx, &UploadsListParams{XTenantId: &tenant})
 	return err
 }
+
+func pages(ctx context.Context, resources Resources) ([]Part, []Bin, error) {
+	var parts []Part
+	limit := int64(2)
+	for part, err := range resources.Parts.Iter(ctx, &PartsListParams{Limit: &limit}) {
+		if err != nil {
+			return nil, nil, err
+		}
+		parts = append(parts, part)
+	}
+	var bins []Bin
+	for bin, err := range resources.Bins.Iter(ctx, nil) {
+		if err != nil {
+			return nil, nil, err
+		}
+		bins = append(bins, bin)
+	}
+	return parts, bins, nil
+}

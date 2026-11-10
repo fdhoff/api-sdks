@@ -387,6 +387,175 @@ func TestNextLinkPagingRejectsAPageWithoutAnItemsList(t *testing.T) {
 	}
 }
 
+type linkParams struct {
+	Page  *int    `query:"page"`
+	Limit *int    `query:"limit"`
+	State *string `query:"state"`
+}
+
+// linked is a page answered with these Link header values.
+type linked struct {
+	links []string
+	body  any
+}
+
+// walkLinked serves the pages in order and returns every item and the query of every request.
+func walkLinked(t *testing.T, operation *Operation, params any, pages ...linked) ([]map[string]any, []string, error) {
+	t.Helper()
+	var lock sync.Mutex
+	var queries []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		lock.Lock()
+		defer lock.Unlock()
+		queries = append(queries, r.URL.RawQuery)
+		page := pages[0]
+		pages = pages[1:]
+		for _, link := range page.links {
+			w.Header().Add("Link", link)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(page.body)
+	}))
+	t.Cleanup(server.Close)
+	transport := mustTransport(t, Settings{BaseURL: server.URL, Timeout: time.Second})
+	var items []map[string]any
+	var failure error
+	for item, err := range Paginate[map[string]any](context.Background(), transport, operation, Input{Params: params}) {
+		if err != nil {
+			failure = err
+			break
+		}
+		items = append(items, item)
+	}
+	lock.Lock()
+	defer lock.Unlock()
+	return items, queries, failure
+}
+
+var linkList = &Operation{
+	ID: "list-items", Method: "GET", Path: "/items", QueryParams: []string{"page", "limit", "state"},
+	Paging: LinkHeader{Items: "$", Rel: "next", Params: []string{"page", "limit"}},
+}
+
+func TestLinkHeaderPagingFollowsTheNextLinkUntilThereIsNone(t *testing.T) {
+	limit, state := 2, "open"
+	items, queries, err := walkLinked(t, linkList, linkParams{Limit: &limit, State: &state},
+		linked{[]string{`<https://example.test/items?page=2&limit=2>; rel="next"`}, numbered(0, 2)},
+		linked{[]string{`<https://example.test/items?page=3&limit=2>; rel="next", <https://example.test/items?page=1&limit=2>; rel="prev"`}, numbered(2, 4)},
+		linked{[]string{`<https://example.test/items?page=2&limit=2>; rel="prev"`}, numbered(4, 5)},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(items, numbered(0, 5)) {
+		t.Errorf("items are %v", items)
+	}
+	if want := []string{"limit=2&state=open", "limit=2&page=2&state=open", "limit=2&page=3&state=open"}; !reflect.DeepEqual(queries, want) {
+		t.Errorf("queries are %q, want %q", queries, want)
+	}
+}
+
+func TestLinkHeaderPagingReadsAnObjectPagesItemsField(t *testing.T) {
+	operation := &Operation{
+		ID: "list-bins", Method: "GET", Path: "/bins", QueryParams: []string{"page", "limit"},
+		Paging: LinkHeader{Items: "bins", Rel: "next", Params: []string{"page", "limit"}},
+	}
+	items, queries, err := walkLinked(t, operation, linkParams{},
+		linked{[]string{`</bins?page=2>; rel=next`}, map[string]any{"total_count": 2, "bins": numbered(0, 1)}},
+		linked{nil, map[string]any{"total_count": 2, "bins": numbered(1, 2)}},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(items, numbered(0, 2)) {
+		t.Errorf("items are %v", items)
+	}
+	if want := []string{"", "page=2"}; !reflect.DeepEqual(queries, want) {
+		t.Errorf("queries are %q, want %q", queries, want)
+	}
+	for _, body := range []any{map[string]any{"total_count": 0}, numbered(0, 1)} {
+		_, _, err := walkLinked(t, operation, linkParams{}, linked{nil, body})
+		var failure *Error
+		if !errors.As(err, &failure) || failure.Kind != KindDecode {
+			t.Errorf("for %v, error is %v", body, err)
+		}
+	}
+}
+
+func TestLinkHeaderPagingNeverFetchesALinkOnAnotherHost(t *testing.T) {
+	elsewhere := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("the other host was sent %s %s", r.Method, r.URL)
+	}))
+	t.Cleanup(elsewhere.Close)
+	items, queries, err := walkLinked(t, linkList, linkParams{},
+		linked{[]string{"<" + elsewhere.URL + "/api/v1/items?page=2>; rel=\"next\""}, numbered(0, 1)},
+		linked{nil, numbered(1, 2)},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(items, numbered(0, 2)) {
+		t.Errorf("items are %v", items)
+	}
+	if want := []string{"", "page=2"}; !reflect.DeepEqual(queries, want) {
+		t.Errorf("queries are %q, want %q", queries, want)
+	}
+}
+
+func TestLinkHeaderPagingRejectsARepeatedPosition(t *testing.T) {
+	page := 1
+	items, queries, err := walkLinked(t, linkList, linkParams{Page: &page},
+		linked{[]string{`<https://example.test/items?page=2>; rel="next"`}, numbered(0, 1)},
+		linked{[]string{`<https://example.test/items?page=1>; rel="next"`}, numbered(1, 2)},
+	)
+	var failure *Error
+	if !errors.As(err, &failure) || failure.Kind != KindDecode || !strings.Contains(err.Error(), "already requested") {
+		t.Fatalf("error is %v", err)
+	}
+	if !reflect.DeepEqual(items, numbered(0, 2)) {
+		t.Errorf("items are %v", items)
+	}
+	if want := []string{"page=1", "page=2"}; !reflect.DeepEqual(queries, want) {
+		t.Errorf("queries are %q, want %q", queries, want)
+	}
+	_, _, err = walkLinked(t, linkList, linkParams{Page: &page}, linked{[]string{`<https://example.test/items?page=1>; rel="next"`}, numbered(0, 1)})
+	if !errors.As(err, &failure) || failure.Kind != KindDecode || !strings.Contains(err.Error(), "does not advance") {
+		t.Fatalf("a link to the same page gives %v", err)
+	}
+}
+
+func TestLinkHeaderPagingReadsSeveralHeadersEntriesAndRels(t *testing.T) {
+	limit := 2
+	items, queries, err := walkLinked(t, linkList, linkParams{Limit: &limit},
+		linked{[]string{
+			`<https://example.test/items?page=9&limit=2>; rel="prev first"`,
+			`<https://example.test/items?a=1,2&page=7>; title="x, rel=next"; rel="last", <https://example.test/items?page=%32&limit=2>; REL="Last NEXT"; rel=prev`,
+		}, numbered(0, 2)},
+		linked{[]string{`<https://example.test/items?page=3&limit=2&state=closed>;rel=next`}, numbered(2, 4)},
+		linked{[]string{`<https://example.test/items?page=>; rel=next`, `not a link; rel=next`}, numbered(4, 5)},
+	)
+	var failure *Error
+	if !errors.As(err, &failure) || failure.Kind != KindDecode || !strings.Contains(err.Error(), "does not advance") {
+		t.Fatalf("error is %v", err)
+	}
+	if !reflect.DeepEqual(items, numbered(0, 5)) {
+		t.Errorf("items are %v", items)
+	}
+	if want := []string{"limit=2", "limit=2&page=2", "limit=2&page=3"}; !reflect.DeepEqual(queries, want) {
+		t.Errorf("queries are %q, want %q", queries, want)
+	}
+}
+
+func TestLinkHeaderPagingRejectsAPageThatIsNotAList(t *testing.T) {
+	for _, body := range []any{map[string]any{"data": numbered(0, 1)}, nil, "items"} {
+		_, _, err := walkLinked(t, linkList, linkParams{}, linked{nil, body})
+		var failure *Error
+		if !errors.As(err, &failure) || failure.Kind != KindDecode || !strings.Contains(err.Error(), "not a JSON list") {
+			t.Errorf("for %v, error is %v", body, err)
+		}
+	}
+}
+
 func TestOperationsAreFoundByContractAndID(t *testing.T) {
 	plain := Register(Operation{ID: "registry-test-get"})
 	scoped := Register(Operation{ID: "registry-test-get", Contract: "registry_test"})

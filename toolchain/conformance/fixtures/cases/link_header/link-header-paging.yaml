@@ -1,0 +1,140 @@
+# Link header paging. Each response names the next page in an RFC 8288 Link header with `rel="next"`, and the
+# iterator copies only its `page` and `limit` into its own next request: the link is never fetched. `list-items`
+# pages are top-level lists (`items: $`), and `list-bins` pages hold their items under `bins`. An API that pages
+# this way can copy these cases.
+cases:
+  - name: link-header-paging-follows-next-across-three-list-pages
+    request:
+      operation: list-items
+      params: { limit: 2, state: open }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          headers:
+            link: '<{{other_origin}}/api/items?page=2&limit=2&state=open>; rel="next", <{{other_origin}}/api/items?page=3&limit=2&state=open>; rel="last"'
+          body: [{ id: a }, { id: b }]
+        - status: 200
+          headers:
+            link: '<{{other_origin}}/api/items?page=3&limit=2&state=open>; rel="next", <{{other_origin}}/api/items?page=1&limit=2&state=open>; rel="prev"'
+          body: [{ id: c }, { id: d }]
+        - status: 200
+          headers:
+            link: '<{{other_origin}}/api/items?page=2&limit=2&state=open>; rel="prev", <{{other_origin}}/api/items?page=1&limit=2&state=open>; rel="first"'
+          body: [{ id: e }]
+    wire:
+      - method: GET
+        path: /items
+        query: { limit: '2', state: open }
+      - method: GET
+        path: /items
+        query: { page: '2', limit: '2', state: open }
+      - method: GET
+        path: /items
+        query: { page: '3', limit: '2', state: open }
+    expect:
+      result: [{ id: a }, { id: b }, { id: c }, { id: d }, { id: e }]
+
+  - name: link-header-paging-reads-items-from-a-field-of-an-object-page
+    request:
+      operation: list-bins
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          headers: { link: '</bins?page=2>; rel=next' }
+          body: { total_count: 2, bins: [{ id: a }] }
+        - status: 200
+          body: { total_count: 2, bins: [{ id: b }] }
+    wire:
+      - method: GET
+        path: /bins
+      - method: GET
+        path: /bins
+        query: { page: '2' }
+    expect:
+      result: [{ id: a }, { id: b }]
+
+  - name: link-header-paging-reads-several-headers-entries-and-relations
+    request:
+      operation: list-items
+      params: { limit: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          headers:
+            link:
+              - '<{{other_origin}}/items?page=9>; rel="prev first"'
+              - '<{{other_origin}}/items?page=5&limit=1>; title="a, b; c"; REL="Last", <{{other_origin}}/items?page=%32&limit=1>; Rel="last NEXT"'
+          body: [{ id: a }]
+        - status: 200
+          headers: { link: '<{{other_origin}}/items?page=3>; rel=next; rel="prev"' }
+          body: [{ id: b }]
+        - status: 200
+          headers: { link: ['<{{other_origin}}/items?page=4>; rel="prev"; rel="next"', 'not a link; rel=next'] }
+          body: [{ id: c }]
+    wire:
+      - method: GET
+        path: /items
+        query: { limit: '1' }
+      - method: GET
+        path: /items
+        query: { page: '2', limit: '1' }
+      - method: GET
+        path: /items
+        query: { page: '3', limit: '1' }
+    expect:
+      result: [{ id: a }, { id: b }, { id: c }]
+
+  - name: link-header-paging-empty-first-page-without-a-link
+    request:
+      operation: list-items
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: []
+    wire:
+      - method: GET
+        path: /items
+    expect:
+      result: []
+
+  - name: link-header-paging-repeated-position
+    request:
+      operation: list-items
+      params: { page: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          headers: { link: '</items?page=2>; rel="next"' }
+          body: [{ id: a }]
+        - status: 200
+          headers: { link: '</items?page=1>; rel="next"' }
+          body: [{ id: b }]
+    wire:
+      - method: GET
+        path: /items
+        query: { page: '1' }
+      - method: GET
+        path: /items
+        query: { page: '2' }
+    expect:
+      error: { kind: decode }
+
+  - name: link-header-paging-page-that-is-not-a-list
+    request:
+      operation: list-items
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          headers: { link: '</items?page=2>; rel="next"' }
+          body: { items: [{ id: a }] }
+    wire:
+      - method: GET
+        path: /items
+    expect:
+      error: { kind: decode }

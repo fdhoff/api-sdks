@@ -67,7 +67,16 @@ export interface Cursor {
   param: string;
 }
 
-export type Paging = NextLink | Offset | Cursor;
+/** Pages whose RFC 8288 `Link` header links to the next one with relation type `rel`. Only `params` are read from
+ * the link: it is never fetched. */
+export interface LinkHeader {
+  style: 'link_header';
+  items: string;
+  rel: string;
+  params: readonly string[];
+}
+
+export type Paging = NextLink | Offset | Cursor | LinkHeader;
 
 /** An operation that reports an asynchronous job's progress. The job has ended once the string at the dotted
  * `state` path of its response is one of `done` or `failed`. */
@@ -169,6 +178,8 @@ interface Encoded {
   streamed?: boolean;
 }
 const NEXT_LINK: NextLink = { style: 'next_link', items: 'results', link: 'next', params: ['page', 'cursor'] };
+// The `items` of a page that is itself the list of items.
+const PAGE_ROOT = '$';
 const HTTP_DATE = /^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/;
 const MAX_TIMER_MS = 2 ** 31 - 1;
 const REDIRECTS = new Set([301, 302, 303, 307, 308]);
@@ -513,14 +524,108 @@ function nextCursor(operation: Operation, paging: Cursor, params: Params, page: 
   return { ...params, [param.name]: value };
 }
 
-/** The parameters of the page after this one, or undefined after the last. */
-function nextParams(operation: Operation, params: Params, page: unknown, received: number): Params | undefined {
-  if (!isObject(page) || Array.isArray(page)) throw new DecodeError('A page is not a JSON object');
+/** Splits `text` at each `separator` outside quoted strings and, when `angles` is set, outside `<...>`. */
+function splitOutside(text: string, separator: string, angles: boolean): string[] {
+  const parts: string[] = [];
+  let start = 0;
+  let quoted = false;
+  let uri = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (quoted) {
+      if (char === '\\') index += 1;
+      else if (char === '"') quoted = false;
+    } else if (uri) {
+      if (char === '>') uri = false;
+    } else if (angles && char === '<') uri = true;
+    else if (char === '"') quoted = true;
+    else if (char === separator) {
+      parts.push(text.slice(start, index));
+      start = index + 1;
+    }
+  }
+  parts.push(text.slice(start));
+  return parts;
+}
+
+/** A link parameter's value: a token, or a quoted string without its quotes and escapes. */
+function paramValue(raw: string): string {
+  const value = raw.trim();
+  if (!value.startsWith('"')) return value;
+  let unquoted = '';
+  for (let index = 1; index < value.length; index += 1) {
+    const char = value[index];
+    if (char === '"') break;
+    unquoted += char === '\\' ? (value[(index += 1)] ?? '') : char;
+  }
+  return unquoted;
+}
+
+/** The URI of the first link in a Link header whose relation types include `rel`, compared case-insensitively.
+ * Only the first `rel` parameter of a link counts, and a link that does not start with `<uri>` is skipped. */
+function linkTarget(header: string | null, rel: string): string | undefined {
+  if (header === null) return undefined;
+  const wanted = rel.toLowerCase();
+  for (const link of splitOutside(header, ',', true)) {
+    const value = link.trim();
+    const end = value.indexOf('>');
+    if (!value.startsWith('<') || end < 0) continue;
+    for (const param of splitOutside(value.slice(end + 1), ';', false).slice(1)) {
+      const equals = param.indexOf('=');
+      const name = (equals < 0 ? param : param.slice(0, equals)).trim().toLowerCase();
+      if (name !== 'rel') continue;
+      const types = equals < 0 ? [] : paramValue(param.slice(equals + 1)).split(/\s+/);
+      if (types.some((type) => type.toLowerCase() === wanted)) return value.slice(1, end);
+      break;
+    }
+  }
+  return undefined;
+}
+
+/** Read the position out of the Link header's `rel` link and apply it to our own request. The link is never
+ * fetched: its host is the server's own idea of its address, and could send the credential elsewhere. */
+function nextLinkHeader(operation: Operation, paging: LinkHeader, params: Params, headers: Headers): Params | undefined {
+  const target = linkTarget(headers.get('link'), paging.rel);
+  if (target === undefined) return undefined;
+  let position: URLSearchParams;
+  try {
+    position = new URL(target, 'http://next.invalid').searchParams;
+  } catch {
+    throw new DecodeError(`The \`${paging.rel}\` Link is not a valid URL`);
+  }
+  const names = operation.params.filter(({ location }) => location === 'query');
+  const updated = { ...params };
+  for (const { wire, name } of names) {
+    const value = position.get(wire);
+    if (paging.params.includes(wire) && value) updated[name] = value;
+  }
+  if (names.every(({ name }) => String(updated[name]) === String(params[name]))) {
+    throw new DecodeError(`The \`${paging.rel}\` Link does not advance the iteration`);
+  }
+  return updated;
+}
+
+/** A page's items, where `items` says they are. A page that does not hold them there is a decode error. */
+function pageItems(operation: Operation, page: unknown): unknown[] {
   const paging = operation.paging ?? NEXT_LINK;
-  if (!Array.isArray(page[paging.items])) throw new DecodeError(`The \`${paging.items}\` field of a page is not a list`);
-  if (paging.style === 'offset') return nextOffset(operation, paging, params, page, received);
-  if (paging.style === 'cursor') return nextCursor(operation, paging, params, page);
-  return nextLink(operation, paging, params, page);
+  if (paging.items === PAGE_ROOT) {
+    if (!Array.isArray(page)) throw new DecodeError('A page is not a JSON list');
+    return page;
+  }
+  if (!isObject(page) || Array.isArray(page)) throw new DecodeError('A page is not a JSON object');
+  const results = page[paging.items];
+  if (!Array.isArray(results)) throw new DecodeError(`The \`${paging.items}\` field of a page is not a list`);
+  return results;
+}
+
+/** The parameters of the page after this one, or undefined after the last. */
+function nextParams(operation: Operation, params: Params, page: unknown, received: number, headers: Headers): Params | undefined {
+  const paging = operation.paging ?? NEXT_LINK;
+  if (paging.style === 'link_header') return nextLinkHeader(operation, paging, params, headers);
+  const fields = isObject(page) && !Array.isArray(page) ? page : {};
+  if (paging.style === 'offset') return nextOffset(operation, paging, params, fields, received);
+  if (paging.style === 'cursor') return nextCursor(operation, paging, params, fields);
+  return nextLink(operation, paging, params, fields);
 }
 
 /** The values that say which page a request asks for, or undefined for offset paging, which always advances. */
@@ -538,11 +643,6 @@ function visit(operation: Operation, params: Params, seen: Set<string>): void {
   if (at === undefined) return;
   if (seen.has(at)) throw new DecodeError('The next page is one this iteration already requested');
   seen.add(at);
-}
-
-function items(operation: Operation, page: unknown): unknown[] {
-  const results = isObject(page) ? page[(operation.paging ?? NEXT_LINK).items] : undefined;
-  return Array.isArray(results) ? results : [];
 }
 
 /** An absolute http or https URL, resolved against `base` when given. */
@@ -672,13 +772,24 @@ export class Transport {
     return json;
   }
 
-  async fetch(operation: Operation, body: unknown, params: Params, { signal }: RequestOptions = {}): Promise<unknown> {
+  async fetch(operation: Operation, body: unknown, params: Params, options: RequestOptions = {}): Promise<unknown> {
+    return (await this.fetchPage(operation, body, params, options)).body;
+  }
+
+  /** Like `fetch`, with the response's headers, which an iterator may read the next page's position from. */
+  async fetchPage(
+    operation: Operation,
+    body: unknown,
+    params: Params,
+    { signal }: RequestOptions = {},
+  ): Promise<{ body: unknown; headers: Headers }> {
     signal?.throwIfAborted();
     const built = buildRequest(this.#settings, this.#headerDefaults, operation, body, params);
     const encoded = await encode(built.body);
-    return this.#exchange(operation, built, encoded, true, built.url, signal, (response) =>
-      this.#read(operation, response, signal),
-    );
+    return this.#exchange(operation, built, encoded, true, built.url, signal, async (response) => ({
+      body: await this.#read(operation, response, signal),
+      headers: response.headers,
+    }));
   }
 
   /** GETs an absolute URL that a response returned, as a download, following redirects. Credentials go only to
@@ -796,12 +907,12 @@ export class Resource {
     const seen = new Set<string>();
     while (current !== undefined) {
       visit(operation, current, seen);
-      const page: unknown = await this.#transport.fetch(operation, body, current, options);
+      const { body: page, headers } = await this.#transport.fetchPage(operation, body, current, options);
       // An empty 204 is the only success without a body, and it holds no more items.
       if (page === undefined) return;
-      const received = items(operation, page) as T[];
+      const received = pageItems(operation, page) as T[];
       yield* received;
-      current = nextParams(operation, current, page, received.length);
+      current = nextParams(operation, current, page, received.length, headers);
     }
   }
 }

@@ -26,14 +26,20 @@ pub enum Paging {
     /// query parameter. Iteration ends when that value is null, empty or absent.
     #[allow(dead_code, reason = "an API may page only by link or offset")]
     Cursor { items: &'static str, next: &'static str, param: &'static str },
+    /// Pages whose RFC 8288 `Link` header links to the next one by its `rel`. Only `params` are read from
+    /// the link: it is never fetched. Iteration ends at a response without that link.
+    #[allow(dead_code, reason = "an API may page only by a link, offset or cursor in the body")]
+    LinkHeader { items: &'static str, rel: &'static str, params: &'static [&'static str] },
 }
 
 impl Paging {
     pub const DEFAULT: Self = Self::NextLink { items: "results", link: "next", params: &["page", "cursor"] };
+    /// The `items` that names a page which is itself the list of items.
+    pub const ROOT: &'static str = "$";
 
     pub fn items(&self) -> &'static str {
         match self {
-            Self::NextLink { items, .. } | Self::Offset { items, .. } | Self::Cursor { items, .. } => items,
+            Self::NextLink { items, .. } | Self::Offset { items, .. } | Self::Cursor { items, .. } | Self::LinkHeader { items, .. } => items,
         }
     }
 }

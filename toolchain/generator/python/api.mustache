@@ -19,6 +19,9 @@ from {{#runtimePackage}}{{runtimePackage}}{{/runtimePackage}}{{^runtimePackage}}
 {{#vendorExtensions.x-sdk-paging.cursor}}
 from {{#runtimePackage}}{{runtimePackage}}{{/runtimePackage}}{{^runtimePackage}}{{packageName}}{{/runtimePackage}}._runtime import Cursor
 {{/vendorExtensions.x-sdk-paging.cursor}}
+{{#vendorExtensions.x-sdk-paging.link_header}}
+from {{#runtimePackage}}{{runtimePackage}}{{/runtimePackage}}{{^runtimePackage}}{{packageName}}{{/runtimePackage}}._runtime import LinkHeader
+{{/vendorExtensions.x-sdk-paging.link_header}}
 {{#vendorExtensions.x-sdk-job}}
 from {{#runtimePackage}}{{runtimePackage}}{{/runtimePackage}}{{^runtimePackage}}{{packageName}}{{/runtimePackage}}._runtime import Job
 {{/vendorExtensions.x-sdk-job}}
@@ -74,6 +77,9 @@ _{{operationIdSnakeCase}}: Operation[{{{returnType}}}{{^returnType}}None{{/retur
 {{#vendorExtensions.x-sdk-paging.cursor}}
     paging=Cursor(items="{{items}}", next="{{next}}", param="{{param}}"),
 {{/vendorExtensions.x-sdk-paging.cursor}}
+{{#vendorExtensions.x-sdk-paging.link_header}}
+    paging=LinkHeader(items="{{items}}", rel="{{rel}}", params=({{#params}}"{{.}}", {{/params}})),
+{{/vendorExtensions.x-sdk-paging.link_header}}
 {{/vendorExtensions.x-sdk-iterator}}
     security=(
 {{#vendorExtensions.x-sdk-security}}

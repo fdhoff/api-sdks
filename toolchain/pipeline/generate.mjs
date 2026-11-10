@@ -26,14 +26,26 @@ const PROSE = new Set(['description', 'summary', 'example', 'examples', 'externa
 const PACKAGE_PLACEHOLDER = 'PackageNamespace';
 // How an iterator walks pages, and the defaults for each style. `next_link` reads the position out of a
 // link in each page. `offset` advances an offset query parameter by the number of items received. `cursor`
-// sends the value at the dotted `next` path of each page back in the `param` query parameter.
+// sends the value at the dotted `next` path of each page back in the `param` query parameter. `link_header`
+// reads the position out of the `rel` link of each response's RFC 8288 Link header. `items` names the field
+// that holds a page's items, or is `$` for a page that is itself the list.
 // TODO: page cursors backward (an `end_before` parameter and a previous-page value) if users ask.
 const PAGING = {
   next_link: { items: 'results', link: 'next', params: ['page', 'cursor'] },
   offset: { items: 'results', total: 'count', offset: 'offset' },
   cursor: { items: 'results', next: 'cursor', param: 'cursor' },
+  link_header: { items: '$', rel: 'next', params: ['page', 'limit'] },
 };
-const POSITIONS = { next_link: (paging) => paging.params, offset: (paging) => [paging.offset], cursor: (paging) => [paging.param] };
+const POSITIONS = {
+  next_link: (paging) => paging.params,
+  offset: (paging) => [paging.offset],
+  cursor: (paging) => [paging.param],
+  link_header: (paging) => paging.params,
+};
+// These styles read the next position out of the page body, which a top-level list cannot hold.
+const BODY_POSITIONS = ['next_link', 'cursor'];
+const PAGE_ROOT = '$';
+const isField = (name) => typeof name === 'string' && /^[^.$\s][^.\s]*$/.test(name);
 
 // The upstream spec is not redistributed, so its prose and examples must not reach generated code.
 // Only `properties` maps hold user-chosen keys that can collide with those names.
@@ -186,11 +198,28 @@ export function resolvePaging(operationId, queryParams, override = {}, fallback 
   const unknown = Object.keys(paging).filter((key) => !(key in defaults));
   if (unknown.length > 0) throw new Error(`${operationId}: unknown ${style} paging keys: ${unknown.join(', ')}`);
   if (style === 'cursor' && !/^[^.]+(\.[^.]+)*$/.test(paging.next)) throw new Error(`${operationId}: cursor paging next is not a dotted path: ${paging.next}`);
+  if (paging.items !== PAGE_ROOT && !isField(paging.items)) throw new Error(`${operationId}: paging items is neither ${PAGE_ROOT} nor a field: ${paging.items}`);
+  if (paging.items === PAGE_ROOT && BODY_POSITIONS.includes(style)) throw new Error(`${operationId}: ${style} paging reads the page body, so its items cannot be ${PAGE_ROOT}`);
+  if (style === 'link_header' && !(typeof paging.rel === 'string' && /^[^\s,;"]+$/.test(paging.rel))) throw new Error(`${operationId}: link_header paging rel is not a relation type: ${paging.rel}`);
   const positions = POSITIONS[style](paging);
   if (!positions.some((name) => queryParams.includes(name))) {
     throw new Error(`${operationId}: no query parameter holds the ${style} paging position (${positions.join(', ')})`);
   }
   return { [style]: paging };
+}
+
+// A page whose JSON schema is known must hold its items where `items` says: be a list itself for `$`, and
+// otherwise not be a list, and declare the field if it declares any properties.
+export function checkPageItems(spec, operation, items) {
+  const schema = dereference(spec, jsonSuccessSchema(spec, operation));
+  if (schema === undefined) return;
+  const id = operation.operationId;
+  if (items === PAGE_ROOT) {
+    if (schema.type !== 'array') throw new Error(`${id}: paging items is ${PAGE_ROOT} but a page is not a list`);
+    return;
+  }
+  if (schema.type === 'array') throw new Error(`${id}: a page is a list, so its paging items must be ${PAGE_ROOT}, not ${items}`);
+  if (bodyProperties(spec, schema).length > 0 && !hasField(spec, schema, items)) throw new Error(`${id}: a page has no ${items} field`);
 }
 
 function bodyProperties(spec, node) {
@@ -361,6 +390,7 @@ export function applyOperations(spec, operations, paging = {}) {
         operation['x-sdk-iterator'] = names.iterator;
         operation['x-sdk-items'] = names.items;
         operation['x-sdk-paging'] = resolvePaging(operation.operationId, queryParams, names.paging, paging);
+        checkPageItems(spec, operation, Object.values(operation['x-sdk-paging'])[0].items);
       } else if (names.paging) {
         throw new Error(`${operation.operationId}: paging is set but there is no iterator`);
       }

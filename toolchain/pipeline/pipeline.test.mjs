@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { stringify } from 'yaml';
 import { applyOverlay } from './build-spec.mjs';
 import { ensureSpec, sha256, verifyPin } from './fetch-spec.mjs';
-import { applyBinary, applyHeaders, applyHosts, applyJobs, applyOperations, applyQueryDefaults, checkHeaderDefaults, checkJobs, checkQueryDefaults, collapseSingleUnions, omitOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, markMappedEnums, packageNames, relax, renameSchemas, resolveIdempotency, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
+import { applyBinary, applyHeaders, applyHosts, applyJobs, applyOperations, applyQueryDefaults, checkHeaderDefaults, checkPageItems, checkJobs, checkQueryDefaults, collapseSingleUnions, omitOperations, dropNullable, securityOf, dropUnions, fillPackageName, ignoreFile, isJsonMediaType, markMappedEnums, packageNames, relax, renameSchemas, resolveIdempotency, resolvePaging, stripProse, supportingFiles } from './generate.mjs';
 import { apiDirFromArgs, apiPaths } from './paths.mjs';
 import { diffSpecs, renderDiff } from './spec-diff.mjs';
 
@@ -655,6 +655,48 @@ test('resolvePaging reads a cursor style that sends a value from each page back 
   assert.throws(() => resolvePaging('op', ['cursor'], { style: 'cursor', link: 'next' }), /unknown cursor paging keys: link/);
   assert.throws(() => resolvePaging('op', ['limit'], { style: 'cursor', param: 'start_after' }), /no query parameter holds the cursor paging position \(start_after\)/);
   assert.throws(() => resolvePaging('op', ['cursor'], { style: 'cursor', next: 'page..next' }), /cursor paging next is not a dotted path: page\.\.next/);
+});
+
+test('resolvePaging reads a link_header style whose pages default to top-level lists', () => {
+  assert.deepEqual(resolvePaging('op', ['page', 'limit'], { style: 'link_header' }), { link_header: { items: '$', rel: 'next', params: ['page', 'limit'] } });
+  assert.deepEqual(resolvePaging('op', ['page'], { items: 'bins' }, { style: 'link_header', rel: 'more' }), {
+    link_header: { items: 'bins', rel: 'more', params: ['page', 'limit'] },
+  });
+  assert.deepEqual(resolvePaging('op', ['offset'], { style: 'offset', items: '$' }).offset.items, '$');
+  assert.throws(() => resolvePaging('op', ['page'], { style: 'link_header', link: 'next' }), /unknown link_header paging keys: link/);
+  assert.throws(() => resolvePaging('op', ['cursor'], { style: 'link_header' }), /no query parameter holds the link_header paging position \(page, limit\)/);
+  assert.throws(() => resolvePaging('op', ['page'], { style: 'link_header', rel: 'next last' }), /link_header paging rel is not a relation type: next last/);
+});
+
+test('resolvePaging refuses items that are neither the page root nor a field', () => {
+  for (const items of ['page.items', '$.items', '', 'two words', 3]) {
+    assert.throws(() => resolvePaging('op', ['page'], { items }, { style: 'link_header' }), /op: paging items is neither \$ nor a field/);
+  }
+  assert.throws(() => resolvePaging('op', ['page'], { items: '$' }), /next_link paging reads the page body, so its items cannot be \$/);
+  assert.throws(() => resolvePaging('op', ['cursor'], { style: 'cursor', items: '$' }), /cursor paging reads the page body/);
+});
+
+test('checkPageItems matches items to the page schema', () => {
+  const spec = {
+    components: {
+      schemas: {
+        Bins: { type: 'object', properties: { total_count: { type: 'integer' }, bins: { type: 'array' } } },
+        Parts: { type: 'array', items: { type: 'object' } },
+        Loose: { type: 'object' },
+      },
+    },
+  };
+  const page = (ref) => ({
+    operationId: 'op',
+    responses: { 200: { content: { 'application/json': { schema: { $ref: `#/components/schemas/${ref}` } } } } },
+  });
+  checkPageItems(spec, page('Parts'), '$');
+  checkPageItems(spec, page('Bins'), 'bins');
+  checkPageItems(spec, page('Loose'), 'anything');
+  checkPageItems(spec, { operationId: 'op', responses: { 204: { description: '' } } }, '$');
+  assert.throws(() => checkPageItems(spec, page('Bins'), '$'), /op: paging items is \$ but a page is not a list/);
+  assert.throws(() => checkPageItems(spec, page('Parts'), 'parts'), /op: a page is a list, so its paging items must be \$, not parts/);
+  assert.throws(() => checkPageItems(spec, page('Bins'), 'results'), /op: a page has no results field/);
 });
 
 const driftSpec = (version, paths, schemas) => ({ info: { version }, paths, components: { schemas } });

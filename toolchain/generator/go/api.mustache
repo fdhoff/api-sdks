@@ -58,6 +58,9 @@ var (
 {{#vendorExtensions.x-sdk-paging.cursor}}
 		Paging:      runtime.Cursor{Items: "{{items}}", Next: "{{next}}", Param: "{{param}}"},
 {{/vendorExtensions.x-sdk-paging.cursor}}
+{{#vendorExtensions.x-sdk-paging.link_header}}
+		Paging:      runtime.LinkHeader{Items: "{{items}}", Rel: "{{rel}}", Params: []string{ {{#params}}"{{.}}",{{/params}} }},
+{{/vendorExtensions.x-sdk-paging.link_header}}
 {{#vendorExtensions.x-sdk-job}}
 		Job:         &runtime.Job{State: "{{state}}", Done: []string{ {{#done}}"{{.}}",{{/done}} }, Failed: []string{ {{#failed}}"{{.}}",{{/failed}} }},
 {{/vendorExtensions.x-sdk-job}}

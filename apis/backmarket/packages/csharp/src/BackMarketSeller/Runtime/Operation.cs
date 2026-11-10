@@ -23,9 +23,14 @@ internal enum ParamLocation
 internal sealed record Param(string Wire, string Name, ParamLocation Location, bool Defaulted = false);
 
 /// <summary>
-/// How an iterator walks pages: a <see cref="NextLinkPaging"/>, an <see cref="OffsetPaging"/> or a <see cref="CursorPaging"/>.
+/// How an iterator walks pages: a <see cref="NextLinkPaging"/>, an <see cref="OffsetPaging"/>, a <see cref="CursorPaging"/>
+/// or a <see cref="LinkHeaderPaging"/>. <see cref="Items"/> names the field holding a page's items, or is <c>$</c> for a
+/// page that is itself the list.
 /// </summary>
-internal abstract record Paging(string Items);
+internal abstract record Paging(string Items)
+{
+    public const string Root = "$";
+}
 
 /// <summary>Pages that link to the next one. Only <see cref="Params"/> are read from the link: it is never fetched.</summary>
 internal sealed record NextLinkPaging(string Items, string Link, string[] Params) : Paging(Items)
@@ -44,6 +49,12 @@ internal sealed record OffsetPaging(string Items, string Total, string Offset) :
 /// <see cref="Param"/> query parameter. Iteration ends when that value is null, empty or absent.
 /// </summary>
 internal sealed record CursorPaging(string Items, string Next, string Param) : Paging(Items);
+
+/// <summary>
+/// Pages whose RFC 8288 <c>Link</c> response header links to the next one with the relation type <see cref="Rel"/>.
+/// Only <see cref="Params"/> are read from the link: it is never fetched. Iteration ends when no link has that type.
+/// </summary>
+internal sealed record LinkHeaderPaging(string Items, string Rel, string[] Params) : Paging(Items);
 
 /// <summary>
 /// How a wait polls an operation that reports an asynchronous job's progress. The job has ended once the string at the

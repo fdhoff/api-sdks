@@ -51,6 +51,8 @@ _IDENTITY = {"Accept-Encoding": "identity"}
 _REDIRECTS = frozenset({301, 302, 303, 307, 308})
 _MAX_REDIRECTS = 5
 _DEFAULT_PORTS = {"http": 80, "https": 443}
+# The `items` that names a page which is itself the list of items.
+_PAGE_ROOT = "$"
 
 
 @dataclass(frozen=True)
@@ -94,6 +96,16 @@ class Cursor:
 
 
 @dataclass(frozen=True)
+class LinkHeader:
+    """Pages whose response carries the next position in the `rel` link of an RFC 8288 Link header. Only the
+    `params` in that link are read: it is never fetched. Iteration ends when no link has that relation."""
+
+    items: str = "$"
+    rel: str = "next"
+    params: tuple[str, ...] = ("page", "limit")
+
+
+@dataclass(frozen=True)
 class Job:
     """An operation that reports an asynchronous job's progress. The job has ended once the string at the
     dotted `state` path of its response is one of `done` or `failed`."""
@@ -115,7 +127,7 @@ class Operation(Generic[T]):
     returns_json: bool = False
     iterator: str | None = None
     item: Any = None
-    paging: NextLink | Offset | Cursor = NextLink()
+    paging: NextLink | Offset | Cursor | LinkHeader = NextLink()
     security: tuple[Requirement, ...] = ()
     host: str = ""
     binary_response: bool = False
@@ -320,6 +332,7 @@ class _Reply:
     data: Any
     text: str
     status: int
+    headers: httpx.Headers = field(default_factory=httpx.Headers, repr=False)
 
 
 def _log(settings: Settings, level: int, message: str) -> None:
@@ -340,16 +353,17 @@ def _read(settings: Settings, operation: Operation[Any], response: httpx.Respons
         clean = redact(settings.credentials, text)
         raise settings.to_error(ErrorContext(response.status_code, response.headers, clean, _parse_json(clean)))
     status = response.status_code
+    headers = response.headers
     if status == 204:
-        return _Reply(None, text, status)
+        return _Reply(None, text, status, headers)
     if text == "":
         if operation.returns_json:
             raise DecodeError("The response body is empty", status=status)
-        return _Reply("" if operation.response is str else None, text, status)
-    if "json" not in response.headers.get("content-type", ""):
-        return _Reply(text, text, status)
+        return _Reply("" if operation.response is str else None, text, status, headers)
+    if "json" not in headers.get("content-type", ""):
+        return _Reply(text, text, status, headers)
     try:
-        return _Reply(json.loads(text), text, status)
+        return _Reply(json.loads(text), text, status, headers)
     except ValueError:
         raise DecodeError("The response body is not valid JSON", status=status) from None
 
@@ -531,8 +545,6 @@ def _next_link(
 ) -> dict[str, Any] | None:
     """Read the position out of the link and apply it to our own request. The link is never fetched:
     it could send the credential to another host."""
-    if not isinstance(page.get(paging.items), list):
-        raise DecodeError(f"The `{paging.items}` field of a page is not a list")
     link = page.get(paging.link)
     if not link:
         return None
@@ -540,21 +552,96 @@ def _next_link(
         position = parse_qs(urlsplit(str(link)).query)
     except ValueError:
         raise DecodeError(f"The `{paging.link}` link is not a valid URL") from None
+    return _advance(operation, paging.params, params, position, f"The `{paging.link}` link")
+
+
+def _advance(
+    operation: Operation[Any],
+    wires: Sequence[str],
+    params: dict[str, Any],
+    position: Mapping[str, list[str]],
+    what: str,
+) -> dict[str, Any]:
+    """Apply the position a link gives to our own request, keeping every other parameter."""
     names = _query_names(operation)
     updated = dict(params)
-    for wire in paging.params:
+    for wire in wires:
         if wire in position and wire in names:
             updated[names[wire]] = position[wire][0]
     if all(str(updated.get(name)) == str(params.get(name)) for name in names.values()):
-        raise DecodeError(f"The `{paging.link}` link does not advance the iteration")
+        raise DecodeError(f"{what} does not advance the iteration")
     return updated
 
 
-def _next_offset(
-    operation: Operation[Any], paging: Offset, params: dict[str, Any], page: Mapping[str, Any], received: int
+def _split_outside(text: str, separator: str) -> list[str]:
+    """Split on `separator` where it is outside a <URI> and outside a quoted string."""
+    parts: list[str] = []
+    start = 0
+    quoted = bracketed = escaped = False
+    for index, char in enumerate(text):
+        if quoted:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                quoted = False
+        elif bracketed:
+            bracketed = char != ">"
+        elif char == '"':
+            quoted = True
+        elif char == "<":
+            bracketed = True
+        elif char == separator:
+            parts.append(text[start:index])
+            start = index + 1
+    parts.append(text[start:])
+    return parts
+
+
+def _unquote(value: str) -> str:
+    if len(value) < 2 or not value.startswith('"') or not value.endswith('"'):
+        return value
+    return re.sub(r"\\(.)", r"\1", value[1:-1])
+
+
+def _link_target(values: Sequence[str], rel: str) -> str | None:
+    """The URI of the first RFC 8288 link with relation type `rel`, compared without case."""
+    wanted = rel.lower()
+    for entry in _split_outside(",".join(values), ","):
+        entry = entry.strip()
+        end = entry.find(">")
+        if not entry.startswith("<") or end < 0:
+            continue
+        for param in _split_outside(entry[end + 1 :], ";")[1:]:
+            name, _, value = param.partition("=")
+            if name.strip().lower() != "rel":
+                continue
+            if wanted in _unquote(value.strip()).lower().split():
+                return entry[1:end]
+            break
+    return None
+
+
+def _next_link_header(
+    operation: Operation[Any], paging: LinkHeader, params: dict[str, Any], headers: httpx.Headers
 ) -> dict[str, Any] | None:
-    if not isinstance(page.get(paging.items), list):
-        raise DecodeError(f"The `{paging.items}` field of a page is not a list")
+    """Read the position out of the Link header and apply it to our own request. The link is never fetched:
+    its host is the server's own idea of its address, and could send the credential elsewhere."""
+    target = _link_target(headers.get_list("link"), paging.rel)
+    if target is None:
+        return None
+    what = f"The `{paging.rel}` Link"
+    try:
+        position = parse_qs(urlsplit(target).query)
+    except ValueError:
+        raise DecodeError(f"{what} is not a valid URL") from None
+    return _advance(operation, paging.params, params, position, what)
+
+
+def _next_offset(
+    operation: Operation[Any], paging: Offset, params: dict[str, Any], page: Any, received: int
+) -> dict[str, Any] | None:
     if received == 0:
         return None
     name = _query_names(operation)[paging.offset]
@@ -563,7 +650,7 @@ def _next_offset(
     if not _INTEGER.fullmatch(start):
         raise DecodeError(f"The `{paging.offset}` parameter is not an integer")
     position = int(start) + received
-    total = page.get(paging.total)
+    total = page.get(paging.total) if isinstance(page, Mapping) else None
     if isinstance(total, (int, float)) and not isinstance(total, bool) and position >= total:
         return None
     return {**params, name: position}
@@ -572,8 +659,6 @@ def _next_offset(
 def _next_cursor(
     operation: Operation[Any], paging: Cursor, params: dict[str, Any], page: Mapping[str, Any]
 ) -> dict[str, Any] | None:
-    if not isinstance(page.get(paging.items), list):
-        raise DecodeError(f"The `{paging.items}` field of a page is not a list")
     value: Any = page
     for key in paging.next.split("."):
         if value is None:
@@ -605,7 +690,7 @@ def _position(operation: Operation[Any], params: Mapping[str, Any]) -> tuple[str
     if isinstance(paging, Offset):
         return None
     names = _query_names(operation)
-    wires = paging.params if isinstance(paging, NextLink) else (paging.param,)
+    wires = (paging.param,) if isinstance(paging, Cursor) else paging.params
     values = (params.get(names[wire]) for wire in wires if wire in names)
     return tuple(None if value is None else _text(value) for value in values)
 
@@ -620,16 +705,33 @@ def _visit(operation: Operation[Any], params: Mapping[str, Any], seen: set[tuple
     seen.add(position)
 
 
-def _next_params(operation: Operation[Any], params: dict[str, Any], page: Any, received: int) -> dict[str, Any] | None:
-    """The parameters of the page after this one, or None after the last."""
+def _page_items(paging: NextLink | Offset | Cursor | LinkHeader, page: Any) -> list[Any]:
+    """A page's items: the page itself when `items` is `$`, and otherwise its `items` field."""
+    if paging.items == _PAGE_ROOT:
+        if not isinstance(page, list):
+            raise DecodeError("A page is not a JSON list")
+        return page
     if not isinstance(page, Mapping):
         raise DecodeError("A page is not a JSON object")
+    items = page.get(paging.items)
+    if not isinstance(items, list):
+        raise DecodeError(f"The `{paging.items}` field of a page is not a list")
+    return items
+
+
+def _next_params(
+    operation: Operation[Any], params: dict[str, Any], page: _Reply, received: int
+) -> dict[str, Any] | None:
+    """The parameters of the page after this one, or None after the last."""
     paging = operation.paging
+    _page_items(paging, page.data)
+    if isinstance(paging, LinkHeader):
+        return _next_link_header(operation, paging, params, page.headers)
     if isinstance(paging, Offset):
-        return _next_offset(operation, paging, params, page, received)
+        return _next_offset(operation, paging, params, page.data, received)
     if isinstance(paging, Cursor):
-        return _next_cursor(operation, paging, params, page)
-    return _next_link(operation, paging, params, page)
+        return _next_cursor(operation, paging, params, page.data)
+    return _next_link(operation, paging, params, page.data)
 
 
 def _auth_request(operation: Operation[Any], outgoing: httpx.Request, body: bytes) -> AuthRequest:
@@ -1043,7 +1145,10 @@ def _parse(settings: Settings, response_type: Any, data: Any, reply: _Reply) -> 
 
 
 def _items(operation: Operation[Any], page: Any) -> Sequence[Any]:
-    results = page.get(operation.paging.items) if isinstance(page, Mapping) else None
+    paging = operation.paging
+    if paging.items == _PAGE_ROOT:
+        return page if isinstance(page, list) else []
+    results = page.get(paging.items) if isinstance(page, Mapping) else None
     return results if isinstance(results, list) else []
 
 
@@ -1084,7 +1189,7 @@ class Resource:
             items = _items(operation, page.data)
             for item in items:
                 yield _parse(self._transport.settings, operation.item, item, page)
-            current = _next_params(operation, current, page.data, len(items))
+            current = _next_params(operation, current, page, len(items))
 
 
 class AsyncResource:
@@ -1126,4 +1231,4 @@ class AsyncResource:
             items = _items(operation, page.data)
             for item in items:
                 yield _parse(self._transport.settings, operation.item, item, page)
-            current = _next_params(operation, current, page.data, len(items))
+            current = _next_params(operation, current, page, len(items))

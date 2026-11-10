@@ -33,7 +33,8 @@ const maxBackoffDoublings = 20
 // numeric cursors.
 const maxSafeInteger = 1<<53 - 1
 
-// Paging is how an iterator walks pages: a [NextLink], an [Offset] or a [Cursor].
+// Paging is how an iterator walks pages: a [NextLink], an [Offset], a [Cursor] or a [LinkHeader]. Its Items
+// names the field of a page that holds the items, or is "$" for a page that is itself the list.
 type Paging interface{ itemsField() string }
 
 // NextLink pages link to the next one. Only Params are read from the link: it is never fetched.
@@ -59,9 +60,21 @@ type Cursor struct {
 	Param string
 }
 
-func (paging NextLink) itemsField() string { return paging.Items }
-func (paging Offset) itemsField() string   { return paging.Items }
-func (paging Cursor) itemsField() string   { return paging.Items }
+// LinkHeader pages give the next one as the Rel link of the response's RFC 8288 Link header. Only Params
+// are read from the link: it is never fetched. Iteration ends when there is no such link.
+type LinkHeader struct {
+	Items  string
+	Rel    string
+	Params []string
+}
+
+func (paging NextLink) itemsField() string   { return paging.Items }
+func (paging Offset) itemsField() string     { return paging.Items }
+func (paging Cursor) itemsField() string     { return paging.Items }
+func (paging LinkHeader) itemsField() string { return paging.Items }
+
+// pageRoot as a paging's Items means the page is itself the list of items.
+const pageRoot = "$"
 
 var defaultPaging = NextLink{Items: "results", Link: "next", Params: []string{"page", "cursor"}}
 
@@ -115,6 +128,36 @@ func (o *Operation) items(page map[string]json.RawMessage) []json.RawMessage {
 		return nil
 	}
 	return items
+}
+
+// page decodes a page and its items. A page whose items field is not a list has no items here, and is
+// refused by the paging that reads it.
+func (t *Transport) page(operation *Operation, answer *response) (map[string]json.RawMessage, []json.RawMessage, error) {
+	if operation.paging().itemsField() == pageRoot {
+		var items []json.RawMessage
+		if err := json.Unmarshal(answer.body, &items); err != nil || items == nil {
+			return nil, nil, t.decodeError("a page is not a JSON list", answer, err)
+		}
+		return nil, items, nil
+	}
+	var page map[string]json.RawMessage
+	if err := json.Unmarshal(answer.body, &page); err != nil || page == nil {
+		return nil, nil, t.decodeError("a page is not a JSON object", answer, err)
+	}
+	return page, operation.items(page), nil
+}
+
+// checkItems refuses a page whose items field is not a list. A page that is itself the list was checked as
+// it was decoded.
+func (t *Transport) checkItems(field string, page map[string]json.RawMessage, answer *response) error {
+	if field == pageRoot {
+		return nil
+	}
+	var items []json.RawMessage
+	if err := json.Unmarshal(page[field], &items); err != nil || items == nil {
+		return t.decodeError(fmt.Sprintf("the %s field of a page is not a list", field), answer, err)
+	}
+	return nil
 }
 
 var operations = map[string]*Operation{}
@@ -634,9 +677,8 @@ func Call[T any](ctx context.Context, t *Transport, operation *Operation, input 
 // nextLink reads the position out of a page's link and applies it to our own request. The link is
 // never fetched: it could send the token to another host. A nil result means the last page.
 func (t *Transport) nextLink(operation *Operation, paging NextLink, query url.Values, page map[string]json.RawMessage, answer *response) (url.Values, error) {
-	var items []json.RawMessage
-	if err := json.Unmarshal(page[paging.Items], &items); err != nil || items == nil {
-		return nil, t.decodeError(fmt.Sprintf("the %s field of a page is not a list", paging.Items), answer, err)
+	if err := t.checkItems(paging.Items, page, answer); err != nil {
+		return nil, err
 	}
 	var link any
 	if err := json.Unmarshal(page[paging.Link], &link); page[paging.Link] != nil && err != nil {
@@ -653,13 +695,22 @@ func (t *Transport) nextLink(operation *Operation, paging NextLink, query url.Va
 	if err != nil {
 		return nil, t.decodeError(fmt.Sprintf("the %s link cannot be parsed", paging.Link), answer, err)
 	}
-	position := parsed.Query()
+	updated, advanced := advance(operation, paging.Params, query, parsed.Query())
+	if !advanced {
+		return nil, t.decodeError(fmt.Sprintf("the %s link does not advance the iteration", paging.Link), answer, nil)
+	}
+	return updated, nil
+}
+
+// advance copies the markers that a link's query sets, and the operation takes, over our own query. It is
+// false when no marker changes.
+func advance(operation *Operation, markers []string, query, position url.Values) (url.Values, bool) {
 	updated := url.Values{}
 	for name, values := range query {
 		updated[name] = values
 	}
 	advanced := false
-	for _, marker := range paging.Params {
+	for _, marker := range markers {
 		value := position.Get(marker)
 		if value == "" || !slices.Contains(operation.QueryParams, marker) {
 			continue
@@ -667,17 +718,109 @@ func (t *Transport) nextLink(operation *Operation, paging NextLink, query url.Va
 		advanced = advanced || value != query.Get(marker)
 		updated.Set(marker, value)
 	}
+	return updated, advanced
+}
+
+// nextLinkHeader reads the position out of the response's Rel link and applies it to our own request. The
+// link is never fetched: its host is the server's own idea of its URL. A nil result means the last page.
+func (t *Transport) nextLinkHeader(operation *Operation, paging LinkHeader, query url.Values, page map[string]json.RawMessage, answer *response) (url.Values, error) {
+	if err := t.checkItems(paging.Items, page, answer); err != nil {
+		return nil, err
+	}
+	target, found := linkTarget(answer.header.Values("Link"), paging.Rel)
+	if !found {
+		return nil, nil
+	}
+	parsed, err := url.Parse(target)
+	if err != nil {
+		return nil, t.decodeError(fmt.Sprintf("the %s Link is not a valid URL", paging.Rel), answer, err)
+	}
+	updated, advanced := advance(operation, paging.Params, query, parsed.Query())
 	if !advanced {
-		return nil, t.decodeError(fmt.Sprintf("the %s link does not advance the iteration", paging.Link), answer, nil)
+		return nil, t.decodeError(fmt.Sprintf("the %s Link does not advance the iteration", paging.Rel), answer, nil)
 	}
 	return updated, nil
 }
 
+// linkTarget is the URI of the first link in the Link header values whose relation types include rel, in
+// any case. Only a link's first rel parameter counts, and a link that is not written <URI> is skipped.
+func linkTarget(values []string, rel string) (string, bool) {
+	for _, entry := range splitOutside(strings.Join(values, ","), ',') {
+		entry = strings.TrimSpace(entry)
+		end := strings.IndexByte(entry, '>')
+		if !strings.HasPrefix(entry, "<") || end < 0 {
+			continue
+		}
+		for _, param := range splitOutside(entry[end+1:], ';') {
+			name, value, _ := strings.Cut(param, "=")
+			if !strings.EqualFold(strings.TrimSpace(name), "rel") {
+				continue
+			}
+			for _, kind := range strings.Fields(unquote(strings.TrimSpace(value))) {
+				if strings.EqualFold(kind, rel) {
+					return entry[1:end], true
+				}
+			}
+			break
+		}
+	}
+	return "", false
+}
+
+// splitOutside splits a Link header at each separator outside a <URI> and a quoted string.
+func splitOutside(header string, separator rune) []string {
+	var parts []string
+	var current strings.Builder
+	angled, quoted, escaped := false, false, false
+	for _, char := range header {
+		switch {
+		case escaped:
+			escaped = false
+		case quoted:
+			escaped = char == '\\'
+			quoted = char != '"'
+		case angled:
+			angled = char != '>'
+		case char == '<':
+			angled = true
+		case char == '"':
+			quoted = true
+		case char == separator:
+			parts = append(parts, current.String())
+			current.Reset()
+			continue
+		}
+		current.WriteRune(char)
+	}
+	return append(parts, current.String())
+}
+
+// unquote reads a parameter value that is a token or a quoted string.
+func unquote(value string) string {
+	if !strings.HasPrefix(value, `"`) {
+		return value
+	}
+	var text strings.Builder
+	escaped := false
+	for _, char := range value[1:] {
+		switch {
+		case escaped:
+			escaped = false
+		case char == '\\':
+			escaped = true
+			continue
+		case char == '"':
+			return text.String()
+		}
+		text.WriteRune(char)
+	}
+	return text.String()
+}
+
 // nextOffset moves the offset past the items received. A nil result means the last page.
 func (t *Transport) nextOffset(paging Offset, query url.Values, page map[string]json.RawMessage, answer *response, received int) (url.Values, error) {
-	var items []json.RawMessage
-	if err := json.Unmarshal(page[paging.Items], &items); err != nil || items == nil {
-		return nil, t.decodeError(fmt.Sprintf("the %s field of a page is not a list", paging.Items), answer, err)
+	if err := t.checkItems(paging.Items, page, answer); err != nil {
+		return nil, err
 	}
 	if received == 0 {
 		return nil, nil
@@ -705,9 +848,8 @@ func (t *Transport) nextOffset(paging Offset, query url.Values, page map[string]
 
 // nextCursor sends the page's next value back as the cursor parameter. A nil result means the last page.
 func (t *Transport) nextCursor(paging Cursor, query url.Values, page map[string]json.RawMessage, answer *response) (url.Values, error) {
-	var items []json.RawMessage
-	if err := json.Unmarshal(page[paging.Items], &items); err != nil || items == nil {
-		return nil, t.decodeError(fmt.Sprintf("the %s field of a page is not a list", paging.Items), answer, err)
+	if err := t.checkItems(paging.Items, page, answer); err != nil {
+		return nil, err
 	}
 	keys := strings.Split(paging.Next, ".")
 	raw := page[keys[0]]
@@ -761,6 +903,8 @@ func (t *Transport) nextQuery(operation *Operation, query url.Values, page map[s
 		return t.nextLink(operation, paging, query, page, answer)
 	case Cursor:
 		return t.nextCursor(paging, query, page, answer)
+	case LinkHeader:
+		return t.nextLinkHeader(operation, paging, query, page, answer)
 	default:
 		return nil, t.decodeError(fmt.Sprintf("unknown paging %T", paging), answer, nil)
 	}
@@ -772,6 +916,8 @@ func position(paging Paging, query url.Values) (string, bool) {
 	var markers []string
 	switch paging := paging.(type) {
 	case NextLink:
+		markers = paging.Params
+	case LinkHeader:
 		markers = paging.Params
 	case Cursor:
 		markers = []string{paging.Param}
@@ -809,12 +955,11 @@ func Paginate[T any](ctx context.Context, t *Transport, operation *Operation, in
 			if answer.status == http.StatusNoContent {
 				return
 			}
-			var page map[string]json.RawMessage
-			if err := json.Unmarshal(answer.body, &page); err != nil || page == nil {
-				yield(empty, t.decodeError("a page is not a JSON object", answer, err))
+			page, items, err := t.page(operation, answer)
+			if err != nil {
+				yield(empty, err)
 				return
 			}
-			items := operation.items(page)
 			for _, raw := range items {
 				var item T
 				if err := json.Unmarshal(raw, &item); err != nil {

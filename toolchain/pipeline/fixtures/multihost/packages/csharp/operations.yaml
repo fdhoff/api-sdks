@@ -2,6 +2,8 @@ getWidget: { resource: Widgets, method: GetAsync, summary: Get one widget. }
 createWidget: { resource: Widgets, method: CreateAsync, summary: Create a widget., idempotency: { body: idempotency_key } }
 listUploads: { resource: Uploads, method: ListAsync, summary: List uploads. }
 listGadgets: { resource: Gadgets, method: ListAsync, iterator: ListAllAsync, items: Gadget, paging: { style: cursor, items: gadgets, next: page.next_page, param: start_after }, summary: List one page of gadgets. }
+listParts: { resource: Parts, method: ListAsync, iterator: ListAllAsync, items: Part, paging: { style: link_header, items: $ }, summary: List one page of parts. }
+listBins: { resource: Bins, method: ListAsync, iterator: ListAllAsync, items: Bin, paging: { style: link_header, items: bins }, summary: List one page of bins. }
 startImport: { resource: Imports, method: StartAsync, summary: Start an import. }
 getImport: { resource: Imports, method: GetAsync, wait: WaitAsync, summary: Get an import's status. }
 getImportReport: { resource: Imports, method: ReportAsync, summary: Download an import's report. }
