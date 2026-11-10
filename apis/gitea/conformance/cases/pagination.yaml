@@ -1,0 +1,138 @@
+# Lists page with `page` and `limit`, and each response names the next page only in its Link header. The links
+# point at the server's configured root URL, here another host, so the iterator copies `page` and `limit` out of
+# the `next` link into its own request and never fetches the link. Most pages are a top-level list; the rest hold
+# their items under a field named in sdk.yaml.
+cases:
+  - name: pagination-list-pages-follow-next-across-three-pages
+    request:
+      operation: issueListIssues
+      params: { owner: synthetic-owner, repo: synthetic-repo, state: open, limit: 2 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          headers:
+            link: '<{{other_origin}}/api/v1/repos/synthetic-owner/synthetic-repo/issues?limit=2&page=2&state=open>; rel="next",<{{other_origin}}/api/v1/repos/synthetic-owner/synthetic-repo/issues?limit=2&page=3&state=open>; rel="last"'
+            x-total-count: '5'
+          body: [{ number: 1, title: Synthetic one }, { number: 2, title: Synthetic two }]
+        - status: 200
+          headers:
+            link: '<{{other_origin}}/api/v1/repos/synthetic-owner/synthetic-repo/issues?limit=2&page=3&state=open>; rel="next",<{{other_origin}}/api/v1/repos/synthetic-owner/synthetic-repo/issues?limit=2&page=3&state=open>; rel="last",<{{other_origin}}/api/v1/repos/synthetic-owner/synthetic-repo/issues?limit=2&page=1&state=open>; rel="first",<{{other_origin}}/api/v1/repos/synthetic-owner/synthetic-repo/issues?limit=2&page=1&state=open>; rel="prev"'
+            x-total-count: '5'
+          body: [{ number: 3, title: Synthetic three }, { number: 4, title: Synthetic four }]
+        - status: 200
+          headers:
+            link: '<{{other_origin}}/api/v1/repos/synthetic-owner/synthetic-repo/issues?limit=2&page=1&state=open>; rel="first",<{{other_origin}}/api/v1/repos/synthetic-owner/synthetic-repo/issues?limit=2&page=2&state=open>; rel="prev"'
+            x-total-count: '5'
+          body: [{ number: 5, title: Synthetic five }]
+    wire:
+      - method: GET
+        path: /repos/synthetic-owner/synthetic-repo/issues
+        query: { state: open, limit: '2' }
+        headers: { authorization: 'token {{token}}' }
+      - method: GET
+        path: /repos/synthetic-owner/synthetic-repo/issues
+        query: { state: open, limit: '2', page: '2' }
+        headers: { authorization: 'token {{token}}' }
+      - method: GET
+        path: /repos/synthetic-owner/synthetic-repo/issues
+        query: { state: open, limit: '2', page: '3' }
+        headers: { authorization: 'token {{token}}' }
+    expect:
+      result:
+        - { number: 1, title: Synthetic one }
+        - { number: 2, title: Synthetic two }
+        - { number: 3, title: Synthetic three }
+        - { number: 4, title: Synthetic four }
+        - { number: 5, title: Synthetic five }
+
+  - name: pagination-object-pages-read-their-items-field-across-three-pages
+    request:
+      operation: getWorkflowRuns
+      params: { owner: synthetic-owner, repo: synthetic-repo, status: success }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          headers:
+            link: '<{{other_origin}}/api/v1/repos/synthetic-owner/synthetic-repo/actions/runs?page=2&status=success>; rel="next",<{{other_origin}}/api/v1/repos/synthetic-owner/synthetic-repo/actions/runs?page=3&status=success>; rel="last"'
+          body: { total_count: 3, workflow_runs: [{ id: 11 }] }
+        - status: 200
+          headers:
+            link: '<{{other_origin}}/api/v1/repos/synthetic-owner/synthetic-repo/actions/runs?page=3&status=success>; rel="next",<{{other_origin}}/api/v1/repos/synthetic-owner/synthetic-repo/actions/runs?page=1&status=success>; rel="prev"'
+          body: { total_count: 3, workflow_runs: [{ id: 12 }] }
+        - status: 200
+          headers:
+            link: '<{{other_origin}}/api/v1/repos/synthetic-owner/synthetic-repo/actions/runs?page=2&status=success>; rel="prev"'
+          body: { total_count: 3, workflow_runs: [{ id: 13 }] }
+    wire:
+      - method: GET
+        path: /repos/synthetic-owner/synthetic-repo/actions/runs
+        query: { status: success }
+      - method: GET
+        path: /repos/synthetic-owner/synthetic-repo/actions/runs
+        query: { status: success, page: '2' }
+      - method: GET
+        path: /repos/synthetic-owner/synthetic-repo/actions/runs
+        query: { status: success, page: '3' }
+    expect:
+      result: [{ id: 11 }, { id: 12 }, { id: 13 }]
+
+  - name: pagination-search-results-read-data
+    request:
+      operation: repoSearch
+      params: { q: synthetic, limit: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          headers: { link: '<{{other_origin}}/api/v1/repos/search?limit=1&page=2&q=synthetic>; rel="next"' }
+          body: { ok: true, data: [{ id: 21, name: synthetic-a }] }
+        - status: 200
+          body: { ok: true, data: [{ id: 22, name: synthetic-b }] }
+    wire:
+      - method: GET
+        path: /repos/search
+        query: { q: synthetic, limit: '1' }
+      - method: GET
+        path: /repos/search
+        query: { q: synthetic, limit: '1', page: '2' }
+    expect:
+      result: [{ id: 21, name: synthetic-a }, { id: 22, name: synthetic-b }]
+
+  - name: pagination-an-empty-list-without-a-link-is-one-page
+    request:
+      operation: userCurrentListRepos
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          body: []
+    wire:
+      - method: GET
+        path: /user/repos
+    expect:
+      result: []
+
+  - name: pagination-a-next-link-to-a-page-already-sent-is-a-decode-error
+    request:
+      operation: userCurrentListRepos
+      params: { page: 1 }
+      paginate: true
+    mock:
+      responses:
+        - status: 200
+          headers: { link: '<{{other_origin}}/api/v1/user/repos?page=2>; rel="next"' }
+          body: [{ id: 31 }]
+        - status: 200
+          headers: { link: '<{{other_origin}}/api/v1/user/repos?page=1>; rel="next"' }
+          body: [{ id: 32 }]
+    wire:
+      - method: GET
+        path: /user/repos
+        query: { page: '1' }
+      - method: GET
+        path: /user/repos
+        query: { page: '2' }
+    expect:
+      error: { kind: decode }

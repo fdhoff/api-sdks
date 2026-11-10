@@ -1,0 +1,109 @@
+# Gitea's errors are JSON with a `message` and a `url`. Every error keeps its status, the message when there is
+# one, and the raw text.
+cases:
+  - name: errors-404-is-not-found-with-the-message
+    request:
+      operation: repoGet
+      params: { owner: synthetic-owner, repo: missing-repo }
+    mock:
+      responses:
+        - status: 404
+          body: { message: synthetic repository not found, url: 'https://gitea.example.com/api/swagger' }
+    wire:
+      - method: GET
+        path: /repos/synthetic-owner/missing-repo
+    expect:
+      error:
+        kind: not_found
+        status: 404
+        message: synthetic repository not found
+        raw_body: '{"message":"synthetic repository not found","url":"https://gitea.example.com/api/swagger"}'
+
+  - name: errors-422-is-validation-with-the-message
+    request:
+      operation: issueCreateIssue
+      params: { owner: synthetic-owner, repo: synthetic-repo }
+      body: { title: '' }
+    mock:
+      responses:
+        - status: 422
+          body: { message: '[Title]: Required', url: 'https://gitea.example.com/api/swagger' }
+    wire:
+      - method: POST
+        path: /repos/synthetic-owner/synthetic-repo/issues
+        headers_match: { content-type: '^application/json' }
+        body: { title: '' }
+    expect:
+      error: { kind: validation, status: 422, message: '[Title]: Required' }
+
+  - name: errors-the-mock-serves-a-declared-404-as-a-gitea-error
+    request:
+      operation: repoGet
+      params: { owner: synthetic-owner, repo: synthetic-repo }
+    mock:
+      prism: { code: 404 }
+    wire:
+      - method: GET
+        path: /repos/synthetic-owner/synthetic-repo
+    expect:
+      error: { kind: not_found, status: 404 }
+
+  - name: errors-409-is-conflict
+    request:
+      operation: repoCreateBranch
+      params: { owner: synthetic-owner, repo: synthetic-repo }
+      body: { new_branch_name: synthetic-branch }
+    mock:
+      responses:
+        - status: 409
+          body: { message: synthetic branch exists, url: 'https://gitea.example.com/api/swagger' }
+    wire:
+      - method: POST
+        path: /repos/synthetic-owner/synthetic-repo/branches
+    expect:
+      error: { kind: conflict, status: 409, message: synthetic branch exists }
+
+  - name: errors-a-body-that-is-not-json-is-kept-as-text
+    request:
+      operation: userGetCurrent
+    mock:
+      responses:
+        - status: 403
+          body: forbidden
+    wire:
+      - method: GET
+        path: /user
+    expect:
+      error: { kind: permission, status: 403, raw_body: forbidden }
+
+  - name: errors-a-get-is-retried-after-503
+    request:
+      operation: getVersion
+    mock:
+      responses:
+        - status: 503
+          body: { message: synthetic outage }
+        - status: 200
+          body: { version: 0.0.0-synthetic }
+    wire:
+      - method: GET
+        path: /version
+      - method: GET
+        path: /version
+    expect:
+      result: { version: 0.0.0-synthetic }
+
+  - name: errors-a-post-is-not-retried-after-503
+    request:
+      operation: issueCreateIssue
+      params: { owner: synthetic-owner, repo: synthetic-repo }
+      body: { title: Synthetic issue }
+    mock:
+      responses:
+        - status: 503
+          body: { message: synthetic outage }
+    wire:
+      - method: POST
+        path: /repos/synthetic-owner/synthetic-repo/issues
+    expect:
+      error: { kind: server, status: 503, message: synthetic outage }

@@ -1,0 +1,8 @@
+# Synthetic credentials. `token` is an access token. A case that sets `username` uses Basic with `password`
+# instead, and sends `otp` with it unless the case sets `otp: null`.
+secrets: [password, otp]
+client:
+  token: conformance-synthetic-access-token
+  password: conformance-synthetic-password
+  otp: '730194'
+  retry_base_delay_ms: 1

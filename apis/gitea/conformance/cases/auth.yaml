@@ -1,0 +1,114 @@
+# A token goes as `Authorization: token <token>`. Basic takes a username and password, and may add a one-time
+# password. Either may add `Sudo`. No result, error or log holds a credential.
+cases:
+  - name: auth-sends-the-token-with-the-token-scheme
+    request:
+      operation: getVersion
+    mock:
+      prism: {}
+    wire:
+      - method: GET
+        path: /version
+        headers: { authorization: 'token {{token}}', accept: application/json }
+        headers_absent: [x-gitea-otp, sudo]
+    expect:
+      result_keys: [version]
+
+  - name: auth-basic-without-a-one-time-password
+    client: { username: synthetic-user, otp: null }
+    request:
+      operation: userGetCurrent
+    mock:
+      responses:
+        - status: 200
+          body: { id: 1, login: synthetic-user }
+    wire:
+      - method: GET
+        path: /user
+        headers: { authorization: Basic c3ludGhldGljLXVzZXI6Y29uZm9ybWFuY2Utc3ludGhldGljLXBhc3N3b3Jk }
+        headers_absent: [x-gitea-otp, sudo]
+    expect:
+      result: { id: 1, login: synthetic-user }
+      logs_exclude: [c3ludGhldGljLXVzZXI6Y29uZm9ybWFuY2Utc3ludGhldGljLXBhc3N3b3Jk]
+
+  - name: auth-basic-with-a-one-time-password
+    client: { username: synthetic-user }
+    request:
+      operation: userGetCurrent
+    mock:
+      responses:
+        - status: 200
+          body: { id: 1, login: synthetic-user }
+    wire:
+      - method: GET
+        path: /user
+        headers:
+          authorization: Basic c3ludGhldGljLXVzZXI6Y29uZm9ybWFuY2Utc3ludGhldGljLXBhc3N3b3Jk
+          x-gitea-otp: '{{otp}}'
+        headers_absent: [sudo]
+    expect:
+      result: { id: 1, login: synthetic-user }
+
+  - name: auth-sudo-with-a-token
+    client: { sudo: synthetic-other-user }
+    request:
+      operation: userGetCurrent
+    mock:
+      responses:
+        - status: 200
+          body: { id: 2, login: synthetic-other-user }
+    wire:
+      - method: GET
+        path: /user
+        headers: { authorization: 'token {{token}}', sudo: synthetic-other-user }
+        headers_absent: [x-gitea-otp]
+    expect:
+      result: { id: 2, login: synthetic-other-user }
+
+  - name: auth-sudo-with-basic-and-a-one-time-password
+    client: { username: synthetic-admin, sudo: synthetic-other-user }
+    request:
+      operation: userGetCurrent
+    mock:
+      responses:
+        - status: 200
+          body: { id: 2, login: synthetic-other-user }
+    wire:
+      - method: GET
+        path: /user
+        headers:
+          authorization: Basic c3ludGhldGljLWFkbWluOmNvbmZvcm1hbmNlLXN5bnRoZXRpYy1wYXNzd29yZA==
+          x-gitea-otp: '{{otp}}'
+          sudo: synthetic-other-user
+    expect:
+      result: { id: 2, login: synthetic-other-user }
+
+  - name: auth-a-refused-token-is-an-authentication-error-without-the-token
+    request:
+      operation: userGetCurrent
+    mock:
+      responses:
+        - status: 401
+          body: { message: 'token {{token}} is not valid', url: 'https://gitea.example.com/api/swagger' }
+    wire:
+      - method: GET
+        path: /user
+    expect:
+      error: { kind: authentication, status: 401, message: 'token *** is not valid' }
+      logs_required: true
+
+  - name: auth-a-refused-login-echoing-every-credential-holds-none
+    client: { username: synthetic-user }
+    request:
+      operation: userGetCurrent
+    mock:
+      responses:
+        - status: 401
+          body: 'bad login {{password}} {{otp}} c3ludGhldGljLXVzZXI6Y29uZm9ybWFuY2Utc3ludGhldGljLXBhc3N3b3Jk'
+    wire:
+      - method: GET
+        path: /user
+    expect:
+      error: { kind: authentication, status: 401, raw_body: 'bad login *** *** ***' }
+      logs_required: true
+      logs_exclude: [c3ludGhldGljLXVzZXI6Y29uZm9ybWFuY2Utc3ludGhldGljLXBhc3N3b3Jk]

@@ -1,0 +1,31 @@
+# Every path parameter is one segment, so a `/` inside a file path is sent as %2F. The later live suite is to
+# confirm Gitea accepts it on the pinned release. See docs/spec-audit.md.
+cases:
+  - name: paths-a-nested-file-path-is-one-encoded-segment
+    request:
+      operation: repoGetContents
+      params: { owner: synthetic-owner, repo: synthetic-repo, filepath: docs/guide/intro.md, ref: main }
+    mock:
+      responses:
+        - status: 200
+          body: { type: file, name: intro.md, path: docs/guide/intro.md }
+    wire:
+      - method: GET
+        path: /repos/synthetic-owner/synthetic-repo/contents/docs%2Fguide%2Fintro.md
+        query: { ref: main }
+    expect:
+      result: { type: file, name: intro.md, path: docs/guide/intro.md }
+
+  - name: paths-reserved-characters-in-a-segment-are-encoded
+    request:
+      operation: repoGetContents
+      params: { owner: synthetic-owner, repo: synthetic-repo, filepath: 'notes/a b?#.md' }
+    mock:
+      responses:
+        - status: 200
+          body: { type: file, name: 'a b?#.md' }
+    wire:
+      - method: GET
+        path: /repos/synthetic-owner/synthetic-repo/contents/notes%2Fa%20b%3F%23.md
+    expect:
+      result: { type: file, name: 'a b?#.md' }
