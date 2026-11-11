@@ -14,5 +14,5 @@ public sealed class TasksResponse : ApiModel
     public AutoTransferRulesResponsePage? Page { get; set; }
 
     [JsonPropertyName("tasks")]
-    public List<Task>? Tasks { get; set; }
+    public List<UserTask>? Tasks { get; set; }
 }

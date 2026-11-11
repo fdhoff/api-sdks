@@ -7,8 +7,8 @@ using MercuryBanking.Runtime;
 namespace MercuryBanking.Models;
 
 /// <summary>An API object. <see cref="ApiModel.Extra"/> holds unknown fields and any value that did not fit its property.</summary>
-[JsonConverter(typeof(ApiModelConverter<Task>))]
-public sealed class Task : ApiModel
+[JsonConverter(typeof(ApiModelConverter<UserTask>))]
+public sealed class UserTask : ApiModel
 {
     [JsonPropertyName("amount")]
     public double? Amount { get; set; }

@@ -3,9 +3,9 @@
 #[allow(unused_imports)]
 use crate::models;
 
-/// Task is an API object. `extra` holds unknown fields, nulls, and any value that did not fit its field.
+/// UserTask is an API object. `extra` holds unknown fields, nulls, and any value that did not fit its field.
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct Task {
+pub struct UserTask {
     pub amount: Option<f64>,
     pub category: Option<String>,
     pub completed_at: Option<String>,
@@ -24,7 +24,7 @@ pub struct Task {
     pub extra: serde_json::Map<String, serde_json::Value>,
 }
 
-crate::runtime::tolerant_model!(Task {
+crate::runtime::tolerant_model!(UserTask {
     amount: "amount",
     category: "category",
     completed_at: "completedAt",

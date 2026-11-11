@@ -16,8 +16,8 @@ from mercury_banking.models.task_resolution import TaskResolution
 from mercury_banking._runtime import ApiModel
 
 
-class Task(ApiModel):
-    """Task model."""
+class UserTask(ApiModel):
+    """UserTask model."""
 
     amount: Optional[Annotated[float, Field(ge=0.01)]] = None
     category: StrictStr

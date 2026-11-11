@@ -8,8 +8,8 @@ import (
 	"github.com/fdhoff/api-sdks/apis/mercury/packages/go/internal/runtime"
 )
 
-// Task is an API object. Extra holds unknown fields and any value that did not fit its field.
-type Task struct {
+// UserTask is an API object. Extra holds unknown fields and any value that did not fit its field.
+type UserTask struct {
 	Amount          *float64                   `json:"amount,omitempty"`
 	Category        *string                    `json:"category,omitempty"`
 	CompletedAt     *string                    `json:"completedAt,omitempty"`
@@ -29,7 +29,7 @@ type Task struct {
 }
 
 // UnmarshalJSON decodes tolerantly: a field that does not fit stays unset and its raw value goes to Extra.
-func (m *Task) UnmarshalJSON(data []byte) error { return runtime.DecodeObject(data, m) }
+func (m *UserTask) UnmarshalJSON(data []byte) error { return runtime.DecodeObject(data, m) }
 
 // MarshalJSON encodes the fields that are set, followed by Extra.
-func (m Task) MarshalJSON() ([]byte, error) { return runtime.EncodeObject(m) }
+func (m UserTask) MarshalJSON() ([]byte, error) { return runtime.EncodeObject(m) }

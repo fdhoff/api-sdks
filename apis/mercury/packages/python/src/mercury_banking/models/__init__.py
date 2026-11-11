@@ -465,7 +465,6 @@ from mercury_banking.models.spend_limit_type import SpendLimitType
 from mercury_banking.models.standard_icon import StandardIcon
 from mercury_banking.models.swift_bank_account_type import SwiftBankAccountType
 from mercury_banking.models.swift_code_data import SwiftCodeData
-from mercury_banking.models.task import Task
 from mercury_banking.models.task_kind import TaskKind
 from mercury_banking.models.task_notification_status import TaskNotificationStatus
 from mercury_banking.models.task_related_resource import TaskRelatedResource
@@ -519,6 +518,7 @@ from mercury_banking.models.update_card_request import UpdateCardRequest
 from mercury_banking.models.update_webhook_params import UpdateWebhookParams
 from mercury_banking.models.uploaded_attachment import UploadedAttachment
 from mercury_banking.models.user_details import UserDetails
+from mercury_banking.models.user_task import UserTask
 from mercury_banking.models.users_paginated_response import UsersPaginatedResponse
 from mercury_banking.models.users_paginated_response_page import UsersPaginatedResponsePage
 from mercury_banking.models.valuation_type import ValuationType
@@ -924,7 +924,6 @@ __all__ = [
     "StandardIcon",
     "SwiftBankAccountType",
     "SwiftCodeData",
-    "Task",
     "TaskKind",
     "TaskNotificationStatus",
     "TaskRelatedResource",
@@ -974,6 +973,7 @@ __all__ = [
     "UpdateWebhookParams",
     "UploadedAttachment",
     "UserDetails",
+    "UserTask",
     "UsersPaginatedResponse",
     "UsersPaginatedResponsePage",
     "ValuationType",

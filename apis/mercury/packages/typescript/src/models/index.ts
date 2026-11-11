@@ -2819,24 +2819,6 @@ export interface SwiftCodeData {
   bankName: string;
 }
 
-export interface Task {
-  amount?: number | null;
-  category: string;
-  completedAt?: string | null;
-  createdAt: string;
-  description: string;
-  dueDate?: string | null;
-  id: string;
-  kind: TaskKind;
-  product: string;
-  relatedResource?: TaskRelatedResource | null;
-  resolution: TaskResolution;
-  status: TaskNotificationStatus;
-  title: string;
-  urgency: string;
-  webUrl: string;
-}
-
 export type TaskKind =
   | 'approveSendMoneyRequest'
   | 'approveBatchSendMoneyRequest'
@@ -2929,7 +2911,7 @@ export type TaskResolutionOperation = 'uploadTransactionAttachment' | 'updateTra
 
 export interface TasksResponse {
   page: AutoTransferRulesResponsePage;
-  tasks: Array<Task>;
+  tasks: Array<UserTask>;
 }
 
 export type TaxFormType = 'w9' | 'w8BEN' | 'w8BENE' | 'unknown';
@@ -3414,6 +3396,24 @@ export interface UserDetails {
   lastName: string;
   organizationRole: ApiUserRole;
   userId: string;
+}
+
+export interface UserTask {
+  amount?: number | null;
+  category: string;
+  completedAt?: string | null;
+  createdAt: string;
+  description: string;
+  dueDate?: string | null;
+  id: string;
+  kind: TaskKind;
+  product: string;
+  relatedResource?: TaskRelatedResource | null;
+  resolution: TaskResolution;
+  status: TaskNotificationStatus;
+  title: string;
+  urgency: string;
+  webUrl: string;
 }
 
 export interface UsersPaginatedResponse {

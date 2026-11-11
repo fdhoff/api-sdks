@@ -7,7 +7,7 @@ use crate::models;
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TasksResponse {
     pub page: Option<Box<models::AutoTransferRulesResponsePage>>,
-    pub tasks: Option<Vec<models::Task>>,
+    pub tasks: Option<Vec<models::UserTask>>,
     pub extra: serde_json::Map<String, serde_json::Value>,
 }
 

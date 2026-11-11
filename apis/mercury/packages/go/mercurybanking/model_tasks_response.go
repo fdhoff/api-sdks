@@ -11,7 +11,7 @@ import (
 // TasksResponse is an API object. Extra holds unknown fields and any value that did not fit its field.
 type TasksResponse struct {
 	Page  *AutoTransferRulesResponsePage `json:"page,omitempty"`
-	Tasks []Task                         `json:"tasks,omitempty"`
+	Tasks []UserTask                     `json:"tasks,omitempty"`
 	Extra map[string]json.RawMessage     `json:"-"`
 }
 
