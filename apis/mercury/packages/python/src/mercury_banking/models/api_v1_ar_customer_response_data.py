@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
+from typing_extensions import Annotated
 from uuid import UUID
 from mercury_banking.models.api_v1_ar_customer_address import ApiV1ArCustomerAddress
 from mercury_banking._runtime import ApiModel
@@ -19,4 +20,4 @@ class ApiV1ArCustomerResponseData(ApiModel):
     deleted_at: Optional[StrictStr] = Field(default=None, alias="deletedAt")
     email: StrictStr
     id: UUID
-    name: StrictStr
+    name: Annotated[str, Field(min_length=1, strict=True, max_length=5000)]

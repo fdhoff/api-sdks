@@ -136,7 +136,7 @@ Every method also takes `{ signal }`, an `AbortSignal` that cancels the call.
 
 ## Behaviour
 
-* **Methods** are grouped by resource, such as `client.accounts`, `client.transactions`, `client.recipients`, `client.cards` and `client.invoices`. All 89 operations in the API reference have a method. Model types are exported from the package root.
+* **Methods** are grouped by resource, such as `client.accounts`, `client.transactions`, `client.recipients`, `client.cards` and `client.invoices`. All 90 operations in the API reference have a method. Model types are exported from the package root.
 * **Hosts:** every operation goes to `api.mercury.com`, except `cards.reveal`, which goes to `vault-api.mercury.com`. In the sandbox both go to `api-sandbox.mercury.com`.
 * **Pagination:** `list` methods return one page and `iter` methods walk all of them. Most send each page's `page.nextPage` back as `start_after`. `accounts.iterTransactions` pages by `offset`, and `treasury.iterTransactions` by its `cursor`. Iterators start where your own `startAfter`, `offset` or `cursor` says, and page forward only.
 * **Timeouts:** `timeoutMs` is the time allowed for each attempt, including reading the whole response.

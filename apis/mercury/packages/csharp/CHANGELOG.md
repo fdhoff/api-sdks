@@ -2,6 +2,10 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
+## Unreleased
+
+* `client.Products.DeleteAsync`, to delete an invoicing product.
+
 ## 0.1.0-alpha.2 (2026-11-10)
 
 * `client.Products.ListAsync`, `client.Products.ListAllAsync` and `client.Products.CreateAsync`, for the invoicing product catalog Mercury added to its API reference.

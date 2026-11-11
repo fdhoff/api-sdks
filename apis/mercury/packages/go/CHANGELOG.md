@@ -4,6 +4,7 @@ This module follows semantic versioning and stays on 0.x until outside users con
 
 ## Unreleased
 
+* `client.Products.Delete`, to delete an invoicing product.
 * `client.Products.List`, `client.Products.Iter` and `client.Products.Create`, for the invoicing product catalog Mercury added to its API reference.
 * `DuplicateCheckOverride` on `SendMoneyAPIRequest` and `PostTransactionAPIRequest`, to send a payment that repeats one from the last 24 hours, and `ReimbursementPaymentStatusPaidOutsideMercury`.
 * An empty, `.` or `..` path value returns an error before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`.

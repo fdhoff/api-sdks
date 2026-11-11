@@ -25,6 +25,6 @@ class ApiV1SpendBudgetResponse(ApiModel):
     end_date: Optional[date] = Field(default=None, alias="endDate")
     frequency: ApiV1BudgetFrequency
     id: UUID
-    name: Optional[StrictStr] = None
+    name: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=299)]] = None
     start_date: Optional[date] = Field(default=None, alias="startDate")
     status: ApiV1BudgetPublishStatus

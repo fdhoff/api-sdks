@@ -25,8 +25,10 @@ class ApiV1ReimbursementResponse(ApiModel):
     currency: StrictStr
     date_paid_for: date = Field(alias="datePaidFor")
     id: UUID
-    merchant_name: Optional[StrictStr] = Field(default=None, alias="merchantName")
-    notes: Optional[StrictStr] = None
+    merchant_name: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=299)]] = Field(
+        default=None, alias="merchantName"
+    )
+    notes: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=5000)]] = None
     payment_status: ReimbursementPaymentStatus = Field(alias="paymentStatus")
     review_status: ReimbursementReviewStatus = Field(alias="reviewStatus")
     submitted_at: StrictStr = Field(alias="submittedAt")

@@ -512,6 +512,10 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
             let body: Option<models::ApiV1ArProductCreateRequest> = body(case);
             output(client.products().create(body.as_ref()).await)
         }
+        ("deleteProduct", false) => {
+            let product_id: String = arg(&case.params, "productId");
+            output(client.products().delete(&product_id).await)
+        }
         ("listProducts", false) => {
             let params = ProductsListParams {
                 limit: param(&case.params, "limit"),

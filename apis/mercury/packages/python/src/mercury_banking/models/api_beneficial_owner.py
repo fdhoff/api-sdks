@@ -26,12 +26,16 @@ class APIBeneficialOwner(ApiModel):
     country: Optional[StrictStr] = None
     date_of_birth: Optional[date] = Field(default=None, alias="dateOfBirth")
     email: Optional[StrictStr] = None
-    first_name: Optional[StrictStr] = Field(default=None, alias="firstName")
+    first_name: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=299)]] = Field(
+        default=None, alias="firstName"
+    )
     identification_blob: Optional[StrictStr] = Field(default=None, alias="identificationBlob")
     identification_type: Optional[IdentificationType] = Field(default=None, alias="identificationType")
     is_pep: Optional[IsPep] = Field(default=None, alias="isPep")
     job_title: Optional[BeneficialOwnerJobTitle] = Field(default=None, alias="jobTitle")
-    last_name: Optional[StrictStr] = Field(default=None, alias="lastName")
+    last_name: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=299)]] = Field(
+        default=None, alias="lastName"
+    )
     other_job_title: Optional[StrictStr] = Field(default=None, alias="otherJobTitle")
     percent_ownership: Optional[Annotated[float, Field(multiple_of=0.01)]] = Field(
         default=None, alias="percentOwnership"
@@ -39,5 +43,7 @@ class APIBeneficialOwner(ApiModel):
     phone_number: Optional[StrictStr] = Field(default=None, alias="phoneNumber")
     postal_code: Optional[StrictStr] = Field(default=None, alias="postalCode")
     region: Optional[StrictStr] = None
-    social_profile_links: Optional[List[StrictStr]] = Field(default=None, alias="socialProfileLinks")
+    social_profile_links: Optional[List[Annotated[str, Field(min_length=1, strict=True, max_length=299)]]] = Field(
+        default=None, alias="socialProfileLinks"
+    )
     state: Optional[StrictStr] = None

@@ -20,5 +20,5 @@ class ApiV1CreateReimbursementRequest(ApiModel):
     category_id: Optional[UUID] = Field(default=None, alias="categoryId")
     currency: StrictStr
     date_paid_for: date = Field(alias="datePaidFor")
-    merchant_name: StrictStr = Field(alias="merchantName")
-    notes: Optional[StrictStr] = None
+    merchant_name: Annotated[str, Field(min_length=1, strict=True, max_length=299)] = Field(alias="merchantName")
+    notes: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=5000)]] = None

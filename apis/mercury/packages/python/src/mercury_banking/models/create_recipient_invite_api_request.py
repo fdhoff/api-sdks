@@ -17,9 +17,11 @@ class CreateRecipientInviteApiRequest(ApiModel):
     """CreateRecipientInviteApiRequest model."""
 
     contact_email: StrictStr = Field(alias="contactEmail")
-    name: Optional[StrictStr] = None
-    notes: Optional[StrictStr] = None
-    organization_name_on_request: Optional[StrictStr] = Field(default=None, alias="organizationNameOnRequest")
+    name: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=299)]] = None
+    notes: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=5000)]] = None
+    organization_name_on_request: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=299)]] = Field(
+        default=None, alias="organizationNameOnRequest"
+    )
     payment_methods: Annotated[List[PaymentMethod], Field(min_length=1)] = Field(alias="paymentMethods")
     recipient_id: Optional[UUID] = Field(default=None, alias="recipientId")
     require_tax_document: StrictBool = Field(alias="requireTaxDocument")

@@ -32,15 +32,15 @@ test('the cached spec matches its lock and is not tracked', async () => {
   assert.equal(execFileSync('git', ['ls-files', paths.spec], { encoding: 'utf8' }), '');
 });
 
-test('the build keeps the 89 public, documented operations', () => {
+test('the build keeps the 90 public, documented operations', () => {
   const internal = operationsOf(upstream).filter((operation) => operation['x-internal'] !== undefined);
-  assert.equal(operationsOf(upstream).length, 136);
-  assert.equal(internal.length, 43);
-  assert.equal(operations.length, 89);
+  assert.equal(operationsOf(upstream).length, 142);
+  assert.equal(internal.length, 48);
+  assert.equal(operations.length, 90);
   const kept = new Set(ids(operations));
   assert.deepEqual(ids(internal).filter((id) => kept.has(id)), []);
   assert.deepEqual(DROPPED.filter((id) => kept.has(id)), []);
-  assert.equal(operations.length, 136 - internal.length - DROPPED.length);
+  assert.equal(operations.length, 142 - internal.length - DROPPED.length);
   assert.ok(Object.values(built.paths).every((item) => METHODS.some((method) => item[method])));
 });
 

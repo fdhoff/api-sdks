@@ -79,6 +79,7 @@ from mercury_banking.models.api_v1_create_budget_request import ApiV1CreateBudge
 from mercury_banking.models.api_v1_create_reimbursement_request import ApiV1CreateReimbursementRequest
 from mercury_banking.models.api_v1_create_reimbursement_response import ApiV1CreateReimbursementResponse
 from mercury_banking.models.api_v1_deny_reimbursement_request import ApiV1DenyReimbursementRequest
+from mercury_banking.models.api_v1_mark_reimbursement_paid_request import ApiV1MarkReimbursementPaidRequest
 from mercury_banking.models.api_v1_receipt_response import ApiV1ReceiptResponse
 from mercury_banking.models.api_v1_receipt_status import ApiV1ReceiptStatus
 from mercury_banking.models.api_v1_receipt_upload_url_request import ApiV1ReceiptUploadUrlRequest
@@ -191,6 +192,11 @@ from mercury_banking.models.books_api_ledger_delete_blocked_reason import BooksA
 from mercury_banking.models.books_api_ledger_write_error import BooksAPILedgerWriteError
 from mercury_banking.models.books_api_ledger_write_error_code import BooksAPILedgerWriteErrorCode
 from mercury_banking.models.books_api_line_entry import BooksAPILineEntry
+from mercury_banking.models.books_api_payment_application import BooksAPIPaymentApplication
+from mercury_banking.models.books_api_payment_application_accrual_source import BooksAPIPaymentApplicationAccrualSource
+from mercury_banking.models.books_api_payment_application_adjustment import BooksAPIPaymentApplicationAdjustment
+from mercury_banking.models.books_api_payment_application_line_entry import BooksAPIPaymentApplicationLineEntry
+from mercury_banking.models.books_api_payment_applications_response import BooksAPIPaymentApplicationsResponse
 from mercury_banking.models.books_api_pending_invoice import BooksAPIPendingInvoice
 from mercury_banking.models.books_api_report import BooksAPIReport
 from mercury_banking.models.books_api_report_column import BooksAPIReportColumn
@@ -294,6 +300,9 @@ from mercury_banking.models.create_books_api_journal_entry_request import Create
 from mercury_banking.models.create_books_api_ledger import CreateBooksAPILedger
 from mercury_banking.models.create_books_api_ledgers_request import CreateBooksAPILedgersRequest
 from mercury_banking.models.create_books_api_ledgers_response import CreateBooksAPILedgersResponse
+from mercury_banking.models.create_books_api_payment_applications_request import (
+    CreateBooksAPIPaymentApplicationsRequest,
+)
 from mercury_banking.models.create_card_request import CreateCardRequest
 from mercury_banking.models.create_card_type import CreateCardType
 from mercury_banking.models.create_category_api_request import CreateCategoryApiRequest
@@ -329,6 +338,7 @@ from mercury_banking.models.get_books_api_bill_response import GetBooksAPIBillRe
 from mercury_banking.models.get_books_api_bills_response import GetBooksAPIBillsResponse
 from mercury_banking.models.get_books_api_categorization_rules_response import GetBooksAPICategorizationRulesResponse
 from mercury_banking.models.get_books_api_instances_response import GetBooksAPIInstancesResponse
+from mercury_banking.models.get_books_api_invoice_response import GetBooksAPIInvoiceResponse
 from mercury_banking.models.get_books_api_invoices_response import GetBooksAPIInvoicesResponse
 from mercury_banking.models.get_books_api_journal_entries_response import GetBooksAPIJournalEntriesResponse
 from mercury_banking.models.get_books_api_journal_entry_response import GetBooksAPIJournalEntryResponse
@@ -455,6 +465,15 @@ from mercury_banking.models.spend_limit_type import SpendLimitType
 from mercury_banking.models.standard_icon import StandardIcon
 from mercury_banking.models.swift_bank_account_type import SwiftBankAccountType
 from mercury_banking.models.swift_code_data import SwiftCodeData
+from mercury_banking.models.task import Task
+from mercury_banking.models.task_kind import TaskKind
+from mercury_banking.models.task_notification_status import TaskNotificationStatus
+from mercury_banking.models.task_related_resource import TaskRelatedResource
+from mercury_banking.models.task_related_resource_type import TaskRelatedResourceType
+from mercury_banking.models.task_resolution import TaskResolution
+from mercury_banking.models.task_resolution_method import TaskResolutionMethod
+from mercury_banking.models.task_resolution_operation import TaskResolutionOperation
+from mercury_banking.models.tasks_response import TasksResponse
 from mercury_banking.models.tax_form_type import TaxFormType
 from mercury_banking.models.transaction import Transaction
 from mercury_banking.models.transaction_accounting_status import TransactionAccountingStatus
@@ -583,6 +602,7 @@ __all__ = [
     "ApiV1CreateReimbursementRequest",
     "ApiV1CreateReimbursementResponse",
     "ApiV1DenyReimbursementRequest",
+    "ApiV1MarkReimbursementPaidRequest",
     "ApiV1ReceiptResponse",
     "ApiV1ReceiptStatus",
     "ApiV1ReceiptUploadUrlRequest",
@@ -661,6 +681,11 @@ __all__ = [
     "BooksAPILedgerWriteError",
     "BooksAPILedgerWriteErrorCode",
     "BooksAPILineEntry",
+    "BooksAPIPaymentApplication",
+    "BooksAPIPaymentApplicationAccrualSource",
+    "BooksAPIPaymentApplicationAdjustment",
+    "BooksAPIPaymentApplicationLineEntry",
+    "BooksAPIPaymentApplicationsResponse",
     "BooksAPIPendingInvoice",
     "BooksAPIReport",
     "BooksAPIReportColumn",
@@ -754,6 +779,7 @@ __all__ = [
     "CreateBooksAPILedger",
     "CreateBooksAPILedgersRequest",
     "CreateBooksAPILedgersResponse",
+    "CreateBooksAPIPaymentApplicationsRequest",
     "CreateCardRequest",
     "CreateCardType",
     "CreateCategoryApiRequest",
@@ -785,6 +811,7 @@ __all__ = [
     "GetBooksAPIBillsResponse",
     "GetBooksAPICategorizationRulesResponse",
     "GetBooksAPIInstancesResponse",
+    "GetBooksAPIInvoiceResponse",
     "GetBooksAPIInvoicesResponse",
     "GetBooksAPIJournalEntriesResponse",
     "GetBooksAPIJournalEntryResponse",
@@ -897,6 +924,15 @@ __all__ = [
     "StandardIcon",
     "SwiftBankAccountType",
     "SwiftCodeData",
+    "Task",
+    "TaskKind",
+    "TaskNotificationStatus",
+    "TaskRelatedResource",
+    "TaskRelatedResourceType",
+    "TaskResolution",
+    "TaskResolutionMethod",
+    "TaskResolutionOperation",
+    "TasksResponse",
     "TaxFormType",
     "Transaction",
     "TransactionAccountingStatus",

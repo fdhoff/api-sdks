@@ -168,7 +168,7 @@ With `http_client`, the client still sends its own headers and applies its timeo
 
 ## Behaviour
 
-* **Methods** are grouped by resource, such as `accounts()`, `transactions()`, `recipients()`, `cards()` and `invoices()`, with models in `mercury_banking::models`. All 89 operations in the API reference have a method. Every method is `async` and returns `Result<T, Error>`.
+* **Methods** are grouped by resource, such as `accounts()`, `transactions()`, `recipients()`, `cards()` and `invoices()`, with models in `mercury_banking::models`. All 90 operations in the API reference have a method. Every method is `async` and returns `Result<T, Error>`.
 * **Hosts:** every operation goes to `api.mercury.com`, except `cards().reveal`, which goes to `vault-api.mercury.com`. In the sandbox both go to `api-sandbox.mercury.com`.
 * **Pagination:** `list` methods return one page, and `iter` methods return a `Stream` of every item. Most send each page's `page.nextPage` back as `start_after`. `accounts().iter_transactions` pages by `offset`, and `treasury().iter_transactions` by its `cursor`. Streams start where your own `start_after`, `offset` or `cursor` says, page forward only, and end after yielding an error.
 * **Retries:** 429 on every method, honouring `Retry-After`, otherwise after `rate_limit_wait`. A `Retry-After` longer than `max_retry_wait` fails at once with `ErrorKind::RateLimited`, with the header in `Error::retry_after`. 5xx, timeouts and connection failures on GET, and on the four money-moving writes when their `idempotencyKey` is set, with exponential backoff. Other writes are not retried, because a repeat could act twice.

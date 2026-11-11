@@ -21,6 +21,18 @@ const createProduct: Operation = {
   security: [[{ scheme: 'bearerAuth', scopes: [] }]],
 };
 
+const deleteProduct: Operation = {
+  id: 'deleteProduct',
+  method: 'DELETE',
+  path: '/ar/products/{productId}',
+  resource: 'products',
+  name: 'delete',
+  host: 'api',
+  params: [{ wire: 'productId', name: 'productId', location: 'path' }],
+  returnsJson: true,
+  security: [[{ scheme: 'bearerAuth', scopes: [] }]],
+};
+
 const listProducts: Operation = {
   id: 'listProducts',
   method: 'GET',
@@ -40,12 +52,17 @@ const listProducts: Operation = {
   security: [[{ scheme: 'bearerAuth', scopes: [] }]],
 };
 
-export const OPERATIONS: readonly Operation[] = [createProduct, listProducts];
+export const OPERATIONS: readonly Operation[] = [createProduct, deleteProduct, listProducts];
 
 export class ProductsApi extends Resource {
   /** Create an invoicing product. */
   create(body?: ApiV1ArProductCreateRequest, options?: RequestOptions): Promise<ApiV1ArProductResponseData> {
     return this.call(createProduct, body, {}, options);
+  }
+
+  /** Delete an invoicing product. */
+  delete(productId: string, options?: RequestOptions): Promise<void> {
+    return this.call(deleteProduct, undefined, { productId }, options);
   }
 
   /** List one page of invoicing products. */

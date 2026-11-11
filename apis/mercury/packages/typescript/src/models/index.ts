@@ -549,6 +549,10 @@ export interface ApiV1DenyReimbursementRequest {
   reason: string;
 }
 
+export interface ApiV1MarkReimbursementPaidRequest {
+  note?: string | null;
+}
+
 export interface ApiV1ReceiptResponse {
   createdAt: string;
   fileName: string;
@@ -1076,6 +1080,42 @@ export interface BooksAPILineEntry {
   ledgerName: string;
   opposingLedgerIds: Array<string>;
   tags: Array<BooksTag>;
+}
+
+export interface BooksAPIPaymentApplication {
+  adjustments?: Array<BooksAPIPaymentApplicationAdjustment> | null;
+  amount: number;
+  billId?: string | null;
+  invoiceId?: string | null;
+}
+
+export interface BooksAPIPaymentApplicationAccrualSource {
+  amountAdjusted: number;
+  amountOutstanding: number;
+  amountPaid: number;
+  displayStatus: BooksAccrualSourceDisplayStatus;
+  id: string;
+  status: BooksAccrualSourceStatus;
+}
+
+export interface BooksAPIPaymentApplicationAdjustment {
+  amount: number;
+  ledgerId: string;
+}
+
+export interface BooksAPIPaymentApplicationLineEntry {
+  amount: number;
+  amountAdjusted: number;
+  amountApplied: number;
+  id: string;
+  journalEntryId: string;
+  transactionId?: string | null;
+}
+
+export interface BooksAPIPaymentApplicationsResponse {
+  bills: Array<BooksAPIPaymentApplicationAccrualSource>;
+  invoices: Array<BooksAPIPaymentApplicationAccrualSource>;
+  lineEntry: BooksAPIPaymentApplicationLineEntry;
 }
 
 export interface BooksAPIPendingInvoice {
@@ -1757,6 +1797,11 @@ export interface CreateBooksAPILedgersResponse {
   succeededCount: number;
 }
 
+export interface CreateBooksAPIPaymentApplicationsRequest {
+  adjustments?: Array<BooksAPIPaymentApplicationAdjustment> | null;
+  applications: Array<BooksAPIPaymentApplication>;
+}
+
 export interface CreateCardRequest {
   accountId?: string | null;
   cardConfiguration?: CardConfiguration | null;
@@ -1965,6 +2010,10 @@ export interface GetBooksAPICategorizationRulesResponse {
 export interface GetBooksAPIInstancesResponse {
   instances: Array<BooksAPIInstance>;
   nextPageToken?: string | null;
+}
+
+export interface GetBooksAPIInvoiceResponse {
+  invoice: BooksAPIInvoice;
 }
 
 export interface GetBooksAPIInvoicesResponse {
@@ -2768,6 +2817,119 @@ export interface SwiftCodeData {
   bankCityState: string;
   bankCountry: string;
   bankName: string;
+}
+
+export interface Task {
+  amount?: number | null;
+  category: string;
+  completedAt?: string | null;
+  createdAt: string;
+  description: string;
+  dueDate?: string | null;
+  id: string;
+  kind: TaskKind;
+  product: string;
+  relatedResource?: TaskRelatedResource | null;
+  resolution: TaskResolution;
+  status: TaskNotificationStatus;
+  title: string;
+  urgency: string;
+  webUrl: string;
+}
+
+export type TaskKind =
+  | 'approveSendMoneyRequest'
+  | 'approveBatchSendMoneyRequest'
+  | 'approveTransferMoneyRequest'
+  | 'approveWireDrawdownAuthorizationRequest'
+  | 'approveMoneyMovementLimitRequest'
+  | 'approveChangeApprovalRulesRequest'
+  | 'approveChangeApprovalPolicyRequest'
+  | 'approveUpdateOrgUserPermissionsRequest'
+  | 'approveRemoveUserRequest'
+  | 'approveInviteUserRequest'
+  | 'approveRestoreUserRequest'
+  | 'approveMfaResetRequest'
+  | 'userEmailBouncedConfirm'
+  | 'userEmailBouncedSupport'
+  | 'confirmDebitCardRollover'
+  | 'completePersonalApplicationAfterPayrollOnboarding'
+  | 'updateCompanyLegalAddress'
+  | 'approveMultiAdminSettingRequest'
+  | 'approveSeparationOfDutiesRequest'
+  | 'choiceRolloverInvitation'
+  | 'choiceRolloverChecklist'
+  | 'staleAttestation'
+  | 'pbKycRefresh'
+  | 'pbTrustResignCertificate'
+  | 'payrollSelfOnboardingRequired'
+  | 'pbInvestApplicationInvite'
+  | 'plaidAccountClassification'
+  | 'approveAchAuthorization'
+  | 'checkbookReversePositivePayPendingReview'
+  | 'replacedDepositoryAccountNumbers'
+  | 'spendPolicyActionRequired'
+  | 'userInformationActionRequired'
+  | 'billingEngineOverduePayment'
+  | 'partnerBankRolloverChecklist'
+  | 'partnerBankRolloverKycApproved'
+  | 'partnerBankRolloverKycRequested'
+  | 'partnerBankRolloverKycReviewInformation'
+  | 'partnerBankRolloverInvite'
+  | 'verifyReimbursementPayoutAccount'
+  | 'incompleteAccountMapping'
+  | 'reauthenticateRutterConnection'
+  | 'updateQuickbooksConnection'
+  | 'updateXeroConnection'
+  | 'postOnboardingExpenseOnboardOrganization'
+  | 'ebbuwAutopay'
+  | 'requestForInformation'
+  | 'mobileRedirectToWeb'
+  | 'approveUpdateOrganizationRoleRequest'
+  | 'reconnectPlaidLinkForBooks'
+  | 'reviewAgentProposal'
+  | 'verifyAutoForwardEmail'
+  | 'reviewTreasuryPortfolio'
+  | 'treasuryApprovedSetUpPortfolio'
+  | 'directDeposit'
+  | 'reviewAutocatCategorization'
+  | 'budgetOverspendReview'
+  | 'approveRiskRuleOverrideInvitation'
+  | 'approveQueuedPaymentApprovalRequest'
+  | 'approveExpenseReimbursement'
+  | 'reviewCardRequest'
+  | 'reviewSpendLimitRequest'
+  | 'reviewSpendPolicyExceptionRequest'
+  | 'reviewSpendPolicyUnlockRequest'
+  | 'reviewBudgetTransactionAssignmentRequest'
+  | 'addPasskey'
+  | 'connectGmailForReceiptMatching'
+  | 'downloadMobileApp'
+  | 'updatePayrollDirectDeposit'
+  | 'completeStateTaxWithholding'
+  | 'insufficientFundsForPayroll';
+
+export type TaskNotificationStatus = 'active' | 'completed';
+
+export interface TaskRelatedResource {
+  id: string;
+  type: TaskRelatedResourceType;
+}
+
+export type TaskRelatedResourceType = 'transaction' | 'sendMoneyApprovalRequest' | 'transferMoneyApprovalRequest';
+
+export interface TaskResolution {
+  method: TaskResolutionMethod;
+  operations: Array<TaskResolutionOperation>;
+}
+
+export type TaskResolutionMethod = 'api' | 'mercuryApp';
+
+export type TaskResolutionOperation = 'uploadTransactionAttachment' | 'updateTransaction';
+
+export interface TasksResponse {
+  page: AutoTransferRulesResponsePage;
+  tasks: Array<Task>;
 }
 
 export type TaxFormType = 'w9' | 'w8BEN' | 'w8BENE' | 'unknown';

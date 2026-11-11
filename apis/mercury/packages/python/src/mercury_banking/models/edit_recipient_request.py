@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
+from typing_extensions import Annotated
 from mercury_banking.models.address_data import AddressData
 from mercury_banking.models.check_info_raw import CheckInfoRaw
 from mercury_banking.models.domestic_wire_routing_info_raw import DomesticWireRoutingInfoRaw
@@ -26,7 +27,7 @@ class EditRecipientRequest(ApiModel):
     )
     electronic_routing_info: Optional[ElectronicRoutingInfoRaw] = Field(default=None, alias="electronicRoutingInfo")
     emails: Optional[List[StrictStr]] = None
-    name: Optional[StrictStr] = None
+    name: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=299)]] = None
     nickname: Optional[StrictStr] = None
     real_time_payment_routing_info: Optional[RealTimePaymentRoutingInfoRaw] = Field(
         default=None, alias="realTimePaymentRoutingInfo"

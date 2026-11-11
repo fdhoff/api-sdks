@@ -20,6 +20,18 @@ const CREATE_PRODUCT: Operation = Operation {
         scopes: &[],
     }]],
 };
+const DELETE_PRODUCT: Operation = Operation {
+    id: "deleteProduct",
+    method: "DELETE",
+    path: "/ar/products/{productId}",
+    query_params: &[],
+    returns_json: true,
+    paging: None,
+    security: &[&[Scheme {
+        name: "bearerAuth",
+        scopes: &[],
+    }]],
+};
 const LIST_PRODUCTS: Operation = Operation {
     id: "listProducts",
     method: "GET",
@@ -74,6 +86,18 @@ impl ProductsApi {
         self.transport
             .call(Request::new(&CREATE_PRODUCT).host("api").json(&body.into()))
             .await
+    }
+
+    /// Delete an invoicing product.
+    pub async fn delete(&self, product_id: &str) -> Result<(), Error> {
+        self.transport
+            .call::<serde_json::Value>(
+                Request::new(&DELETE_PRODUCT)
+                    .host("api")
+                    .path("productId", &product_id),
+            )
+            .await
+            .map(drop)
     }
 
     /// List one page of invoicing products.

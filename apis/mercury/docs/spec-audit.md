@@ -1,6 +1,6 @@
 # Spec audit
 
-Audit of the pinned upstream spec (`apis/mercury/spec/upstream/lock.json`, `info.version` 1.0.0): OpenAPI 3.0.0, 136 operations, 440 schemas, one server plus a second on one operation. It was written from the public spec, the public API reference and the Prism mock only; nothing here has been checked against the live API.
+Audit of the pinned upstream spec (`apis/mercury/spec/upstream/lock.json`, `info.version` 1.0.0): OpenAPI 3.0.0, 142 operations, 460 schemas, one server plus a second on one operation. It was written from the public spec, the public API reference and the Prism mock only; nothing here has been checked against the live API.
 
 Mercury is a financial technology company, not a bank. This project is not affiliated with, endorsed by or sponsored by Mercury Technologies, Inc.
 
@@ -23,9 +23,9 @@ OAuth2 lives in a separate registry file on `oauth2.mercury.com`. Mercury approv
 
 | ID | Gap | Correction |
 | --- | --- | --- |
-| M1 | 43 operations carry `x-internal`: Books, reimbursements and the MCP feedback endpoint. None has a page in the API reference. | Removed. The filter matches the key's presence, since its value is the string `true`. |
-| M2 | Four operations without `x-internal` have no page in the API reference: `getAccount`, `getInvest`, `getInvestActivity` and `submitOnboardingData`. | Removed, leaving 89 operations. |
-| M3 | M1 and M2 leave 32 paths with no operation, whose path parameters then have nothing to declare them. | Removed. |
+| M1 | 48 operations carry `x-internal`: Books, reimbursements, tasks and the MCP feedback endpoint. None has a page in the API reference. | Removed. The filter matches the key's presence, since its value is the string `true`. |
+| M2 | Four operations without `x-internal` have no page in the API reference: `getAccount`, `getInvest`, `getInvestActivity` and `submitOnboardingData`. | Removed, leaving 90 operations. |
+| M3 | M1 and M2 leave 37 paths with no operation, whose path parameters then have nothing to declare them. | Removed. |
 | M4 | Every operation can answer 401 for a missing, invalid or revoked token, and 429 when rate limited, but none declares either. `listCredit`, `getOrganization` and `getSafeRequests` declare no error response at all. | Shared `Unauthorized` and `RateLimited` responses on every operation. Like Mercury's own error responses, they declare no body, so the typed error keeps the status and the raw body. |
 | M5 | The bearer scheme's description embeds a sample token string. | Replaced with our own description, so no token-shaped string reaches the build. |
 | M6 | `uploadRecipientAttachment` and `uploadTransactionAttachment` describe a reply holding the attachment's ID and download URL, but declare no body. | An `UploadedAttachment` JSON body with optional `attachmentId` and `downloadUrl` strings, so the reply is returned rather than dropped. |

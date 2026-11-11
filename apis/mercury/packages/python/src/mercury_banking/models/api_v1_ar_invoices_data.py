@@ -28,11 +28,17 @@ class ApiV1ArInvoicesData(ApiModel):
     destination_account_id: UUID = Field(alias="destinationAccountId")
     due_date: date = Field(alias="dueDate")
     id: UUID
-    internal_note: Optional[StrictStr] = Field(default=None, alias="internalNote")
+    internal_note: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=5000)]] = Field(
+        default=None, alias="internalNote"
+    )
     invoice_date: date = Field(alias="invoiceDate")
-    invoice_number: StrictStr = Field(alias="invoiceNumber")
-    payer_memo: Optional[StrictStr] = Field(default=None, alias="payerMemo")
-    po_number: Optional[StrictStr] = Field(default=None, alias="poNumber")
+    invoice_number: Annotated[str, Field(min_length=1, strict=True, max_length=299)] = Field(alias="invoiceNumber")
+    payer_memo: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=5000)]] = Field(
+        default=None, alias="payerMemo"
+    )
+    po_number: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=299)]] = Field(
+        default=None, alias="poNumber"
+    )
     slug: StrictStr
     status: PaymentLinkStatus
     updated_at: StrictStr = Field(alias="updatedAt")

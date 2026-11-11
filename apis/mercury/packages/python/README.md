@@ -139,7 +139,7 @@ The signature is an HMAC-SHA256 of `<timestamp>.<raw body>`, compared in constan
 
 ## Behaviour
 
-* **Methods** are grouped by resource, such as `client.accounts`, `client.transactions`, `client.recipients`, `client.cards` and `client.invoices`, with models in `mercury_banking.models`. All 89 operations in the API reference have a method.
+* **Methods** are grouped by resource, such as `client.accounts`, `client.transactions`, `client.recipients`, `client.cards` and `client.invoices`, with models in `mercury_banking.models`. All 90 operations in the API reference have a method.
 * **Hosts:** every operation goes to `api.mercury.com`, except `cards.reveal`, which goes to `vault-api.mercury.com`. In the sandbox both go to `api-sandbox.mercury.com`.
 * **Pagination:** `list` methods return one page and `iter` methods walk all of them. Most send each page's `page.nextPage` back as `start_after`. `accounts.iter_transactions` pages by `offset`, and `treasury.iter_transactions` by its `cursor`. Iterators start where your own `start_after`, `offset` or `cursor` says, and page forward only.
 * **Timeouts:** `timeout` is the time allowed for each attempt, including reading the whole response. The async client enforces it exactly. The sync client checks it as data arrives, so a stalled read can overrun by up to one timeout.

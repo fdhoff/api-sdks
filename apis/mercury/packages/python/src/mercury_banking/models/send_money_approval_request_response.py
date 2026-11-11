@@ -22,7 +22,7 @@ class SendMoneyApprovalRequestResponse(ApiModel):
     account_id: UUID = Field(alias="accountId")
     amount: Annotated[float, Field(ge=0.01)]
     created_at: StrictStr = Field(alias="createdAt")
-    memo: Optional[StrictStr] = None
+    memo: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=299)]] = None
     number_of_approvers_required: Optional[
         Annotated[int, Field(le=9223372036854776000, strict=True, ge=-9223372036854776000)]
     ] = Field(default=None, alias="numberOfApproversRequired")
