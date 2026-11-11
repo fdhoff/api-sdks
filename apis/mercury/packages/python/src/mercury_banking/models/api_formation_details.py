@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
+from typing_extensions import Annotated
 from mercury_banking.models.main_questionnaire_company_structure import MainQuestionnaireCompanyStructure
 from mercury_banking.models.main_questionnaire_entity_formation_document_type import (
     MainQuestionnaireEntityFormationDocumentType,
@@ -22,7 +23,9 @@ class APIFormationDetails(ApiModel):
     e_in_document_file_blob: Optional[StrictStr] = Field(default=None, alias="eINDocumentFileBlob")
     ein_document_file_blob: Optional[StrictStr] = Field(default=None, alias="einDocumentFileBlob")
     federal_ein: Optional[StrictStr] = Field(default=None, alias="federalEin")
-    foreign_business_number: Optional[StrictStr] = Field(default=None, alias="foreignBusinessNumber")
+    foreign_business_number: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=299)]] = Field(
+        default=None, alias="foreignBusinessNumber"
+    )
     formation_document_file_blob: Optional[StrictStr] = Field(default=None, alias="formationDocumentFileBlob")
     formation_document_type: Optional[MainQuestionnaireEntityFormationDocumentType] = Field(
         default=None, alias="formationDocumentType"

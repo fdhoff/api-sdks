@@ -22,4 +22,4 @@ class CreateBooksAPIInvoiceRequest(ApiModel):
     effective_date: date = Field(alias="effectiveDate")
     lines: Annotated[List[CreateBooksAPIInvoiceLine], Field(min_length=1)]
     notes: Optional[StrictStr] = None
-    reference_number: StrictStr = Field(alias="referenceNumber")
+    reference_number: Annotated[str, Field(min_length=1, strict=True, max_length=299)] = Field(alias="referenceNumber")

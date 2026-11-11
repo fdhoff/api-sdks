@@ -8,6 +8,7 @@ from __future__ import annotations
 from datetime import date
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
+from typing_extensions import Annotated
 from uuid import UUID
 from mercury_banking.models.update_books_api_bill_line_changes import UpdateBooksAPIBillLineChanges
 from mercury_banking._runtime import ApiModel
@@ -20,5 +21,7 @@ class UpdateBooksAPIBillRequest(ApiModel):
     effective_date: Optional[date] = Field(default=None, alias="effectiveDate")
     line_changes: Optional[UpdateBooksAPIBillLineChanges] = Field(default=None, alias="lineChanges")
     notes: Optional[StrictStr] = None
-    reference_number: Optional[StrictStr] = Field(default=None, alias="referenceNumber")
+    reference_number: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=299)]] = Field(
+        default=None, alias="referenceNumber"
+    )
     vendor: Optional[UUID] = None

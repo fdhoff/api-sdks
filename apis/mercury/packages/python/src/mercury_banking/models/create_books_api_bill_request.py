@@ -21,5 +21,7 @@ class CreateBooksAPIBillRequest(ApiModel):
     effective_date: date = Field(alias="effectiveDate")
     lines: Annotated[List[CreateBooksAPIBillLine], Field(min_length=1)]
     notes: Optional[StrictStr] = None
-    reference_number: Optional[StrictStr] = Field(default=None, alias="referenceNumber")
+    reference_number: Optional[Annotated[str, Field(strict=True, max_length=299)]] = Field(
+        default=None, alias="referenceNumber"
+    )
     vendor: CreateBooksAPIBillVendor

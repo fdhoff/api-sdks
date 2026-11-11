@@ -13,11 +13,15 @@ public sealed class ProductsResource
         "createProduct", "POST", "/ar/products", "Products", "CreateAsync", null,
         [new("ApiV1ArProductCreateRequest", "body", ParamLocation.Body),], ReturnsJson: true, Security: [[new("bearerAuth", []),],], Host: "api");
 
+    internal static readonly Operation DeleteProductOperation = new(
+        "deleteProduct", "DELETE", "/ar/products/{productId}", "Products", "DeleteAsync", null,
+        [new("productId", "productId", ParamLocation.Path),], ReturnsJson: true, Security: [[new("bearerAuth", []),],], Host: "api");
+
     internal static readonly Operation ListProductsOperation = new(
         "listProducts", "GET", "/ar/products", "Products", "ListAsync", "ListAllAsync",
         [new("limit", "limit", ParamLocation.Query), new("start_after", "startAfter", ParamLocation.Query), new("end_before", "endBefore", ParamLocation.Query), new("order", "order", ParamLocation.Query),], ReturnsJson: true, Paging: new CursorPaging("products", "page.nextPage", "start_after"), Security: [[new("bearerAuth", []),],], Host: "api");
 
-    internal static readonly Operation[] Operations = [CreateProductOperation, ListProductsOperation,];
+    internal static readonly Operation[] Operations = [CreateProductOperation, DeleteProductOperation, ListProductsOperation,];
 
     private readonly Transport transport;
 
@@ -26,6 +30,10 @@ public sealed class ProductsResource
     /// <summary>Create an invoicing product.</summary>
     public Task<ApiV1ArProductResponseData> CreateAsync(ApiV1ArProductCreateRequest? body = null, CancellationToken cancellationToken = default) =>
         transport.CallAsync<ApiV1ArProductResponseData>(CreateProductOperation, [body,], cancellationToken);
+
+    /// <summary>Delete an invoicing product.</summary>
+    public Task DeleteAsync(Guid productId, CancellationToken cancellationToken = default) =>
+        transport.SendAsync(DeleteProductOperation, [productId,], cancellationToken);
 
     /// <summary>List one page of invoicing products.</summary>
     public Task<ApiV1ArProductPaginatedResponseData> ListAsync(long? limit = null, Guid? startAfter = null, Guid? endBefore = null, string? order = null, CancellationToken cancellationToken = default) =>

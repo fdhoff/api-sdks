@@ -8,6 +8,7 @@ from __future__ import annotations
 from datetime import date
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
+from typing_extensions import Annotated
 from uuid import UUID
 from mercury_banking.models.api_send_email_option import ApiSendEmailOption
 from mercury_banking.models.api_v1_ar_line_item_data import ApiV1ArLineItemData
@@ -24,12 +25,20 @@ class ApiV1ArInvoiceCreateRequest(ApiModel):
     customer_id: UUID = Field(alias="customerId")
     destination_account_id: UUID = Field(alias="destinationAccountId")
     due_date: date = Field(alias="dueDate")
-    internal_note: Optional[StrictStr] = Field(default=None, alias="internalNote")
+    internal_note: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=5000)]] = Field(
+        default=None, alias="internalNote"
+    )
     invoice_date: date = Field(alias="invoiceDate")
-    invoice_number: Optional[StrictStr] = Field(default=None, alias="invoiceNumber")
+    invoice_number: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=299)]] = Field(
+        default=None, alias="invoiceNumber"
+    )
     line_items: List[ApiV1ArLineItemData] = Field(alias="lineItems")
-    payer_memo: Optional[StrictStr] = Field(default=None, alias="payerMemo")
-    po_number: Optional[StrictStr] = Field(default=None, alias="poNumber")
+    payer_memo: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=5000)]] = Field(
+        default=None, alias="payerMemo"
+    )
+    po_number: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=299)]] = Field(
+        default=None, alias="poNumber"
+    )
     send_email_option: Optional[ApiSendEmailOption] = Field(default=None, alias="sendEmailOption")
     service_period_end_date: Optional[date] = Field(default=None, alias="servicePeriodEndDate")
     service_period_start_date: Optional[date] = Field(default=None, alias="servicePeriodStartDate")

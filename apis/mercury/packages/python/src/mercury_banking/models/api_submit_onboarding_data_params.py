@@ -28,5 +28,5 @@ class APISubmitOnboardingDataParams(ApiModel):
     business_physical_address: Optional[APIBusinessAddress] = Field(default=None, alias="businessPhysicalAddress")
     formation_details: Optional[APIFormationDetails] = Field(default=None, alias="formationDetails")
     invite_email: Optional[StrictStr] = Field(default=None, alias="inviteEmail")
-    partner: StrictStr
+    partner: Annotated[str, Field(min_length=1, strict=True, max_length=299)]
     webhook_url: Optional[StrictStr] = Field(default=None, alias="webhookURL")

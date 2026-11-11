@@ -44,7 +44,7 @@ public sealed class ClientTests
                 Assert.NotNull(resource.PropertyType.GetMethod(operation.Iterator));
             }
         }
-        Assert.Equal(89, ClientResources.Operations.Length);
+        Assert.Equal(90, ClientResources.Operations.Length);
         Assert.Equal(27, ClientResources.Operations.Count(operation => operation.Iterator is not null));
         Assert.Equal(
             ["createInternalTransfer", "createTransaction", "requestSendMoney", "requestTransferMoney"],

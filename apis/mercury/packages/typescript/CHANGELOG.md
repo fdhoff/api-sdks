@@ -4,6 +4,7 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 ## Unreleased
 
+* `client.products.delete`, to delete an invoicing product.
 * `client.products.list`, `client.products.iter` and `client.products.create`, for the invoicing product catalog Mercury added to its API reference.
 * `duplicateCheckOverride` on `SendMoneyAPIRequest` and `PostTransactionAPIRequest`, to send a payment that repeats one from the last 24 hours, and the `paidOutsideMercury` reimbursement payment status.
 * Releases are published to npm's `latest` tag instead of `alpha`, so `npm install mercury-banking` gets the newest 0.x release.

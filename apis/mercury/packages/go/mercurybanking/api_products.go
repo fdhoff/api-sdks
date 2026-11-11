@@ -21,6 +21,18 @@ var (
 		Host:        "api",
 		Security:    []runtime.Requirement{{{Name: "bearerAuth", Scopes: []string{}}}},
 	})
+	opDeleteProduct = runtime.Register(runtime.Operation{
+		ID:          "deleteProduct",
+		Method:      "DELETE",
+		Path:        "/ar/products/{productId}",
+		Resource:    "Products",
+		Name:        "Delete",
+		ReturnsJSON: true,
+		PathParams:  []string{"productId"},
+		QueryParams: []string{},
+		Host:        "api",
+		Security:    []runtime.Requirement{{{Name: "bearerAuth", Scopes: []string{}}}},
+	})
 	opListProducts = runtime.Register(runtime.Operation{
 		ID:          "listProducts",
 		Method:      "GET",
@@ -45,6 +57,12 @@ type ProductsResource struct {
 // Create creates an invoicing product.
 func (r *ProductsResource) Create(ctx context.Context, body *ApiV1ArProductCreateRequest) (*ApiV1ArProductResponseData, error) {
 	return runtime.Call[*ApiV1ArProductResponseData](ctx, r.transport, opCreateProduct, runtime.Input{Body: body})
+}
+
+// Delete deletes an invoicing product.
+func (r *ProductsResource) Delete(ctx context.Context, productId string) error {
+	_, err := runtime.Call[any](ctx, r.transport, opDeleteProduct, runtime.Input{Path: []any{productId}})
+	return err
 }
 
 // ProductsListParams holds the query parameters of [ProductsResource.List]. Set only what you need.

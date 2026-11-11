@@ -9,6 +9,7 @@ from uuid import UUID
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from mercury_banking import (
     AsyncMercuryClient,
@@ -24,6 +25,7 @@ from mercury_banking import (
     UnprocessableError,
 )
 from mercury_banking._resources import OPERATIONS
+from mercury_banking.models import ApiV1ArProductCreateRequest
 
 TOKEN = "secret-token:synthetic-unit-token"
 HOSTS = {"api": "http://api.mock.invalid/api/v1", "vault": "http://vault.mock.invalid/api/v1"}
@@ -44,7 +46,7 @@ def async_client_for(handler: Handler, **options: Any) -> AsyncMercuryClient:
 
 def test_every_operation_has_a_public_method() -> None:
     client = client_for(lambda request: httpx.Response(200))
-    assert len(OPERATIONS) == 89
+    assert len(OPERATIONS) == 90
     for operation in OPERATIONS.values():
         resource = getattr(client, operation.resource)
         assert callable(getattr(resource, operation.name))
@@ -236,3 +238,23 @@ def test_async_iterators_follow_the_cursor() -> None:
             return [user.user_id async for user in client.users.iter(limit=1)]
 
     assert asyncio.run(walk()) == ["u1", "u2"]
+
+
+def test_a_product_name_outside_the_declared_length_is_refused_but_read_back() -> None:
+    for name in ["", "n" * 300]:
+        with pytest.raises(ValidationError):
+            ApiV1ArProductCreateRequest(name=name, unitPrice=1.0)
+    product = UUID("00000000-0000-4000-8000-9d0000000001")
+    methods: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        methods.append(f"{request.method} {request.url.path}")
+        if request.method == "DELETE":
+            return httpx.Response(200, json={})
+        return httpx.Response(200, json={"id": str(product), "name": "n" * 300, "unitPrice": 1.0, "updatedAt": "x"})
+
+    client = client_for(handler)
+    created = client.products.create(ApiV1ArProductCreateRequest(name="n" * 299, unitPrice=1.0))
+    assert created.name == "n" * 300
+    assert client.products.delete(product) is None
+    assert methods == ["POST /api/v1/ar/products", f"DELETE /api/v1/ar/products/{product}"]

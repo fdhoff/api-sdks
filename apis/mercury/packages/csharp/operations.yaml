@@ -64,6 +64,7 @@ getOrganization: { resource: Organization, method: GetAsync, summary: Get your o
 
 listProducts: { resource: Products, method: ListAsync, iterator: ListAllAsync, items: ApiV1ArProductResponseData, paging: { items: products }, summary: List one page of invoicing products. }
 createProduct: { resource: Products, method: CreateAsync, summary: Create an invoicing product. }
+deleteProduct: { resource: Products, method: DeleteAsync, summary: Delete an invoicing product. }
 
 listReceipts: { resource: Receipts, method: ListAsync, iterator: ListAllAsync, items: ApiV1ReceiptResponse, paging: { items: receipts }, summary: List one page of receipts. }
 getReceipt: { resource: Receipts, method: GetAsync, summary: Get one receipt. }

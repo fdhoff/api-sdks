@@ -4,6 +4,7 @@ This crate follows semantic versioning and stays on 0.x until outside users conf
 
 ## Unreleased
 
+* `client.products().delete`, to delete an invoicing product.
 * `client.products().list`, `client.products().iter` and `client.products().create`, for the invoicing product catalog Mercury added to its API reference.
 * `duplicate_check_override` on `SendMoneyApiRequest` and `PostTransactionApiRequest`, to send a payment that repeats one from the last 24 hours, and `ReimbursementPaymentStatus::PaidOutsideMercury`.
 * An empty, `.` or `..` path value is an `ErrorKind::Api` error and nothing is sent, instead of a request to another endpoint, such as the list endpoint for `..`.

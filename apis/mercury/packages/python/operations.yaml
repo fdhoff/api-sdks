@@ -63,6 +63,7 @@ getOrganization: { resource: organization, method: get, summary: Get your organi
 
 listProducts: { resource: products, method: list, iterator: iter, items: ApiV1ArProductResponseData, paging: { items: products }, summary: List one page of invoicing products. }
 createProduct: { resource: products, method: create, summary: Create an invoicing product. }
+deleteProduct: { resource: products, method: delete, summary: Delete an invoicing product. }
 
 listReceipts: { resource: receipts, method: list, iterator: iter, items: ApiV1ReceiptResponse, paging: { items: receipts }, summary: List one page of receipts. }
 getReceipt: { resource: receipts, method: get, summary: Get one receipt. }
