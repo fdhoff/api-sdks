@@ -125,6 +125,7 @@ DR12: { resource: Invoices, method: ListDocumentRequestLines, iterator: IterDocu
 DR73: { resource: Invoices, method: DownloadDocuments, summary: DownloadDocuments downloads accounting documents (DR73). }
 DR74: { resource: Invoices, method: UploadDocuments, summary: UploadDocuments uploads accounting documents (DR74). }
 DR75: { resource: Invoices, method: ConfirmIssuance, summary: ConfirmIssuance confirms that accounting documents were issued (DR75). }
+DR76: { resource: Invoices, method: GenerateDocuments, summary: GenerateDocuments issues accounting documents and generates their files (DR76). }
 
 TL02: { resource: Transactions, method: List, iterator: Iter, items: TL02Response200Data, paging: { items: data }, summary: List lists one page of transaction lines (TL02). }
 TL03: { resource: Transactions, method: Export, summary: Export starts an export of transaction lines to JSON files (TL03). }

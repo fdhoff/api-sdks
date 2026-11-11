@@ -74,6 +74,18 @@ var (
 		QueryDefaults: []string{"shop_id"},
 		Security:      []runtime.Requirement{{{Name: "Shop-API-Key", Scopes: []string{"ROLE_SHOP_ADMIN", "ROLE_PARTNER_CUSTOMER_ACCOUNTING_DOCUMENT_WRITE"}}}},
 	})
+	opDR76 = runtime.Register(runtime.Operation{
+		ID:            "DR76",
+		Method:        "POST",
+		Path:          "/api/document-request/documents/generate",
+		Resource:      "Invoices",
+		Name:          "GenerateDocuments",
+		ReturnsJSON:   true,
+		PathParams:    []string{},
+		QueryParams:   []string{"shop_id"},
+		QueryDefaults: []string{"shop_id"},
+		Security:      []runtime.Requirement{{{Name: "Shop-API-Key", Scopes: []string{"ROLE_SHOP_ADMIN", "ROLE_PARTNER_CUSTOMER_ACCOUNTING_DOCUMENT_WRITE"}}}},
+	})
 	opIV01 = runtime.Register(runtime.Operation{
 		ID:            "IV01",
 		Method:        "GET",
@@ -215,6 +227,17 @@ type InvoicesConfirmIssuanceParams struct {
 // ConfirmIssuance confirms that accounting documents were issued (DR75).
 func (r *InvoicesResource) ConfirmIssuance(ctx context.Context, body *DR75Request, params *InvoicesConfirmIssuanceParams) (*DR75Response200, error) {
 	return runtime.Call[*DR75Response200](ctx, r.transport, opDR75, runtime.Input{Body: body, Params: params})
+}
+
+// InvoicesGenerateDocumentsParams holds the query parameters of [InvoicesResource.GenerateDocuments]. Set only what you need.
+type InvoicesGenerateDocumentsParams struct {
+	// ShopID left nil takes the client's default, if it has one.
+	ShopID *int64 `query:"shop_id"`
+}
+
+// GenerateDocuments issues accounting documents and generates their files (DR76).
+func (r *InvoicesResource) GenerateDocuments(ctx context.Context, body *DR76Request, params *InvoicesGenerateDocumentsParams) (*DR76Response200, error) {
+	return runtime.Call[*DR76Response200](ctx, r.transport, opDR76, runtime.Input{Body: body, Params: params})
 }
 
 // InvoicesListParams holds the query parameters of [InvoicesResource.List]. Set only what you need.

@@ -54,7 +54,7 @@ def recording(*responses: httpx.Response) -> tuple[Handler, list[httpx.Request]]
 
 def test_every_operation_has_a_public_method_that_names_its_code() -> None:
     client = client_for(lambda request: httpx.Response(200))
-    assert len(OPERATIONS) == 116
+    assert len(OPERATIONS) == 117
     for operation in OPERATIONS.values():
         method = getattr(getattr(client, operation.resource), operation.name)
         assert f"({operation.id})" in (method.__doc__ or ""), operation.id

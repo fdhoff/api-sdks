@@ -32,6 +32,7 @@ DR12: { resource: accounting, method: listDocumentRequestLines, iterator: iterDo
 DR73: { resource: accounting, method: downloadDocuments, summary: Download accounting documents (DR73). }
 DR74: { resource: accounting, method: uploadDocuments, summary: Upload accounting documents (DR74). }
 DR75: { resource: accounting, method: confirmIssuance, summary: Confirm that accounting documents were issued (DR75). }
+DR76: { resource: accounting, method: generateDocuments, summary: Issue accounting documents and generate their files (DR76). }
 IV01: { resource: accounting, method: listInvoices, iterator: iterInvoices, items: IV01Response200Invoices, paging: { style: offset, items: invoices, total: total_count }, summary: List one page of accounting documents (IV01). }
 IV02: { resource: accounting, method: downloadInvoice, summary: Download an accounting document (IV02). }
 SBC11: { resource: accounting, method: listBillingCycles, iterator: iterBillingCycles, items: SBC11Response200Data, paging: { items: data }, summary: List one page of seller billing cycles (SBC11). }

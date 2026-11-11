@@ -40,7 +40,7 @@ public sealed class ClientTests
                 Assert.NotNull(resource.PropertyType.GetMethod(operation.Iterator));
             }
         }
-        Assert.Equal(116, ClientResources.Operations.Length);
+        Assert.Equal(117, ClientResources.Operations.Length);
         Assert.Equal(21, ClientResources.Operations.Count(operation => operation.Iterator is not null));
         Assert.Equal(
             ["OF02", "OF53", "OR14", "P42", "STO02", "TL04"],

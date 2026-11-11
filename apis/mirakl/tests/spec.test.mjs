@@ -41,10 +41,10 @@ test('the cached spec matches its lock and is not tracked', async () => {
   assert.equal(execFileSync('git', ['ls-files', paths.spec], { encoding: 'utf8' }), '');
 });
 
-test('the build stays OpenAPI 3.1 and keeps 116 operations', () => {
+test('the build stays OpenAPI 3.1 and keeps 117 operations', () => {
   assert.match(built.openapi, /^3\.1\./);
-  assert.equal(operationsOf(upstream).length, 130);
-  assert.equal(operations.length, 116);
+  assert.equal(operationsOf(upstream).length, 131);
+  assert.equal(operations.length, 117);
   assert.equal(byId.size, operations.length);
   const kept = new Set(ids(operations));
   assert.deepEqual([...DEPRECATED, ...DYNAMIC].filter((id) => kept.has(id)), []);
@@ -109,7 +109,7 @@ test('every iterator pages the way its response says', () => {
 test('shop_id is a client-level default on every operation', () => {
   const spec = applyQueryDefaults(structuredClone(built), sdk.query_defaults);
   const shopIds = operationsOf(spec).map((operation) => (operation.parameters ?? []).find((parameter) => parameter.name === 'shop_id'));
-  assert.equal(shopIds.length, 116);
+  assert.equal(shopIds.length, 117);
   assert.ok(shopIds.every((parameter) => parameter?.in === 'query' && parameter['x-sdk-query-default'] === true && parameter.required === false));
 });
 

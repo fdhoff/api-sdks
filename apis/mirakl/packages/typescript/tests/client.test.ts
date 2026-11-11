@@ -44,7 +44,7 @@ function clientFor(handler: Handler, options: Partial<ClientOptions> = {}) {
 
 test('every operation has a public method', () => {
   const { client } = clientFor(() => json({}));
-  assert.equal(OPERATIONS.size, 116);
+  assert.equal(OPERATIONS.size, 117);
   for (const operation of OPERATIONS.values()) {
     const resource = (client as unknown as Record<string, Record<string, unknown>>)[operation.resource];
     assert.equal(typeof resource?.[operation.name], 'function', operation.id);

@@ -85,7 +85,7 @@ test('the conformance driver can call every operation, iterator and wait', async
     ...(names.iterator ? [`${id} true`] : []),
     ...(names.wait ? [`${id} wait`] : []),
   ]);
-  assert.equal(Object.keys(operations).length, 116);
-  assert.equal(expected.length, 116 + Object.keys(sdk.iterators).length + Object.keys(sdk.jobs).length);
+  assert.equal(Object.keys(operations).length, 117);
+  assert.equal(expected.length, 117 + Object.keys(sdk.iterators).length + Object.keys(sdk.jobs).length);
   assert.deepEqual(arms.sort(), expected.sort());
 });

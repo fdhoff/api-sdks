@@ -16,7 +16,7 @@ Mirakl runs marketplaces for operators, such as Best Buy. Each operator has its 
 
 Mirakl's own SDKs are for PHP and Java, for its customers. There is none for Rust. This crate is generated from Mirakl's published OpenAPI spec, as are its siblings in other languages in [the same repository](https://github.com/fdhoff/api-sdks). Every language passes one shared conformance suite, so retries, paging, jobs, errors and redaction behave the same in each. It adds:
 
-* typed models and async methods for all 116 current operations;
+* typed models and async methods for all 117 current operations;
 * streams that walk every page;
 * wait methods that poll an import or export until it ends;
 * `download_url` for export files, which sends your key only to your operator's instance;

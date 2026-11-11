@@ -95,6 +95,7 @@ DR12: { resource: document_requests, method: list_lines, iterator: iter_lines, i
 DR73: { resource: document_requests, method: download_documents, summary: Download accounting documents (DR73). }
 DR74: { resource: document_requests, method: upload_documents, summary: Upload accounting documents (DR74). }
 DR75: { resource: document_requests, method: confirm_issuance, summary: Confirm that accounting documents were issued (DR75). }
+DR76: { resource: document_requests, method: generate_documents, summary: Issue accounting documents and generate their files (DR76). }
 
 IV01: { resource: invoices, method: list, iterator: iter, items: Iv01Response200Invoices, paging: { style: offset, items: invoices, total: total_count }, summary: List one page of accounting documents (IV01). }
 IV02: { resource: invoices, method: download, summary: Download an accounting document (IV02). }
