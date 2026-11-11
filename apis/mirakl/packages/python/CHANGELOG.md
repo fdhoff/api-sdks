@@ -6,7 +6,8 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 The first alpha.
 
-* Typed sync and async clients for the 116 current operations of the seller API, generated from the public spec, with each method's docstring naming its Mirakl API code.
+* Typed sync and async clients for the 117 current operations of the seller API, generated from the public spec, with each method's docstring naming its Mirakl API code.
+* `accounting.generate_documents` (DR76), added upstream on 2026-11-11, issues accounting documents and generates their files.
 * A base URL you supply for your operator's instance, with no default, and your shop API key as the whole `Authorization` header, redacted from errors and logs. A custom `credentials` provider can replace the key.
 * `shop_id` as a client default, which each call can override.
 * Iterators on the 21 paged operations, by offset or by page token.

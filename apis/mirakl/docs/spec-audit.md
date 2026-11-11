@@ -1,6 +1,6 @@
 # Spec audit
 
-Audit of the pinned upstream spec (`apis/mirakl/spec/upstream/lock.json`, retrieved 2026-11-09): OpenAPI 3.1.0, 130 operations, one placeholder server, an empty `info.version`. It covers the seller (shop) API of Mirakl's marketplace platform only. It was written from the public spec, the public API documentation and the Prism mock only; nothing here has been checked against the live API.
+Audit of the pinned upstream spec (`apis/mirakl/spec/upstream/lock.json`, retrieved 2026-11-11): OpenAPI 3.1.0, 131 operations, one placeholder server, an empty `info.version`. It covers the seller (shop) API of Mirakl's marketplace platform only. It was written from the public spec, the public API documentation and the Prism mock only; nothing here has been checked against the live API.
 
 This project is not affiliated with, endorsed by or sponsored by Mirakl.
 
@@ -21,7 +21,7 @@ The build stays 3.1; there is no down-conversion step. Spectral lints the 3.1 bu
 | ID | Gap | Correction |
 | --- | --- | --- |
 | M1 | 11 operations are deprecated. | Removed. Their replacements are below. |
-| M2 | OF54, OR15 and TL05 have placeholder `/dynamic-url/...` paths for the export URLs that OF53, OR14 and TL04 return. | Removed, leaving 116 operations. Users fetch those URLs through the runtimes' URL download, which sends the key only to the base URL's origin. |
+| M2 | OF54, OR15 and TL05 have placeholder `/dynamic-url/...` paths for the export URLs that OF53, OR14 and TL04 return. | Removed, leaving 117 operations. Users fetch those URLs through the runtimes' URL download, which sends the key only to the base URL's origin. |
 | M3 | M1 and M2 leave paths with no operation. | Removed. |
 | M4 | Only OR04, OR07 and OR32 declare an error response (400). The docs list 400, 401, 403, 404, 405, 406, 410, 415, 429 and 500 for every call and define no error body. | Shared body-less `BadRequest`, `Unauthorized`, `Forbidden`, `NotFound`, `RateLimited` and `ServerError` responses as 400, 401, 403, 404, 429 and 5XX on every operation; the three that declare 400 keep theirs. `RateLimited` declares `Retry-After` in seconds, as the docs describe. The typed error keeps the status and raw body; other statuses are `api` errors. |
 | M5 | No operation declares its paging parameters. | Shared parameters, added where the docs give an operation a Pagination section; see Pagination. |

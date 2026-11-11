@@ -190,6 +190,18 @@ pub async fn dispatch(client: &Client, case: &Case) -> Result<Value, Error> {
                     .await,
             )
         }
+        ("DR76", false) => {
+            let body: Option<models::Dr76Request> = body(case);
+            let params = DocumentRequestsGenerateDocumentsParams {
+                shop_id: param(&case.params, "shop_id"),
+            };
+            output(
+                client
+                    .document_requests()
+                    .generate_documents(body.as_ref(), &params)
+                    .await,
+            )
+        }
         ("IV01", false) => {
             let params = InvoicesListParams {
                 currency: param(&case.params, "currency"),

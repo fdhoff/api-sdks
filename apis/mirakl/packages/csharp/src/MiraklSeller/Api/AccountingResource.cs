@@ -29,6 +29,10 @@ public sealed class AccountingResource
         "DR75", "POST", "/api/document-request/documents/confirm-issuance", "Accounting", "ConfirmIssuanceAsync", null,
         [new("shop_id", "shopId", ParamLocation.Query, Defaulted: true), new("DR75Request", "body", ParamLocation.Body),], ReturnsJson: true, Security: [[new("Shop-API-Key", ["ROLE_SHOP_ADMIN", "ROLE_PARTNER_CUSTOMER_ACCOUNTING_DOCUMENT_WRITE",]),],]);
 
+    internal static readonly Operation DR76Operation = new(
+        "DR76", "POST", "/api/document-request/documents/generate", "Accounting", "GenerateDocumentsAsync", null,
+        [new("shop_id", "shopId", ParamLocation.Query, Defaulted: true), new("DR76Request", "body", ParamLocation.Body),], ReturnsJson: true, Security: [[new("Shop-API-Key", ["ROLE_SHOP_ADMIN", "ROLE_PARTNER_CUSTOMER_ACCOUNTING_DOCUMENT_WRITE",]),],]);
+
     internal static readonly Operation IV01Operation = new(
         "IV01", "GET", "/api/invoices", "Accounting", "ListInvoicesAsync", "ListAllInvoicesAsync",
         [new("currency", "currency", ParamLocation.Query), new("end_date", "endDate", ParamLocation.Query), new("invoice_id", "invoiceId", ParamLocation.Query), new("issuing_user_types", "issuingUserTypes", ParamLocation.Query), new("pay_out_psp_codes", "payOutPspCodes", ParamLocation.Query), new("payment_status", "paymentStatus", ParamLocation.Query), new("seller_billing_cycle_id", "sellerBillingCycleId", ParamLocation.Query), new("start_date", "startDate", ParamLocation.Query), new("type", "type", ParamLocation.Query), new("shop_id", "shopId", ParamLocation.Query, Defaulted: true), new("max", "max", ParamLocation.Query), new("offset", "offset", ParamLocation.Query), new("sort", "sort", ParamLocation.Query), new("order", "order", ParamLocation.Query),], ReturnsJson: true, Paging: new OffsetPaging("invoices", "total_count", "offset"), Security: [[new("Shop-API-Key", ["ROLE_SHOP_ADMIN", "ROLE_PARTNER_ACCOUNTING_DOCUMENT_READ", "ROLE_PARTNER_OWN_ACCOUNTING_DOCUMENT_READ",]),],]);
@@ -53,7 +57,7 @@ public sealed class AccountingResource
         "TL04", "GET", "/api/sellerpayment/transactions_logs/async/status/{tracking_id}", "Accounting", "GetTransactionExportAsync", null,
         [new("tracking_id", "trackingId", ParamLocation.Path), new("shop_id", "shopId", ParamLocation.Query, Defaulted: true),], ReturnsJson: true, Security: [[new("Shop-API-Key", ["ROLE_SHOP_ACCOUNTANCY", "ROLE_PARTNER_TRANSACTION_LOG_READ",]),],], Job: new JobPolling("status", ["COMPLETED",], ["FAILED", "CANCELED",]));
 
-    internal static readonly Operation[] Operations = [DR11Operation, DR12Operation, DR73Operation, DR74Operation, DR75Operation, IV01Operation, IV02Operation, SBC11Operation, TL02Operation, TL03Operation, TL04Operation,];
+    internal static readonly Operation[] Operations = [DR11Operation, DR12Operation, DR73Operation, DR74Operation, DR75Operation, DR76Operation, IV01Operation, IV02Operation, SBC11Operation, TL02Operation, TL03Operation, TL04Operation,];
 
     private readonly Transport transport;
 
@@ -86,6 +90,10 @@ public sealed class AccountingResource
     /// <summary>Confirm that accounting documents were issued (DR75).</summary>
     public Task<DR75Response200> ConfirmIssuanceAsync(long? shopId = null, DR75Request? body = null, CancellationToken cancellationToken = default) =>
         transport.CallAsync<DR75Response200>(DR75Operation, [shopId, body,], cancellationToken);
+
+    /// <summary>Issue accounting documents and generate their files (DR76).</summary>
+    public Task<DR76Response200> GenerateDocumentsAsync(long? shopId = null, DR76Request? body = null, CancellationToken cancellationToken = default) =>
+        transport.CallAsync<DR76Response200>(DR76Operation, [shopId, body,], cancellationToken);
 
     /// <summary>List one page of accounting documents (IV01).</summary>
     public Task<IV01Response200> ListInvoicesAsync(string? currency = null, DateTimeOffset? endDate = null, List<long>? invoiceId = null, List<string>? issuingUserTypes = null, List<string>? payOutPspCodes = null, string? paymentStatus = null, List<string>? sellerBillingCycleId = null, DateTimeOffset? startDate = null, string? type = null, long? shopId = null, long? max = null, long? offset = null, string? sort = null, string? order = null, CancellationToken cancellationToken = default) =>

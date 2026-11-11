@@ -2128,6 +2128,41 @@ export interface DR75Response200RequestsInput {
   total_tax_amount?: number;
 }
 
+export interface DR76Request {
+  requests: Array<DR76RequestRequests>;
+}
+
+export interface DR76RequestRequests {
+  due_date?: string;
+  issue_date?: string;
+  request_id: string;
+  total_amount_excluding_taxes?: number;
+  total_tax_amount?: number;
+}
+
+export interface DR76Response200 {
+  requests: Array<DR76Response200Requests>;
+}
+
+export interface DR76Response200Requests {
+  errors?: Array<DR76Response200RequestsErrors>;
+  input: DR76Response200RequestsInput;
+}
+
+export interface DR76Response200RequestsErrors {
+  code: string;
+  field: string;
+  message: string;
+}
+
+export interface DR76Response200RequestsInput {
+  due_date?: string;
+  issue_date?: string;
+  request_id: string;
+  total_amount_excluding_taxes?: number;
+  total_tax_amount?: number;
+}
+
 export interface H11Response200 {
   hierarchies: Array<H11Response200Hierarchies>;
 }

@@ -123,6 +123,21 @@ const D_R75: Operation = Operation {
         ],
     }]],
 };
+const D_R76: Operation = Operation {
+    id: "DR76",
+    method: "POST",
+    path: "/api/document-request/documents/generate",
+    query_params: &["shop_id"],
+    returns_json: true,
+    paging: None,
+    security: &[&[Scheme {
+        name: "Shop-API-Key",
+        scopes: &[
+            "ROLE_SHOP_ADMIN",
+            "ROLE_PARTNER_CUSTOMER_ACCOUNTING_DOCUMENT_WRITE",
+        ],
+    }]],
+};
 
 /// The query parameters of [`DocumentRequestsApi::list`]. Set only what you need.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -249,6 +264,19 @@ impl Params for DocumentRequestsConfirmIssuanceParams {
     }
 }
 
+/// The query parameters of [`DocumentRequestsApi::generate_documents`]. Set only what you need.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DocumentRequestsGenerateDocumentsParams {
+    /// `None` sends the client's default, if it has one.
+    pub shop_id: Option<i64>,
+}
+
+impl Params for DocumentRequestsGenerateDocumentsParams {
+    fn apply(&self, request: &mut Request) {
+        request.query_default("shop_id", &self.shop_id);
+    }
+}
+
 /// The `document_requests` operations, from [`Client::document_requests`](crate::Client::document_requests).
 #[derive(Clone, Debug)]
 pub struct DocumentRequestsApi {
@@ -338,6 +366,17 @@ impl DocumentRequestsApi {
     ) -> Result<models::Dr75Response200, Error> {
         self.transport
             .call(Request::new(&D_R75).json(&body.into()).params(params))
+            .await
+    }
+
+    /// Issue accounting documents and generate their files (DR76).
+    pub async fn generate_documents(
+        &self,
+        body: impl Into<Option<&models::Dr76Request>>,
+        params: &DocumentRequestsGenerateDocumentsParams,
+    ) -> Result<models::Dr76Response200, Error> {
+        self.transport
+            .call(Request::new(&D_R76).json(&body.into()).params(params))
             .await
     }
 }

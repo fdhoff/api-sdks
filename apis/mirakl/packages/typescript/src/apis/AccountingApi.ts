@@ -7,6 +7,8 @@ import type {
   DR74Response200,
   DR75Request,
   DR75Response200,
+  DR76Request,
+  DR76Response200,
   IV01Response200,
   SBC11Response200,
   TL02Response200,
@@ -146,6 +148,20 @@ const dR75: Operation = {
   path: '/api/document-request/documents/confirm-issuance',
   resource: 'accounting',
   name: 'confirmIssuance',
+  params: [{ wire: 'shop_id', name: 'shopId', location: 'query', defaulted: true }],
+  hasBody: true,
+  returnsJson: true,
+  security: [
+    [{ scheme: 'Shop-API-Key', scopes: ['ROLE_SHOP_ADMIN', 'ROLE_PARTNER_CUSTOMER_ACCOUNTING_DOCUMENT_WRITE'] }],
+  ],
+};
+
+const dR76: Operation = {
+  id: 'DR76',
+  method: 'POST',
+  path: '/api/document-request/documents/generate',
+  resource: 'accounting',
+  name: 'generateDocuments',
   params: [{ wire: 'shop_id', name: 'shopId', location: 'query', defaulted: true }],
   hasBody: true,
   returnsJson: true,
@@ -312,7 +328,20 @@ const tL04: Operation = {
   security: [[{ scheme: 'Shop-API-Key', scopes: ['ROLE_SHOP_ACCOUNTANCY', 'ROLE_PARTNER_TRANSACTION_LOG_READ'] }]],
 };
 
-export const OPERATIONS: readonly Operation[] = [dR11, dR12, dR73, dR74, dR75, iV01, iV02, sBC11, tL02, tL03, tL04];
+export const OPERATIONS: readonly Operation[] = [
+  dR11,
+  dR12,
+  dR73,
+  dR74,
+  dR75,
+  dR76,
+  iV01,
+  iV02,
+  sBC11,
+  tL02,
+  tL03,
+  tL04,
+];
 
 export class AccountingApi extends Resource {
   /** List one page of accounting document requests (DR11). */
@@ -441,6 +470,15 @@ export class AccountingApi extends Resource {
     options?: RequestOptions,
   ): Promise<DR75Response200> {
     return this.call(dR75, body, { ...params }, options);
+  }
+
+  /** Issue accounting documents and generate their files (DR76). */
+  generateDocuments(
+    body?: DR76Request,
+    params: { shopId?: number } = {},
+    options?: RequestOptions,
+  ): Promise<DR76Response200> {
+    return this.call(dR76, body, { ...params }, options);
   }
 
   /** List one page of accounting documents (IV01). */

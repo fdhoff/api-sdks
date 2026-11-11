@@ -458,6 +458,12 @@ from mirakl_seller.models.dr75_response200 import DR75Response200
 from mirakl_seller.models.dr75_response200_requests import DR75Response200Requests
 from mirakl_seller.models.dr75_response200_requests_errors import DR75Response200RequestsErrors
 from mirakl_seller.models.dr75_response200_requests_input import DR75Response200RequestsInput
+from mirakl_seller.models.dr76_request import DR76Request
+from mirakl_seller.models.dr76_request_requests import DR76RequestRequests
+from mirakl_seller.models.dr76_response200 import DR76Response200
+from mirakl_seller.models.dr76_response200_requests import DR76Response200Requests
+from mirakl_seller.models.dr76_response200_requests_errors import DR76Response200RequestsErrors
+from mirakl_seller.models.dr76_response200_requests_input import DR76Response200RequestsInput
 from mirakl_seller.models.h11_response200 import H11Response200
 from mirakl_seller.models.h11_response200_hierarchies import H11Response200Hierarchies
 from mirakl_seller.models.h11_response200_hierarchies_label_translations import (
@@ -2873,6 +2879,12 @@ __all__ = [
     "DR75Response200Requests",
     "DR75Response200RequestsErrors",
     "DR75Response200RequestsInput",
+    "DR76Request",
+    "DR76RequestRequests",
+    "DR76Response200",
+    "DR76Response200Requests",
+    "DR76Response200RequestsErrors",
+    "DR76Response200RequestsInput",
     "H11Response200",
     "H11Response200Hierarchies",
     "H11Response200HierarchiesLabelTranslations",

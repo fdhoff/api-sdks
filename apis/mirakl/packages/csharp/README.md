@@ -17,7 +17,7 @@ Mirakl runs marketplaces for operators, such as Best Buy. Each operator has its 
 
 Mirakl's own SDKs are for PHP (`mirakl/sdk-php-shop`, under a proprietary licence) and Java, for its customers. There is none for .NET. This package is generated from Mirakl's published OpenAPI spec, as are its siblings in other languages in [the same repository](https://github.com/fdhoff/api-sdks). Every language passes one shared conformance suite, so retries, paging, jobs, errors and redaction behave the same in each. It adds:
 
-* typed models and async methods for all 116 current operations;
+* typed models and async methods for all 117 current operations;
 * `ListAll…Async` iterators that walk every page;
 * `WaitFor…Async` methods that poll an import or export until it ends;
 * `DownloadUrlAsync` for export files, which sends your key only to your operator's instance;

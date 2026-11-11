@@ -31,6 +31,8 @@ from mirakl_seller.models.dr74_request_multipart_form_data_documents_input impor
 from mirakl_seller.models.dr74_response200 import DR74Response200
 from mirakl_seller.models.dr75_request import DR75Request
 from mirakl_seller.models.dr75_response200 import DR75Response200
+from mirakl_seller.models.dr76_request import DR76Request
+from mirakl_seller.models.dr76_response200 import DR76Response200
 from mirakl_seller.models.iv01_response200 import IV01Response200
 from mirakl_seller.models.sbc11_response200 import SBC11Response200
 from mirakl_seller.models.tl02_response200 import TL02Response200
@@ -179,6 +181,27 @@ _d_r75: Operation[DR75Response200] = Operation(
     name="confirm_issuance",
     params=(Param("shop_id", "shop_id", "query", defaulted=True),),
     response=DR75Response200,
+    returns_json=True,
+    security=(
+        (
+            Scheme(
+                "Shop-API-Key",
+                (
+                    "ROLE_SHOP_ADMIN",
+                    "ROLE_PARTNER_CUSTOMER_ACCOUNTING_DOCUMENT_WRITE",
+                ),
+            ),
+        ),
+    ),
+)
+_d_r76: Operation[DR76Response200] = Operation(
+    id="DR76",
+    method="POST",
+    path="/api/document-request/documents/generate",
+    resource="accounting",
+    name="generate_documents",
+    params=(Param("shop_id", "shop_id", "query", defaulted=True),),
+    response=DR76Response200,
     returns_json=True,
     security=(
         (
@@ -400,6 +423,7 @@ OPERATIONS = (
     _d_r73,
     _d_r74,
     _d_r75,
+    _d_r76,
     _i_v01,
     _i_v02,
     _s_bc11,
@@ -602,6 +626,20 @@ class AccountingApi(Resource):
         """Confirm that accounting documents were issued (DR75)."""
         return self._call(
             _d_r75,
+            _body=body,
+            shop_id=shop_id,
+        )
+
+    @checked
+    def generate_documents(
+        self,
+        body: Optional[Union[DR76Request, Mapping[str, Any]]] = None,
+        *,
+        shop_id: Optional[StrictInt] = None,
+    ) -> DR76Response200:
+        """Issue accounting documents and generate their files (DR76)."""
+        return self._call(
+            _d_r76,
             _body=body,
             shop_id=shop_id,
         )
@@ -1111,6 +1149,20 @@ class AsyncAccountingApi(AsyncResource):
         """Confirm that accounting documents were issued (DR75)."""
         return await self._call(
             _d_r75,
+            _body=body,
+            shop_id=shop_id,
+        )
+
+    @checked
+    async def generate_documents(
+        self,
+        body: Optional[Union[DR76Request, Mapping[str, Any]]] = None,
+        *,
+        shop_id: Optional[StrictInt] = None,
+    ) -> DR76Response200:
+        """Issue accounting documents and generate their files (DR76)."""
+        return await self._call(
+            _d_r76,
             _body=body,
             shop_id=shop_id,
         )

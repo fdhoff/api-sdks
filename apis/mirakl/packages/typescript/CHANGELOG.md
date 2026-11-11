@@ -6,7 +6,8 @@ This package follows semantic versioning and stays on 0.x until outside users co
 
 The first alpha.
 
-* Typed client for the 116 current operations of the Mirakl seller API, generated from the public spec, for Node.js 22 or later, as ESM and CommonJS, with no runtime dependencies. Each method's comment names its Mirakl API code.
+* Typed client for the 117 current operations of the Mirakl seller API, generated from the public spec, for Node.js 22 or later, as ESM and CommonJS, with no runtime dependencies. Each method's comment names its Mirakl API code.
+* `accounting.generateDocuments` (DR76), added upstream on 2026-11-11, issues accounting documents and generates their files.
 * A required base URL for your operator's instance, and your shop API key as the whole `Authorization` header, redacted from errors and logs. A custom credential provider can replace the key.
 * `shopId` on the client, sent as `shop_id` on every call that leaves it unset, with a per-call override.
 * Iterators on the 21 paged operations: offset (`offset`, `max`, `total_count`) and seek (`page_token`, `next_page_token`).
