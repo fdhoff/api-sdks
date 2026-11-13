@@ -6875,6 +6875,7 @@ export interface PC01Response200FeaturesPromotion {
 
 export interface PC01Response200FeaturesReturns {
   drop_ship?: boolean;
+  mandatory_compliance_check: boolean;
   marketplace?: boolean;
   one_creditor?: boolean;
 }
