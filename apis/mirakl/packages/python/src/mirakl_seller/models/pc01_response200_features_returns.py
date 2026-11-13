@@ -14,5 +14,6 @@ class PC01Response200FeaturesReturns(ApiModel):
     """PC01Response200FeaturesReturns model."""
 
     drop_ship: Optional[StrictBool] = None
+    mandatory_compliance_check: StrictBool
     marketplace: Optional[StrictBool] = None
     one_creditor: Optional[StrictBool] = None

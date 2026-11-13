@@ -13,6 +13,9 @@ public sealed class PC01Response200FeaturesReturns : ApiModel
     [JsonPropertyName("drop_ship")]
     public bool? DropShip { get; set; }
 
+    [JsonPropertyName("mandatory_compliance_check")]
+    public bool? MandatoryComplianceCheck { get; set; }
+
     [JsonPropertyName("marketplace")]
     public bool? Marketplace { get; set; }
 

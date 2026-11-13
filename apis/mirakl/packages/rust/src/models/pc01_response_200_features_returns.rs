@@ -7,6 +7,7 @@ use crate::models;
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Pc01Response200FeaturesReturns {
     pub drop_ship: Option<bool>,
+    pub mandatory_compliance_check: Option<bool>,
     pub marketplace: Option<bool>,
     pub one_creditor: Option<bool>,
     pub extra: serde_json::Map<String, serde_json::Value>,
@@ -14,6 +15,7 @@ pub struct Pc01Response200FeaturesReturns {
 
 crate::runtime::tolerant_model!(Pc01Response200FeaturesReturns {
     drop_ship: "drop_ship",
+    mandatory_compliance_check: "mandatory_compliance_check",
     marketplace: "marketplace",
     one_creditor: "one_creditor",
 });

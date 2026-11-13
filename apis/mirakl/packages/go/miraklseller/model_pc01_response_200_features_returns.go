@@ -10,10 +10,11 @@ import (
 
 // PC01Response200FeaturesReturns is an API object. Extra holds unknown fields and any value that did not fit its field.
 type PC01Response200FeaturesReturns struct {
-	DropShip    *bool                      `json:"drop_ship,omitempty"`
-	Marketplace *bool                      `json:"marketplace,omitempty"`
-	OneCreditor *bool                      `json:"one_creditor,omitempty"`
-	Extra       map[string]json.RawMessage `json:"-"`
+	DropShip                 *bool                      `json:"drop_ship,omitempty"`
+	MandatoryComplianceCheck *bool                      `json:"mandatory_compliance_check,omitempty"`
+	Marketplace              *bool                      `json:"marketplace,omitempty"`
+	OneCreditor              *bool                      `json:"one_creditor,omitempty"`
+	Extra                    map[string]json.RawMessage `json:"-"`
 }
 
 // UnmarshalJSON decodes tolerantly: a field that does not fit stays unset and its raw value goes to Extra.
