@@ -16,4 +16,4 @@ class CreatePullReviewComment(ApiModel):
     body: Optional[StrictStr] = None
     new_position: Optional[StrictInt] = None
     old_position: Optional[StrictInt] = None
-    path: Optional[StrictStr] = None
+    path: StrictStr
