@@ -663,7 +663,7 @@ export interface CreatePullReviewComment {
   body?: string;
   new_position?: number;
   old_position?: number;
-  path?: string;
+  path: string;
 }
 
 export interface CreatePullReviewCommentReplyOptions {
