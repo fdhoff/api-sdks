@@ -11,6 +11,7 @@ const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const WORKFLOWS = join(ROOT, '.github/workflows');
 const SPEC_ACTION = './.github/actions/upstream-spec';
 const TARGET_ACTION = './.github/actions/release-target';
+const GENERATOR_ACTION = './.github/actions/generator';
 const RELEASES = { python: 'pypi', typescript: 'npm', csharp: 'nuget', rust: 'crates-io' };
 
 async function workflows() {
@@ -103,6 +104,23 @@ test('one job per workflow saves the spec cache after a miss', async () => {
     'release-rust.yml': ['build'],
     'release-typescript.yml': ['build'],
   });
+});
+
+test('every CI and release job that generates restores the generator first, and one saves it', async () => {
+  const offenders = [];
+  const savers = {};
+  for (const { name, workflow } of await workflows()) {
+    if (name !== 'ci.yml' && !name.startsWith('release-')) continue;
+    for (const [id, job] of Object.entries(workflow.jobs)) {
+      const steps = job.steps ?? [];
+      const generate = steps.findIndex((step) => /generate(\.mjs|:)/.test(step.run ?? ''));
+      const restore = steps.findIndex((step) => step.uses === GENERATOR_ACTION);
+      if (generate !== -1 && (restore === -1 || restore > generate)) offenders.push(`${name} ${id}`);
+      if (steps[restore]?.with?.save === true) (savers[name] ??= []).push(id);
+    }
+  }
+  assert.deepEqual(offenders, []);
+  assert.deepEqual(savers, { 'ci.yml': ['templates'] });
 });
 
 test('CI runs each language job for every API that has the package', async () => {

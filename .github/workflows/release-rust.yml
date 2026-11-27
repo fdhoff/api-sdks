@@ -5,6 +5,7 @@ name: Release Rust
 on:
   pull_request:
     paths:
+      - .github/actions/generator/**
       - .github/actions/release-target/**
       - .github/actions/upstream-spec/**
       - .github/workflows/release-rust.yml
@@ -78,6 +79,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/generator
       - uses: ./.github/actions/upstream-spec
         with:
           api: ${{ matrix.api }}

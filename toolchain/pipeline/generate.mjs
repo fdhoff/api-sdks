@@ -3,10 +3,10 @@
 import { spawnSync } from 'node:child_process';
 import { copyFile, cp, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, relative, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse, stringify } from 'yaml';
-import { sha256 } from './fetch-spec.mjs';
+import { ensureGenerator, readGeneratorLock } from './generator.mjs';
 import { apiPaths, lockSources, sourcePaths } from './paths.mjs';
 
 const TOOLCHAIN = fileURLToPath(new URL('..', import.meta.url));
@@ -563,22 +563,6 @@ async function exists(path) {
   );
 }
 
-async function ensureGenerator(cacheDir) {
-  const lock = JSON.parse(await readFile(join(TOOLCHAIN, 'generator/lock.json'), 'utf8'));
-  const jar = join(cacheDir, `openapi-generator-${lock.version}.jar`);
-  if (await exists(jar)) {
-    if (sha256(await readFile(jar)) === lock.sha256) return jar;
-    await rm(jar);
-  }
-  const response = await fetch(lock.url);
-  if (!response.ok) throw new Error(`GET ${lock.url}: HTTP ${response.status}`);
-  const bytes = Buffer.from(await response.arrayBuffer());
-  if (sha256(bytes) !== lock.sha256) throw new Error(`Generator from ${lock.url} does not match its lock`);
-  await mkdir(cacheDir, { recursive: true });
-  await writeFile(jar, bytes);
-  return jar;
-}
-
 function run(command, args, options = {}) {
   const { status } = spawnSync(command, args, { stdio: 'inherit', ...options });
   if (status !== 0) throw new Error(`${command} exited with ${status}`);
@@ -656,7 +640,7 @@ async function generateContract({ apiDir, language, packageDir, config, built, s
     await mkdir(join(work, 'out'));
     await writeFile(join(work, 'out', '.openapi-generator-ignore'), ignoreFile(config));
     run('java', [
-      '-jar', await ensureGenerator(dirname(apiPaths(apiDir).build)),
+      '-jar', await ensureGenerator(await readGeneratorLock()),
       'generate', '--generator-name', config.generator, '--skip-validate-spec',
       '--input-spec', input,
       '--output', join(work, 'out'),

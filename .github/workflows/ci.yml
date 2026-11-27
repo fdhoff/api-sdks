@@ -104,6 +104,9 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/generator
+        with:
+          save: true
       - run: node toolchain/pipeline/build-spec.mjs "$FIXTURE"
       - name: Python
         run: |
@@ -164,6 +167,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/generator
       - uses: ./.github/actions/upstream-spec
         with:
           api: ${{ matrix.api }}
@@ -223,6 +227,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/generator
       - uses: ./.github/actions/upstream-spec
         with:
           api: ${{ matrix.api }}
@@ -291,6 +296,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/generator
       - uses: ./.github/actions/upstream-spec
         with:
           api: ${{ matrix.api }}
@@ -341,6 +347,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/generator
       - uses: ./.github/actions/upstream-spec
         with:
           api: ${{ matrix.api }}
@@ -412,6 +419,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/generator
       - uses: ./.github/actions/upstream-spec
         with:
           api: ${{ matrix.api }}
