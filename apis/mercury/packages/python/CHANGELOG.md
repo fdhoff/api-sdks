@@ -2,7 +2,7 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
-## Unreleased
+## 0.1.0a3 (2026-11-27)
 
 * `client.products.delete`, to delete an invoicing product.
 * Request models check the string lengths Mercury now declares, such as 1 to 299 characters for a product name and 1 to 5000 for a customer name, and raise pydantic's `ValidationError` when built outside them. Responses are still read as sent.

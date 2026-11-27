@@ -2,7 +2,7 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
-## Unreleased
+## 0.1.0-alpha.3 (2026-11-27)
 
 * `client.Products.DeleteAsync`, to delete an invoicing product.
 

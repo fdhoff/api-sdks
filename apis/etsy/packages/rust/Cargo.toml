@@ -1,6 +1,6 @@
 [package]
 name = "etsy-seller"
-version = "0.1.0-alpha.1"
+version = "0.1.0-alpha.2"
 edition = "2024"
 rust-version = "1.85"
 description = "Unofficial Rust client for the Etsy Open API v3. Not affiliated with, endorsed or certified by Etsy."

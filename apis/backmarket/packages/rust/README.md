@@ -7,13 +7,13 @@ Unofficial async Rust client for the Back Market Seller API. This project is uno
 ## Install
 
 ```sh
-cargo add backmarket-seller@0.1.0-alpha.1
+cargo add backmarket-seller@0.1.0-alpha.2
 ```
 
 Requires Rust 1.85 or later and a Tokio runtime. TLS is rustls by default. For your platform's TLS library instead:
 
 ```sh
-cargo add backmarket-seller@0.1.0-alpha.1 --no-default-features --features native-tls
+cargo add backmarket-seller@0.1.0-alpha.2 --no-default-features --features native-tls
 ```
 
 With default features off and neither TLS feature, the crate builds but every `https` call fails with `ErrorKind::Connection`, after the usual retries for a GET. That is only right if you pass an `http_client` whose `reqwest` has TLS enabled through your own dependency.

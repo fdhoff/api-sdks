@@ -122,7 +122,7 @@ The [C# README](apis/backmarket/packages/csharp/README.md) covers installing, er
 Requires Rust 1.85 or later and a Tokio runtime.
 
 ```sh
-cargo add backmarket-seller@0.1.0-alpha.1
+cargo add backmarket-seller@0.1.0-alpha.2
 ```
 
 Every call is async and returns a `Result`, and pages are walked as a `Stream`:
