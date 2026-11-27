@@ -15,11 +15,12 @@ async function emptyDir(t) {
   return dir;
 }
 
-// Answers each fetch with the next entry: a status code, or an Error to throw as a network failure.
+// Answers each fetch with the next entry: a status code, a Response, or an Error to throw as a network failure.
 const respond = (t, ...answers) =>
   t.mock.method(globalThis, 'fetch', async () => {
     const answer = answers.shift();
     if (answer instanceof Error) throw answer;
+    if (answer instanceof Response) return answer;
     return answer === 200 ? new Response(JAR) : new Response('', { status: answer });
   });
 
@@ -35,6 +36,14 @@ test('fetchWithRetry retries throttling, server and network errors with backoff'
   assert.deepEqual(Buffer.from(await response.arrayBuffer()), JAR);
   assert.equal(fetchJar.mock.callCount(), 5);
   assert.deepEqual(waits, [10, 20, 40, 80]);
+});
+
+test('fetchWithRetry caps its backoff and follows Retry-After up to twice the cap', async (t) => {
+  const throttled = (seconds) => new Response('', { status: 429, headers: { 'retry-after': String(seconds) } });
+  respond(t, 503, 503, 503, throttled(1), throttled(30), 200);
+  const { waits, wait } = noWait();
+  await fetchWithRetry(LOCK.url, { delayMs: 1000, maxDelayMs: 5000, wait });
+  assert.deepEqual(waits, [1000, 2000, 4000, 5000, 10000]);
 });
 
 test('fetchWithRetry gives up after its last attempt', async (t) => {

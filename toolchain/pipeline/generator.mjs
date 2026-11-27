@@ -20,15 +20,18 @@ export const generatorCache = (lock) => ({ key: `openapi-generator-${lock.sha256
 // Maven Central throttles busy runner IPs with 429, and sometimes with a 404 for a file it serves.
 const retryable = (status) => status === 404 || status === 429 || status >= 500;
 
-// Fetches url, retrying throttling, server errors and network errors with exponential backoff.
-export async function fetchWithRetry(url, { attempts = 6, delayMs = 2000, wait = sleep } = {}) {
+// Fetches url, retrying throttling, server errors and network errors with exponential backoff, capped at
+// maxDelayMs, or for as long as a Retry-After header in seconds asks, up to twice that.
+export async function fetchWithRetry(url, { attempts = 9, delayMs = 2000, maxDelayMs = 60000, wait = sleep } = {}) {
   for (let attempt = 1; ; attempt++) {
     const result = await fetch(url).catch((error) => error);
     const status = result instanceof Response ? result.status : null;
     if (result.ok) return result;
     const failure = status === null ? result : new Error(`GET ${url}: HTTP ${status}`);
     if ((status !== null && !retryable(status)) || attempt === attempts) throw failure;
-    const delay = delayMs * 2 ** (attempt - 1);
+    const backoff = Math.min(delayMs * 2 ** (attempt - 1), maxDelayMs);
+    const retryAfter = Number(status === null ? NaN : result.headers.get('retry-after')) * 1000;
+    const delay = Number.isFinite(retryAfter) ? Math.min(Math.max(backoff, retryAfter), 2 * maxDelayMs) : backoff;
     console.error(`${failure.message}. Retrying in ${delay / 1000}s (${attempt}/${attempts - 1}).`);
     await wait(delay);
   }
