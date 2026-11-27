@@ -2,7 +2,7 @@
 
 This module follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
-## Unreleased
+## 0.1.0-alpha.2 (2026-11-27)
 
 * `client.Products.Delete`, to delete an invoicing product.
 * `client.Products.List`, `client.Products.Iter` and `client.Products.Create`, for the invoicing product catalog Mercury added to its API reference.

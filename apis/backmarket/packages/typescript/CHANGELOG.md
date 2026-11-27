@@ -2,7 +2,7 @@
 
 This package follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
-## Unreleased
+## 0.1.0-alpha.3 (2026-11-27)
 
 * Releases are published to npm's `latest` tag instead of `alpha`, so `npm install backmarket-seller` gets the newest 0.x release.
 * An empty, `.` or `..` path value throws `TypeError` before anything is sent, instead of a request to another endpoint, such as the list endpoint for `..`.

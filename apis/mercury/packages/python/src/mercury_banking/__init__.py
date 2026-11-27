@@ -20,7 +20,7 @@ from .errors import (
 )
 from .webhooks import SIGNATURE_HEADER, WebhookSignatureError, verify_webhook
 
-__version__ = "0.1.0a2"
+__version__ = "0.1.0a3"
 
 __all__ = [
     "ENVIRONMENTS",

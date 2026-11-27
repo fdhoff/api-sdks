@@ -2,7 +2,7 @@
 
 This crate follows semantic versioning and stays on 0.x until outside users confirm its behaviour against the live API.
 
-## Unreleased
+## 0.1.0-alpha.2 (2026-11-27)
 
 * An empty, `.` or `..` path value is an `ErrorKind::Api` error and nothing is sent, instead of a request to another endpoint, such as the list endpoint for `..`.
 * A POST, PUT or PATCH without a body sends `Content-Length: 0`, as the other languages' HTTP libraries do.
